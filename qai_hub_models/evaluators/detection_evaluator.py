@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Collection
 
 import torch
@@ -323,6 +324,7 @@ class DetectionEvaluator(mAPEvaluator):
                     curr_pred_box[0].tolist(),
                     strict=False,
                 )
+                if not any(math.isnan(x) for x in pred_bbox)
             ]
 
             if self.nms_iou_threshold is None and self.score_threshold is not None:

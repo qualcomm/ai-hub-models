@@ -3,10 +3,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
-import melo
+from typing import TYPE_CHECKING
+
 import torch
 from melo import commons
 from torch import Tensor, nn
+
+if TYPE_CHECKING:
+    import melo.attentions
+    import melo.models
 
 
 class OptimizedTextEncoder(nn.Module):
@@ -18,23 +23,22 @@ class OptimizedTextEncoder(nn.Module):
 
     def __init__(self, original_encoder: "melo.models.TextEncoder") -> None:
         super().__init__()
-        self.out_channels = original_encoder.out_channels
-        self.hidden_channels = original_encoder.hidden_channels
-        self.filter_channels = original_encoder.filter_channels
-        self.n_heads = original_encoder.n_heads
-        self.n_layers = original_encoder.n_layers
-        self.kernel_size = original_encoder.kernel_size
-        self.p_dropout = original_encoder.p_dropout
-        self.gin_channels = original_encoder.gin_channels
+        self.out_channels: int = original_encoder.out_channels
+        self.hidden_channels: int = original_encoder.hidden_channels
+        self.filter_channels: int = original_encoder.filter_channels
+        self.n_heads: int = original_encoder.n_heads
+        self.n_layers: int = original_encoder.n_layers
+        self.kernel_size: int = original_encoder.kernel_size
+        self.p_dropout: float = original_encoder.p_dropout
+        self.gin_channels: int = original_encoder.gin_channels
 
-        self.emb = original_encoder.emb
-        self.tone_emb = original_encoder.tone_emb
-        self.language_emb = original_encoder.language_emb
-        self.bert_proj = original_encoder.bert_proj
-        self.ja_bert_proj = original_encoder.ja_bert_proj
-
-        self.encoder = original_encoder.encoder
-        self.proj = original_encoder.proj
+        self.emb: nn.Embedding = original_encoder.emb
+        self.tone_emb: nn.Embedding = original_encoder.tone_emb
+        self.language_emb: nn.Embedding = original_encoder.language_emb
+        self.bert_proj: nn.Conv1d = original_encoder.bert_proj
+        self.ja_bert_proj: nn.Conv1d = original_encoder.ja_bert_proj
+        self.encoder: melo.attentions.Encoder = original_encoder.encoder
+        self.proj: nn.Conv1d = original_encoder.proj
 
         self.hidden_scale = self.hidden_channels**0.5
 
@@ -82,6 +86,10 @@ class OptimizedTextEncoder(nn.Module):
         bert_emb = self.bert_proj(bert).transpose(1, 2)
         ja_bert_emb = self.ja_bert_proj(ja_bert).transpose(1, 2)
 
+        # TODO(17781): Undo clamp after we add a tracing option to set the input value range.
+        x = torch.clamp(x, 0, self.emb.num_embeddings - 1)
+        tone = torch.clamp(tone, 0, self.tone_emb.num_embeddings - 1)
+        language = torch.clamp(language, 0, self.language_emb.num_embeddings - 1)
         x = (
             self.emb(x)
             + self.tone_emb(tone)

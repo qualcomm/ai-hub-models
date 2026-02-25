@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from typing import Any
 
 import numpy as np
@@ -22,6 +23,13 @@ from qai_hub_models.utils.asset_loaders import (
     extract_zip_file,
     load_image,
 )
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_kitti_files,
+    )
+except ImportError:
+    download_kitti_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import pre_process_with_affine
 from qai_hub_models.utils.input_spec import InputSpec
 
@@ -135,33 +143,52 @@ class KittiDataset(BaseDataset):
     def __len__(self) -> int:
         return len(self.sample)
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Download images from https://www.cvlibs.net/download.php?file=data_object_image_2.zip",
-                "Download annotations from https://www.cvlibs.net/download.php?file=data_object_label_2.zip",
-                "Download calibrations from https://www.cvlibs.net/download.php?file=data_object_calib.zip",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset kitti --files /path/to/data_object_image_2.zip /path/to/data_object_label_2.zip /path/to/data_object_calib.zip`",
-            ],
-        )
-        if self.input_images_zip is None or not self.input_images_zip.endswith(
-            f"{KITTI_IMAGES_DIR_NAME}.zip"
+    def _download_data(
+        self,
+        images_zip: str | None = None,
+        labels_zip: str | None = None,
+        calibs_zip: str | None = None,
+    ) -> None:
+        # Use passed args if provided, otherwise use instance attributes
+        if images_zip is None:
+            images_zip = self.input_images_zip
+        if labels_zip is None:
+            labels_zip = self.input_labels_zip
+        if calibs_zip is None:
+            calibs_zip = self.input_calibs_zip
+
+        # If no files provided/set, try auto-download
+        if images_zip is None and download_kitti_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                images_zip = os.path.join(tmpdir, f"{KITTI_IMAGES_DIR_NAME}.zip")
+                labels_zip = os.path.join(tmpdir, f"{KITTI_LABELS_DIR_NAME}.zip")
+                calibs_zip = os.path.join(tmpdir, f"{KITTI_CALIBS_DIR_NAME}.zip")
+                download_kitti_files(images_zip, labels_zip, calibs_zip, KITTI_VERSION)
+                self._download_data(images_zip, labels_zip, calibs_zip)
+            return
+
+        if (
+            images_zip is None
+            or not images_zip.endswith(f"{KITTI_IMAGES_DIR_NAME}.zip")
+            or labels_zip is None
+            or not labels_zip.endswith(f"{KITTI_LABELS_DIR_NAME}.zip")
+            or calibs_zip is None
+            or not calibs_zip.endswith(f"{KITTI_CALIBS_DIR_NAME}.zip")
         ):
-            raise no_zip_error
-        if self.input_labels_zip is None or not self.input_labels_zip.endswith(
-            f"{KITTI_LABELS_DIR_NAME}.zip"
-        ):
-            raise no_zip_error
-        if self.input_calibs_zip is None or not self.input_calibs_zip.endswith(
-            f"{KITTI_CALIBS_DIR_NAME}.zip"
-        ):
-            raise no_zip_error
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Download images from https://www.cvlibs.net/download.php?file=data_object_image_2.zip",
+                    "Download annotations from https://www.cvlibs.net/download.php?file=data_object_label_2.zip",
+                    "Download calibrations from https://www.cvlibs.net/download.php?file=data_object_calib.zip",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset kitti --files /path/to/data_object_image_2.zip /path/to/data_object_label_2.zip /path/to/data_object_calib.zip`",
+                ],
+            )
 
         os.makedirs(self.root_path, exist_ok=True)
-        extract_zip_file(self.input_images_zip, self.root_path)
-        extract_zip_file(self.input_labels_zip, self.root_path)
-        extract_zip_file(self.input_calibs_zip, self.root_path)
+        extract_zip_file(images_zip, self.root_path)
+        extract_zip_file(labels_zip, self.root_path)
+        extract_zip_file(calibs_zip, self.root_path)
 
     @staticmethod
     def default_samples_per_job() -> int:

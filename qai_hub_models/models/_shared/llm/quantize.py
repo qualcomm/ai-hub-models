@@ -31,7 +31,11 @@ def quantize(
     num_samples: int = 0,
     checkpoint: str | None = None,
     use_seq_mse: bool = False,
+    use_ada_scale: bool = False,
     allow_cpu_to_quantize: bool = False,
+    seq_mse_num_samples: int | None = None,
+    ada_scale_num_samples: int | None = None,
+    ada_scale_num_iterations: int | None = None,
 ) -> None:
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if device.type != "cuda":
@@ -39,9 +43,9 @@ def quantize(
             raise ValueError(
                 "This model requires a CUDA GPU (V100/A100) on it to do quantization. Please re-try with GPU machine."
             )
-        if use_seq_mse:
+        if use_seq_mse or use_ada_scale:
             raise ValueError(
-                "The quantization technique Sequential MSE requires a CUDA GPU (V100/A100). Please re-try with GPU machine."
+                "This quantization technique requires a CUDA GPU (V100/A100). Please re-try with GPU machine."
             )
 
     # Create the floating point model
@@ -63,23 +67,36 @@ def quantize(
         host_device=device,
         fp_model=fp_model,
     )
-    calib_data = model_quant.get_calibration_data(num_samples=num_samples)
+
+    # Determine how many samples we need
+    num_max_samples = 0
+    if num_samples is not None:
+        num_max_samples = num_samples
+    if use_seq_mse and seq_mse_num_samples is not None:
+        num_max_samples = max(num_max_samples, seq_mse_num_samples)
+    if use_ada_scale and ada_scale_num_samples is not None:
+        num_max_samples = max(num_max_samples, ada_scale_num_samples)
+
+    calib_data = model_quant.get_calibration_data(num_samples=num_max_samples)
     assert calib_data is not None
     dataloader = dataset_entries_to_dataloader(calib_data)
 
     gc.collect()
     torch.cuda.empty_cache()
 
-    # Do calibration (and Sequential MSE if flag is set)
-    if use_seq_mse:
+    if use_seq_mse or use_ada_scale:
         print()
-        print(
-            "WARNING: Sequential MSE takes about 4.5 hours for model with 3B parameters and about 8 hours for model with 8B parameters."
-        )
+        print("NOTE: This quantization technique can take hours to complete.")
 
+    # Do calibration
     model_quant.quantize(
         data=dataloader,
+        num_samples=num_samples,
         use_seq_mse=use_seq_mse,
+        use_ada_scale=use_ada_scale,
+        seq_mse_num_samples=seq_mse_num_samples,
+        ada_scale_num_samples=ada_scale_num_samples,
+        ada_scale_num_iterations=ada_scale_num_iterations,
     )
 
     model_quant.save_calibrated_checkpoint(output_dir, fp_model=fp_model)
@@ -128,10 +145,34 @@ def llm_quantize(
         help="Add to apply Sequential MSE.",
     )
     parser.add_argument(
+        "--use-ada-scale",
+        action="store_true",
+        default=False,
+        help="Add to apply AdaScale.",
+    )
+    parser.add_argument(
         "--num-samples",
         type=int,
-        default=0,
+        default=20,
         help="Number of samples to be used for calibration.",
+    )
+    parser.add_argument(
+        "--seq-mse-num-samples",
+        type=int,
+        default=None,
+        help="Number of samples for sequential MSE. Defaults to --num-samples.",
+    )
+    parser.add_argument(
+        "--ada-scale-num-samples",
+        type=int,
+        default=None,
+        help="Number of samples for AdaScale.",
+    )
+    parser.add_argument(
+        "--ada-scale-num-iterations",
+        type=int,
+        default=None,
+        help="Number of iterations for AdaScale.",
     )
     parser.add_argument(
         "--precision",
@@ -152,7 +193,11 @@ def llm_quantize(
         num_samples=args.num_samples,
         checkpoint=args.checkpoint,
         use_seq_mse=args.use_seq_mse,
+        use_ada_scale=args.use_ada_scale,
         allow_cpu_to_quantize=allow_cpu_to_quantize,
+        seq_mse_num_samples=args.seq_mse_num_samples,
+        ada_scale_num_samples=args.ada_scale_num_samples,
+        ada_scale_num_iterations=args.ada_scale_num_iterations,
     )
     print("Quantization completed successfully.")
     print()

@@ -14,7 +14,9 @@ from qai_hub.client import DatasetEntries
 from torch.utils.data import DataLoader
 
 from qai_hub_models.datasets import DatasetSplit, get_dataset_from_name
-from qai_hub_models.models._shared.detectron2.app import Detectron2App
+from qai_hub_models.models._shared.proposal_based_detection.app import (
+    ProposalBasedDetectionApp,
+)
 from qai_hub_models.utils.base_model import BaseModel, CollectionModel
 from qai_hub_models.utils.bounding_box_processing import batched_nms
 from qai_hub_models.utils.draw import create_color_map, draw_box_from_xyxy
@@ -25,14 +27,14 @@ from qai_hub_models.utils.path_helpers import QAIHM_PACKAGE_ROOT
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 
 
-class Detectron2DetectionApp(Detectron2App):
+class Detectron2DetectionApp(ProposalBasedDetectionApp):
     """
     This class consists of light-weight "app code" that is required to
-    perform end to end inference with Detectron2.
+    perform end to end inference with Detectron2_detection.
 
     For a given image input, the app will:
         * Preprocess the image (normalize, resize, etc).
-        * Run Detectron2 Inference
+        * Run Detectron2_detection Inference.
         * Convert the raw output into box coordinates and corresponding label and confidence.
         * Return numpy image with boxes.
     """

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import warnings
 from pathlib import Path
 
@@ -20,6 +21,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, extract_zip_file
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_face_det_lite_files,
+    )
+except ImportError:
+    download_face_det_lite_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
 
 FACEDETLITE_DATASET_VERSION = 1
@@ -150,19 +158,29 @@ class FaceDetLiteDataset(BaseDataset):
             self.gt_list.append(gt_path)
         return True
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=None,
-        )
+    def _download_data(self, zip_path: str | None = None) -> None:
+        # Use passed arg if provided, otherwise use instance attribute
+        if zip_path is None:
+            zip_path = self.input_data_zip
 
-        if self.input_data_zip is None or not self.input_data_zip.endswith(
+        # If no file provided/set, try auto-download
+        if zip_path is None and download_face_det_lite_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                zip_path = os.path.join(tmpdir, f"{FACEDETLITE_DATASET_DIR_NAME}.zip")
+                download_face_det_lite_files(zip_path)
+                self._download_data(zip_path)
+            return
+
+        if zip_path is None or not zip_path.endswith(
             FACEDETLITE_DATASET_DIR_NAME + ".zip"
         ):
-            raise no_zip_error
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=None,
+            )
 
         os.makedirs(self.images_path.parent, exist_ok=True)
-        extract_zip_file(self.input_data_zip, self.images_path)
+        extract_zip_file(zip_path, self.images_path)
 
     @staticmethod
     def default_samples_per_job() -> int:

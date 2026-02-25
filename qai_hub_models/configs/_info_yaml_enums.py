@@ -83,6 +83,7 @@ HF_AVAILABLE_LICENSES = {
     "llama3.3",
     "stability-ai",
     "gemma",
+    "lfm1.0",
     "unknown",
     "other",
     "array",
@@ -117,6 +118,7 @@ class MODEL_LICENSE(Enum):
     TAIDE = "taide"
     FALCON3 = "falcon3"
     GEMMA = "gemma"
+    LFM1_0 = "lfm1.0"
 
     @property
     def is_copyleft(self) -> bool:
@@ -167,6 +169,8 @@ class MODEL_LICENSE(Enum):
             return "https://falconllm.tii.ae/falcon-terms-and-conditions.html"
         if self == MODEL_LICENSE.GEMMA:
             return "https://ai.google.dev/gemma/terms"
+        if self == MODEL_LICENSE.LFM1_0:
+            return "https://www.liquid.ai/lfm-license"
         return None
 
 

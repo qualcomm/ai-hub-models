@@ -1144,11 +1144,31 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
         """
         # Make the directory for the output checkpoint
         os.makedirs(output_checkpoint, exist_ok=True)
-        export_sequence_lengths = list(
-            {1, DEFAULT_SEQUENCE_LENGTH, self.sequence_length, self.context_length // 2}
-        )
+        export_sequence_lengths = {
+            1,
+            DEFAULT_SEQUENCE_LENGTH,
+            self.sequence_length,
+            self.context_length // 2,
+        }
         # If the sequence length is ARs to be exported then export model as part of QuantSim.
+        export_sequence_lengths.discard(self.sequence_length)
+
         print(f"Creating a checkpoint of quantized model at {output_checkpoint}.")
+        # Create the multiple ONNX models.
+        self.create_onnx_models(
+            checkpoint=output_checkpoint,
+            fp_model=fp_model,
+            context_length=self.context_length,
+            export_sequence_lengths=list(export_sequence_lengths),
+            host_device=self.host_device or torch.device("cpu"),
+            llm_io_type=self.llm_io_type,
+        )
+
+        # Remove existing .data file if it exists since QuantSim export will create a new one
+        if os.path.exists(os.path.join(output_checkpoint, "model.data")):
+            os.remove(os.path.join(output_checkpoint, "model.data"))
+
+        # Export the QuantSim last, since we want any weights modified by QuantSim to be used for all model variants
         assert self.quant_sim is not None
         self.quant_sim.export(str(output_checkpoint), "model")
         del self.quant_sim
@@ -1160,15 +1180,7 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
                 f"model_seqlen{self.sequence_length}_cl{self.context_length}.onnx",
             ),
         )
-        # Create the multiple ONNX models.
-        self.create_onnx_models(
-            checkpoint=output_checkpoint,
-            fp_model=fp_model,
-            context_length=self.context_length,
-            export_sequence_lengths=export_sequence_lengths,
-            host_device=self.host_device or torch.device("cpu"),
-            llm_io_type=self.llm_io_type,
-        )
+
         self.llm_config.save_pretrained(output_checkpoint)
         self.tokenizer.save_pretrained(output_checkpoint)
 
@@ -1337,7 +1349,7 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
             llm_config=self.llm_config.to_dict(),
             sequence_length=self.sequence_length,
             context_length=self.context_length,
-            llm_io_type=LLMIOType.genie_input_ids,
+            llm_io_type=self.llm_io_type,
         )
         assert input_spec is not None
         inputs: list[list[torch.Tensor | np.ndarray]] = [
@@ -1354,14 +1366,16 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
             rope_embeddings,
         )
 
-        # for data in dataloader
-        for sample in tqdm(
-            dataloader, total=len(dataloader), desc="Pre-filling calibration data"
-        ):
-            input_ids, attention_mask, _ = sample
-            for prefilled_inputs in generator.prefill(input_ids, attention_mask):
-                for i, tensor in enumerate(prefilled_inputs):
-                    inputs[i].append(tensor)
+        # Only bother removing quantization if we don't have a floating point model provided
+        with self.remove_quantization():
+            # for data in dataloader
+            for sample in tqdm(
+                dataloader, total=len(dataloader), desc="Pre-filling calibration data"
+            ):
+                input_ids, attention_mask, _ = sample
+                for prefilled_inputs in generator.prefill(input_ids, attention_mask):
+                    for i, tensor in enumerate(prefilled_inputs):
+                        inputs[i].append(tensor)
 
         return make_hub_dataset_entries(tuple(inputs), list(input_spec.keys()))
 

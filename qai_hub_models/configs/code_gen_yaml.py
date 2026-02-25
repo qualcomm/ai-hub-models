@@ -147,6 +147,11 @@ class QAIHMModelCodeGen(BaseQAIHMConfig):
     # Enables PT2 export (replaces TorchScript export)
     enable_pt2: bool = False
 
+    # llama.cpp commands for running the model on different runtimes
+    llama_cpp_cpu_command: str | None = None
+    llama_cpp_gpu_command: str | None = None
+    llama_cpp_npu_command: str | None = None
+
     def is_supported(
         self,
         precision: Precision,

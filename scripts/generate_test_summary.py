@@ -383,33 +383,6 @@ def write_to_github_summary(content: str) -> None:
         print(content)
 
 
-def find_junit_xml_files(directory: str, pattern: str) -> list[str]:
-    """
-    Find all JUnit XML files in a directory that match a pattern.
-
-    Parameters
-    ----------
-    directory
-        Directory to search in.
-    pattern
-        Pattern to match (e.g., "models-junit*.xml").
-
-    Returns
-    -------
-    file_paths : list[str]
-        List of file paths.
-    """
-    if not directory or not os.path.exists(directory):
-        return []
-
-    result = []
-    for filename in os.listdir(directory):
-        if filename.startswith(pattern) and filename.endswith(".xml"):
-            result.append(os.path.join(directory, filename))
-
-    return result
-
-
 def combine_junit_results(
     file_paths: list[str],
 ) -> tuple[list[dict[str, Any]], dict[str, int | float]]:
@@ -451,6 +424,88 @@ def combine_junit_results(
         combined_stats["time"] += stats["time"]
 
     return all_failures, combined_stats
+
+
+def write_combined_xml(file_paths: list[str], output_path: str) -> None:
+    """
+    Combine multiple JUnit XML files into a single file.
+
+    Parameters
+    ----------
+    file_paths
+        List of paths to JUnit XML files to combine.
+    output_path
+        Path to write the combined JUnit XML file.
+    """
+    if not file_paths:
+        print("No input files to combine")
+        return
+
+    # Collect all testsuites from all files
+    all_testsuites: list[ET.Element] = []
+    total_tests = 0
+    total_failures = 0
+    total_errors = 0
+    total_skipped = 0
+    total_time = 0.0
+
+    for xml_file in file_paths:
+        try:
+            tree = ET.parse(xml_file)
+            root = tree.getroot()
+
+            # Handle both <testsuites> and <testsuite> roots
+            if root.tag == "testsuites":
+                for testsuite in root.findall("testsuite"):
+                    all_testsuites.append(testsuite)
+                    total_tests += int(testsuite.get("tests", 0))
+                    total_failures += int(testsuite.get("failures", 0))
+                    total_errors += int(testsuite.get("errors", 0))
+                    total_skipped += int(testsuite.get("skipped", 0))
+                    total_time += float(testsuite.get("time", 0))
+            elif root.tag == "testsuite":
+                all_testsuites.append(root)
+                total_tests += int(root.get("tests", 0))
+                total_failures += int(root.get("failures", 0))
+                total_errors += int(root.get("errors", 0))
+                total_skipped += int(root.get("skipped", 0))
+                total_time += float(root.get("time", 0))
+            else:
+                print(f"Warning: Unknown root element '{root.tag}' in {xml_file}")
+
+        except ET.ParseError as e:
+            print(f"Warning: Failed to parse {xml_file}: {e}")
+        except Exception as e:
+            print(f"Warning: Error processing {xml_file}: {e}")
+
+    if not all_testsuites:
+        print("No test suites found in any input files")
+        return
+
+    # Create combined root element
+    combined_root = ET.Element("testsuites")
+    combined_root.set("tests", str(total_tests))
+    combined_root.set("failures", str(total_failures))
+    combined_root.set("errors", str(total_errors))
+    combined_root.set("skipped", str(total_skipped))
+    combined_root.set("time", f"{total_time:.3f}")
+
+    # Add all testsuites to combined root
+    for testsuite in all_testsuites:
+        combined_root.append(testsuite)
+
+    # Write combined XML
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    tree = ET.ElementTree(combined_root)
+    ET.indent(tree, space="  ")
+    tree.write(output_path, encoding="unicode", xml_declaration=True)
+
+    print(f"Combined {len(file_paths)} files into {output_path}")
+    print(f"  Total tests: {total_tests}")
+    print(f"  Failures: {total_failures}")
+    print(f"  Errors: {total_errors}")
+    print(f"  Skipped: {total_skipped}")
+    print(f"  Time: {total_time:.3f}s")
 
 
 def process_test_results(
@@ -500,113 +555,73 @@ def process_test_results(
         summary_sections.append("All tests passed! 🎉\n\n")
 
 
-def get_test_results(
-    xml_path_or_dir: str, file_pattern: str | None = None
-) -> tuple[list[dict[str, Any]], dict[str, int | float]]:
+def find_xml_files_recursive(directory: str, pattern: str = "*.xml") -> list[str]:
     """
-    Get test results from a file or directory.
+    Recursively find all XML files in a directory.
 
     Parameters
     ----------
-    xml_path_or_dir
-        Path to XML file or directory.
-    file_pattern
-        Pattern to match files in directory.
+    directory
+        Directory to search in.
+    pattern
+        Glob pattern to match (default: "*.xml").
 
     Returns
     -------
-    failures : list[dict[str, Any]]
-        List of test failures.
-    stats : dict[str, int | float]
-        Test statistics.
+    file_paths : list[str]
+        List of file paths.
     """
-    if os.path.isdir(xml_path_or_dir) and file_pattern:
-        # Find all matching XML files in directory
-        xml_files = find_junit_xml_files(xml_path_or_dir, file_pattern)
-        print(f"Found {len(xml_files)} {file_pattern} files in {xml_path_or_dir}")
+    import glob
 
-        return combine_junit_results(xml_files)
-    return parse_junit_xml(xml_path_or_dir)
-
-
-def write_summary(summary_text: str, output_path: str | None = None) -> None:
-    """
-    Write summary to output file and/or GitHub step summary.
-
-    Parameters
-    ----------
-    summary_text
-        Summary text to write.
-    output_path
-        Path to output file (optional).
-    """
-    if output_path:
-        with open(output_path, "w") as f:
-            f.write(summary_text)
-        print(f"Summary written to {output_path}")
-    else:
-        # Write to GitHub step summary
-        write_to_github_summary(summary_text)
-
-        # Also write to a file in the current directory
-        with open("test_summary.md", "w") as f:
-            f.write(summary_text)
-        print("Summary also written to test_summary.md")
+    return sorted(glob.glob(os.path.join(directory, "**", pattern), recursive=True))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate test failure summary from JUnit XML files"
+        description="Combine JUnit XML files and generate test failure summary"
     )
-    parser.add_argument("--qaihm-xml", help="Path to the QAIHM JUnit XML file")
-    parser.add_argument("--models-xml", help="Path to the Models JUnit XML file")
-    parser.add_argument("--results-dir", help="Directory containing JUnit XML files")
     parser.add_argument(
-        "--output", help="Path to output file (defaults to GitHub step summary)"
+        "--input",
+        "-i",
+        required=True,
+        help="Directory containing JUnit XML files (searched recursively)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        required=True,
+        help="Output directory for combined-junit.xml and summary.md",
     )
     args = parser.parse_args()
-    """
-    example usage.
-    mkdir -p ./test-results
 
-    export QAIHM_JUNIT_XML_PATH=./test-results/qaihm-junit.xml
-    export QAIHM_MODELS_JUNIT_XML_PATH=./test-results/models-junit.xml
-    export QAIHM_TEST_MODELS="mediapipe_pose"
-    python scripts/build_and_test.py --venv=none precheckin
+    # Find all XML files recursively in input directory
+    if not os.path.exists(args.input):
+        print(f"Error: Input directory does not exist: {args.input}")
+        return
 
-    python scripts/generate_test_summary.py --results-dir=./test-results
+    all_xml_files = find_xml_files_recursive(args.input)
+    if not all_xml_files:
+        print(f"No XML files found in {args.input}")
+        return
 
-    cat test_summary.md
-    """
+    print(f"Found {len(all_xml_files)} XML files in {args.input}")
+
+    # Create output directory
+    os.makedirs(args.output, exist_ok=True)
+
+    # Write combined XML
+    write_combined_xml(all_xml_files, os.path.join(args.output, "combined-junit.xml"))
+
+    # Generate summary
+    failures, stats = combine_junit_results(all_xml_files)
     summary_sections = ["## Test Failure Summary\n"]
-
-    if args.qaihm_xml:
-        failures, stats = get_test_results(args.qaihm_xml)
-        process_test_results("QAIHM", failures, stats, summary_sections)
-
-    if args.models_xml:
-        failures, stats = get_test_results(args.models_xml, "models-junit")
-        process_test_results("Model", failures, stats, summary_sections)
-
-    elif args.results_dir:
-        if not args.qaihm_xml:
-            qaihm_xml_files = find_junit_xml_files(args.results_dir, "qaihm-junit")
-            if qaihm_xml_files:
-                failures, stats = combine_junit_results(qaihm_xml_files)
-                process_test_results("QAIHM", failures, stats, summary_sections)
-
-        if not args.models_xml:
-            model_xml_files = find_junit_xml_files(args.results_dir, "models-junit")
-            if model_xml_files:
-                failures, stats = combine_junit_results(model_xml_files)
-                process_test_results("Model", failures, stats, summary_sections)
-
-    if not args.qaihm_xml and not args.models_xml and not args.results_dir:
-        summary_sections.append("No test results files were provided.")
-
+    process_test_results("Combined", failures, stats, summary_sections)
     summary_text = "\n".join(summary_sections)
 
-    write_summary(summary_text, args.output)
+    # Write summary to file and GitHub step summary
+    with open(os.path.join(args.output, "summary.md"), "w") as f:
+        f.write(summary_text)
+    write_to_github_summary(summary_text)
 
 
 if __name__ == "__main__":

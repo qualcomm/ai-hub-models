@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
-import numpy as np
-
-from qai_hub_models.models.sinet.app import SINetApp
+from qai_hub_models.models._shared.selfie_segmentation.test import (
+    selfie_model_and_app_test_e2e,
+)
 from qai_hub_models.models.sinet.demo import INPUT_IMAGE_ADDRESS
 from qai_hub_models.models.sinet.demo import main as demo_main
 from qai_hub_models.models.sinet.model import MODEL_ASSET_VERSION, MODEL_ID, SINet
@@ -20,16 +20,10 @@ OUTPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
 
 @skip_clone_repo_check
 def test_task() -> None:
-    image = load_image(INPUT_IMAGE_ADDRESS)
-    output_image = load_image(OUTPUT_IMAGE_ADDRESS)
-    app = SINetApp(SINet.from_pretrained())
-    app_output_image = app.predict(image, False)
-
-    np.testing.assert_allclose(
-        np.asarray(app_output_image, dtype=np.float32) / 255,
-        np.asarray(output_image, dtype=np.float32) / 255,
-        rtol=0.02,
-        atol=0.2,
+    selfie_model_and_app_test_e2e(
+        SINet.from_pretrained(),
+        load_image(INPUT_IMAGE_ADDRESS),
+        load_image(OUTPUT_IMAGE_ADDRESS),
     )
 
 

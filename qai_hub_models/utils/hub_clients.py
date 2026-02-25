@@ -57,7 +57,7 @@ def _get_global_client() -> tuple[str, HubClient] | None:
         # "prod" deployment is "workbench.aihub.qualcomm.com"
         #
         deployment_name = (
-            "prod" if deployment_name == "workbench" else deployment_name.lower()
+            "prod" if deployment_is_prod(deployment_name) else deployment_name.lower()
         )
 
         return deployment_name, global_client
@@ -110,7 +110,7 @@ def get_hub_client(
         f"HUB_{user}_USER_TOKEN_" if user != DEFAULT_CLIENT_USER else "HUB_USER_TOKEN_"
     )
     deployment_name = deployment_name.lower()
-    deployment_name = "prod" if deployment_name == "workbench" else deployment_name
+    deployment_name = "prod" if deployment_is_prod(deployment_name) else deployment_name
 
     # Return Cached client if applicable
     if user in _CACHED_CLIENTS and deployment_name in _CACHED_CLIENTS[user]:

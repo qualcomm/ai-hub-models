@@ -369,6 +369,7 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
             llm_config=self.selected_model.llm_config.to_dict(),
             sequence_length=sequence_length,
             context_length=context_length,
+            llm_io_type=self.llm_io_type,
         )
         # Initialization of KV cache padding
         dummy_past_key_values = [
@@ -378,7 +379,7 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
         ]
 
         current_key_value_length = (
-            past_key_values[0].shape[-1] if past_key_values else 0
+            past_key_values[1].shape[-2] if past_key_values else 0
         )
         key_value_padding_length = (
             context_length - sequence_length
@@ -476,7 +477,7 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
 
         # shift global KV cache, concatenate local KV cache
         current_key_value_length = (
-            past_key_values_list[0].shape[-1] if past_key_values_list else 0
+            past_key_values_list[1].shape[-2] if past_key_values_list else 0
         )
         global_outputs["past_key_values"] = get_past_keyval_with_shift(
             past_key_vals=past_key_values_list,
@@ -609,13 +610,14 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
         input_tokens_to_preconsume = input_tokens[:, :num_tokens_to_preconsume]
         attention_mask_to_preconsume = attention_mask[:, :num_tokens_to_preconsume]
 
-        past_key_values_list = (
-            []
-            if past_key_values is None or past_key_values.get_seq_length() == 0
-            else list(itertools.chain.from_iterable(past_key_values.to_legacy_cache()))
-        )
         preconsumed_outputs: dict[str, torch.Tensor | list[torch.Tensor]] = {
-            "past_key_values": past_key_values_list,
+            "past_key_values": (
+                []
+                if past_key_values is None or past_key_values.get_seq_length() == 0
+                else list(
+                    itertools.chain.from_iterable(past_key_values.to_legacy_cache())
+                )
+            )
         }
 
         for input_slice, attention_mask_slice in self.slice_inputs_for_inference(
@@ -623,6 +625,9 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
             attention_mask_to_preconsume,
             model.sequence_length,
         ):
+            past_key_values_list = preconsumed_outputs["past_key_values"]
+            assert isinstance(past_key_values_list, list)
+
             prepared_inputs = self.prepare_inputs(
                 input_ids=input_slice if input_ids is not None else None,
                 attention_mask=attention_mask_slice,
@@ -646,6 +651,8 @@ class LLM_Generator(GenerationMixin, torch.nn.Module):
 
         remaining_input_tokens = input_tokens[:, num_tokens_to_preconsume:]
         remaining_attention_mask = attention_mask[:, num_tokens_to_preconsume:]
+        past_key_values_list = preconsumed_outputs["past_key_values"]
+        assert isinstance(past_key_values_list, list)
         prefilled_inputs = self.prepare_inputs(
             remaining_input_tokens,
             remaining_attention_mask,

@@ -50,71 +50,56 @@ def quantize_model(
     precision: Precision,
     model: BaseModel,
     model_name: str,
-    device: hub.Device,
-    input_spec: InputSpec,
+    onnx_model: hub.Model,
     num_calibration_samples: int | None,
-    options: str,
-) -> hub.client.QuantizeJob | None:
-    quantize_job: hub.client.QuantizeJob | None = None
-
-    if precision != Precision.float:
-        output_names = model.get_output_names()
-        source_model = torch.jit.trace(
-            model.to("cpu"), make_torch_inputs(input_spec), check_trace=False
-        )
-        print(f"Compiling {model_name} to ONNX before quantization.")
-        onnx_compile_job = hub.submit_compile_job(
-            model=source_model,
-            input_specs=input_spec,
-            device=device,
-            name=model_name,
-            options=f"--target_runtime onnx --output_names {','.join(output_names)}",
+    extra_options: str = "",
+    input_spec: InputSpec | None = None,
+) -> hub.client.QuantizeJob:
+    input_spec = input_spec or model.get_input_spec()
+    print(f"Quantizing {model_name}.")
+    if not precision.activations_type or not precision.weights_type:
+        raise ValueError(
+            "Quantization is only supported if both weights and activations are quantized."
         )
 
-        print(f"Quantizing {model_name}.")
-        if not precision.activations_type or not precision.weights_type:
-            raise ValueError(
-                "Quantization is only supported if both weights and activations are quantized."
-            )
-
-        calibration_data = quantization_utils.get_calibration_data(
-            model, input_spec, num_calibration_samples
-        )
-        quantize_job = hub.submit_quantize_job(
-            model=onnx_compile_job.get_target_model(),
-            calibration_data=calibration_data,
-            activations_dtype=precision.activations_type,
-            weights_dtype=precision.weights_type,
-            name=model_name,
-            options=model.get_hub_quantize_options(precision, options),
-        )
-    return quantize_job
+    calibration_data = quantization_utils.get_calibration_data(
+        model, input_spec, num_calibration_samples
+    )
+    return hub.submit_quantize_job(
+        model=onnx_model,
+        calibration_data=calibration_data,
+        activations_dtype=precision.activations_type,
+        weights_dtype=precision.weights_type,
+        name=model_name,
+        options=model.get_hub_quantize_options(precision, extra_options),
+    )
 
 
 def compile_model(
     model: BaseModel,
     model_name: str,
     device: hub.Device,
-    input_spec: InputSpec,
-    options: str,
     target_runtime: TargetRuntime,
     precision: Precision,
-    quantize_job: hub.client.QuantizeJob | None,
+    source_model: hub.Model | None = None,
+    input_spec: InputSpec | None = None,
+    extra_options: str = "",
 ) -> hub.client.CompileJob:
-    if quantize_job:
-        source_model = quantize_job.get_target_model()
+    input_spec = input_spec or model.get_input_spec()
+    if source_model:
+        model_to_compile = source_model
     else:
         # Trace the model
-        source_model = torch.jit.trace(
+        model_to_compile = torch.jit.trace(
             model.to("cpu"), make_torch_inputs(input_spec), check_trace=False
         )
 
     model_compile_options = model.get_hub_compile_options(
-        target_runtime, precision, options, device
+        target_runtime, precision, extra_options, device
     )
     print(f"Optimizing model {model_name} to run on-device")
     submitted_compile_job = hub.submit_compile_job(
-        model=source_model,
+        model=model_to_compile,
         input_specs=input_spec,
         device=device,
         name=model_name,
@@ -186,17 +171,20 @@ def download_model(
             downloaded_path = target_model.download(os.path.join(dst_path, model_name))
             model_file_name = os.path.basename(downloaded_path)
 
-        # Dump supplementary files into the model folder
-        model.write_supplementary_files(dst_path, runtime, precision)
-
         # Extract and save metadata alongside downloaded model
         metadata_path = dst_path / "metadata.yaml"
         file_metadata = ModelFileMetadata.from_hub_model(target_model)
         model_metadata = ModelMetadata(
-            model_files={model_file_name: file_metadata}, tool_versions=tool_versions
+            runtime=runtime,
+            precision=precision,
+            tool_versions=tool_versions,
+            model_files={model_file_name: file_metadata},
         )
-        model_metadata.to_yaml(metadata_path)
 
+        # Dump supplementary files into the model folder
+        model.write_supplementary_files(dst_path, model_metadata)
+
+        model_metadata.to_yaml(metadata_path)
         if zip_assets:
             output_path = Path(
                 shutil.make_archive(
@@ -334,28 +322,43 @@ def export_model(
     )
 
     # 2. Converts the PyTorch model to ONNX and quantizes the ONNX model.
-    quantize_job = quantize_model(
-        precision,
-        model,
-        model_name,
-        device,
-        input_spec,
-        num_calibration_samples,
-        quantize_options,
-    )
-    if precision != Precision.float and skip_compiling:
-        return ExportResult(quantize_job=quantize_job)
+    quantize_job: hub.client.QuantizeJob | None = None
+    quantized_model: hub.Model | None = None
+    if precision != Precision.float:
+        onnx_compile_job = compile_model(
+            model,
+            model_name,
+            device,
+            TargetRuntime.ONNX,
+            precision,
+            input_spec=input_spec,
+        )
+        onnx_model = onnx_compile_job.get_target_model()
+        assert onnx_model is not None, f"ONNX compile job failed: {onnx_compile_job}"
+        quantize_job = quantize_model(
+            precision,
+            model,
+            model_name,
+            onnx_model,
+            num_calibration_samples,
+            quantize_options,
+            input_spec,
+        )
+        if skip_compiling:
+            return ExportResult(quantize_job=quantize_job)
+        quantized_model = quantize_job.get_target_model()
+        assert quantized_model is not None, f"Quantize job failed: {quantize_job}"
 
     # 3. Compiles the model to an asset that can be run on device
     compile_job = compile_model(
         model,
         model_name,
         device,
-        input_spec,
-        compile_options,
         target_runtime,
         precision,
-        quantize_job,
+        quantized_model,
+        input_spec=input_spec,
+        extra_options=compile_options,
     )
 
     # 4. Profiles the model performance on a real device
@@ -460,7 +463,9 @@ def main() -> None:
             TargetRuntime.TFLITE,
             TargetRuntime.ONNX,
         ],
-        Precision.w8a16: [],
+        Precision.w8a16: [
+            TargetRuntime.ONNX,
+        ],
     }
 
     parser = export_parser(

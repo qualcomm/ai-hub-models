@@ -14,7 +14,7 @@ from copy import copy
 from enum import Enum, unique
 from functools import cached_property
 from pathlib import Path
-from typing import NamedTuple, final
+from typing import Any, NamedTuple, final
 
 from torch.utils.data import Dataset, default_collate
 
@@ -125,7 +125,7 @@ class BaseDataset(Dataset, Sized, ABC):
             raise ValueError("Something went wrong during download.")
 
     @abstractmethod
-    def _download_data(self) -> None:
+    def _download_data(self, *args: Any, **kwargs: Any) -> None:
         """Method to download necessary data to disk. To be implemented by subclass."""
 
     def _validate_data(self) -> bool:

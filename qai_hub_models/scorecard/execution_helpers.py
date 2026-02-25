@@ -335,15 +335,21 @@ def pytest_device_idfn(val: object) -> str | None:
     return None
 
 
+def needs_pre_quantize_compile(
+    model_id: str,
+    supported_paths: dict[Precision, list[TargetRuntime]],
+) -> bool:
+    return len(get_quantize_parameterized_pytest_config(model_id, supported_paths)) > 0
+
+
 def get_quantize_parameterized_pytest_config(
     model_id: str,
     supported_paths: dict[Precision, list[TargetRuntime]],
-    can_use_quantize_job: bool = True,
 ) -> list[Precision]:
     precisions = get_model_test_precisions(
         model_id,
         set(supported_paths.keys()),
-        can_use_quantize_job,
+        can_use_quantize_job=True,
     )
     return [x for x in precisions if x.has_quantized_activations]
 

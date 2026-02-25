@@ -266,7 +266,6 @@ class ScorecardJobYaml(
             precision,
             component,
         )
-
         return self.scorecard_job_type(
             component or model_id,
             precision,

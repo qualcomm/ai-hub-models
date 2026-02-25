@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
-from .app import SAM2App as App  # noqa: F401
+from qai_hub_models.models._shared.sam2.app import SAM2App as App  # noqa: F401
+
 from .model import MODEL_ID  # noqa: F401
 from .model import SAM2 as Model  # noqa: F401

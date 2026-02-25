@@ -38,34 +38,37 @@ from qai_hub_models.utils.printing import (
     print_profile_metrics_from_job,
     print_tool_versions,
 )
-from qai_hub_models.utils.qai_hub_helpers import can_access_qualcomm_ai_hub
+from qai_hub_models.utils.qai_hub_helpers import (
+    assert_success_and_get_target_models,
+    can_access_qualcomm_ai_hub,
+)
 
 
 def compile_model(
     model: CollectionModel,
     model_name: str,
     device: hub.Device,
-    components: list[str],
-    options: str,
     target_runtime: TargetRuntime,
     output_path: Path,
+    components: list[str] | None = None,
+    extra_options: str = "",
 ) -> dict[str, hub.client.CompileJob]:
     compile_jobs: dict[str, hub.client.CompileJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         component = model.components[component_name]
         assert isinstance(component, BaseModel)
         input_spec = component.get_input_spec()
         # Trace the model
-        source_model = component.convert_to_hub_source_model(
+        model_to_compile = component.convert_to_hub_source_model(
             target_runtime, output_path, input_spec
         )
 
         model_compile_options = component.get_hub_compile_options(
-            target_runtime, Precision.w8a16, options, device
+            target_runtime, Precision.w8a16, extra_options, device
         )
         print(f"Optimizing model {component_name} to run on-device")
         submitted_compile_job = hub.submit_compile_job(
-            model=source_model,
+            model=model_to_compile,
             input_specs=input_spec,
             device=device,
             name=f"{model_name}_{component_name}",
@@ -80,12 +83,12 @@ def compile_model(
 def profile_model(
     model_name: str,
     device: hub.Device,
-    components: list[str],
     options: dict[str, str],
     compile_jobs: dict[str, hub.client.CompileJob],
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.ProfileJob]:
     profile_jobs: dict[str, hub.client.ProfileJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         print(f"Profiling model {component_name} on a hosted device.")
         submitted_profile_job = hub.submit_profile_job(
             model=compile_jobs[component_name].get_target_model(),
@@ -103,12 +106,12 @@ def inference_model(
     inputs: dict[str, SampleInputsType],
     model_name: str,
     device: hub.Device,
-    components: list[str],
     options: dict[str, str],
     compile_jobs: dict[str, hub.client.CompileJob],
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.InferenceJob]:
     inference_jobs: dict[str, hub.client.InferenceJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         print(
             f"Running inference for {component_name} on a hosted device with example inputs."
         )
@@ -137,11 +140,7 @@ def download_model(
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
 
-    target_models: dict[str, hub.Model] = {}
-    for component_name, compile_job in compile_jobs.items():
-        target_model = compile_job.get_target_model()
-        assert target_model, f"Compile Job Failed:\n{compile_job}"
-        target_models[component_name] = target_model
+    target_models = assert_success_and_get_target_models(compile_jobs)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dst_path = Path(tmpdir) / output_folder_name
@@ -166,16 +165,19 @@ def download_model(
                 target_model
             )
 
-        # Dump supplementary files into the model folder
-        model.write_supplementary_files(dst_path, runtime, precision)
-
         # Extract and save metadata alongside downloaded model
         metadata_path = dst_path / "metadata.yaml"
         model_metadata = ModelMetadata(
-            model_files=model_file_metadata, tool_versions=tool_versions
+            runtime=runtime,
+            precision=precision,
+            tool_versions=tool_versions,
+            model_files=model_file_metadata,
         )
-        model_metadata.to_yaml(metadata_path)
 
+        # Dump supplementary files into the model folder
+        model.write_supplementary_files(dst_path, model_metadata)
+
+        model_metadata.to_yaml(metadata_path)
         if zip_assets:
             output_path = Path(
                 shutil.make_archive(
@@ -320,10 +322,10 @@ def export_model(
         model,
         model_name,
         device,
-        components,
-        compile_options,
         target_runtime,
-        output_path,
+        output_path=output_path,
+        components=components,
+        extra_options=compile_options,
     )
 
     # 3. Profiles the model performance on a real device
@@ -332,9 +334,9 @@ def export_model(
         profile_jobs = profile_model(
             model_name,
             device,
-            components,
             model.get_hub_profile_options(target_runtime, profile_options),
             compile_jobs,
+            components,
         )
 
     # 4. Inferences the model on sample inputs
@@ -346,9 +348,9 @@ def export_model(
             ),
             model_name,
             device,
-            components,
             model.get_hub_profile_options(target_runtime, profile_options),
             compile_jobs,
+            components,
         )
 
     # 5. Extracts relevant tool (eg. SDK) versions used to compile and profile this model

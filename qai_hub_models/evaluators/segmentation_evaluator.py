@@ -14,9 +14,12 @@ from qai_hub_models.evaluators.base_evaluators import BaseEvaluator, MetricMetad
 class SegmentationOutputEvaluator(BaseEvaluator):
     """Evaluator for comparing segmentation output against ground truth."""
 
-    def __init__(self, num_classes: int, resize_to_gt: bool = False) -> None:
+    def __init__(
+        self, num_classes: int, resize_to_gt: bool = False, mask_threshold: float = 0.5
+    ) -> None:
         self.num_classes = num_classes
         self.resize_to_gt = resize_to_gt
+        self.mask_threshold = mask_threshold
         self.reset()
 
     def add_batch(self, output: torch.Tensor, gt: torch.Tensor) -> None:
@@ -30,7 +33,7 @@ class SegmentationOutputEvaluator(BaseEvaluator):
                 output = output.argmax(1)
             else:
                 # Binary mask from sigmoid
-                output = (output > 0.5).int().squeeze(1)
+                output = (output > self.mask_threshold).int().squeeze(1)
 
         assert gt.shape == output.shape
         self.confusion_matrix += self._generate_matrix(gt, output)

@@ -11,10 +11,10 @@ import shlex
 import shutil
 import time
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from os import PathLike
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, overload
 
 import numpy as np
 import onnx
@@ -441,3 +441,45 @@ def get_device_and_chipset_name(device: hub.Device) -> tuple[str | None, str | N
         elif device.attributes.startswith("chipset:"):
             chipset = device.attributes[len("chipset:") :]
     return (device.name or None, chipset)
+
+
+@overload
+def assert_success_and_get_target_models(
+    jobs: Mapping[str, hub.CompileJob | hub.QuantizeJob],
+) -> dict[str, hub.Model]: ...
+
+
+@overload
+def assert_success_and_get_target_models(
+    jobs: Mapping[str | None, hub.CompileJob | hub.QuantizeJob],
+) -> dict[str | None, hub.Model]: ...
+
+
+def assert_success_and_get_target_models(
+    jobs: Mapping[str | None, hub.CompileJob | hub.QuantizeJob]
+    | Mapping[str, hub.CompileJob | hub.QuantizeJob],
+) -> dict[str | None, hub.Model] | dict[str, hub.Model]:
+    """
+    Assert all jobs succeeded and extract their target models.
+
+    Parameters
+    ----------
+    jobs
+        A dict mapping names to compile or quantize jobs.
+
+    Returns
+    -------
+    target_models : dict[str | None, hub.Model] | dict[str, hub.Model]
+        A dict mapping names to target models.
+
+    Raises
+    ------
+    AssertionError
+        If any job failed and no target model is available.
+    """
+    target_models = {}
+    for name, job in jobs.items():
+        target_model = job.get_target_model()
+        assert target_model is not None, f"Job failed for {name}: {job.url}"
+        target_models[name] = target_model
+    return target_models

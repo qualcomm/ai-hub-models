@@ -267,7 +267,10 @@ def export_model(
         models = [cast(hub.Model, cjob.get_target_model()) for cjob in cjobs]
         # Link Prompt processor and Token generator
         link_jobs[component_name] = hub.submit_link_job(
-            models, name=f"{model_name}_{component_name}", options=link_options
+            models,  # type: ignore[arg-type]
+            device=device,
+            name=f"{model_name}_{component_name}",
+            options=link_options,
         )
 
     # 4. Profile the model assets on real devices

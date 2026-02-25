@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, extract_zip_file
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_cityscapes_files,
+    )
+except ImportError:
+    download_cityscapes_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 
 CITYSCAPES_VERSION = 1
@@ -124,27 +132,42 @@ class CityscapesDataset(BaseDataset):
                 self.gt_list.append(gt_path)
         return True
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Go to https://www.cityscapes-dataset.com/ and make an account",
-                "Go to https://www.cityscapes-dataset.com/downloads/ and download `leftImg8bit_trainvaltest.zip` and `gtFine_trainvaltest.zip`",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset cityscapes --files /path/to/leftImg8bit_trainvaltest.zip /path/to/gtFine_trainvaltest.zip`",
-            ],
-        )
-        if self.input_images_zip is None or not self.input_images_zip.endswith(
-            IMAGES_DIR_NAME + ".zip"
+    def _download_data(
+        self, images_zip: str | None = None, gt_zip: str | None = None
+    ) -> None:
+        # Use passed args if provided, otherwise use instance attributes
+        if images_zip is None:
+            images_zip = self.input_images_zip
+        if gt_zip is None:
+            gt_zip = self.input_gt_zip
+
+        # If no files provided/set, try auto-download
+        if images_zip is None and download_cityscapes_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                images_zip = os.path.join(tmpdir, f"{IMAGES_DIR_NAME}.zip")
+                gt_zip = os.path.join(tmpdir, f"{GT_DIR_NAME}.zip")
+                download_cityscapes_files(images_zip, gt_zip)
+                self._download_data(images_zip, gt_zip)
+            return
+
+        if (
+            images_zip is None
+            or not images_zip.endswith(IMAGES_DIR_NAME + ".zip")
+            or gt_zip is None
+            or not gt_zip.endswith(GT_DIR_NAME + ".zip")
         ):
-            raise no_zip_error
-        if self.input_gt_zip is None or not self.input_gt_zip.endswith(
-            GT_DIR_NAME + ".zip"
-        ):
-            raise no_zip_error
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Go to https://www.cityscapes-dataset.com/ and make an account",
+                    "Go to https://www.cityscapes-dataset.com/downloads/ and download `leftImg8bit_trainvaltest.zip` and `gtFine_trainvaltest.zip`",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset cityscapes --files /path/to/leftImg8bit_trainvaltest.zip /path/to/gtFine_trainvaltest.zip`",
+                ],
+            )
 
         os.makedirs(self.images_path.parent, exist_ok=True)
-        extract_zip_file(self.input_images_zip, self.images_path)
-        extract_zip_file(self.input_gt_zip, self.gt_path)
+        extract_zip_file(images_zip, self.images_path)
+        extract_zip_file(gt_zip, self.gt_path)
 
     @staticmethod
     def default_samples_per_job() -> int:

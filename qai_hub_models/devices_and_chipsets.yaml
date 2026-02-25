@@ -6,9 +6,9 @@ scorecard_path_to_website_runtime:
   precompiled_qnn_onnx: onnx
   genie: genie
   onnxruntime_genai: onnx
-  llama_cpp_cpu: llama_cpp
-  llama_cpp_gpu: llama_cpp
-  llama_cpp_npu: llama_cpp
+  llama_cpp_cpu: llama_cpp_cpu
+  llama_cpp_gpu: llama_cpp_gpu
+  llama_cpp_npu: llama_cpp_npu
 scorecard_path_assets_require_chipset:
   tflite: false
   qnn_dlc: false
@@ -336,6 +336,15 @@ devices:
     form_factor: Compute
     vendor: qualcomm
     icon: Laptop_X_Elite
+  Snapdragon X2 Elite CRD:
+    chipset: qualcomm-snapdragon-x2-elite
+    os:
+      ostype: Windows
+      version: '11'
+    form_factor: Compute
+    vendor: qualcomm
+    icon: Laptop_Generic
+    enabled_in_scorecard: true
   Snapdragon 8 Elite QRD:
     chipset: qualcomm-snapdragon-8-elite
     os:
@@ -429,7 +438,7 @@ devices:
     chipset: qualcomm-qcs9075
     os:
       ostype: Qualcomm Linux
-      version: '1.5'
+      version: '1.7'
     form_factor: IoT
     vendor: qualcomm
     icon: IoT_Drone
@@ -541,6 +550,12 @@ chipsets:
     - qualcomm-snapdragon-x-plus-8-core
     - sc8340xp
     marketing_name: Snapdragon® X Plus 8-Core
+    world: Compute
+  qualcomm-snapdragon-x2-elite:
+    aliases:
+    - qualcomm-snapdragon-x2-elite
+    - sc8480xp
+    marketing_name: Snapdragon® X2 Elite
     world: Compute
   qualcomm-snapdragon-8-elite:
     aliases:

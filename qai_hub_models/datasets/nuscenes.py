@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import tarfile
+import tempfile
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,6 +20,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, load_json
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_nuscenes_files,
+    )
+except ImportError:
+    download_nuscenes_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import (
     app_to_net_image_inputs,
     get_post_rot_and_tran,
@@ -402,21 +410,30 @@ class NuscenesDataset(BaseDataset):
     def __len__(self) -> int:
         return len(self.data_infos)
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Create an account and login in https://www.nuscenes.org/nuscenes#download",
-                "Download the v1.0-mini.tgz file from the website.",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset nuscenes --files /path/to/v1.0-mini.tgz`",
-            ],
-        )
-        if self.source_dataset_file is None or not self.source_dataset_file.endswith(
-            NUSCENE_FILE + ".tgz"
-        ):
-            raise no_zip_error
+    def _download_data(self, tgz_path: str | None = None) -> None:
+        # Use passed arg if provided, otherwise use instance attribute
+        if tgz_path is None:
+            tgz_path = self.source_dataset_file
 
-        with tarfile.open(self.source_dataset_file) as f:
+        # If no file provided/set, try auto-download
+        if tgz_path is None and download_nuscenes_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tgz_path = os.path.join(tmpdir, f"{NUSCENE_FILE}.tgz")
+                download_nuscenes_files(tgz_path, NUSCENE_VERSION)
+                self._download_data(tgz_path)
+            return
+
+        if tgz_path is None or not tgz_path.endswith(NUSCENE_FILE + ".tgz"):
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Create an account and login in https://www.nuscenes.org/nuscenes#download",
+                    "Download the v1.0-mini.tgz file from the website.",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset nuscenes --files /path/to/v1.0-mini.tgz`",
+                ],
+            )
+
+        with tarfile.open(tgz_path) as f:
             f.extractall(self.data_path)
 
     @staticmethod

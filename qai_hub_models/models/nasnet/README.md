@@ -30,7 +30,7 @@ Navigate to [docs](https://workbench.aihub.qualcomm.com/docs/) for more informat
 Run the following simple CLI demo to verify the model is working end to end:
 
 ```bash
-python -m qai_hub_models.models.nasnet.demo { --quantize w8a16_mixed_fp16 }
+python -m qai_hub_models.models.nasnet.demo { --quantize w8a8_mixed_fp16 }
 ```
 More details on the CLI tool can be found with the `--help` option. See
 [demo.py](demo.py) for sample usage of the model including pre/post processing
@@ -43,7 +43,7 @@ By default, the demo will run locally in PyTorch. Pass `--eval-mode on-device` t
 To run the model on Qualcomm® devices, you must export the model for use with an edge runtime such as
 TensorFlow Lite, ONNX Runtime, or Qualcomm AI Engine Direct. Use the following command to export the model:
 ```bash
-python -m qai_hub_models.models.nasnet.export { --quantize w8a16_mixed_fp16 }
+python -m qai_hub_models.models.nasnet.export { --quantize w8a8_mixed_fp16 }
 ```
 Additional options are documented with the `--help` option.
 

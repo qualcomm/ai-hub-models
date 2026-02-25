@@ -17,12 +17,12 @@ from .constants import (
     STATIC_MODELS_ROOT,
 )
 from .github import on_github
+from .plan import Task
 from .util import get_is_hub_quantized, new_cd, run, run_and_get_output
 
 REPRESENTATIVE_EXPORT_MODELS = [
     "sinet",
-    "quicksrnetsmall_quantized",
-    "whisper_tiny_en",
+    "whisper_tiny",
 ]
 REPRESENTATIVE_EXPORT_FILES = [
     f"qai_hub_models/models/{model}/export.py" for model in REPRESENTATIVE_EXPORT_MODELS
@@ -151,6 +151,7 @@ def resolve_affected_models(
     include_export: bool = True,
     include_tests: bool = True,
     include_generated_tests: bool = True,
+    include_cj_yaml: bool = True,
 ) -> set[str]:
     """
     Given a list of changed python files, performs a Depth-First Search (DFS)
@@ -181,6 +182,7 @@ def resolve_affected_models(
                 "test_generated.py",
                 "demo.py",
                 "requirements.txt",
+                "code-gen.yaml",
             ]:
                 continue
             if not include_model and file_path.name == "model.py":
@@ -193,22 +195,15 @@ def resolve_affected_models(
                 continue
             if not include_demo and file_path.name == "demo.py":
                 continue
+            if not include_cj_yaml and file_path.name == "code-gen.yaml":
+                continue
 
             model_name = file_path.parent.name
-            if (file_path.parent / "model.py").exists():
+            if (file_path.parent / "model.py").exists() and (
+                file_path.parent / "info.yaml"
+            ).exists():
                 changed_models.add(model_name)
     return changed_models
-
-
-def get_code_gen_changed_models() -> set[str]:
-    """Get models where the `code-gen.yaml` changed."""
-    changed_code_gen_files = get_changed_files_in_package(suffix="code-gen.yaml")
-    changed_models = []
-    for f in changed_code_gen_files:
-        if not f.startswith(PY_PACKAGE_RELATIVE_MODELS_ROOT):
-            continue
-        changed_models.append(Path(f).parent.name)
-    return set(changed_models)
 
 
 @functools.lru_cache(maxsize=2)  # Size 2 for `.py` and `code-gen.yaml`
@@ -239,64 +234,13 @@ def get_changed_files_in_package(
         return []
 
 
-def get_models_to_test_export() -> set[str]:
-    """
-    The models for which to test export (i.e. compilation to .tflite).
-    Current heuristic is to only do this for models where model.py or
-    export.py changed.
-    """
-    return get_changed_models(
-        include_model=True,
-        include_demo=False,
-        include_export=True,
-        include_tests=False,
-        include_generated_tests=True,
-    )
-
-
-def get_models_with_export_file_changes() -> set[str]:
-    """
-    The models for which to test export (i.e. compilation to .tflite).
-    Current heuristic is to only do this for models where model.py or
-    export.py changed.
-    """
-    return get_changed_models(
-        include_model=False,
-        include_demo=False,
-        include_export=True,
-        include_tests=False,
-        include_generated_tests=True,
-    )
-
-
-def get_models_with_changed_definitions() -> set[str]:
-    """The models for which to run non-generated (demo / model) tests."""
-    return get_changed_models(
-        include_model=True,
-        include_demo=False,
-        include_export=False,
-        include_tests=False,
-        include_generated_tests=False,
-    )
-
-
-def get_models_to_run_general_tests() -> set[str]:
-    """The models for which to run non-generated (demo / model) tests."""
-    return get_changed_models(
-        include_model=True,
-        include_demo=True,
-        include_export=False,
-        include_tests=True,
-        include_generated_tests=False,
-    )
-
-
-def get_changed_models(
+def get_ci_test_models(
     include_model: bool = True,
     include_demo: bool = True,
     include_export: bool = True,
     include_tests: bool = True,
     include_generated_tests: bool = True,
+    include_cj_yaml: bool = True,
 ) -> set[str]:
     """
     Resolve which models within zoo have changed to figure which ones need to be tested.
@@ -316,10 +260,11 @@ def get_changed_models(
         include_export,
         include_tests,
         include_generated_tests,
+        include_cj_yaml,
     )
 
 
-def get_all_models() -> set[str]:
+def get_all_models() -> list[str]:
     """Resolve model IDs (folder names) of all models in QAIHM."""
     model_names: set[str] = set()
     for model_name in os.listdir(PY_PACKAGE_MODELS_ROOT):
@@ -333,13 +278,16 @@ def get_all_models() -> set[str]:
 
     # Select a subset of models based on user input
     allowed_models_str = os.environ.get("QAIHM_TEST_MODELS", "all").lower()
+    user_specified_models_list: list[str] | None = None
     if allowed_models_str and allowed_models_str not in ["all", "pytorch"]:
         if allowed_models_str == "bench":
             with open(PUBLIC_BENCH_MODELS) as f:
                 model_names = set(f.read().strip().split("\n"))
         else:
-            all_models_list = [model.strip() for model in allowed_models_str.split(",")]
-            allowed_models = set(all_models_list) - static_models
+            user_specified_models_list = [
+                model.strip() for model in allowed_models_str.split(",")
+            ]
+            allowed_models = set(user_specified_models_list) - static_models
             for model in allowed_models:
                 if model not in model_names:
                     raise ValueError(f"Unknown model selected: {model}")
@@ -352,42 +300,42 @@ def get_all_models() -> set[str]:
                 cleaned_models.add(model)
         model_names = cleaned_models
 
-    return model_names
+    if user_specified_models_list:
+        return [
+            x for x in user_specified_models_list if x in model_names
+        ]  # preserve order specified by user
+
+    return list(model_names)
 
 
-def get_models_to_test() -> tuple[set[str], set[str]]:
-    """
-    This is the master function that is called directly in CI to determine
-    which models to test.
+class PrintCITestModelsTask(Task):
+    def __init__(self, group_name: str | None = None) -> None:
+        super().__init__(group_name)
 
-    Returns
-    -------
-    unit_test_models : set[str]
-        Models to run unit tests.
-    compile_test_models : set[str]
-        Models to run compile tests.
-    """
-    # model.py changed
-    model_changed_models = get_models_with_changed_definitions()
+    def does_work(self) -> bool:
+        return False
 
-    # export.py or test_generated.py changed
-    export_changed_models = get_models_with_export_file_changes()
+    def run_task(self) -> bool:
+        # model / demo / test changed, or code-gen.yaml changed
+        model_or_yaml_changed = get_ci_test_models(
+            include_export=False, include_generated_tests=False
+        )
 
-    # code-gen.yaml changed
-    code_gen_changed_models = get_code_gen_changed_models()
+        # export.py or test_generated.py changed, but the rest of the model, including code-gen.yaml was not affected
+        # models will hit this when global templates change
+        only_code_generation_changed = get_ci_test_models(
+            include_model=False,
+            include_demo=False,
+            include_tests=False,
+            include_cj_yaml=False,
+        )
 
-    # If model or code-gen changed, then test export.
-    models_to_test_export = model_changed_models | code_gen_changed_models
+        out = model_or_yaml_changed
+        if model_or_yaml_changed - only_code_generation_changed:
+            # We don't run tests for every model whose codegen files was changed.
+            # However, if there are models with only codegen changes,
+            # we run a representative model set to make sure codegen didn't break for regular + component models.
+            out = out.union(REPRESENTATIVE_EXPORT_MODELS)
 
-    # For all other models where export.py or test_generated.py changed,
-    #   only test if they're part of REPRESENTATIVE_EXPORT_MODELS
-    models_to_test_export.update(
-        export_changed_models & set(REPRESENTATIVE_EXPORT_MODELS)
-    )
-
-    # Set of models where model.py, demo.py, or test.py changed.
-    models_to_run_tests = get_models_to_run_general_tests()
-
-    # export tests can only run alongside general model tests
-    models_to_run_tests = models_to_run_tests | models_to_test_export
-    return models_to_run_tests, models_to_test_export
+        print(",".join(sorted(out)))
+        return True

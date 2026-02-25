@@ -35,9 +35,7 @@ EVALUATOR_MAP_DEFAULT_INCREMENT_IOU = 0.05
 class GearGuardNet(BaseModel):
     """GearGuardNet model"""
 
-    def __init__(
-        self, model_cfg: dict, ch: int = 3, include_postprocessing: bool = True
-    ) -> None:
+    def __init__(self, model_cfg: dict, ch: int = 3) -> None:
         """
         Initialize person/face detection model.
 
@@ -47,13 +45,9 @@ class GearGuardNet(BaseModel):
             Model configuration
         ch
             Input channels.
-        include_postprocessing
-            If True, forward returns postprocessed outputs (boxes, scores, class_idx).
-            If False, forward returns raw detector output.
         """
         super().__init__()
         self.model, self.save = build_gear_guard_net_model(deepcopy(model_cfg), ch=[ch])
-        self.include_postprocessing = include_postprocessing
 
     @staticmethod
     def _decode_scale(
@@ -203,13 +197,12 @@ class GearGuardNet(BaseModel):
 
     def forward(
         self, x: torch.Tensor
-    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Perform forward computation of the GearGuardNet model.
 
         This method processes input images through the model backbone and detection head,
-        then either returns the raw detector output or applies postprocessing to generate
-        ready-to-use detection results.
+        then applies postprocessing to generate ready-to-use detection results.
 
         Parameters
         ----------
@@ -219,23 +212,15 @@ class GearGuardNet(BaseModel):
 
         Returns
         -------
-        result : torch.Tensor | tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-            If include_postprocessing is True, returns:
-            boxes
-                Bounding box coordinates with shape [batch_size, num_detections, 4].
-                Each box is represented as (x1, y1, x2, y2) in absolute pixel coordinates.
-            scores
-                Detection confidence scores with shape [batch_size, num_detections].
-                Each score is the product of objectness confidence and class score.
-            class_idx
-                Predicted class indices with shape [batch_size, num_detections].
-                Values are integer indices representing the detected class.
-
-            If include_postprocessing is False, returns:
-            predictions
-                Raw detection results with shape [batch_size, num_detections, 7].
-                The 7 values for each detection are: [x_center, y_center, width, height,
-                confidence, class_0_score, class_1_score].
+        torch.Tensor
+            Bounding box coordinates with shape [batch_size, num_detections, 4].
+            Each box is represented as (x1, y1, x2, y2) in absolute pixel coordinates.
+        torch.Tensor
+            Detection confidence scores with shape [batch_size, num_detections].
+            Each score is the product of objectness confidence and class score.
+        torch.Tensor
+            Predicted class indices with shape [batch_size, num_detections].
+            Values are integer indices representing the detected class.
         """
         # Run backbone model
         y: list[int | None] = []
@@ -254,19 +239,12 @@ class GearGuardNet(BaseModel):
         assert len(x) == 3
         detector_output: tuple[torch.Tensor, torch.Tensor, torch.Tensor] = tuple(x)
 
-        # Apply decode
+        # Apply decode and postprocessing
         predictions = GearGuardNet.decode(detector_output)
-
-        return (
-            detect_postprocess(predictions)
-            if self.include_postprocessing
-            else predictions
-        )
+        return detect_postprocess(predictions)
 
     @classmethod
-    def from_pretrained(
-        cls, checkpoint_path: str | None = None, include_postprocessing: bool = True
-    ) -> Self:
+    def from_pretrained(cls, checkpoint_path: str | None = None) -> Self:
         """
         Load model from pretrained weights.
 
@@ -274,9 +252,6 @@ class GearGuardNet(BaseModel):
         ----------
         checkpoint_path
             Checkpoint path of pretrained weights.
-        include_postprocessing
-            If True, forward returns postprocessed outputs (boxes, scores, class_idx).
-            If False, forward returns raw detector output.
 
         Returns
         -------
@@ -322,7 +297,7 @@ class GearGuardNet(BaseModel):
                 [[17, 20, 23], 1, "Detect", ["nc", "anchors"]],
             ],
         }
-        model = cls(cfg, include_postprocessing=include_postprocessing)
+        model = cls(cfg)
         checkpoint_to_load = (
             DEFAULT_WEIGHTS if checkpoint_path is None else checkpoint_path
         )
@@ -344,10 +319,8 @@ class GearGuardNet(BaseModel):
         return {"image": ((batch_size, 3, height, width), "float32")}
 
     @staticmethod
-    def get_output_names(include_postprocessing: bool = True) -> list[str]:
-        if include_postprocessing:
-            return ["boxes", "scores", "class_idx"]
-        return ["detector_output"]
+    def get_output_names() -> list[str]:
+        return ["boxes", "scores", "class_idx"]
 
     @staticmethod
     def get_channel_last_inputs() -> list[str]:

@@ -248,6 +248,8 @@ class Llama3Base_AIMETOnnx(LLM_AIMETOnnx):
     EmbeddingClass = RopeEmbedding
     FPModel = Llama3Base
 
+    ada_scale_model_type: str | None = "llama"
+
     def __init__(
         self,
         quant_sim: QuantizationSimModel,

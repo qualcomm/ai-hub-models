@@ -81,25 +81,6 @@ class AggregateScorecardResultsTask(RunCommandsWithVenvTask):
         )
 
 
-class DownloadPrivateDatasetsTask(RunCommandsWithVenvTask):
-    # Needed to quantize models relying on data without public download links
-    def __init__(
-        self,
-        venv: str | None,
-        env: dict[str, str] | None = None,
-        raise_on_failure: bool = True,
-        ignore_return_codes: list[int] | None = None,
-    ) -> None:
-        super().__init__(
-            "Download Private Datasets",
-            venv,
-            ["python -m qai_hub_models.scripts.download_private_datasets"],
-            env,
-            raise_on_failure,
-            ignore_return_codes or [],
-        )
-
-
 class DownloadQDCWheelTask(RunCommandsWithVenvTask):
     # Needed to run tests relying on QDC (e.g. Genie exports)
     def __init__(

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import tarfile
+import tempfile
 
 import numpy as np
 import torch
@@ -22,6 +23,13 @@ from qai_hub_models.utils.asset_loaders import (
     ASSET_CONFIG,
     load_image,
 )
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_sav_files,
+    )
+except ImportError:
+    download_sav_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import numpy_image_to_torch
 from qai_hub_models.utils.input_spec import InputSpec
 
@@ -97,18 +105,29 @@ class SaVDataset(BaseDataset):
     def __len__(self) -> int:
         return len(self.sample)
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Download sav_val.tar from https://ai.meta.com/datasets/segment-anything-video-downloads/",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset sav --files /path/to/sav_val.tar`",
-            ],
-        )
-        if self.input_tar is None or not self.input_tar.endswith(SAV_DIR_NAME + ".tar"):
-            raise no_zip_error
+    def _download_data(self, tar_path: str | None = None) -> None:
+        # Use passed arg if provided, otherwise use instance attribute
+        if tar_path is None:
+            tar_path = self.input_tar
 
-        with tarfile.open(self.input_tar) as f:
+        # If no file provided/set, try auto-download
+        if tar_path is None and download_sav_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tar_path = os.path.join(tmpdir, f"{SAV_DIR_NAME}.tar")
+                download_sav_files(tar_path)
+                self._download_data(tar_path)
+            return
+
+        if tar_path is None or not tar_path.endswith(SAV_DIR_NAME + ".tar"):
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Download sav_val.tar from https://ai.meta.com/datasets/segment-anything-video-downloads/",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset sav --files /path/to/sav_val.tar`",
+                ],
+            )
+
+        with tarfile.open(tar_path) as f:
             f.extractall(self.data_path.parent)
 
     @staticmethod

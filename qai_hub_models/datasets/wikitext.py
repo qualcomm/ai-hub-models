@@ -71,13 +71,7 @@ class WikiText(BaseDataset):
 
     def __len__(self) -> int:
         max_num = math.ceil(len(self.tokens["input_ids"][0]) / self.context_length)
-        if self.split_str == "train":
-            # 80k samples to be passed for calibration and advanced algorithms like Sequential MSE.
-            num = 20 * 4096 // self.context_length
-        elif self.num_samples != 0:
-            num = self.num_samples
-        else:
-            num = max_num
+        num = self.num_samples if self.num_samples != 0 else max_num
         return min(num, max_num)
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor]:

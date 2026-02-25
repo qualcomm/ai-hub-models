@@ -362,7 +362,9 @@ class InferenceEngine(Enum):
     QNN = "qnn"
     ONNX = "onnx"
     GENIE = "genie"
-    LLAMA_CPP = "llama_cpp"
+    LLAMA_CPP_CPU = "llama_cpp_cpu"
+    LLAMA_CPP_GPU = "llama_cpp_gpu"
+    LLAMA_CPP_NPU = "llama_cpp_npu"
 
     @property
     def full_package_name(self) -> str:
@@ -374,8 +376,12 @@ class InferenceEngine(Enum):
             return "ONNX Runtime"
         if self == InferenceEngine.GENIE:
             return "Genie (Qualcomm GenAI Inference Extensions)"
-        if self == InferenceEngine.LLAMA_CPP:
-            return "llama.cpp"
+        if self == InferenceEngine.LLAMA_CPP_CPU:
+            return "Llama.cpp (CPU)"
+        if self == InferenceEngine.LLAMA_CPP_GPU:
+            return "Llama.cpp (GPU)"
+        if self == InferenceEngine.LLAMA_CPP_NPU:
+            return "Llama.cpp (NPU)"
         assert_never(self)
 
     @property
@@ -392,7 +398,7 @@ class InferenceEngine(Enum):
     @property
     def default_qairt_version(self: InferenceEngine) -> QAIRTVersion:
         """Default QAIRT version used by this inference engine."""
-        qairt_version = "2.42"  # "2.42" if self == InferenceEngine.ONNX else "2.NN"
+        qairt_version = "2.42" if self == InferenceEngine.ONNX else "2.43"
 
         try:
             return QAIRTVersion(qairt_version)
@@ -488,12 +494,12 @@ class TargetRuntime(Enum):
             return InferenceEngine.ONNX
         if self == TargetRuntime.GENIE:
             return InferenceEngine.GENIE
-        if (
-            self == TargetRuntime.LLAMA_CPP_CPU  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == TargetRuntime.LLAMA_CPP_GPU
-            or self == TargetRuntime.LLAMA_CPP_NPU
-        ):
-            return InferenceEngine.LLAMA_CPP
+        if self == TargetRuntime.LLAMA_CPP_CPU:
+            return InferenceEngine.LLAMA_CPP_CPU
+        if self == TargetRuntime.LLAMA_CPP_GPU:
+            return InferenceEngine.LLAMA_CPP_GPU
+        if self == TargetRuntime.LLAMA_CPP_NPU:
+            return InferenceEngine.LLAMA_CPP_NPU
         assert_never(self)
 
     @property
@@ -622,6 +628,8 @@ class TargetRuntime(Enum):
             # Llama.cpp supports various GGUF quantization formats
             return precision in [
                 Precision.mxfp4,
+                Precision.q8_0,
+                Precision.q4_0,
             ]
 
         assert_never(self)
@@ -722,6 +730,8 @@ class Precision:
 
     # GGUF-specific Precision (for llama.cpp)
     mxfp4: Precision
+    q8_0: Precision
+    q4_0: Precision
 
     # Component model with parts that each have a different precision.
     mixed: Precision  # No component has floating point layers.
@@ -829,6 +839,10 @@ class Precision:
             return Precision.float
         if string == "mxfp4":
             return Precision.mxfp4
+        if string == "q8_0":
+            return Precision.q8_0
+        if string == "q4_0":
+            return Precision.q4_0
         if string == "mixed":
             return Precision.mixed
         if string == "mixed_with_float":
@@ -1018,6 +1032,8 @@ Precision.w8a16_mixed_fp16 = Precision(
     QuantizeDtype.INT8, QuantizeDtype.INT16, _FloatDtype.FP16
 )
 Precision.mxfp4 = Precision(None, None, _custom_name="mxfp4")
+Precision.q8_0 = Precision(None, None, _custom_name="q8_0")
+Precision.q4_0 = Precision(None, None, _custom_name="q4_0")
 Precision.mixed = Precision(None, None, _custom_name="mixed")
 Precision.mixed_with_float = Precision(None, None, _custom_name="mixed_with_float")
 

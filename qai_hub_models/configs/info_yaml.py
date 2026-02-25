@@ -273,23 +273,51 @@ class QAIHMModelInfo(BaseQAIHMConfig):
 
             # Download URL can only be validated in a scope with a model ID, so this
             # is validated here rather than on the LLM details class' validator.
-            if self.llm_details.devices and validate_urls_exist:
-                for device_runtime_config_mapping in self.llm_details.devices.values():
-                    for runtime_detail in device_runtime_config_mapping.values():
-                        version = runtime_detail.model_download_url.split("/")[0][1:]
-                        relative_path = "/".join(
-                            runtime_detail.model_download_url.split("/")[1:]
+            if validate_urls_exist:
+                if self.llm_details.devices:
+                    # Validate per-device URLs (genie_compatible=True)
+                    for (
+                        device_runtime_config_mapping
+                    ) in self.llm_details.devices.values():
+                        for runtime_detail in device_runtime_config_mapping.values():
+                            # Support both absolute URLs and relative paths
+                            if runtime_detail.model_download_url.startswith(
+                                ("http://", "https://")
+                            ):
+                                # Absolute URL - use directly
+                                model_download_url = runtime_detail.model_download_url
+                            else:
+                                # Relative path - construct URL using ASSET_CONFIG
+                                version = runtime_detail.model_download_url.split("/")[
+                                    0
+                                ][1:]
+                                relative_path = "/".join(
+                                    runtime_detail.model_download_url.split("/")[1:]
+                                )
+                                model_download_url = ASSET_CONFIG.get_model_asset_url(
+                                    self.id, version, relative_path
+                                )
+                            response = session.head(model_download_url)
+                            # Accept 200 OK or 302 Found (redirect to download)
+                            if response.status_code not in [
+                                requests.codes.ok,
+                                requests.codes.found,
+                            ]:
+                                raise ValueError(
+                                    f"Download URL is missing at {runtime_detail.model_download_url}"
+                                )
+                elif self.llm_details.llama_cpp_model_url:
+                    # Validate global llama.cpp URL (genie_compatible=False)
+                    model_download_url = self.llm_details.llama_cpp_model_url
+                    response = session.head(model_download_url)
+                    # Accept 200 OK or 302 Found (redirect to download)
+                    if response.status_code not in [
+                        requests.codes.ok,
+                        requests.codes.found,
+                    ]:
+                        raise ValueError(
+                            f"Download URL is missing at {model_download_url}"
                         )
-                        model_download_url = ASSET_CONFIG.get_model_asset_url(
-                            self.id, version, relative_path
-                        )
-                        if (
-                            session.head(model_download_url).status_code
-                            != requests.codes.ok
-                        ):
-                            raise ValueError(
-                                f"Download URL is missing at {runtime_detail.model_download_url}"
-                            )
         elif self.llm_details:
             raise ValueError("Model type must be LLM if llm_details is set")
 

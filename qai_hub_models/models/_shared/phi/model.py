@@ -278,6 +278,8 @@ class Phi35Base_AIMETOnnx(LLM_AIMETOnnx):
     EmbeddingClass = Phi3LongRoPEScaledRotaryEmbedding
     FPModel = Phi35Base
 
+    ada_scale_model_type: str | None = "phi3"
+
     def __init__(
         self,
         quant_sim: QuantizationSimModel,

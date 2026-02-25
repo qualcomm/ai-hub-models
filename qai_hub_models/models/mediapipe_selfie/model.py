@@ -6,11 +6,12 @@
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
 from tflite import Model
 from torch import nn
+from typing_extensions import Self
 
-from qai_hub_models.evaluators.base_evaluators import BaseEvaluator
-from qai_hub_models.evaluators.segmentation_evaluator import SegmentationOutputEvaluator
+from qai_hub_models.models._shared.selfie_segmentation.model import SelfieSegmentor
 from qai_hub_models.models.common import SampleInputsType
 from qai_hub_models.models.mediapipe_selfie.utils import (
     build_state_dict,
@@ -18,12 +19,11 @@ from qai_hub_models.models.mediapipe_selfie.utils import (
     get_probable_names,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec
 
 MODEL_ID = __name__.split(".")[-2]
-MODEL_ASSET_VERSION = 1
+MODEL_ASSET_VERSION = 2
 MEDIAPIPE_SELFIE_CKPT_MAP = dict(
     square=CachedWebModelAsset.from_asset_store(
         MODEL_ID, MODEL_ASSET_VERSION, "weights/selfie_segmentation.tflite"
@@ -38,30 +38,54 @@ IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
 )
 
 
+def tflite_same_pad(x: torch.Tensor, kernel_size: int, stride: int) -> torch.Tensor:
+    """Apply TFLite-style SAME padding (asymmetric: more padding on right/bottom)."""
+    in_h, in_w = x.shape[2], x.shape[3]
+    out_h = (in_h + stride - 1) // stride
+    out_w = (in_w + stride - 1) // stride
+    pad_h = max(0, (out_h - 1) * stride + kernel_size - in_h)
+    pad_w = max(0, (out_w - 1) * stride + kernel_size - in_w)
+    if pad_h > 0 or pad_w > 0:
+        x = F.pad(x, (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2))
+    return x
+
+
 class DepthwiseConv2d(nn.Module):
     def __init__(
-        self, in_channels: int, kernel_size: int = 3, stride: int = 2, padding: int = 1
+        self,
+        in_channels: int,
+        kernel_size: int = 3,
+        stride: int = 2,
+        use_same_pad: bool = True,
     ) -> None:
         super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.use_same_pad = use_same_pad
         self.depthwise = nn.Conv2d(
             in_channels,
             in_channels,
             kernel_size=kernel_size,
             stride=stride,
-            padding=padding,
+            padding=0,
             groups=in_channels,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.use_same_pad:
+            x = tflite_same_pad(x, self.kernel_size, self.stride)
         return self.depthwise(x)
 
 
-class SelfieSegmentation(BaseModel):
+class MediapipeSelfie(SelfieSegmentor):
     """Reconstruct the selfie segmentation graph for square as well as landscape image."""
+
+    MASK_THRESHOLD = 0.5
+    DEFAULT_HW = (256, 256)
 
     def __init__(self, image_type: str = "square") -> None:
         """
-        Initialize SelfieSegmentation model.
+        Initialize MediapipeSelfie model.
 
         Parameters
         ----------
@@ -85,9 +109,9 @@ class SelfieSegmentation(BaseModel):
         self.hardswish = nn.Hardswish()
         self.sigmoid = nn.Sigmoid()
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=0)
         self.conv2 = nn.Conv2d(16, 16, 1)
-        self.depthwise1 = DepthwiseConv2d(16, 3, 2, 1)
+        self.depthwise1 = DepthwiseConv2d(16, 3, 2)
         if self.allow_avg:
             self.avgpool1 = nn.AvgPool2d(kernel_size=64, stride=64, padding=0)
         self.conv3 = nn.Conv2d(16, 8, kernel_size=1, stride=1, padding=0)
@@ -95,15 +119,15 @@ class SelfieSegmentation(BaseModel):
 
         self.conv5 = nn.Conv2d(16, 16, 1)
         self.conv6 = nn.Conv2d(16, 72, 1)
-        self.depthwise2 = DepthwiseConv2d(72, 3, 2, 1)
+        self.depthwise2 = DepthwiseConv2d(72, 3, 2)
 
         self.conv7 = nn.Conv2d(72, 24, 1)
         self.conv8 = nn.Conv2d(24, 88, 1)
-        self.depthwise3 = DepthwiseConv2d(88, 3, 1, 1)
+        self.depthwise3 = DepthwiseConv2d(88, 3, 1)
         self.conv9 = nn.Conv2d(88, 24, 1)
 
         self.conv10 = nn.Conv2d(24, 96, kernel_size=1, stride=1, padding=0)
-        self.depthwise4 = DepthwiseConv2d(96, 5, 2, 2)
+        self.depthwise4 = DepthwiseConv2d(96, 5, 2)
 
         if self.allow_avg:
             self.avgpool2 = nn.AvgPool2d(kernel_size=16, stride=16, padding=0)
@@ -112,7 +136,7 @@ class SelfieSegmentation(BaseModel):
         self.conv13 = nn.Conv2d(96, 32, 1)
 
         self.conv14 = nn.Conv2d(32, 128, kernel_size=1, stride=1, padding=0)
-        self.depthwise5 = DepthwiseConv2d(128, 5, 1, 2)
+        self.depthwise5 = DepthwiseConv2d(128, 5, 1)
         if self.allow_avg:
             self.avgpool3 = nn.AvgPool2d(kernel_size=16, stride=16, padding=0)
         self.conv15 = nn.Conv2d(128, 32, kernel_size=1, stride=1, padding=0)
@@ -121,7 +145,7 @@ class SelfieSegmentation(BaseModel):
         self.conv17 = nn.Conv2d(128, 32, 1)
 
         self.conv18 = nn.Conv2d(32, 128, kernel_size=1, stride=1, padding=0)
-        self.depthwise6 = DepthwiseConv2d(128, 5, 1, 2)
+        self.depthwise6 = DepthwiseConv2d(128, 5, 1)
         self.avgpool4 = nn.AvgPool2d(kernel_size=16, stride=16, padding=0)
         self.conv19 = nn.Conv2d(128, 32, kernel_size=1, stride=1, padding=0)
         self.conv20 = nn.Conv2d(32, 128, kernel_size=1, stride=1, padding=0)
@@ -129,7 +153,7 @@ class SelfieSegmentation(BaseModel):
         self.conv21 = nn.Conv2d(128, 32, 1)
 
         self.conv22 = nn.Conv2d(32, 96, kernel_size=1, stride=1, padding=0)
-        self.depthwise7 = DepthwiseConv2d(96, 5, 1, 2)
+        self.depthwise7 = DepthwiseConv2d(96, 5, 1)
         if self.allow_avg:
             self.avgpool5 = nn.AvgPool2d(kernel_size=16, stride=16, padding=0)
         self.conv23 = nn.Conv2d(96, 24, kernel_size=1, stride=1, padding=0)
@@ -138,7 +162,7 @@ class SelfieSegmentation(BaseModel):
         self.conv25 = nn.Conv2d(96, 32, 1)
 
         self.conv26 = nn.Conv2d(32, 96, kernel_size=1, stride=1, padding=0)
-        self.depthwise8 = DepthwiseConv2d(96, 5, 1, 2)
+        self.depthwise8 = DepthwiseConv2d(96, 5, 1)
         self.avgpool6 = nn.AvgPool2d(kernel_size=16, stride=16, padding=0)
         self.conv27 = nn.Conv2d(96, 24, kernel_size=1, stride=1, padding=0)
         self.conv28 = nn.Conv2d(24, 96, kernel_size=1, stride=1, padding=0)
@@ -155,14 +179,14 @@ class SelfieSegmentation(BaseModel):
         self.conv33 = nn.Conv2d(24, 24, 1)
         self.conv34 = nn.Conv2d(24, 24, 1)
         self.conv35 = nn.Conv2d(24, 24, 1)
-        self.depthwise9 = DepthwiseConv2d(24, 3, 1, 1)
+        self.depthwise9 = DepthwiseConv2d(24, 3, 1)
 
         self.conv36 = nn.Conv2d(24, 16, 1)
         self.avgpool8 = nn.AvgPool2d(kernel_size=64, stride=64, padding=0)
         self.conv37 = nn.Conv2d(16, 16, 1)
         self.conv38 = nn.Conv2d(16, 16, 1)
         self.conv39 = nn.Conv2d(16, 16, 1)
-        self.depthwise10 = DepthwiseConv2d(16, 3, 1, 1)
+        self.depthwise10 = DepthwiseConv2d(16, 3, 1)
 
         self.conv40 = nn.Conv2d(16, 16, 1)
         if self.allow_avg:
@@ -170,15 +194,13 @@ class SelfieSegmentation(BaseModel):
         self.conv41 = nn.Conv2d(16, 16, 1)
         self.conv42 = nn.Conv2d(16, 16, 1)
         self.conv43 = nn.Conv2d(16, 16, 1)
-        self.depthwise11 = DepthwiseConv2d(16, 3, 1, 1)
+        self.depthwise11 = DepthwiseConv2d(16, 3, 1)
         self.transpose_conv = nn.ConvTranspose2d(16, 1, 2, 2, 0)
 
         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear")
 
     @classmethod
-    def from_pretrained(
-        cls, image_type: str = DEFAULT_IMAGE_TYPE
-    ) -> SelfieSegmentation:
+    def from_pretrained(cls, image_type: str = DEFAULT_IMAGE_TYPE) -> Self:
         """
         Load the TFLite weights and convert them to PyTorch checkpoint.
         Weights for square input are different from landscape input.
@@ -194,7 +216,7 @@ class SelfieSegmentation(BaseModel):
 
         Returns
         -------
-        model : SelfieSegmentation
+        model : Self
             Torch model with pretrained weights loaded.
         """
         front_net = cls(image_type)
@@ -216,26 +238,6 @@ class SelfieSegmentation(BaseModel):
         front_net.load_state_dict(front_state_dict, strict=True)
         return front_net
 
-    @staticmethod
-    def get_input_spec(batch_size: int = 1, image_type: str = "square") -> InputSpec:
-        if image_type == "square":
-            height, width = 256, 256
-        else:
-            height, width = 144, 256
-        return {"image": ((batch_size, 3, height, width), "float32")}
-
-    @staticmethod
-    def get_output_names() -> list[str]:
-        return ["mask"]
-
-    @staticmethod
-    def get_channel_last_inputs() -> list[str]:
-        return ["image"]
-
-    @staticmethod
-    def get_channel_last_outputs() -> list[str]:
-        return ["mask"]
-
     def forward(self, image: torch.Tensor) -> torch.Tensor:
         """
         Segment person from background in the input image.
@@ -252,10 +254,11 @@ class SelfieSegmentation(BaseModel):
         -------
         mask : torch.Tensor
             Mask with person and the background segmented.
+            Mask > 0.5 corresponds to person, while mask <= 0.5 corresponds to background.
             Square: Shape [1, 256, 256]
             Landscape: Shape [1, 144, 256]
         """
-        x = self.hardswish(self.conv1(image))
+        x = self.hardswish(self.conv1(tflite_same_pad(image, 3, 2)))
         x1 = x
         x = self.relu(self.conv2(x))
         x = self.relu(self.depthwise1(x))
@@ -368,6 +371,11 @@ class SelfieSegmentation(BaseModel):
 
         return self.sigmoid(self.transpose_conv(x))
 
+    def _get_input_spec_for_instance(self) -> InputSpec:
+        if self.image_type == "square":
+            return {"image": ((1, 3, *self.DEFAULT_HW), "float32")}
+        return {"image": ((1, 3, 144, self.DEFAULT_HW[0]), "float32")}
+
     def _sample_inputs_impl(
         self, input_spec: InputSpec | None = None
     ) -> SampleInputsType:
@@ -376,9 +384,6 @@ class SelfieSegmentation(BaseModel):
             h, w = input_spec["image"][0][2:]
             image = image.resize((w, h))
         return {"image": [app_to_net_image_inputs(image)[1].numpy()]}
-
-    def get_evaluator(self) -> BaseEvaluator:
-        return SegmentationOutputEvaluator(num_classes=2)
 
     @staticmethod
     def calibration_dataset_name() -> str:

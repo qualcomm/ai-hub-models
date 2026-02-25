@@ -53,9 +53,7 @@ class LibriSpeechEvaluator(BaseEvaluator):
             transcriptions, clean_targets, strict=False
         ):
             self.predictions.append(transcription)
-            self.references.append(
-                clean_target[: len(transcription)]
-            )  # Trim extras based on the predictions
+            self.references.append(clean_target)
 
     def reset(self) -> None:
         """Reset stored predictions and references"""

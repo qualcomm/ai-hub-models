@@ -1,13 +1,17 @@
 supported_devices:
   - Snapdragon X Elite CRD
+  - Snapdragon X2 Elite CRD
   - Snapdragon 8 Elite QRD
   - Snapdragon 8 Elite Gen 5 QRD
   - SA8295P ADP
+  - SA8775P ADP
 supported_chipsets:
   - qualcomm-snapdragon-8-elite
   - qualcomm-snapdragon-8-elite-gen5
   - qualcomm-snapdragon-x-elite
+  - qualcomm-snapdragon-x2-elite
   - qualcomm-sa8295p
+  - qualcomm-sa8775p
 precisions:
   w4a16:
     components:
@@ -18,25 +22,41 @@ precisions:
               llm_metrics:
                 - context_length: 4096
                   time_to_first_token_range_milliseconds:
-                    min: 58.016
-                    max: 1856.531
-                  tokens_per_second: 29.48402
+                    min: 68.954
+                    max: 2206.528
+                  tokens_per_second: 32.65
           Snapdragon 8 Elite QRD:
             genie:
               llm_metrics:
                 - context_length: 4096
                   time_to_first_token_range_milliseconds:
-                    min: 88.195
-                    max: 2822.25
-                  tokens_per_second: 23.4718
+                    min: 82.049
+                    max: 2625.568
+                  tokens_per_second: 28.03
           Snapdragon X Elite CRD:
             genie:
               llm_metrics:
                 - context_length: 4096
                   time_to_first_token_range_milliseconds:
-                    min: 125.936
-                    max: 4029.952
-                  tokens_per_second: 18.4176
+                    min: 116.884
+                    max: 3740.288
+                  tokens_per_second: 11.87
+          Snapdragon X2 Elite CRD:
+            genie:
+              llm_metrics:
+                - context_length: 4096
+                  time_to_first_token_range_milliseconds:
+                    min: 75.045
+                    max: 2401.440
+                  tokens_per_second: 42.77
+          SA8775P ADP:
+            genie:
+              llm_metrics:
+                - context_length: 4096
+                  time_to_first_token_range_milliseconds:
+                    min: 109.614
+                    max: 3507.648
+                  tokens_per_second: 17.47
   w4:
     components:
       Llama-v3.2-3B-Instruct:

@@ -24,6 +24,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     aimet_onnx_is_installed = False
 import contextlib
+import itertools
 import os
 import shutil
 import sys
@@ -46,6 +47,10 @@ from qai_hub_models.utils.dataset_util import DataLoader, dataset_entries_to_dat
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.onnx.helpers import mock_torch_onnx_inference
 from qai_hub_models.utils.runtime_torch_wrapper import kwargs_to_dict
+
+DEFAULT_SEQ_MSE_NUM_SAMPLES = 20
+DEFAULT_ADA_SCALE_NUM_SAMPLES = 128
+DEFAULT_ADA_SCALE_NUM_ITERATIONS = 512
 
 
 def ensure_aimet_onnx_installed(
@@ -123,6 +128,13 @@ class AIMETOnnxQuantizableMixin(PretrainedHubModelProtocol):
     # For pre-calibrated asset lookup
     model_id: str = ""
     model_asset_version: int = -1
+
+    # Which AIMET model type to use for AdaScale
+    # (if None, the model cannot use AdaScale)
+    ada_scale_model_type: str | None = None
+
+    # RMSNorms per block (currently needed for AdaScale for Qwen3)
+    ada_scale_num_rmsnorm_per_blk: int | None = None
 
     def __init__(
         self,
@@ -203,46 +215,75 @@ class AIMETOnnxQuantizableMixin(PretrainedHubModelProtocol):
         ).fetch()
         return onnx_file, aimet_encodings
 
+    def _dataloader_to_numpy(
+        self, data: _DataLoader, num_batches: int
+    ) -> list[dict[str, Any]]:
+        assert self.quant_sim is not None
+        input_names = [inp.name for inp in self.quant_sim.session.get_inputs()]
+        onnx_data = []
+        n = min(len(data), num_batches)
+        for batch in tqdm(itertools.islice(data, n), total=n):
+            onnx_data.append(  # noqa: PERF401
+                {
+                    k: v.cpu().detach().numpy()
+                    for k, v in kwargs_to_dict(input_names, *batch).items()
+                }
+            )
+        return onnx_data
+
     def _apply_seq_mse(self, data: _DataLoader, num_batches: int) -> None:
         assert self.quant_sim is not None
         ensure_min_aimet_onnx_version("2.8.0")
+        aimet_onnx.apply_seq_mse(
+            self.quant_sim, self._dataloader_to_numpy(data, num_batches)
+        )
 
-        input_names = [inp.name for inp in self.quant_sim.session.get_inputs()]
+    def _apply_ada_scale(
+        self,
+        data: _DataLoader,
+        num_batches: int,
+        num_iterations: int,
+        model_type: str,
+        num_rmsnorm_per_blk: int | None = None,
+    ) -> None:
+        assert self.quant_sim is not None
+        ensure_min_aimet_onnx_version("2.25.0")
+        from aimet_onnx.experimental.adascale.adascale_optimizer import (
+            AdaScale,
+            adascale_model_config_dict,
+        )
 
-        onnx_data = []
-        for batch in tqdm(data, total=num_batches):
-            onnx_data.append(  # noqa: PERF401
-                {
-                    k: v.cpu().detach().numpy()
-                    for k, v in kwargs_to_dict(input_names, *batch).items()
-                }
-            )
+        restore_value: int | None = None
+        if model_type == "qwen3" and num_rmsnorm_per_blk is not None:
+            from aimet_onnx.graph_passes.passes.decoder_block import DecoderBlockQwen3
 
-        aimet_onnx.apply_seq_mse(self.quant_sim, onnx_data)
+            restore_value = DecoderBlockQwen3.NUM_RMSNORM_PER_BLK
+            DecoderBlockQwen3.NUM_RMSNORM_PER_BLK = num_rmsnorm_per_blk
+
+        AdaScale.apply_adascale(
+            self.quant_sim,
+            self._dataloader_to_numpy(data, num_batches=num_batches),
+            adascale_model_config=adascale_model_config_dict[model_type],
+            num_iterations=num_iterations,
+        )
+
+        if restore_value is not None:
+            DecoderBlockQwen3.NUM_RMSNORM_PER_BLK = restore_value
 
     def _apply_calibration(self, data: DataLoader, num_batches: int) -> None:
         assert self.quant_sim is not None
-
         ensure_min_aimet_onnx_version("2.8.0")
-
-        input_names = [inp.name for inp in self.quant_sim.session.get_inputs()]
-
-        onnx_data = []
-        for batch in tqdm(data, total=num_batches):
-            onnx_data.append(  # noqa: PERF401
-                {
-                    k: v.cpu().detach().numpy()
-                    for k, v in kwargs_to_dict(input_names, *batch).items()
-                }
-            )
-
-        self.quant_sim.compute_encodings(onnx_data)
+        self.quant_sim.compute_encodings(self._dataloader_to_numpy(data, num_batches))
 
     def quantize(
         self,
         data: DataLoader | None = None,
         num_samples: int | None = None,
         use_seq_mse: bool = False,
+        use_ada_scale: bool = False,
+        seq_mse_num_samples: int | None = None,
+        ada_scale_num_samples: int | None = None,
+        ada_scale_num_iterations: int | None = None,
     ) -> None:
         """
         Quantize the model using calibration data.
@@ -257,11 +298,22 @@ class AIMETOnnxQuantizableMixin(PretrainedHubModelProtocol):
             available samples in the data loader.
         use_seq_mse
             Whether to apply sequential MSE optimization during quantization.
+        use_ada_scale
+            Whether to apply AdaScale optimization during quantization.
+        seq_mse_num_samples
+            Number of samples for sequential MSE. Defaults to num_samples.
+        ada_scale_num_samples
+            Number of samples for AdaScale.
+        ada_scale_num_iterations
+            Number of iterations for AdaScale.
 
         Returns
         -------
         None
         """
+        if use_ada_scale and self.ada_scale_model_type is None:
+            raise ValueError("AdaScale is not supported for this model.")
+
         if data is None:
             calib_data = self.get_calibration_data()
             if calib_data is None:
@@ -270,13 +322,73 @@ class AIMETOnnxQuantizableMixin(PretrainedHubModelProtocol):
                 )
             data = dataset_entries_to_dataloader(calib_data)
 
-        num_iterations = num_samples or len(data)
+        # "samples": 4096 context length batches
+        # "batches": actual iterations
+        if hasattr(self, "context_length") and hasattr(self, "sequence_length"):
+            batches_per_sample = self.context_length // self.sequence_length
+        else:
+            batches_per_sample = 1
 
         if use_seq_mse:
-            self._apply_seq_mse(data=data, num_batches=num_iterations)
+            seq_mse_num_samples = min(
+                len(data) // batches_per_sample,
+                seq_mse_num_samples or num_samples or DEFAULT_SEQ_MSE_NUM_SAMPLES,
+            )
+            seq_mse_num_batches = seq_mse_num_samples * batches_per_sample
 
-        print(f"Start QuantSim calibration for {self.__class__.__name__}")
-        self._apply_calibration(data=data, num_batches=num_iterations)
+            print()
+            print(
+                f"Apply Sequential MSE ({seq_mse_num_samples} samples / {seq_mse_num_batches} batches)"
+            )
+            print()
+            self._apply_seq_mse(data=data, num_batches=seq_mse_num_batches)
+
+        if use_ada_scale:
+            assert self.ada_scale_model_type is not None
+            ada_scale_num_samples = min(
+                len(data) // batches_per_sample,
+                ada_scale_num_samples or DEFAULT_ADA_SCALE_NUM_SAMPLES,
+            )
+            ada_scale_num_iters = (
+                ada_scale_num_iterations or DEFAULT_ADA_SCALE_NUM_ITERATIONS
+            )
+            ada_scale_num_batches = ada_scale_num_samples * batches_per_sample
+            print()
+            print(
+                f"Apply AdaScale ({ada_scale_num_samples} samples / {ada_scale_num_batches} batches, {ada_scale_num_iters} iterations)"
+            )
+            print()
+            self._apply_ada_scale(
+                data=data,
+                num_batches=ada_scale_num_batches,
+                num_iterations=ada_scale_num_iters,
+                model_type=self.ada_scale_model_type,
+                num_rmsnorm_per_blk=self.ada_scale_num_rmsnorm_per_blk,
+            )
+
+        num_calib_samples = num_samples or len(data)
+        num_calib_batches = num_calib_samples * batches_per_sample
+
+        print()
+        print(
+            f"Start QuantSim calibration for {self.__class__.__name__} ({num_calib_samples} samples / {num_calib_batches} batches)"
+        )
+        print()
+        self._apply_calibration(data=data, num_batches=num_calib_batches)
+
+    @contextlib.contextmanager
+    def remove_quantization(self) -> Generator[None, None, None]:
+        """
+        Context manager to temporarily remove quantization nodes from the model. Useful for prefilling data without
+        quantization, e.g. for AdaScale or SeqMSE.
+        """
+        assert isinstance(self.quant_sim, QuantSimOnnx)
+        with self.quant_sim._remove_quantization_nodes():
+            self.quant_sim._rebuild_session()
+
+            yield
+
+        self.quant_sim._rebuild_session()
 
     def _sample_inputs_impl(
         self, input_spec: InputSpec | None = None, **kwargs: Any

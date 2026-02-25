@@ -52,7 +52,7 @@ from qai_hub_models.utils.llm_helpers import (
     log_perf_on_device_result,
 )
 from qai_hub_models.utils.model_cache import CacheMode
-from qai_hub_models.utils.testing_export_eval import compile_via_export
+from qai_hub_models.utils.testing_export_eval import run_llm_compile
 
 DEFAULT_EVAL_SEQLEN = 2048
 
@@ -343,7 +343,7 @@ def test_compile(
     checkpoint: CheckpointSpec,
 ) -> None:
     cleanup()
-    compile_via_export(
+    run_llm_compile(
         export_model,
         MODEL_ID,
         precision,

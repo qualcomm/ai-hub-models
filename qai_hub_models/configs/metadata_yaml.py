@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from qai_hub_models.configs.tool_versions import ToolVersions
+from qai_hub_models.models.common import Precision, TargetRuntime
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 
 if TYPE_CHECKING:
@@ -144,16 +145,28 @@ class ModelMetadata(BaseQAIHMConfig):
 
     Attributes
     ----------
-    model_files
-        Dictionary mapping model file names to their metadata (I/O specs, quantization params).
+    runtime
+        The target runtime for which the model was exported.
+    precision
+        The precision configuration for which the model was exported
     tool_versions
         ToolVersions object containing version information for tools used to compile/export the model.
         Includes fields like tflite, onnx, onnx_runtime, qairt, and ai_hub_models versions.
-        None if tool version information is not available.
+    model_files
+        Dictionary mapping model file names to their metadata (I/O specs, quantization params).
+    supplementary_files
+        Optional dictionary mapping supplementary file names to their descriptions.
+            key: file name (relative to root of export directory)
+            value: description of the file's contents and purpose
+        This can be populated by the model's write_supplementary_files method to document any
+        additional files included in the export that are not model files (e.g., labels, config files).
     """
 
+    runtime: TargetRuntime
+    precision: Precision
+    tool_versions: ToolVersions
     model_files: dict[str, ModelFileMetadata]
-    tool_versions: ToolVersions | None = None
+    supplementary_files: dict[str, str] = {}
 
     def to_yaml(
         self,

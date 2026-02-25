@@ -50,6 +50,9 @@ class ONNXBundle:
     # The name of the external weights file in the bundle folder.
     # None if this bundle does not include external weights.
     onnx_weights_name: str | None = None
+    # The name of the external QAIRT context binary file in the bundle folder.
+    # None if this bundle does not include a QAIRT context binary.
+    qairt_bin_name: str | None = None
     # The name of the .encodings file in the bundle folder.
     # None if this bundle does not include encodings.
     aimet_encodings_name: str | None = None
@@ -63,6 +66,12 @@ class ONNXBundle:
         if self.onnx_weights_name is None:
             return None
         return self.bundle_path / self.onnx_weights_name
+
+    @property
+    def qairt_context_binary_path(self) -> Path | None:
+        if self.qairt_bin_name is None:
+            return None
+        return self.bundle_path / self.qairt_bin_name
 
     @property
     def aimet_encodings_path(self) -> Path | None:
@@ -92,8 +101,8 @@ class ONNXBundle:
         """
         model_name_grep = model_name or "*"
         onnx_folder_path = Path(bundle_path)
-        weights_files = list(onnx_folder_path.glob(f"{model_name_grep}.data"))
 
+        weights_files = list(onnx_folder_path.glob(f"{model_name_grep}.data"))
         if len(weights_files) > 1:
             raise ValueError(
                 f"Found more than 1 ONNX weight file in {bundle_path}: {' '.join(x.name for x in weights_files)} "
@@ -105,11 +114,18 @@ class ONNXBundle:
                 f"Found more than 1 AIMET encodings file in {bundle_path}: {' '.join(x.name for x in encodings_files)} "
             )
 
+        qairt_bin_files = list(onnx_folder_path.glob(f"{model_name_grep}.bin"))
+        if len(qairt_bin_files) > 1:
+            raise ValueError(
+                f"Found more than 1 QAIRT context binary file in {bundle_path}: {' '.join(x.name for x in qairt_bin_files)} "
+            )
+
         return ONNXBundle(
             bundle_path=onnx_folder_path,
             onnx_graph_name=next(onnx_folder_path.glob(f"{model_name_grep}.onnx")).name,
             onnx_weights_name=weights_files[0].name if weights_files else None,
             aimet_encodings_name=encodings_files[0].name if encodings_files else None,
+            qairt_bin_name=qairt_bin_files[0].name if qairt_bin_files else None,
         )
 
     def move(
@@ -137,6 +153,7 @@ class ONNXBundle:
             Path(dst_folder),
             f"{dst_model_name}.onnx",
             f"{dst_model_name}.data" if self.onnx_weights_name else None,
+            f"{dst_model_name}_qairt_context.bin" if self.qairt_bin_name else None,
             f"{dst_model_name}.encodings" if self.aimet_encodings_name else None,
         )
 
@@ -157,6 +174,40 @@ class ONNXBundle:
                                 entry.value = dst.onnx_weights_name
                 onnx.save(onnx_model, dst.onnx_graph_path)
 
+        if (
+            self.qairt_context_binary_path
+            and dst.qairt_context_binary_path
+            and self.qairt_bin_name
+            and dst.qairt_bin_name
+        ):
+            copy_or_move(self.qairt_context_binary_path, dst.qairt_context_binary_path)
+
+            # Only change the ONNX model references to external context binary if the external context binary path changed.
+            if self.qairt_bin_name != dst.qairt_bin_name:
+
+                def modify_qairt_bin_name(
+                    model: onnx.ModelProto, curr_bin_name: str, dst_bin_name: str
+                ) -> None:
+                    # Assumes only one EPContext node and one context binary in the graph, so we can return after modifying the first match.
+                    for node in model.graph.node:
+                        if node.op_type == "EPContext":
+                            for attribute in node.attribute:
+                                if (
+                                    attribute.name == "ep_cache_context"
+                                    and os.path.normpath(attribute.s.decode())
+                                    == curr_bin_name
+                                ):
+                                    attribute.s = (
+                                        "./" + os.path.normpath(dst_bin_name)
+                                    ).encode()  # onnx attributes are bytes, so encode the string to bytes
+                                    return
+
+                onnx_model = onnx.load(dst.onnx_graph_path, load_external_data=False)
+                modify_qairt_bin_name(
+                    onnx_model, self.qairt_bin_name, dst.qairt_bin_name
+                )
+                onnx.save(onnx_model, dst.onnx_graph_path)
+
         if self.aimet_encodings_path and dst.aimet_encodings_path:
             copy_or_move(self.aimet_encodings_path, dst.aimet_encodings_path)
 
@@ -166,6 +217,7 @@ class ONNXBundle:
         self.bundle_path = dst.bundle_path
         self.onnx_graph_name = dst.onnx_graph_name
         self.onnx_weights_name = dst.onnx_weights_name
+        self.qairt_bin_name = dst.qairt_bin_name
         self.aimet_encodings_name = dst.aimet_encodings_name
         return self
 

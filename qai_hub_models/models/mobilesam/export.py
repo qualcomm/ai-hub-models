@@ -41,80 +41,61 @@ from qai_hub_models.utils.printing import (
     print_profile_metrics_from_job,
     print_tool_versions,
 )
-from qai_hub_models.utils.qai_hub_helpers import can_access_qualcomm_ai_hub
+from qai_hub_models.utils.qai_hub_helpers import (
+    assert_success_and_get_target_models,
+    can_access_qualcomm_ai_hub,
+)
 
 
 def quantize_model(
     precision: Precision,
     model: CollectionModel,
     model_name: str,
-    device: hub.Device,
-    components: list[str],
+    onnx_models: dict[str, hub.Model],
     num_calibration_samples: int | None,
-    options: str,
+    extra_options: str = "",
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.QuantizeJob]:
-    onnx_compile_jobs: dict[str, hub.client.CompileJob] = {}
     quantize_jobs: dict[str, hub.client.QuantizeJob] = {}
+    precision_by_component = {
+        component_name: component.component_precision()
+        if precision in [Precision.mixed, Precision.mixed_with_float]
+        else precision
+        for component_name, component in model.components.items()
+    }
 
-    if precision != Precision.float:
-        precision_by_component = {
-            component_name: component.component_precision()
-            if precision in [Precision.mixed, Precision.mixed_with_float]
-            else precision
-            for component_name, component in model.components.items()
-        }
-
-        for component_name in components:
-            component = model.components[component_name]
-            assert isinstance(component, BaseModel)
-            input_spec = component.get_input_spec()
-            output_names = component.get_output_names()
-            component_precision = precision_by_component[component_name]
-            if component_precision != Precision.float:
-                source_model = torch.jit.trace(
-                    component.to("cpu"), make_torch_inputs(input_spec)
-                )
-                print(f"Compiling {component_name} to ONNX before quantization.")
-                onnx_compile_jobs[component_name] = hub.submit_compile_job(
-                    model=source_model,
-                    input_specs=input_spec,
-                    device=device,
-                    name=f"{model_name}_{component_name}",
-                    options=f"--target_runtime onnx --output_names {','.join(output_names)}",
+    for component_name in components or Model.component_class_names:
+        component = model.components[component_name]
+        assert isinstance(component, BaseModel)
+        input_spec = component.get_input_spec()
+        component_precision = precision_by_component[component_name]
+        if component_precision != Precision.float:
+            print(f"Quantizing {component_name}.")
+            if (
+                not component_precision.activations_type
+                or not component_precision.weights_type
+            ):
+                raise ValueError(
+                    "Quantization is only supported if both weights and activations are quantized."
                 )
 
-        for component_name in components:
-            component = model.components[component_name]
-            assert isinstance(component, BaseModel)
-            input_spec = component.get_input_spec()
-            component_precision = precision_by_component[component_name]
-            if component_precision != Precision.float:
-                print(f"Quantizing {component_name}.")
-                if (
-                    not component_precision.activations_type
-                    or not component_precision.weights_type
-                ):
-                    raise ValueError(
-                        "Quantization is only supported if both weights and activations are quantized."
-                    )
-
-                calibration_data = quantization_utils.get_calibration_data(
-                    component,
-                    input_spec,
-                    num_calibration_samples,
-                    app=App,
-                    collection_model=model,
-                )
-                quantize_jobs[component_name] = hub.submit_quantize_job(
-                    model=onnx_compile_jobs[component_name].get_target_model(),
-                    calibration_data=calibration_data,
-                    activations_dtype=component_precision.activations_type,
-                    weights_dtype=component_precision.weights_type,
-                    name=f"{model_name}_{component_name}",
-                    options=component.get_hub_quantize_options(
-                        component_precision, options
-                    ),
-                )
+            calibration_data = quantization_utils.get_calibration_data(
+                component,
+                input_spec,
+                num_calibration_samples,
+                app=App,
+                collection_model=model,
+            )
+            quantize_jobs[component_name] = hub.submit_quantize_job(
+                model=onnx_models[component_name],
+                calibration_data=calibration_data,
+                activations_dtype=component_precision.activations_type,
+                weights_dtype=component_precision.weights_type,
+                name=f"{model_name}_{component_name}",
+                options=component.get_hub_quantize_options(
+                    component_precision, extra_options
+                ),
+            )
     return quantize_jobs
 
 
@@ -122,31 +103,31 @@ def compile_model(
     model: CollectionModel,
     model_name: str,
     device: hub.Device,
-    components: list[str],
-    options: str,
     target_runtime: TargetRuntime,
     precision: Precision,
-    quantize_jobs: dict[str, hub.client.QuantizeJob],
+    source_models: dict[str, hub.Model] | None = None,
+    components: list[str] | None = None,
+    extra_options: str = "",
 ) -> dict[str, hub.client.CompileJob]:
     compile_jobs: dict[str, hub.client.CompileJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         component = model.components[component_name]
         assert isinstance(component, BaseModel)
         input_spec = component.get_input_spec()
-        if quantize_job := quantize_jobs.get(component_name):
-            source_model = quantize_job.get_target_model()
+        if source_models and (source_model := source_models.get(component_name)):
+            model_to_compile = source_model
         else:
             # Trace the model
-            source_model = torch.jit.trace(
+            model_to_compile = torch.jit.trace(
                 component.to("cpu"), make_torch_inputs(input_spec)
             )
 
         model_compile_options = component.get_hub_compile_options(
-            target_runtime, precision, options, device
+            target_runtime, precision, extra_options, device
         )
         print(f"Optimizing model {component_name} to run on-device")
         submitted_compile_job = hub.submit_compile_job(
-            model=source_model,
+            model=model_to_compile,
             input_specs=input_spec,
             device=device,
             name=f"{model_name}_{component_name}",
@@ -161,12 +142,12 @@ def compile_model(
 def profile_model(
     model_name: str,
     device: hub.Device,
-    components: list[str],
     options: dict[str, str],
     compile_jobs: dict[str, hub.client.CompileJob],
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.ProfileJob]:
     profile_jobs: dict[str, hub.client.ProfileJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         print(f"Profiling model {component_name} on a hosted device.")
         submitted_profile_job = hub.submit_profile_job(
             model=compile_jobs[component_name].get_target_model(),
@@ -184,12 +165,12 @@ def inference_model(
     inputs: dict[str, SampleInputsType],
     model_name: str,
     device: hub.Device,
-    components: list[str],
     options: dict[str, str],
     compile_jobs: dict[str, hub.client.CompileJob],
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.InferenceJob]:
     inference_jobs: dict[str, hub.client.InferenceJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         print(
             f"Running inference for {component_name} on a hosted device with example inputs."
         )
@@ -218,11 +199,7 @@ def download_model(
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
 
-    target_models: dict[str, hub.Model] = {}
-    for component_name, compile_job in compile_jobs.items():
-        target_model = compile_job.get_target_model()
-        assert target_model, f"Compile Job Failed:\n{compile_job}"
-        target_models[component_name] = target_model
+    target_models = assert_success_and_get_target_models(compile_jobs)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dst_path = Path(tmpdir) / output_folder_name
@@ -247,16 +224,19 @@ def download_model(
                 target_model
             )
 
-        # Dump supplementary files into the model folder
-        model.write_supplementary_files(dst_path, runtime, precision)
-
         # Extract and save metadata alongside downloaded model
         metadata_path = dst_path / "metadata.yaml"
         model_metadata = ModelMetadata(
-            model_files=model_file_metadata, tool_versions=tool_versions
+            runtime=runtime,
+            precision=precision,
+            tool_versions=tool_versions,
+            model_files=model_file_metadata,
         )
-        model_metadata.to_yaml(metadata_path)
 
+        # Dump supplementary files into the model folder
+        model.write_supplementary_files(dst_path, model_metadata)
+
+        model_metadata.to_yaml(metadata_path)
         if zip_assets:
             output_path = Path(
                 shutil.make_archive(
@@ -408,35 +388,48 @@ def export_model(
     )
 
     # 2. Converts the PyTorch model to ONNX and quantizes the ONNX model.
-    quantize_jobs = quantize_model(
-        precision,
-        model,
-        model_name,
-        device,
-        components,
-        num_calibration_samples,
-        quantize_options,
-    )
-    if precision != Precision.float and skip_compiling:
-        return CollectionExportResult(
-            components={
-                component_name: ExportResult(
-                    quantize_job=quantize_jobs.get(component_name)
-                )
-                for component_name in components
-            },
+    quantize_jobs: dict[str, hub.client.QuantizeJob] = {}
+    quantized_models: dict[str, hub.Model] | None = None
+    if precision != Precision.float:
+        onnx_compile_jobs = compile_model(
+            model,
+            model_name,
+            device,
+            TargetRuntime.ONNX,
+            precision,
+            components=components,
         )
+        onnx_models = assert_success_and_get_target_models(onnx_compile_jobs)
+        quantize_jobs = quantize_model(
+            precision,
+            model,
+            model_name,
+            onnx_models,
+            num_calibration_samples,
+            quantize_options,
+            components,
+        )
+        if skip_compiling:
+            return CollectionExportResult(
+                components={
+                    component_name: ExportResult(
+                        quantize_job=quantize_jobs.get(component_name)
+                    )
+                    for component_name in components
+                },
+            )
+        quantized_models = assert_success_and_get_target_models(quantize_jobs)
 
     # 3. Compiles the model to an asset that can be run on device
     compile_jobs = compile_model(
         model,
         model_name,
         device,
-        components,
-        compile_options,
         target_runtime,
         precision,
-        quantize_jobs,
+        quantized_models,
+        components=components,
+        extra_options=compile_options,
     )
 
     # 4. Profiles the model performance on a real device
@@ -445,9 +438,9 @@ def export_model(
         profile_jobs = profile_model(
             model_name,
             device,
-            components,
             model.get_hub_profile_options(target_runtime, profile_options),
             compile_jobs,
+            components,
         )
 
     # 5. Inferences the model on sample inputs
@@ -459,9 +452,9 @@ def export_model(
             ),
             model_name,
             device,
-            components,
             model.get_hub_profile_options(target_runtime, profile_options),
             compile_jobs,
+            components,
         )
 
     # 6. Extracts relevant tool (eg. SDK) versions used to compile and profile this model

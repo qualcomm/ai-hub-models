@@ -122,6 +122,31 @@ class BaseQAIHMConfig(BaseModel):
 
         return True
 
+    def to_json(
+        self,
+        path: str | os.PathLike,
+        exclude_defaults: bool = True,
+        exclude_none: bool = True,
+    ) -> None:
+        """
+        Converts this class to a dict and saves that dict to a JSON file.
+
+        Parameters
+        ----------
+        path
+            Path to save the file.
+        exclude_defaults
+            Whether to exclude fields with default values.
+        exclude_none
+            Whether to exclude fields with None values.
+        """
+        with open(path, "w") as f:
+            f.write(
+                self.model_dump_json(
+                    exclude_defaults=exclude_defaults, exclude_none=exclude_none
+                )
+            )
+
     @classmethod
     def from_yaml(
         cls,

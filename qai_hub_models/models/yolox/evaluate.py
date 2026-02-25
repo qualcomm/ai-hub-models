@@ -44,7 +44,9 @@ def main() -> None:
         Precision.w8a8: [
             TargetRuntime.ONNX,
         ],
-        Precision.w8a8_mixed_int16: [],
+        Precision.w8a8_mixed_int16: [
+            TargetRuntime.ONNX,
+        ],
     }
 
     parser = evaluate_parser(

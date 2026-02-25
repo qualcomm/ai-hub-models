@@ -22,7 +22,7 @@ from typing_extensions import assert_never
 from qai_hub_models.configs.code_gen_yaml import QAIHMModelCodeGen
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.datasets import DATASET_NAME_MAP
-from qai_hub_models.models.common import Precision
+from qai_hub_models.models.common import Precision, TargetRuntime
 from qai_hub_models.scorecard import (
     ScorecardCompilePath,
     ScorecardDevice,
@@ -49,8 +49,12 @@ from qai_hub_models.utils.evaluate import (
     get_torch_val_dataloader,
 )
 from qai_hub_models.utils.export_result import CollectionExportResult, ExportResult
-from qai_hub_models.utils.hub_clients import get_default_hub_deployment
+from qai_hub_models.utils.hub_clients import (
+    deployment_is_prod,
+    get_default_hub_deployment,
+)
 from qai_hub_models.utils.inference import AsyncOnDeviceModel
+from qai_hub_models.utils.qai_hub_helpers import assert_success_and_get_target_models
 from qai_hub_models.utils.testing import (
     get_and_sync_datasets_cache_dir,
     get_hub_val_dataset,
@@ -89,6 +93,7 @@ except ImportError:
     QAIHM_PRIVATE_S3_BUCKET = None  # type: ignore[assignment]
 
 ExportFunc = Callable[..., ExportResult | CollectionExportResult]
+JobFunc = Callable[..., hub.Job | dict[str, hub.Job]]
 
 
 def _parse_export_result(
@@ -372,9 +377,66 @@ def patch_hub_with_cached_jobs(
     )
 
 
-def quantize_via_export(
-    export_model: ExportFunc,
+def pre_quantize_compile_via_export(
+    compile_model: Callable[..., hub.CompileJob | dict[str, hub.CompileJob]],
     model_id: str,
+    model: CollectionModel | BaseModel,
+    device: ScorecardDevice,
+) -> None:
+    """
+    Use the provided export script function to submit ONNX compile jobs (before quantization).
+
+    If async testing is enabled:
+        Submitted jobs are added to the async testing cache,
+        and this method returns immediately.
+
+    Otherwise:
+        Waits for the submitted jobs and asserts success.
+        NOTE: This method will wait infinitely long for running jobs.
+
+    Parameters
+    ----------
+    compile_model
+        Export script function to submit compile jobs.
+    model_id
+        Model ID.
+    model
+        QAIHM instance of the model.
+    device
+        Scorecard device.
+
+    """
+    # Run ONNX compile jobs
+    compile_output = compile_model(
+        model,
+        model_id,
+        device.execution_device,
+        TargetRuntime.ONNX,
+        Precision.float,
+    )
+    assert compile_output is not None
+    compile_jobs = (
+        cast(dict[str | None, hub.Job], compile_output)
+        if isinstance(compile_output, dict)
+        else {None: compile_output}
+    )
+
+    # Verify success or cache job IDs to a file.
+    for component, job in compile_jobs.items():
+        assert_success_or_cache_job(
+            model_id,
+            job,
+            Precision.float,
+            ScorecardCompilePath.ONNX_FOR_QUANTIZATION,
+            device,
+            component,
+        )
+
+
+def quantize_via_export(
+    quantize_model: Callable[..., hub.QuantizeJob | dict[str, hub.QuantizeJob] | None],
+    model_id: str,
+    model: CollectionModel | BaseModel,
     precision: Precision,
     device: ScorecardDevice,
 ) -> None:
@@ -391,46 +453,177 @@ def quantize_via_export(
 
     Parameters
     ----------
-    export_model
-        Export script function.
+    quantize_model
+        Export script function to submit quantize jobs.
     model_id
         Model ID.
+    model
+        QAIHM instance of the model.
     precision
         Model precision.
     device
         Scorecard device.
 
     """
-    # Patch calibration data to use cached datasets
-    _, calibration_data_patch, _, _, _, _ = patch_hub_with_cached_jobs(
+    # Fetch ONNX compile jobs from pre_quantize_compile_via_export
+    has_components = isinstance(model, CollectionModel)
+    onnx_compile_jobs = fetch_async_test_jobs(
+        hub.JobType.COMPILE,
         model_id,
-        precision,
-        None,
+        Precision.float,
+        ScorecardCompilePath.ONNX_FOR_QUANTIZATION,
         device,
+        model.component_class_names if isinstance(model, CollectionModel) else None,
+        raise_if_not_successful=True,
     )
-
-    # Run quantize jobs
-    with calibration_data_patch:
-        export_result = _parse_export_result(
-            export_model(
-                device=device.execution_device,
-                precision=precision,
-                skip_downloading=True,
-                skip_compiling=True,
-                skip_profiling=True,
-                skip_inferencing=True,
-                skip_summary=True,
+    if onnx_compile_jobs is None:
+        raise CachedScorecardJobError(
+            str_with_async_test_metadata(
+                "Could not find cached pre-quantization ONNX compile jobs.",
+                model_id,
+                precision,
+                ScorecardCompilePath.ONNX_FOR_QUANTIZATION,
+                device,
             )
         )
 
-    # Verify success or cache job IDs to a file.
-    for component, result in export_result.items():
-        assert_success_or_cache_job(
-            model_id, result.quantize_job, precision, None, device, component
+    # Extract ONNX models from compile jobs
+    onnx_model_input_map = assert_success_and_get_target_models(onnx_compile_jobs)
+    onnx_model_input = (
+        onnx_model_input_map if has_components else onnx_model_input_map[None]
+    )
+
+    # Run quantize jobs
+    with mock.patch(
+        "qai_hub_models.utils.quantization.get_calibration_data",
+        mock_get_calibration_data,
+    ):
+        quantize_output = quantize_model(
+            precision,
+            model,
+            model_id,
+            onnx_model_input,
+            None,
         )
+        assert quantize_output is not None
+        quantize_jobs = (
+            cast(dict[str | None, hub.Job], quantize_output)
+            if isinstance(quantize_output, dict)
+            else {None: quantize_output}
+        )
+
+    # Verify success or cache job IDs to a file.
+    for component, job in quantize_jobs.items():
+        assert_success_or_cache_job(model_id, job, precision, None, device, component)
 
 
 def compile_via_export(
+    compile_model: Callable[..., hub.CompileJob | dict[str, hub.CompileJob]],
+    model_id: str,
+    model: CollectionModel | BaseModel,
+    precision: Precision,
+    scorecard_path: ScorecardCompilePath,
+    device: ScorecardDevice,
+    is_aimet: bool = False,
+) -> None:
+    """
+    Use the provided export script function to submit compile jobs.
+
+    If async testing is enabled:
+        * If found, previously cached compile & quantize jobs
+          are used, rather than submitting new ones.
+
+        * Submitted jobs are added to the async testing cache,
+          and this method returns immediately.
+
+    Otherwise:
+        * Submits all pre-requisite jobs as well as the compile job
+        Waits for the submitted jobs and asserts success.
+        NOTE: This method will wait infinitely long for running jobs.
+
+    Parameters
+    ----------
+    compile_model
+        Export script function to submit compile jobs.
+    model_id
+        Model ID.
+    model:
+        QAIHM instance of the model
+    precision
+        Model precision.
+    scorecard_path
+        Scorecard path.
+    device
+        Scorecard device.
+    is_aimet
+        Whether the model uses local aimet encodings during compilation.
+    """
+    has_components = isinstance(model, CollectionModel)
+    if is_aimet:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compile_output = compile_model(
+                model,
+                model_id,
+                device.execution_device,
+                scorecard_path.runtime,
+                tmpdir,
+                extra_options=scorecard_path.get_compile_options(),
+            )
+    else:
+        quantize_jobs = fetch_async_test_jobs(
+            hub.JobType.QUANTIZE,
+            model_id,
+            precision,
+            None,
+            device,
+            model.component_class_names if isinstance(model, CollectionModel) else None,
+            raise_if_not_successful=True,
+        )
+        if precision != Precision.float and quantize_jobs is None:
+            raise CachedScorecardJobError(
+                str_with_async_test_metadata(
+                    "Could not find cached quantize jobs.",
+                    model_id,
+                    precision,
+                    scorecard_path,
+                    device,
+                )
+            )
+
+        quantize_job_input: hub.Model | dict[str | None, hub.Model] | None = None
+        if quantize_jobs is not None:
+            # Extract ONNX models from quantize jobs
+            quantize_job_input_map = assert_success_and_get_target_models(quantize_jobs)
+            quantize_job_input = (
+                quantize_job_input_map
+                if has_components
+                else quantize_job_input_map[None]
+            )
+
+        compile_output = compile_model(
+            model,
+            model_id,
+            device.execution_device,
+            scorecard_path.runtime,
+            precision,
+            quantize_job_input,
+            extra_options=scorecard_path.get_compile_options(),
+        )
+
+    compile_jobs = (
+        cast(dict[str | None, hub.Job], compile_output)
+        if isinstance(compile_output, dict)
+        else {None: compile_output}
+    )
+
+    # Verify success or cache job IDs to a file.
+    for component, job in compile_jobs.items():
+        assert_success_or_cache_job(
+            model_id, job, precision, scorecard_path, device, component
+        )
+
+
+def run_llm_compile(
     export_model: ExportFunc,
     model_id: str,
     precision: Precision,
@@ -442,7 +635,7 @@ def compile_via_export(
     skip_downloading: bool = True,
 ) -> None:
     """
-    Use the provided export script function to submit compile jobs.
+    Use the provided export script function to submit compile jobs for llm tests.
 
     If async testing is enabled:
         * If found, previously cached compile & quantize jobs
@@ -479,47 +672,21 @@ def compile_via_export(
         Whether to skip downloading. Default is True.
 
     """
-    # Patch previous jobs
-    (
-        device_patch,
-        calibration_data_patch,
-        quantize_job_patch,
-        pre_quantize_compile_job_patch,
-        _,
-        _,
-    ) = patch_hub_with_cached_jobs(
-        model_id,
-        precision,
-        scorecard_path,
-        device,
-        component_names,
-        patch_quantization=not QAIHMModelCodeGen.from_model(model_id).is_aimet,
-    )
-
-    # Use export script to create a compile job.
-    with (
-        device_patch,
-        pre_quantize_compile_job_patch,
-        quantize_job_patch,
-        calibration_data_patch,
-    ):
-        export_result = _parse_export_result(
-            export_model(
-                device=device.execution_device,
-                precision=precision,
-                skip_downloading=skip_downloading,
-                skip_profiling=True,
-                skip_inferencing=True,
-                skip_summary=True,
-                compile_options=(
-                    scorecard_path.get_compile_options()
-                    if not skip_compile_options
-                    else ""
-                ),
-                target_runtime=scorecard_path.runtime,
-                **extra_model_arguments or {},
-            )
+    export_result = _parse_export_result(
+        export_model(
+            device=device.execution_device,
+            precision=precision,
+            skip_downloading=skip_downloading,
+            skip_profiling=True,
+            skip_inferencing=True,
+            skip_summary=True,
+            compile_options=(
+                scorecard_path.get_compile_options() if not skip_compile_options else ""
+            ),
+            target_runtime=scorecard_path.runtime,
+            **extra_model_arguments or {},
         )
+    )
 
     # Verify success or cache job IDs to a file.
     for component, result in export_result.items():
@@ -535,7 +702,7 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
     scorecard_path: ScorecardProfilePath,
     device: ScorecardDevice,
     component_names: list[str] | None = None,
-) -> Mapping[str | None, ExportResult] | None:
+) -> Mapping[str | None, hub.Job] | None:
     """
     Checks if the compile jobs are the same, the QAIRT version matches, and the override flag is not set.
     If all conditions are met, returns the cached profile or inference job and saves the job to the YAML cache.
@@ -559,8 +726,8 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
 
     Returns
     -------
-    cached_result : Mapping[str | None, ExportResult] | None
-        The cached ExportResult, or None if no cached job is found.
+    cached_result : Mapping[str | None, hub.Job] | None
+        The cached Jobs, or None if no cached job is found.
     """
     # Check if the QAIRT version matches the API version and if the override flag is set.
     # Previous scorecard QAIRT version is stored at /scorecard/intermediates/environment.env dump.
@@ -571,7 +738,7 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
         is_override
         #
         # only prod jobs are cached
-        or get_default_hub_deployment() != "prod"
+        or not deployment_is_prod(get_default_hub_deployment() or "")
         #
         # if the tool versions do not match, profiling for all paths must be re-run
         or scorecard_path.tool_versions
@@ -583,10 +750,8 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
 
     if job_type_to_fetch_from_cache == hub.JobType.INFERENCE:
         yaml = INFERENCE_YAML_BASE
-        result_attrname = "inference_job"
     elif job_type_to_fetch_from_cache == hub.JobType.PROFILE:
         yaml = PROFILE_YAML_BASE
-        result_attrname = "profile_job"
     else:
         assert_never(job_type_to_fetch_from_cache)
 
@@ -615,8 +780,7 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
         # No cached profile jobs for this model.
         return None
 
-    results: dict[str | None, ExportResult] = {}
-    for component, job in cached_jobs.items():
+    for job in cached_jobs.values():
         if (status_message := job.get_status().message) and (
             "unexpected device error" in status_message
             or "Waiting for device timed out" in status_message
@@ -625,20 +789,16 @@ def fetch_cached_jobs_if_compile_jobs_are_identical(
             # don't use this cached job if it is a random device or timeout failure
             return None
 
-        res = ExportResult()
-        setattr(res, result_attrname, job)
-        results[component] = res
-
-    return results
+    return cached_jobs
 
 
 def profile_via_export(
-    export_model: ExportFunc,
+    profile_model: Callable[..., hub.ProfileJob | dict[str, hub.ProfileJob]],
     model_id: str,
+    model: CollectionModel | BaseModel,
     precision: Precision,
     scorecard_path: ScorecardProfilePath,
     device: ScorecardDevice,
-    component_names: list[str] | None = None,
 ) -> None:
     """
     Use the provided export script function to submit profile jobs.
@@ -657,32 +817,29 @@ def profile_via_export(
 
     Parameters
     ----------
-    export_model
-        Export script function.
+    profile_model
+        Export script function to submit profile jobs.
     model_id
         Model ID.
+    model:
+        QAIHM instance of the model
     precision
         Model precision.
     scorecard_path
         Scorecard path.
     device
         Scorecard device.
-    component_names
-        Name of all model components (if applicable), or None of there are no components.
-        Default is None.
-
     """
-    if export_result := fetch_cached_jobs_if_compile_jobs_are_identical(
+    if profile_jobs := fetch_cached_jobs_if_compile_jobs_are_identical(
         hub.JobType.PROFILE,
         model_id,
         precision,
         scorecard_path,
         device,
-        component_names,
     ):
         print(
             str_with_async_test_metadata(
-                f"The compiled assets from the previous scorecard are identical. Copying over profile job(s): {' '.join([cast(hub.ProfileJob, x.profile_job).job_id for x in export_result.values()])}",
+                f"The compiled assets from the previous scorecard are identical. Copying over profile job(s): {' '.join([job.job_id for job in profile_jobs.values()])}",
                 model_id,
                 precision,
                 scorecard_path,
@@ -690,51 +847,47 @@ def profile_via_export(
             )
         )
     else:
-        # If there are no cached compile jobs, use the export script to create a new profile job
-
-        # Patch previous compile jobs
-        (
-            device_patch,
-            calibration_data_patch,
-            quantize_job_patch,
-            compile_job_patch,
-            _,
-            _,
-        ) = patch_hub_with_cached_jobs(
+        # If there are no cached profile jobs, use the export script to create a new profile job
+        has_components = isinstance(model, CollectionModel)
+        compile_jobs = fetch_async_test_jobs(
+            hub.JobType.COMPILE,
             model_id,
             precision,
             scorecard_path,
             device,
-            component_names,
-            patch_quantization=not QAIHMModelCodeGen.from_model(model_id).is_aimet,
-            patch_compile=True,
+            model.component_class_names if isinstance(model, CollectionModel) else None,
+            raise_if_not_successful=True,
         )
-
-        with (
-            device_patch,
-            calibration_data_patch,
-            quantize_job_patch,
-            compile_job_patch,
-        ):
-            export_result = _parse_export_result(
-                export_model(
-                    device=device.execution_device,
-                    precision=precision,
-                    skip_downloading=True,
-                    skip_profiling=False,
-                    skip_inferencing=True,
-                    skip_summary=True,
-                    compile_options=scorecard_path.compile_path.get_compile_options(),
-                    profile_options=scorecard_path.get_profile_options(),
-                    target_runtime=scorecard_path.runtime,
+        if not compile_jobs:
+            raise CachedScorecardJobError(
+                str_with_async_test_metadata(
+                    "Could not find cached compile jobs.",
+                    model_id,
+                    precision,
+                    scorecard_path,
+                    device,
                 )
             )
 
+        profile_output = profile_model(
+            model_id,
+            device.execution_device,
+            model.get_hub_profile_options(
+                scorecard_path.runtime, scorecard_path.get_profile_options()
+            ),
+            compile_jobs if has_components else compile_jobs[None],
+        )
+        profile_jobs = (
+            cast(dict[str | None, hub.Job], profile_output)
+            if isinstance(profile_output, dict)
+            else {None: profile_output}
+        )
+
     # Verify success or cache job IDs to a file.
-    for component, result in export_result.items():
+    for component, job in profile_jobs.items():
         assert_success_or_cache_job(
             model_id,
-            result.profile_job,
+            job,
             precision,
             scorecard_path,
             device,
@@ -743,12 +896,12 @@ def profile_via_export(
 
 
 def inference_via_export(
-    export_model: ExportFunc,
+    inference_model: Callable[..., hub.InferenceJob | dict[str, hub.InferenceJob]],
     model_id: str,
+    model: CollectionModel | BaseModel,
     precision: Precision,
     scorecard_path: ScorecardProfilePath,
     device: ScorecardDevice,
-    component_names: list[str] | None = None,
 ) -> None:
     """
     Use the provided export script function to submit inference jobs.
@@ -767,60 +920,61 @@ def inference_via_export(
 
     Parameters
     ----------
-    export_model
-        Export script function.
+    inference_model
+        Export script function to submit inference jobs.
     model_id
         Model ID.
+    model:
+        QAIHM instance of the model
     precision
         Model precision.
     scorecard_path
         Scorecard path.
     device
         Scorecard device.
-    component_names
-        Name of all model components (if applicable), or None of there are no components.
-        Default is None.
-
     """
     # TODO(#15111): Reenable caching for Inference Jobs. Inference jobs also must check that input datasets are the same, not just the compiled assets.
-    # Patch previous compile jobs
-    (
-        device_patch,
-        calibration_data_patch,
-        quantize_job_patch,
-        compile_job_patch,
-        _,
-        _,
-    ) = patch_hub_with_cached_jobs(
+    has_components = isinstance(model, CollectionModel)
+    compile_jobs = fetch_async_test_jobs(
+        hub.JobType.COMPILE,
         model_id,
         precision,
         scorecard_path,
         device,
-        component_names,
-        patch_quantization=not QAIHMModelCodeGen.from_model(model_id).is_aimet,
-        patch_compile=True,
+        model.component_class_names if isinstance(model, CollectionModel) else None,
+        raise_if_not_successful=True,
     )
-
-    with device_patch, calibration_data_patch, quantize_job_patch, compile_job_patch:
-        export_result = _parse_export_result(
-            export_model(
-                device=device.execution_device,
-                precision=precision,
-                skip_downloading=True,
-                skip_profiling=True,
-                skip_inferencing=False,
-                skip_summary=True,
-                compile_options=scorecard_path.compile_path.get_compile_options(),
-                profile_options=scorecard_path.get_profile_options(),
-                target_runtime=scorecard_path.runtime,
+    if not compile_jobs:
+        raise CachedScorecardJobError(
+            str_with_async_test_metadata(
+                "Could not find cached compile jobs.",
+                model_id,
+                precision,
+                scorecard_path,
+                device,
             )
         )
 
+    runtime = scorecard_path.runtime
+    inference_output = inference_model(
+        model.sample_inputs(
+            use_channel_last_format=runtime.channel_last_native_execution
+        ),
+        model_id,
+        device.execution_device,
+        model.get_hub_profile_options(runtime, scorecard_path.get_profile_options()),
+        compile_jobs if has_components else compile_jobs[None],
+    )
+    inference_jobs: dict[str | None, hub.Job] = (
+        cast(dict[str | None, hub.Job], inference_output)
+        if isinstance(inference_output, dict)
+        else {None: inference_output}
+    )
     # Verify success or cache job IDs to a file.
-    for component, result in export_result.items():
+    for component, job in inference_jobs.items():
         assert_success_or_cache_job(
             model_id,
-            result.inference_job,
+            job,
             precision,
             scorecard_path,
             device,
@@ -1162,6 +1316,7 @@ def split_and_group_accuracy_validation_output_batches(
 def accuracy_on_sample_inputs_via_export(
     export_model: ExportFunc,
     model_id: str,
+    model: BaseModel | CollectionModel,
     precision: Precision,
     scorecard_path: ScorecardProfilePath,
     device: ScorecardDevice,
@@ -1177,6 +1332,8 @@ def accuracy_on_sample_inputs_via_export(
         Code-generated export function from export.py.
     model_id
         Model ID.
+    model
+        QAIHM instance of the model
     precision
         Model precision.
     scorecard_path
@@ -1186,8 +1343,9 @@ def accuracy_on_sample_inputs_via_export(
     component_names
         Name of all model components (if applicable), or None of there are no components.
         Default is None.
-
     """
+    if isinstance(model, CollectionModel):
+        component_names = component_names or model.component_class_names
     # Patch previous jobs
     (
         device_patch,

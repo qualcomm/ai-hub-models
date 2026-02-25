@@ -22,6 +22,7 @@ from qai_hub_models.utils.hub_clients import (
 
 @unique
 class ScorecardCompilePath(Enum):
+    ONNX_FOR_QUANTIZATION = "onnx_for_quantization"  # used only as input to the quantization step, not an actual compile path that produces an asset
     TFLITE = "tflite"
     QNN_DLC = "qnn_dlc"
     QNN_DLC_VIA_QNN_EP = "qnn_dlc_via_qnn_ep"
@@ -77,7 +78,11 @@ class ScorecardCompilePath(Enum):
     def runtime(self) -> TargetRuntime:
         if self == ScorecardCompilePath.TFLITE:
             return TargetRuntime.TFLITE
-        if self == ScorecardCompilePath.ONNX or self == ScorecardCompilePath.ONNX_FP16:  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+        if (
+            self == ScorecardCompilePath.ONNX  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+            or self == ScorecardCompilePath.ONNX_FP16
+            or self == ScorecardCompilePath.ONNX_FOR_QUANTIZATION
+        ):
             return TargetRuntime.ONNX
         if self == ScorecardCompilePath.PRECOMPILED_QNN_ONNX:
             return TargetRuntime.PRECOMPILED_QNN_ONNX

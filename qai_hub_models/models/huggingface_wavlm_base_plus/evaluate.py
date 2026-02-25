@@ -30,7 +30,6 @@ def main() -> None:
     supported_precision_runtimes: dict[Precision, list[TargetRuntime]] = {
         Precision.float: [
             TargetRuntime.TFLITE,
-            TargetRuntime.ONNX,
         ],
     }
 

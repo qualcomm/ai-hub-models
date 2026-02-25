@@ -18,6 +18,7 @@ import torch
 from qai_hub.client import Device
 from typing_extensions import Self
 
+from qai_hub_models.configs.metadata_yaml import ModelMetadata
 from qai_hub_models.evaluators.base_evaluators import BaseEvaluator
 from qai_hub_models.models.common import (
     Precision,
@@ -201,28 +202,26 @@ class CollectionModel:
     def write_supplementary_files(
         self,
         output_dir: str | os.PathLike,
-        runtime: TargetRuntime,
-        precision: Precision,
-    ) -> list[Path]:
+        metadata: ModelMetadata,
+    ) -> None:
         """
-        Write a list of supplementary files required by the model during inference.
+        Write supplementary files required by the model during inference.
         These files will be packaged alongside the model when deployed.
 
         Parameters
         ----------
         output_dir
             Directory where the supplementary files should be written.
-        runtime
-            Target runtime for which the model is being prepared.
-        precision
-            Precision configuration for which the model is being prepared.
+        metadata
+            The metadata for the compiled models.
+            metadata.precision, metadata.runtime, metadata.tool_versions, and metadata.model_files should be pre-populated by the caller.
 
         Returns
         -------
-        list[Path]
-            List of file paths to the supplementary files written.
+        None
+            metadata.supplementary_files will be populated with the files written by this function.
         """
-        return []
+        return
 
 
 class PretrainedCollectionModel(CollectionModel, FromPretrainedProtocol):
@@ -698,34 +697,32 @@ class BaseModel(
     def write_supplementary_files(
         self,
         output_dir: str | os.PathLike,
-        runtime: TargetRuntime,
-        precision: Precision,
-    ) -> list[Path]:
+        metadata: ModelMetadata,
+    ) -> None:
         """
-        Write a list of supplementary files required by the model during inference.
+        Write supplementary files required by the model during inference.
         These files will be packaged alongside the model when deployed.
 
         Parameters
         ----------
         output_dir
             Directory where the supplementary files should be written.
-        runtime
-            Target runtime for which the model is being prepared.
-        precision
-            Precision configuration for which the model is being prepared.
+        metadata
+            The metadata for the compiled models.
+            metadata.precision, metadata.runtime, metadata.tool_versions, and metadata.model_files should be pre-populated by the caller.
 
         Returns
         -------
-        list[Path]
-            List of file paths to the supplementary files written.
+        None
+            metadata.supplementary_files will be populated with the files written by this function.
         """
-        files: list[Path] = []
         if labels_file_name := self.get_labels_file_name():
             out_path = Path(output_dir) / "labels.txt"
             labels_path = QAIHM_PACKAGE_ROOT / "labels" / labels_file_name
             shutil.copyfile(labels_path, out_path)
-            files.append(out_path)
-        return files
+            metadata.supplementary_files["labels.txt"] = (
+                "Mapping of model prediction indices -> string labels."
+            )
 
 
 class BasePrecompiledModel(HubModel, FromPrecompiledProtocol):
@@ -753,25 +750,23 @@ class BasePrecompiledModel(HubModel, FromPrecompiledProtocol):
     def write_supplementary_files(
         self,
         output_dir: str | os.PathLike,
-        runtime: TargetRuntime,
-        precision: Precision,
-    ) -> list[Path]:
+        metadata: ModelMetadata,
+    ) -> None:
         """
-        Write a list of supplementary files required by the model during inference.
+        Write supplementary files required by the model during inference.
         These files will be packaged alongside the model when deployed.
 
         Parameters
         ----------
         output_dir
             Directory where the supplementary files should be written.
-        runtime
-            Target runtime for which the model is being prepared.
-        precision
-            Precision configuration for which the model is being prepared.
+        metadata
+            The metadata for the compiled models.
+            metadata.precision, metadata.runtime, metadata.tool_versions, and metadata.model_files should be pre-populated by the caller.
 
         Returns
         -------
-        list[Path]
-            List of file paths to the supplementary files written.
+        None
+            metadata.supplementary_files will be populated with the files written by this function.
         """
-        return []
+        return

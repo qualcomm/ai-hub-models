@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
+import tempfile
 from typing import Any, cast
 
 import cv2
@@ -24,6 +24,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_nyuv2_files,
+    )
+except ImportError:
+    download_nyuv2_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.input_spec import InputSpec
 
 NYUV2_FOLDER_NAME = "nyuv2"
@@ -111,10 +118,23 @@ class NyUv2Dataset(BaseDataset):
     def __len__(self) -> int:
         return len(self.image_list)
 
-    def _download_data(self) -> None:
+    def _download_data(self, source_file: str | None = None) -> None:
         if self.dataset_path.exists():
             return
-        if self.source_dataset_file is None:
+
+        # Use passed arg if provided, otherwise use instance attribute
+        if source_file is None:
+            source_file = self.source_dataset_file
+
+        # If no file provided/set, try auto-download
+        if source_file is None and download_nyuv2_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                source_file = os.path.join(tmpdir, FILE_NAME)
+                download_nyuv2_files(source_file)
+                self._download_data(source_file)
+            return
+
+        if source_file is None or not source_file.endswith(FILE_NAME):
             raise UnfetchableDatasetError(
                 dataset_name=self.dataset_name(),
                 installation_steps=[
@@ -122,14 +142,9 @@ class NyUv2Dataset(BaseDataset):
                     f"Run `python -m qai_hub_models.datasets.configure_dataset --dataset nyuv2 --files /path/to/{FILE_NAME}`",
                 ],
             )
-        if not Path(self.source_dataset_file).exists():
-            raise ValueError(f"Path {self.source_dataset_file} does not exist.")
-        if not self.source_dataset_file.endswith(FILE_NAME):
-            raise ValueError(
-                f"File {self.source_dataset_file} should be named {FILE_NAME}."
-            )
+
         os.makedirs(self.dataset_path.parent, exist_ok=True)
-        shutil.copy(self.source_dataset_file, self.dataset_path)
+        shutil.copy(source_file, self.dataset_path)
 
     @staticmethod
     def default_samples_per_job() -> int:

@@ -48,7 +48,9 @@ python -m qai_hub_models.models.bgnet.export { --quantize w8a8, w8a16 }
 ```
 Additional options are documented with the `--help` option.
 
-
+## License
+* The license for the original implementation of BGNet can be found
+  [here](https://github.com/thograce/BGNet/blob/master/LICENSE).
 
 ## References
 * [BGNet: Boundary-Guided Camouflaged Object Detection (IJCAI 2022)](https://arxiv.org/abs/2207.00794)

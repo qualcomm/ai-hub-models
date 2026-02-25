@@ -11,7 +11,14 @@ from qai_hub_models.configs.metadata_yaml import (
     QuantizationParameters,
     TensorSpec,
 )
+from qai_hub_models.configs.tool_versions import ToolVersions
+from qai_hub_models.models.common import Precision, TargetRuntime
 from qai_hub_models.utils.asset_loaders import load_yaml
+
+# Default values for required ModelMetadata fields in tests
+DEFAULT_RUNTIME = TargetRuntime.TFLITE
+DEFAULT_PRECISION = Precision.float
+DEFAULT_TOOL_VERSIONS = ToolVersions(ai_hub_models="0.0.0")
 
 
 def test_tensor_spec_creation() -> None:
@@ -66,7 +73,12 @@ def test_model_metadata_single_component() -> None:
         outputs={"logits": TensorSpec(shape=[1, 1000], dtype="float32")},
     )
 
-    model_metadata = ModelMetadata(model_files={"ResNet50": file_metadata})
+    model_metadata = ModelMetadata(
+        runtime=DEFAULT_RUNTIME,
+        precision=DEFAULT_PRECISION,
+        tool_versions=DEFAULT_TOOL_VERSIONS,
+        model_files={"ResNet50": file_metadata},
+    )
     assert len(model_metadata.model_files) == 1
     assert "ResNet50" in model_metadata.model_files
 
@@ -84,10 +96,13 @@ def test_model_metadata_multiple_components() -> None:
     )
 
     model_metadata = ModelMetadata(
+        runtime=DEFAULT_RUNTIME,
+        precision=DEFAULT_PRECISION,
+        tool_versions=DEFAULT_TOOL_VERSIONS,
         model_files={
             "text_encoder": text_encoder,
             "unet": unet,
-        }
+        },
     )
 
     assert len(model_metadata.model_files) == 2
@@ -102,7 +117,12 @@ def test_metadata_yaml_roundtrip() -> None:
         inputs={"image": TensorSpec(shape=[1, 3, 224, 224], dtype="float32")},
         outputs={"logits": TensorSpec(shape=[1, 1000], dtype="float32")},
     )
-    model_metadata = ModelMetadata(model_files={"ResNet50": file_metadata})
+    model_metadata = ModelMetadata(
+        runtime=DEFAULT_RUNTIME,
+        precision=DEFAULT_PRECISION,
+        tool_versions=DEFAULT_TOOL_VERSIONS,
+        model_files={"ResNet50": file_metadata},
+    )
 
     # Save to YAML
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -146,7 +166,12 @@ def test_metadata_with_quantization_roundtrip() -> None:
             )
         },
     )
-    model_metadata = ModelMetadata(model_files={"ResNet50": file_metadata})
+    model_metadata = ModelMetadata(
+        runtime=DEFAULT_RUNTIME,
+        precision=DEFAULT_PRECISION,
+        tool_versions=DEFAULT_TOOL_VERSIONS,
+        model_files={"ResNet50": file_metadata},
+    )
 
     # Save and load
     with tempfile.TemporaryDirectory() as tmpdir:

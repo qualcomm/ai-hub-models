@@ -5,8 +5,9 @@
 import copy
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import torch
 from melo import modules
 from qai_hub.client import Device
@@ -26,7 +27,10 @@ from qai_hub_models.models._shared.melotts.meloTTS_encoder import (
     OptimizedTextEncoder,
 )
 from qai_hub_models.models._shared.melotts.meloTTS_flow import OptimizedFlow
-from qai_hub_models.models._shared.melotts.utils import download_unidic
+from qai_hub_models.models._shared.melotts.utils import (
+    BERT_MODEL_IDS,
+    download_unidic,
+)
 from qai_hub_models.models.common import SampleInputsType
 from qai_hub_models.utils.base_model import (
     BaseModel,
@@ -49,12 +53,7 @@ FLOW_LENGTH_FACTOR = 3
 DECODER_Z_TIME_DIM = 64
 UPSAMPLED_MAX_SEQ_LEN = MAX_SEQ_LEN * FLOW_LENGTH_FACTOR
 
-LANGUAGE_MAP = {"ENGLISH": "EN", "SPANISH": "ES", "CHINESE": "ZH"}
-BERT_MODEL_IDS = {
-    "ENGLISH": "bert-base-uncased",
-    "CHINESE": "bert-base-multilingual-uncased",
-    "SPANISH": "dccuchile/bert-base-spanish-wwm-uncased",
-}
+MAP2 = {"ENGLISH": "EN_NEWEST", "SPANISH": "ES", "CHINESE": "ZH"}
 
 
 @lru_cache(maxsize=1)
@@ -62,7 +61,7 @@ def get_tts_object(language: str) -> "TTS":
     download_unidic()
     from melo.api import TTS
 
-    return TTS(LANGUAGE_MAP[language], device="cpu")
+    return TTS(MAP2[language], device="cpu")
 
 
 @lru_cache(maxsize=1)
@@ -209,6 +208,9 @@ class Encoder(BaseModel):
         g = None
         assert callable(self.model.emb_g)
         if self.model.n_speakers > 0:
+            # TODO(17781): Undo clamp after we add a tracing option to set the input value range.
+            # This does not use a minimum of 0 because some models only have 1 speaker. That would result in a clamp(0, 0) operator, which is invalid in QNN.
+            sid = torch.clamp(sid, max=self.model.emb_g.num_embeddings - 1)
             g = self.model.emb_g(sid).unsqueeze(-1)
         x, m_p, logs_p, x_mask = self.encoder.forward(
             x, x_lengths, tone, language, bert, ja_bert, g=g
@@ -306,14 +308,19 @@ class Encoder(BaseModel):
             target_runtime,
             precision,
             other_compile_options,
-            device,  # context_graph_name="encoder"
+            device,
+            context_graph_name="encoder",
         )
         # # Must use --truncate_64bit_io when input tensors have type int64.
         if target_runtime != TargetRuntime.ONNX:
             compile_options += " --truncate_64bit_tensors --truncate_64bit_io "
         if target_runtime.qairt_version_changes_compilation:
-            compile_options += " --quantize_full_type float16 --quantize_io "
+            compile_options += " --quantize_full_type float16 --quantize_io false "
         return compile_options
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.float
 
 
 class Flow(BaseModel):
@@ -388,6 +395,25 @@ class Flow(BaseModel):
             "noise_scale": ((1,), "float32"),
         }
 
+    def _sample_inputs_impl(
+        self, input_spec: InputSpec | None = None, **kwargs: Any
+    ) -> SampleInputsType:
+        """
+        This is a default implementation that returns a single random data array
+        for each input name based on the shapes and dtypes in `get_input_spec`.
+
+        A subclass may choose to override this and fetch a batch of real input data
+        from a data source.
+
+        See the `sample_inputs` doc for the expected format.
+        """
+        rng = np.random.default_rng(seed=123)
+        specs = input_spec or type(self).get_input_spec()
+        return {
+            name: [rng.normal(size=shape).astype(dtype)]
+            for name, (shape, dtype) in specs.items()
+        }
+
     @staticmethod
     def get_output_names() -> list[str]:
         return ["z"]
@@ -404,11 +430,20 @@ class Flow(BaseModel):
             target_runtime,
             precision,
             other_compile_options,
-            device,  # context_graph_name="flow"
+            device,
+            context_graph_name="flow",
         )
         if target_runtime.qairt_version_changes_compilation:
-            compile_options += " --quantize_full_type float16 --quantize_io "
+            compile_options += " --quantize_io false "
         return compile_options
+
+    @staticmethod
+    def calibration_dataset_name() -> str:
+        return "common_voice_text"
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.w8a16
 
 
 class Decoder(BaseModel):
@@ -463,11 +498,20 @@ class Decoder(BaseModel):
             target_runtime,
             precision,
             other_compile_options,
-            device,  # context_graph_name="decoder"
+            device,
+            context_graph_name="decoder",
         )
         if target_runtime.qairt_version_changes_compilation:
-            compile_options += " --quantize_full_type float16 --quantize_io "
+            compile_options += " --quantize_io false "
         return compile_options
+
+    @staticmethod
+    def calibration_dataset_name() -> str:
+        return "common_voice_text"
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.w8a16
 
 
 class T5Encoder(BaseModel):
@@ -564,6 +608,29 @@ class T5Encoder(BaseModel):
     @classmethod
     def from_pretrained(cls) -> Self:
         return cls(get_t5model())
+
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        compile_options = super().get_hub_compile_options(
+            target_runtime,
+            precision,
+            other_compile_options,
+            device,
+            context_graph_name="charsiu_encoder",
+        )
+        if target_runtime.qairt_version_changes_compilation:
+            compile_options += " --quantize_io false "
+        return compile_options
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.float
 
 
 def replace_submodules(module: Module) -> None:
@@ -780,6 +847,29 @@ class T5Decoder(BaseModel):
         # use deepcopy to prevent cached t5model being modified, so the cache can be reused
         return cls(copy.deepcopy(get_t5model()), MAX_NUM_INPUT_IDS)
 
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        compile_options = super().get_hub_compile_options(
+            target_runtime,
+            precision,
+            other_compile_options,
+            device,
+            context_graph_name="charsiu_decoder",
+        )
+        if target_runtime.qairt_version_changes_compilation:
+            compile_options += " --quantize_io false "
+        return compile_options
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.float
+
 
 class BertWrapper(BaseModel):
     def __init__(self, bert_model: BertForMaskedLM) -> None:
@@ -809,12 +899,22 @@ class BertWrapper(BaseModel):
            the last hidden states
         """
         embedding_output = self.embeddings(
-            input_ids=input_ids,
+            # TODO(17781): Undo clamp after we add a profile job option to set the input value range.
+            input_ids=torch.clamp(
+                input_ids,
+                0,
+                self.embeddings.word_embeddings.num_embeddings - 1,  # type: ignore[union-attr, arg-type, operator, unused-ignore]
+            ),
             position_ids=None,
-            token_type_ids=token_type_ids,
+            # TODO(17781): Undo clamp after we add a profile job option to set the input value range.
+            token_type_ids=torch.clamp(
+                token_type_ids,
+                0,
+                self.embeddings.token_type_embeddings.num_embeddings - 1,  # type: ignore[union-attr, arg-type, operator, unused-ignore]
+            ),
             inputs_embeds=None,
             past_key_values_length=0,
-        )  # type: ignore[operator]
+        )
         extended_attention_mask = -100.0 * (1 - attention_mask)
         encoder_outputs = self.encoder(  # type: ignore[operator]
             embedding_output,
@@ -851,11 +951,19 @@ class BertWrapper(BaseModel):
             target_runtime,
             precision,
             other_compile_options,
-            device,  # context_graph_name="bert"
+            device,
+            context_graph_name="bert",
         )
-        # Must use --truncate_64bit_io when input tensors have type int64.
         if target_runtime != TargetRuntime.ONNX:
             compile_options += " --truncate_64bit_tensors --truncate_64bit_io "
         if target_runtime.qairt_version_changes_compilation:
-            compile_options += " --quantize_full_type float16 --quantize_io  "
+            compile_options += " --quantize_io false "
         return compile_options
+
+    @staticmethod
+    def calibration_dataset_name() -> str:
+        return "common_voice_text"
+
+    @staticmethod
+    def component_precision() -> Precision:
+        return Precision.w16a16

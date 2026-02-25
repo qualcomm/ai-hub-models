@@ -154,7 +154,7 @@ def get_split_tensors(
 
     output_tensors: list[str] = []
     if include_first_input:
-        layer0_input = get_layer0_input(residual_add_names[0])
+        layer0_input = maybe_skip_cast(get_layer0_input(residual_add_names[0]))
         output_tensors.append(nodes[layer0_input].output[0])
     output_tensors += [
         nodes[node].output[0] for i, node in enumerate(residual_add_names) if i % 2 == 1

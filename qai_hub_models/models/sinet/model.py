@@ -11,9 +11,7 @@ from importlib import reload
 import torch
 from typing_extensions import Self
 
-from qai_hub_models.models._shared.cityscapes_segmentation.model import (
-    CityscapesSegmentor,
-)
+from qai_hub_models.models._shared.selfie_segmentation.model import SelfieSegmentor
 from qai_hub_models.models.common import Precision
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
@@ -21,12 +19,11 @@ from qai_hub_models.utils.asset_loaders import (
     find_replace_in_repo,
     load_torch,
 )
-from qai_hub_models.utils.input_spec import InputSpec
 
 SINET_SOURCE_REPOSITORY = "https://github.com/clovaai/ext_portrait_segmentation"
 SINET_SOURCE_REPO_COMMIT = "9bc1bada1cb7bd17a3a80a2964980f4b4befef5b"
 MODEL_ID = __name__.split(".")[-2]
-MODEL_ASSET_VERSION = 1
+MODEL_ASSET_VERSION = 2
 DEFAULT_WEIGHTS = "SINet.pth"
 NUM_CLASSES = 2
 INPUT_IMAGE_LOCAL_PATH = "sinet_demo.png"
@@ -35,13 +32,13 @@ INPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
 )
 
 
-class SINet(CityscapesSegmentor):
-    """Exportable SINet portrait segmentation application, end-to-end."""
+class SINet(SelfieSegmentor):
+    MASK_THRESHOLD = 0
+    DEFAULT_HW = (224, 224)
 
     @classmethod
     def from_pretrained(cls, weights: str = DEFAULT_WEIGHTS) -> Self:
         sinet_model = _load_sinet_source_model_from_weights(weights)
-
         return cls(sinet_model)
 
     def forward(self, image: torch.Tensor) -> torch.Tensor:
@@ -60,26 +57,14 @@ class SINet(CityscapesSegmentor):
         class_logits : torch.Tensor
             1x2xHxW tensor of class logits per pixel
         """
-        # These mean and std values were computed using the prescribed training data
-        # and process in https://github.com/clovaai/ext_portrait_segmentation/blob/9bc1bada1cb7bd17a3a80a2964980f4b4befef5b/data/loadData.py#L44
-        mean = torch.Tensor([113.05697, 120.847824, 133.786]) / 255
-        std = torch.Tensor([65.05263, 65.393776, 67.238205])
+        image = image[:, [2, 1, 0]]  # RGB -> BGR
+        # Mean / STD from https://github.com/clovaai/ext_portrait_segmentation/blob/master/etc/Visualize_video.py#L232
+        mean = torch.Tensor([107.304565, 115.69884, 132.35703]) / 255
+        std = torch.Tensor([63.97182, 65.1337, 68.29726])
         mean = mean.reshape(1, 3, 1, 1)
         std = std.reshape(1, 3, 1, 1)
         image = (image - mean) / std
         return self.model(image)
-
-    @staticmethod
-    def get_input_spec(
-        batch_size: int = 1,
-        height: int = 224,
-        width: int = 224,
-    ) -> InputSpec:
-        # Get the input specification ordered (name -> (shape, type)) pairs for this model.
-        #
-        # This can be used with the qai_hub python API to declare
-        # the model input specification upon submitting a profile job.
-        return {"image": ((batch_size, 3, height, width), "float32")}
 
     @staticmethod
     def eval_datasets() -> list[str]:

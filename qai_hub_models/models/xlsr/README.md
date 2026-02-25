@@ -49,7 +49,7 @@ Additional options are documented with the `--help` option.
 
 ## License
 * The license for the original implementation of XLSR can be found
-  [here](https://github.com/quic/aimet-model-zoo/blob/develop/LICENSE.pdf).
+  [here](https://github.com/quic/aimet-model-zoo/blob/develop/LICENSE.md).
 
 ## References
 * [Extremely Lightweight Quantization Robust Real-Time Single-Image Super Resolution for Mobile Devices](https://arxiv.org/abs/2105.10288)

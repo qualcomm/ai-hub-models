@@ -30,7 +30,7 @@ from qai_hub_models.scorecard import (
 from qai_hub_models.scorecard.device import cs_x_elite
 from qai_hub_models.utils.model_cache import CacheMode
 from qai_hub_models.utils.testing import patch_qai_hub
-from qai_hub_models.utils.testing_export_eval import compile_via_export
+from qai_hub_models.utils.testing_export_eval import run_llm_compile
 
 
 def _mock_from_pretrained() -> Mock:
@@ -221,7 +221,7 @@ def test_compile(
     device: ScorecardDevice,
 ) -> None:
     cleanup()
-    compile_via_export(
+    run_llm_compile(
         export_model,
         MODEL_ID,
         precision,

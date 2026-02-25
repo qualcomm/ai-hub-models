@@ -585,6 +585,11 @@ cs_x_elite = ScorecardDevice(
     reference_device_name="Snapdragon X Elite CRD",
 )
 
+cs_x2_elite = ScorecardDevice(
+    name="cs_x2_elite",
+    reference_device_name="Snapdragon X2 Elite CRD",
+)
+
 
 ##
 # Auto Chipsets (cs)

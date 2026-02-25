@@ -24,7 +24,7 @@ from qai_hub_models.scorecard import (
     ScorecardDevice,
 )
 from qai_hub_models.scorecard.device import cs_8_elite_gen_5
-from qai_hub_models.utils.testing_export_eval import compile_via_export
+from qai_hub_models.utils.testing_export_eval import run_llm_compile
 
 
 @pytest.mark.skipif(
@@ -44,7 +44,7 @@ def test_compile(
     device: ScorecardDevice,
 ) -> None:
     cleanup()
-    compile_via_export(
+    run_llm_compile(
         export_model,
         MODEL_ID,
         precision,

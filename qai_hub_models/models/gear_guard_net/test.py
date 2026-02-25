@@ -6,7 +6,7 @@
 import numpy as np
 import pytest
 
-from qai_hub_models.models.gear_guard_net.app import BodyDetectionApp
+from qai_hub_models.models.gear_guard_net.app import GearGuardNetApp
 from qai_hub_models.models.gear_guard_net.demo import main as demo_main
 from qai_hub_models.models.gear_guard_net.model import (
     MODEL_ASSET_VERSION,
@@ -31,7 +31,7 @@ GROUND_TRUTH_RESULT = CachedWebModelAsset.from_asset_store(
 
 @skip_clone_repo_check
 def test_task() -> None:
-    app = BodyDetectionApp(GearGuardNet.from_pretrained(), nms_score_threshold=0.9)
+    app = GearGuardNetApp(GearGuardNet.from_pretrained(), nms_score_threshold=0.9)
     image = load_image(INPUT_IMAGE_ADDRESS.fetch())
     boxes, _, class_idx = app.predict_boxes_from_image(image, raw_output=True)
     boxes_pd, class_idx_pd = (
@@ -48,7 +48,7 @@ def test_task() -> None:
 @pytest.mark.trace
 @skip_clone_repo_check
 def test_trace() -> None:
-    app = BodyDetectionApp(
+    app = GearGuardNetApp(
         GearGuardNet.from_pretrained().convert_to_torchscript(), nms_score_threshold=0.9
     )
     image = load_image(INPUT_IMAGE_ADDRESS.fetch())

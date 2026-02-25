@@ -59,6 +59,20 @@ def test_onnx_bundle_from_path(tmp_path: Path) -> None:
     assert bundle.onnx_weights_path == onnx_weights_path
     assert bundle.aimet_encodings_name == "model_seq1_cl4096.encodings"
     assert bundle.aimet_encodings_path == aimet_encodings_path
+    assert bundle.qairt_bin_name is None
+    assert bundle.qairt_context_binary_path is None
+
+    qairt_bin_path = tmp_path / "model.bin"
+    qairt_bin_path.touch()
+    bundle = ONNXBundle.from_bundle_path(tmp_path)
+    assert bundle.onnx_graph_name == "model.onnx"
+    assert bundle.onnx_graph_path == onnx_graph_path
+    assert bundle.onnx_weights_name == "model.data"
+    assert bundle.onnx_weights_path == onnx_weights_path
+    assert bundle.aimet_encodings_name == "model_seq1_cl4096.encodings"
+    assert bundle.aimet_encodings_path == aimet_encodings_path
+    assert bundle.qairt_bin_name == "model.bin"
+    assert bundle.qairt_context_binary_path == qairt_bin_path
 
     onnx_weights_path_2 = tmp_path / "apple_model_2.data"
     onnx_weights_path_2.touch()
@@ -71,6 +85,12 @@ def test_onnx_bundle_from_path(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="more than 1 AIMET encodings file"):
         ONNXBundle.from_bundle_path(tmp_path)
     aimet_encodings_path_2.unlink()
+
+    qairt_bin_path_2 = tmp_path / "model_2.bin"
+    qairt_bin_path_2.touch()
+    with pytest.raises(ValueError, match="more than 1 QAIRT context binary file"):
+        ONNXBundle.from_bundle_path(tmp_path)
+    qairt_bin_path_2.unlink()
 
     onnx_graph_path_2 = tmp_path / "model_2.onnx"
     onnx_weights_path_2 = tmp_path / "model_2.data"
@@ -138,6 +158,76 @@ def test_onnx_bundle_move(tmp_path: Path) -> None:
     assert out.onnx_weights_path and os.path.exists(out.onnx_weights_path)
     assert os.path.exists(aimet_encodings_path)
     assert out.aimet_encodings_path and os.path.exists(out.aimet_encodings_path)
+
+
+def test_onnx_bundle_move_with_qairt_bin(tmp_path: Path) -> None:
+    """Test moving ONNX bundles that include QAIRT context binary files."""
+    onnx_graph_path = tmp_path / "model.onnx"
+    qairt_bin_path = tmp_path / "model.bin"
+
+    # Create ONNX model with EPContext node
+    generate_wrapper_onnx_file(
+        graph_name="test_graph",
+        onnx_output_path=onnx_graph_path,
+        onnx_input_specs={"input": ((1, 3, 224, 224), onnx.TensorProto.FLOAT)},
+        onnx_output_specs={"output": ((1, 1000), onnx.TensorProto.FLOAT)},
+        qnn_context_bin_path="./model.bin",
+        qairt_version="1.0.0",
+    )
+    qairt_bin_path.write_bytes(b"dummy bin content")
+
+    # Test move with rename
+    dst = tmp_path / "test"
+    os.makedirs(dst)
+    bundle = ONNXBundle.from_bundle_path(tmp_path)
+    assert bundle.qairt_bin_name == "model.bin"
+    assert bundle.qairt_context_binary_path == qairt_bin_path
+
+    out = bundle.move(dst, "model2")
+    assert out.qairt_bin_name == "model2_qairt_context.bin"
+    assert out.qairt_context_binary_path == dst / "model2_qairt_context.bin"
+    assert not os.path.exists(qairt_bin_path)
+    assert out.qairt_context_binary_path and os.path.exists(
+        out.qairt_context_binary_path
+    )
+
+    # Verify the bin content was preserved
+    assert out.qairt_context_binary_path.read_bytes() == b"dummy bin content"
+
+    # Verify the ONNX model was updated to reference the new bin file name
+    model = onnx.load(str(out.onnx_graph_path))
+    ep_nodes = [n for n in model.graph.node if n.op_type == "EPContext"]
+    assert len(ep_nodes) == 1
+    ep_cache_attr = next(
+        (a for a in ep_nodes[0].attribute if a.name == "ep_cache_context"), None
+    )
+    assert ep_cache_attr is not None
+    assert ep_cache_attr.s.decode() == "./model2_qairt_context.bin"
+
+    # Test copy (not move) with qairt bin
+    dst2 = tmp_path / "test2"
+    os.makedirs(dst2)
+    onnx_graph_path2 = tmp_path / "model3.onnx"
+    qairt_bin_path2 = tmp_path / "model3.bin"
+    generate_wrapper_onnx_file(
+        graph_name="test_graph",
+        onnx_output_path=onnx_graph_path2,
+        onnx_input_specs={"input": ((1, 3, 224, 224), onnx.TensorProto.FLOAT)},
+        onnx_output_specs={"output": ((1, 1000), onnx.TensorProto.FLOAT)},
+        qnn_context_bin_path="./model3.bin",
+        qairt_version="1.0.0",
+    )
+    qairt_bin_path2.write_bytes(b"dummy bin content 2")
+
+    bundle2 = ONNXBundle.from_bundle_path(tmp_path, model_name="model3")
+    out2 = bundle2.move(dst2, "model4", copy=True)
+    assert out2.qairt_bin_name == "model4_qairt_context.bin"
+    assert out2.qairt_context_binary_path == dst2 / "model4_qairt_context.bin"
+    # Original should still exist since we used copy=True
+    assert os.path.exists(qairt_bin_path2)
+    assert out2.qairt_context_binary_path and os.path.exists(
+        out2.qairt_context_binary_path
+    )
 
 
 def test_download_and_unzip_workbench_onnx_model() -> None:

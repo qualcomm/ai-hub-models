@@ -34,18 +34,20 @@ from qai_hub_models.utils.printing import (
     print_profile_metrics_from_job,
     print_tool_versions,
 )
-from qai_hub_models.utils.qai_hub_helpers import can_access_qualcomm_ai_hub
+from qai_hub_models.utils.qai_hub_helpers import (
+    can_access_qualcomm_ai_hub,
+)
 
 
 def profile_model(
     model_name: str,
     device: hub.Device,
-    components: list[str],
     options: dict[str, str],
     uploaded_models: dict[str, hub.Model],
+    components: list[str] | None = None,
 ) -> dict[str, hub.client.ProfileJob]:
     profile_jobs: dict[str, hub.client.ProfileJob] = {}
-    for component_name in components:
+    for component_name in components or Model.component_class_names:
         print(f"Profiling model {component_name} on a hosted device.")
         submitted_profile_job = hub.submit_profile_job(
             model=uploaded_models[component_name],
@@ -214,9 +216,9 @@ def export_model(
         profile_jobs = profile_model(
             model_name,
             device,
-            components,
             model.get_hub_profile_options(target_runtime, profile_options),
             uploaded_models,
+            components,
         )
 
     # 4. Extracts relevant tool (eg. SDK) versions used to compile and profile this model

@@ -564,7 +564,10 @@ def cache_dataset(model_id: str, dataset_name: str, dataset: hub.Dataset) -> Non
 
 def get_cached_dataset(model_id: str, dataset_name: str) -> hub.Dataset | None:
     dataset_ids = load_yaml(get_dataset_ids_file())
-    return hub.get_dataset(dataset_ids[f"{model_id}_{dataset_name}"])
+    key = f"{model_id}_{dataset_name}"
+    if key not in dataset_ids:
+        return None
+    return hub.get_dataset(dataset_ids[key])
 
 
 def get_cached_dataset_entries(

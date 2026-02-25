@@ -190,6 +190,8 @@ class Qwen2Base_AIMETOnnx(LLM_AIMETOnnx):
     EmbeddingClass = RopeEmbedding
     FPModel = Qwen2Base
 
+    ada_scale_model_type: str | None = "qwen2"
+
     def __init__(
         self,
         quant_sim: QuantizationSimModel,

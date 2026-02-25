@@ -182,6 +182,7 @@ class PyTestModelTask(CompositeTask):
         use_shared_cache: bool = False,  # If True, uses a shared cache rather than the global QAIHM cache.
         run_mypy: bool = False,
         run_general: bool = True,
+        run_pre_quantize_compile: bool = False,
         run_quantize: bool = False,
         run_compile: bool = True,
         run_profile: bool = False,
@@ -269,6 +270,8 @@ class PyTestModelTask(CompositeTask):
                 test_flags = []
                 if run_general:
                     test_flags.append("unmarked")
+                if run_pre_quantize_compile:
+                    test_flags.append("pre_quantize_compile")
                 if run_compile:
                     test_flags.append("compile")
                 if run_profile:
@@ -364,13 +367,13 @@ class PyTestModelsTask(CompositeTask):
         test_trace: bool = True,
         run_mypy: bool = False,  # Only run mypy for model folders that don't use global requirements. Global reqs are covered by the precommit.
         run_general: bool = True,
+        run_export_pre_quantize_compile: bool = False,
         run_export_quantize: bool = False,
         run_export_compile: bool = True,
         run_export_profile: bool = False,
         run_export_inference: bool = False,
         run_compute_device_accuracy: bool = False,
         run_full_export: bool = False,
-        verify_compile_jobs_success: bool = True,
         exit_after_single_model_failure: bool = False,
         raise_on_failure: bool = True,
         qaihm_wheel_dir: str | os.PathLike | None = None,
@@ -442,7 +445,7 @@ class PyTestModelsTask(CompositeTask):
         export_models = models_to_test_export
         hub_quantized_models = []
         nonhub_quantized_models = []
-        for model in sorted(models_for_testing, reverse=True):
+        for model in models_for_testing:
             if get_is_hub_quantized(model) and model in export_models:
                 hub_quantized_models.append(model)
             else:
@@ -477,6 +480,8 @@ class PyTestModelsTask(CompositeTask):
                     run_trace=test_trace,
                     run_mypy=run_mypy and not is_global_model,
                     run_general=run_general,
+                    run_pre_quantize_compile=run_export_pre_quantize_compile
+                    and model_name in export_models,
                     run_quantize=run_export_quantize and model_name in export_models,
                     run_compile=run_export_compile and model_name in export_models,
                     run_profile=run_export_profile and model_name in export_models,
@@ -491,40 +496,9 @@ class PyTestModelsTask(CompositeTask):
                 )
             )
 
-        if test_hub_async and run_export_compile:
-            # Wait for compile test jobs to finish; verify success. Create a JUnit XML path for the compile jobs verification.
-            compile_jobs_junit_xml_path = None
-            if base_junit_xml_path:
-                base_dir = os.path.dirname(base_junit_xml_path)
-                base_filename = os.path.basename(base_junit_xml_path)
-                filename_parts = os.path.splitext(base_filename)
-                compile_jobs_filename = (
-                    f"{filename_parts[0]}-compile-jobs{filename_parts[1]}"
-                )
-                compile_jobs_junit_xml_path = os.path.join(
-                    base_dir, compile_jobs_filename
-                )
-
-            if verify_compile_jobs_success:
-                tasks.append(
-                    PyTestTask(
-                        group_name="Verify Compile Jobs Success",
-                        venv=base_test_venv,
-                        files_or_dirs=os.path.join(
-                            PY_PACKAGE_SRC_ROOT, "test", "test_async_compile_jobs.py"
-                        ),
-                        parallel=False,
-                        extra_args="-s",
-                        raise_on_failure=has_venv,  # Do not raise on failure if a venv was created, to make sure the venv is removed when the test finishes
-                        junit_xml_path=compile_jobs_junit_xml_path,
-                    )
-                )
-
-            if not has_venv:
-                # Cleanup venv
-                tasks.append(
-                    RunCommandsTask(base_test_venv, f"rm -rf {base_test_venv}")
-                )
+        if test_hub_async and run_export_compile and not has_venv:
+            # Cleanup venv
+            tasks.append(RunCommandsTask(base_test_venv, f"rm -rf {base_test_venv}"))
 
         super().__init__(
             "All Per-Model Tests",
@@ -558,29 +532,24 @@ class GenerateTestSummaryTask(RunCommandsTask):
 
     def __init__(
         self,
-        results_dir: str,
-        output_path: str | None = None,
+        input_dir: str,
+        output_dir: str,
     ) -> None:
         """
         Initialize the task.
 
         Parameters
         ----------
-        results_dir
-            Directory containing JUnit XML files.
-        output_path
-            Path to output file (defaults to GitHub step summary).
+        input_dir
+            Directory containing JUnit XML files (searched recursively).
+        output_dir
+            Output directory for combined.xml and summary.md.
         """
-        command = (
-            f'python3 scripts/generate_test_summary.py --results-dir="{results_dir}"'
-        )
-
-        if output_path:
-            command += f' --output="{output_path}"'
-
         super().__init__(
             group_name="Generate Test Failure Summary",
-            commands=[command],
+            commands=[
+                f'python3 scripts/generate_test_summary.py --input="{input_dir}" --output="{output_dir}"'
+            ],
         )
 
 
@@ -590,7 +559,7 @@ class LlamaCppBenchmarkTask(RunCommandsWithVenvTask):
     This task runs the benchmark script in a venv with QAIHM installed.
     Configuration is passed via environment variables:
     - QAIHM_MODELS: Comma-separated list of models or 'all'
-    - QAIHM_DEVICES: Comma-separated list of devices
+    - QAIHM_TEST_DEVICES: Comma-separated list of devices
     - QDC_API_KEY: API token for QDC authentication
     - LLAMA_CPP_PATH: Path to Llama.CPP build directory
     - LLAMA_CPP_RESULTS_DIR: Directory to save perf.yaml files
@@ -604,7 +573,7 @@ class LlamaCppBenchmarkTask(RunCommandsWithVenvTask):
         ignore_return_codes: list[int] | None = None,
     ) -> None:
         models = os.environ.get("QAIHM_MODELS", "all")
-        devices = os.environ.get("QAIHM_DEVICES", "Snapdragon 8 Elite Gen 5 QRD")
+        devices = os.environ.get("QAIHM_TEST_DEVICES", "Snapdragon 8 Elite Gen 5 QRD")
         llama_cpp_path = os.environ.get("LLAMA_CPP_PATH", "llama.cpp")
         results_dir = os.environ.get("LLAMA_CPP_RESULTS_DIR", "llama_cpp_results")
 

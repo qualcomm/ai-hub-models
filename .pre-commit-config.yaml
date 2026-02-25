@@ -9,7 +9,11 @@ repos:
     hooks:
      -  id: insert-license
         files: \.py|\.sh$
-        exclude: qai_hub_models/extern/.*
+        exclude: >
+            (?x)^(
+            qai_hub_models/extern/basicsr/|
+            qai_hub_models/extern/xtcocotools/
+            )
         args:
             - --license-filepath
             - .pre-commit-license-header.txt

@@ -135,9 +135,13 @@ class Plan:
                 step_msg += " (skipped)"
             print(step_msg)
 
+    def has_report(self) -> bool:
+        """Return True if there are step durations to report."""
+        return len(self._step_durations) > 0
+
     def print_report(self) -> None:
         """Print a report on how long steps in the plan took."""
-        if len(self._step_durations) < 1:
+        if not self.has_report():
             return
 
         step_id_lens = [len(s) for s, d in self._step_durations]

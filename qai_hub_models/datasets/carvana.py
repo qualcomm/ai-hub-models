@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 
 import numpy as np
 import torch
@@ -18,6 +19,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, extract_zip_file
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_carvana_files,
+    )
+except ImportError:
+    download_carvana_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 
 CARVANA_VERSION = 1
@@ -102,28 +110,42 @@ class CarvanaDataset(BaseDataset):
 
         return True
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Go to https://www.kaggle.com/c/carvana-image-masking-challenge and make an account",
-                "Go to https://www.kaggle.com/c/carvana-image-masking-challenge/data and download `train.zip` and `train_masks.zip`",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset carvana --files /path/to/train.zip ",
-            ],
-        )
+    def _download_data(
+        self, images_zip: str | None = None, gt_zip: str | None = None
+    ) -> None:
+        # Use passed args if provided, otherwise use instance attributes
+        if images_zip is None:
+            images_zip = self.input_images_zip
+        if gt_zip is None:
+            gt_zip = self.input_gt_zip
 
-        if self.input_images_zip is None or not self.input_images_zip.endswith(
-            IMAGES_DIR_NAME + ".zip"
+        # If no files provided/set, try auto-download
+        if images_zip is None and download_carvana_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                images_zip = os.path.join(tmpdir, f"{IMAGES_DIR_NAME}.zip")
+                gt_zip = os.path.join(tmpdir, f"{GT_DIR_NAME}.zip")
+                download_carvana_files(images_zip, gt_zip, CARVANA_VERSION)
+                self._download_data(images_zip, gt_zip)
+            return
+
+        if (
+            images_zip is None
+            or not images_zip.endswith(IMAGES_DIR_NAME + ".zip")
+            or gt_zip is None
+            or not gt_zip.endswith(GT_DIR_NAME + ".zip")
         ):
-            raise no_zip_error
-        if self.input_gt_zip is None or not self.input_gt_zip.endswith(
-            GT_DIR_NAME + ".zip"
-        ):
-            raise no_zip_error
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Go to https://www.kaggle.com/c/carvana-image-masking-challenge and make an account",
+                    "Go to https://www.kaggle.com/c/carvana-image-masking-challenge/data and download `train.zip` and `train_masks.zip`",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset carvana --files /path/to/train.zip ",
+                ],
+            )
 
         os.makedirs(self.images_path.parent, exist_ok=True)
-        extract_zip_file(self.input_images_zip, self.images_path.parent)
-        extract_zip_file(self.input_gt_zip, self.gt_path.parent)
+        extract_zip_file(images_zip, self.images_path.parent)
+        extract_zip_file(gt_zip, self.gt_path.parent)
 
     @staticmethod
     def default_samples_per_job() -> int:

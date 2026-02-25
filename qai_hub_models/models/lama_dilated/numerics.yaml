@@ -1,0 +1,27 @@
+metrics:
+- dataset_name: celebahq
+  dataset_link: https://github.com/IIGROUP/MM-CelebA-HQ-Dataset
+  dataset_split_description: validation split
+  metric_name: Structural Similarity
+  metric_description: A measure of the perceived quality difference between two images.
+  metric_unit: SSIM
+  metric_range:
+    min: 0.0
+    max: 1.0
+  metric_fp_vs_device_enablement_threshold: 0.1
+  num_partial_samples: 100
+  partial_torch_metric: 0.945
+  device_metric:
+    Samsung Galaxy S25:
+      float:
+        tflite:
+          partial_metric: 0.945
+        qnn_dlc:
+          partial_metric: 0.945
+        onnx:
+          partial_metric: 0.945
+      w8a16:
+        qnn_dlc:
+          partial_metric: 0.945
+        onnx:
+          partial_metric: 0.945

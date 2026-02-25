@@ -65,6 +65,7 @@ def _try_import_dataset(module_name: str, cls: str, name: str | None = None) -> 
 
 
 _try_import_dataset(".common_voice", "CommonVoiceDataset")
+_try_import_dataset(".common_voice", "CommonVoiceText", name="common_voice_text")
 _try_import_dataset(".bsd300", "BSD300Dataset")
 _try_import_dataset(".cityscapes", "CityscapesDataset")
 _try_import_dataset(".cityscapes_lowres", "CityscapesLowResDataset")
@@ -82,6 +83,7 @@ _try_import_dataset(".human_poses", "HumanPosesDataset")
 _try_import_dataset(".coco_panoptic_seg", "CocoPanopticSegmentationDataset")
 _try_import_dataset(".foot_track_dataset", "FootTrackDataset")
 _try_import_dataset(".gear_guard_dataset", "GearGuardDataset")
+_try_import_dataset(".gear_guard_v2_dataset", "GearGuardV2Dataset")
 _try_import_dataset(".facemap_3dmm_dataset", "FaceMap3DMMDataset")
 _try_import_dataset(".face_attrib_enhanced_dataset", "FaceAttribEnhancedDataset")
 _try_import_dataset(".face_attrib_dataset", "FaceAttribDataset")

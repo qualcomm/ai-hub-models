@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 
 import torch
 from torchvision.datasets import ImageFolder
@@ -17,6 +18,13 @@ from qai_hub_models.datasets.common import (
     UnfetchableDatasetError,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, extract_zip_file
+
+try:
+    from qai_hub_models.utils._internal.download_private_datasets import (
+        download_human_faces_files,
+    )
+except ImportError:
+    download_human_faces_files = None  # type: ignore[assignment]
 from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 
 DATASET_VERSION = 1
@@ -63,19 +71,30 @@ class HumanFacesDataset(BaseDataset):
     def _validate_data(self) -> bool:
         return self.images_path.exists() and len(os.listdir(self.images_path)) >= 100
 
-    def _download_data(self) -> None:
-        no_zip_error = UnfetchableDatasetError(
-            dataset_name=self.dataset_name(),
-            installation_steps=[
-                "Download the dataset from https://www.kaggle.com/datasets/ashwingupta3012/human-face",
-                "Run `python -m qai_hub_models.datasets.configure_dataset --dataset human_faces --files /path/to/zip`",
-            ],
-        )
-        if self.input_data_zip is None or not self.input_data_zip.endswith(".zip"):
-            raise no_zip_error
+    def _download_data(self, zip_path: str | None = None) -> None:
+        # Use passed arg if provided, otherwise use instance attribute
+        if zip_path is None:
+            zip_path = self.input_data_zip
+
+        # If no file provided/set, try auto-download
+        if zip_path is None and download_human_faces_files is not None:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                zip_path = os.path.join(tmpdir, "faces.zip")
+                download_human_faces_files(zip_path)
+                self._download_data(zip_path)
+            return
+
+        if zip_path is None or not zip_path.endswith(".zip"):
+            raise UnfetchableDatasetError(
+                dataset_name=self.dataset_name(),
+                installation_steps=[
+                    "Download the dataset from https://www.kaggle.com/datasets/ashwingupta3012/human-face",
+                    "Run `python -m qai_hub_models.datasets.configure_dataset --dataset human_faces --files /path/to/zip`",
+                ],
+            )
 
         os.makedirs(self.images_path.parent, exist_ok=True)
-        extract_zip_file(self.input_data_zip, self.data_path)
+        extract_zip_file(zip_path, self.data_path)
 
     @staticmethod
     def default_samples_per_job() -> int:

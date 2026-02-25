@@ -201,11 +201,13 @@ class MPIIPoseEvaluator(BaseEvaluator):
                 100.0 * np.sum(less_than_threshold, axis=1), jnt_count
             )
 
-        PCKh = np.ma.array(PCKh, mask=False)
-        PCKh.mask[6:8] = True
+        pckh_mask = np.zeros(PCKh.shape, dtype=bool)
+        pckh_mask[6:8] = True
+        PCKh = np.ma.array(PCKh, mask=pckh_mask)
 
-        jnt_count = np.ma.array(jnt_count, mask=False)
-        jnt_count.mask[6:8] = True
+        jnt_count_mask = np.zeros(jnt_count.shape, dtype=bool)
+        jnt_count_mask[6:8] = True
+        jnt_count = np.ma.array(jnt_count, mask=jnt_count_mask)
         jnt_ratio = jnt_count / np.sum(jnt_count).astype(np.float64)
 
         mean = np.sum(PCKh * jnt_ratio)

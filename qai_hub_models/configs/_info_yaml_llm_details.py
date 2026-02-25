@@ -18,6 +18,7 @@ from qai_hub_models.utils.base_config import BaseQAIHMConfig
 class LLM_CALL_TO_ACTION(Enum):
     DOWNLOAD = "Download"
     VIEW_README = "View Readme"
+    DOWNLOAD_AND_VIEW_README = "Download and View Readme"
     CONTACT_FOR_PURCHASE = "Contact For Purchase"
     CONTACT_FOR_DOWNLOAD = "Contact For Download"
     COMING_SOON = "Coming Soon"
@@ -36,7 +37,12 @@ class LLMDetails(BaseQAIHMConfig):
     call_to_action: LLM_CALL_TO_ACTION
     genie_compatible: bool = False
 
+    # Global llama.cpp model URL - used when genie_compatible is False
+    # This allows specifying the URL once instead of per device
+    llama_cpp_model_url: str | None = None
+
     # Dict<Device Name, Dict<Long Runtime Name, LLMDeviceRuntimeDetails>
+    # Used when genie_compatible is True (QNN context binary models)
     devices: dict[str, dict[ScorecardProfilePath, LLMDeviceRuntimeDetails]] | None = (
         None
     )
@@ -66,6 +72,21 @@ class LLMDetails(BaseQAIHMConfig):
         ):
             raise ValueError(
                 "In LLM details, genie_compatible must not be True if the call to action is contact for purchase."
+            )
+
+        # Validate URL specification based on genie_compatible flag
+        if self.genie_compatible:
+            # Genie-compatible models should use devices section, not llama_cpp_model_url
+            if self.llama_cpp_model_url:
+                raise ValueError(
+                    "In LLM details, llama_cpp_model_url should not be set when genie_compatible is True. "
+                    "Use the devices section instead."
+                )
+        # Non-genie models (llama.cpp) should use llama_cpp_model_url, not devices
+        elif self.devices:
+            raise ValueError(
+                "In LLM details, devices section should not be set when genie_compatible is False. "
+                "Use llama_cpp_model_url instead."
             )
 
         return self

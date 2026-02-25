@@ -1,0 +1,35 @@
+name: EdgeTAM
+id: edgetam
+status: public
+headline: Real-time on-device track-anything video segmentation and tracking.
+domain: Computer Vision
+description: EdgeTAM is a lightweight and efficient version of SAM 2, optimized for on-device tracking and segmenting any object in videos and low memory usage by using a novel 2D Spatial Perceiver and RepViT backbone.
+use_case: Semantic Segmentation
+tags:
+- foundation
+applicable_scenarios:
+- Video Editing
+- Camera
+- Robotic Navigation
+- Interactive Video Content
+related_models:
+- sam2
+form_factors:
+- Phone
+- Tablet
+has_static_banner: true
+has_animated_banner: true
+dataset:
+- SA-V (Segment Anything Video dataset)
+technical_details:
+  Model checkpoint: edgetam.pt
+  Input resolution (Encoder): 1024x1024
+  Number of parameters (EdgeTAMEncoder): 8.3M
+  Model size (EdgeTAMEncoder) (float): 33 MB
+  Number of parameters (EdgeTAMDecoder): 6.22M
+  Model size (EdgeTAMDecoder) (float): 23.7 MB
+license_type: apache-2.0
+research_paper: https://arxiv.org/abs/2501.07256
+research_paper_title: 'EdgeTAM: On-Device Track Anything Model'
+source_repo: https://github.com/facebookresearch/EdgeTAM
+license: https://github.com/facebookresearch/EdgeTAM/blob/main/LICENSE

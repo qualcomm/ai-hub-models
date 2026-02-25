@@ -238,7 +238,9 @@ def compile_model_from_args(
             f"Please sign-up for {_AIHUB_NAME} to continue the demo with on-device inference."
         )
 
-    export_output = export_output if component is None else export_output[component]
+    export_output = (
+        export_output if component is None else export_output.components[component]
+    )
     target_model = export_output.compile_job.get_target_model()
     assert target_model is not None
     return target_model

@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------
 
 from qai_hub_models.models.gear_guard_net.app import (  # noqa: F401
-    BodyDetectionApp as App,
+    GearGuardNetApp as App,
 )
 
 from .model import MODEL_ID  # noqa: F401
