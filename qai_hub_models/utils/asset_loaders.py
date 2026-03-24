@@ -934,7 +934,7 @@ class CachedWebAsset:
                     raise ValueError(
                         f"Unsupported compressed file type: {self.archive_ext}"
                     )
-            except:
+            except BaseException:
                 # Cleanup the folder if the extraction failed, so we don't falsely think the asset was extracted already.
                 if self.extracted_path.exists():
                     shutil.rmtree(self.extracted_path)
