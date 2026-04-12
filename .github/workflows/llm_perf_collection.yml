@@ -278,7 +278,7 @@ jobs:
 
     - name: Create Pull Request
       if: ${{ (inputs.create_pr) && steps.push_changes.outputs.branch_name != '' && steps.check_changes.outputs.has_changes == 'true' }}
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       env:
         QAIHM_TEST_MODELS: ${{ inputs.model || 'all' }}
         QAIHM_TEST_DEVICES: ${{ inputs.device || 'Snapdragon X Elite CRD,Snapdragon X2 Elite CRD,Snapdragon 8 Elite QRD,Snapdragon 8 Elite Gen 5 QRD' }}

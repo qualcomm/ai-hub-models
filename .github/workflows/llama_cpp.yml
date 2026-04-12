@@ -166,7 +166,7 @@ jobs:
 
       - name: Create PR
         if: ${{ inputs.create_pr && steps.check_changes.outputs.has_changes == 'true' }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.STAGING_GH_TOKEN }}
           result-encoding: string
