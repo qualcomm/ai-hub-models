@@ -24,6 +24,31 @@ if TYPE_CHECKING:
     from qai_hub_models.models._shared.llm.model import PositionProcessorBase
 
 
+def _resolve_pad_token_id(llm_config: "PretrainedConfig") -> int:
+    """Resolve pad_token_id with the correct priority for models like Llama 3.2.
+
+    Priority order:
+      1. llm_config.pad_token_id  (if explicitly set)
+      2. <|finetune_right_pad_id|> from tokenizer vocabulary  (e.g. token 128004
+         for Llama 3.2, which is absent from llm_config but present in the tokenizer)
+      3. eos_token_id[0] if list, else eos_token_id  (last resort)
+    """
+    if llm_config.pad_token_id is not None:
+        return llm_config.pad_token_id
+    model_path = getattr(llm_config, "_name_or_path", None)
+    if model_path:
+        try:
+            from transformers import AutoTokenizer
+            tok = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+            FINETUNE_PAD = "<|finetune_right_pad_id|>"
+            if FINETUNE_PAD in tok.get_vocab():
+                return tok.convert_tokens_to_ids(FINETUNE_PAD)
+        except Exception:
+            pass
+    eos = llm_config.eos_token_id
+    return eos[0] if isinstance(eos, list) else eos
+
+
 def make_onnxruntime_genai_config(
     llm_config: PretrainedConfig,
     context_length: int,
@@ -63,7 +88,7 @@ def make_onnxruntime_genai_config(
                 "pipeline": [config_pipeline],
             },
             "eos_token_id": llm_config.eos_token_id,
-            "pad_token_id": llm_config.pad_token_id or llm_config.eos_token_id,
+            "pad_token_id": _resolve_pad_token_id(llm_config),
             "type": "decoder-pipeline",
             "vocab_size": llm_config.vocab_size,
         },
