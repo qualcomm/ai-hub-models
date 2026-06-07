@@ -85,6 +85,9 @@ class VideoMAE(KineticsClassifier):
         flat = normalize_image_torchvision(
             flat, image_tensor_has_batch=True, is_video=True
         )
+        # Cast input to model's parameter dtype to avoid dtype mismatch
+        param_dtype = next(self.model.parameters()).dtype
+        flat = flat.to(dtype=param_dtype)
         logits = self.model(flat)
         probs = torch.softmax(logits, dim=1)
         return probs.view(B, V, -1).sum(dim=1)
