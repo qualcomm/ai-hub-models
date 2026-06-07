@@ -1,0 +1,28 @@
+name: VietOCR
+id: vietocr
+status: pending
+headline: Vietnamese text recognition with a vgg19_bn CNN backbone and transformer decoder.
+domain: Multimodal
+description: VietOCR is a text recognition model for Vietnamese, covering the full precomposed tone character set. It pairs a vgg19_bn CNN backbone with a transformer sequence decoder. This contribution exports the recognition CNN backbone for on-device deployment.
+use_case: Image To Text
+tags: []
+applicable_scenarios:
+- Document Management
+- Offline OCR
+related_models:
+- trocr
+- easyocr
+form_factors:
+- Phone
+- Tablet
+has_static_banner: false
+has_animated_banner: false
+dataset: []
+technical_details:
+  Source model: VietOCR vgg_transformer (pbcquoc/vietocr)
+  Backbone: vgg19_bn CNN with a 1x1 projection conv
+  Input resolution: 32x128
+  NPU latency (Samsung Galaxy S25 Ultra, float, 100% NPU): 4.48 ms
+license_type: apache-2.0
+source_repo: https://github.com/pbcquoc/vietocr
+license: https://github.com/pbcquoc/vietocr/blob/master/LICENSE
