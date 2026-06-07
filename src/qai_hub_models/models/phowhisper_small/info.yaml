@@ -1,0 +1,34 @@
+name: PhoWhisper-Small
+id: phowhisper_small
+status: pending
+headline: Vietnamese-specialized automatic speech recognition (ASR) model, fine-tuned from Whisper-Small for accurate on-device transcription of Vietnamese speech.
+domain: Audio
+description: PhoWhisper-Small is a Vietnamese fine-tune of OpenAI's Whisper-Small ASR (Automatic Speech Recognition) model. It shares the same transformer encoder-decoder architecture as Whisper-Small but is trained on a large, diverse Vietnamese speech corpus covering multiple dialects, substantially improving Vietnamese transcription accuracy over the generic multilingual checkpoint. It fills the gap of having no Vietnamese-specialized ASR model in the catalog. Like Whisper-Small, it has been optimized for edge inference by replacing Multi-Head Attention (MHA) with Single-Head Attention (SHA) and linear layers with convolutional (conv) layers, and it transcribes audio clips up to 30 seconds long. Time to the first token is the encoder's latency, while time to each additional token is decoder's latency, where we assume a max decoded length specified below.
+use_case: Speech Recognition
+tags: []
+applicable_scenarios:
+- Voice Assistants
+- Accessibility
+- Meeting Transcription
+related_models:
+- whisper_small
+form_factors:
+- Phone
+- Tablet
+has_static_banner: false
+has_animated_banner: false
+dataset: []
+technical_details:
+  Model checkpoint: vinai/PhoWhisper-small
+  Input resolution: 80x3000 (30 seconds audio)
+  Max decoded sequence length: 200 tokens
+  Number of parameters (encoder): 102M
+  Model size (encoder) (float): 391 MB
+  Number of parameters (decoder): 139M
+  Model size (decoder) (float): 533 MB
+  Vietnamese WER (FLEURS): 11.0% (vs 21.4% for generic Whisper-Small)
+license_type: bsd-3-clause
+research_paper: https://arxiv.org/abs/2406.02555
+research_paper_title: 'PhoWhisper: Automatic Speech Recognition for Vietnamese'
+source_repo: https://github.com/VinAIResearch/PhoWhisper
+license: https://github.com/VinAIResearch/PhoWhisper/blob/main/LICENSE
