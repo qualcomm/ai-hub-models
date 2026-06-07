@@ -1,0 +1,34 @@
+name: PP-OCRv5
+id: pp_ocrv5
+status: pending
+headline: PaddleOCR v5 text detection with recognition for 7 languages for on-device OCR.
+domain: Multimodal
+description: PP-OCRv5 is a multilingual OCR pipeline with a shared text detector and language-specific recognizers. This collection bundles the detector with all seven PP-OCRv5 recognition components — Simplified Chinese (with Japanese coverage), English, Latin-script, Cyrillic / East-Slavic, Korean, Thai, and Greek — for fully on-device optical character recognition.
+use_case: Image To Text
+tags: []
+applicable_scenarios:
+- Signage Translation
+- Document Management
+- Offline OCR
+related_models:
+- easyocr
+- trocr
+form_factors:
+- Phone
+- Tablet
+has_static_banner: false
+has_animated_banner: false
+dataset: []
+technical_details:
+  Source model: PP-OCRv5 (PaddleOCR 3.x, ONNX export from monkt/paddleocr-onnx on Hugging Face)
+  Detection model: PP-OCRv5 mobile detection (PP-HGNetV2 + DB++)
+  Detection input resolution: 640x640
+  Recognition models: PP-OCRv5 SVTR/CTC recognizers for 7 languages (zh_rec Simplified Chinese with Japanese coverage, en_rec English, latin_rec Latin-script, eslav_rec Cyrillic/East-Slavic, ko_rec Korean, thai_rec Thai, greek_rec Greek)
+  Recognition input resolution: 48x320
+  NPU latency (Samsung Galaxy S25 Ultra, float TFLite, 100% NPU): det 1.54 ms, ko_rec 4.39 ms, zh_rec 10.84 ms
+  Accuracy (ReCTS real signage, n=200, det + zh_rec): 48.5% full-string recall, 66.04% mean per-character recall
+license_type: apache-2.0
+research_paper: https://arxiv.org/abs/2507.05595
+research_paper_title: PaddleOCR 3.0 Technical Report
+source_repo: https://github.com/PaddlePaddle/PaddleOCR
+license: https://github.com/PaddlePaddle/PaddleOCR/blob/main/LICENSE
