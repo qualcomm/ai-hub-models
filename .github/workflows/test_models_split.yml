@@ -94,7 +94,7 @@ jobs:
       has_cpu_splits: ${{ steps.split.outputs.has_cpu_splits }}
       has_gpu_splits: ${{ steps.split.outputs.has_gpu_splits }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup
@@ -195,7 +195,7 @@ jobs:
     if: ${{ !cancelled() && needs.split_models.result == 'success' }}
     runs-on: [tetra-ubuntu-2204, self-hosted]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup

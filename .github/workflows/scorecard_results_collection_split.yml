@@ -45,7 +45,7 @@ jobs:
       export_matrix: ${{ steps.split.outputs.export_matrix }}
       accuracy_matrix: ${{ steps.split.outputs.accuracy_matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup
@@ -134,7 +134,7 @@ jobs:
     if: ${{ !cancelled() && needs.split_models.result == 'success' }}
     runs-on: [tetra-ubuntu-2204, self-hosted]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup

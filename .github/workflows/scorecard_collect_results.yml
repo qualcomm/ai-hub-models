@@ -150,14 +150,14 @@ jobs:
       # By default, GitHub actions will check out the commit used to start the action.
       # Instead, if this workflow is called by a scorecard job, we will check out that ref name.
       # That way, any changes that are pushed between scorecard kickoff and results collection are picked up.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         name: Check Out Latest ${{ inputs.previous_results_branch }}
         if: ${{ inputs.use_previous_results_branch_as_base }}
         with:
           ref: ${{ inputs.previous_results_branch }}
 
       # Otherwise, if this is a regular user-initiated workflow, just check out the branch like normal.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: ${{ !inputs.use_previous_results_branch_as_base }}
 
       - name: Check Out Previous Results

@@ -136,7 +136,7 @@ jobs:
       QAIHM_CI_USE_EDITABLE_INSTALL: 1
       PYTHON_VERSION: ${{inputs.python_version}}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: CI Setup
       uses: ./.github/actions/ci-setup
@@ -212,7 +212,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -277,7 +277,7 @@ jobs:
     outputs:
       models: ${{ steps.get_changed.outputs.models }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -335,7 +335,7 @@ jobs:
       QAIHM_TEST_ARTIFACTS_DIR: build/scorecard-yamls/${{ github.run_id }}
       QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT: ${{ inputs.disable_override_workbench_job_timeout && '1' || '0' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: ${{ inputs.enable_compile_tests }}
 
       - name: Download Workbench Jobs Artifact
@@ -404,7 +404,7 @@ jobs:
     env:
       PYTHON_VERSION: ${{ inputs.python_version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: CI Setup
         id: ci_setup

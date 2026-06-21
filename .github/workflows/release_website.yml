@@ -110,7 +110,7 @@ jobs:
           IMPORT_MODE: ${{ inputs.import_mode }}
 
         steps:
-          - uses: actions/checkout@v6
+          - uses: actions/checkout@v7
             id: checkout_custom_ref
             if: ${{ env.SRC_BRANCH_NAME != 'curr_ref' }}
             name: Clone AI Hub Models (${{ env.SRC_BRANCH_NAME }})
@@ -118,7 +118,7 @@ jobs:
               path: ai-hub-models-internal
               ref: ${{ env.SRC_BRANCH_NAME }}
 
-          - uses: actions/checkout@v6
+          - uses: actions/checkout@v7
             if: ${{ steps.checkout_custom_ref.conclusion == 'skipped' }}
             name: Clone AI Hub Models
             with:
@@ -130,7 +130,7 @@ jobs:
             working-directory: ai-hub-models-internal
             run: bash scripts/ci/install-platform-deps.sh
 
-          - uses: actions/checkout@v6
+          - uses: actions/checkout@v7
             name: Clone Tetra Public Website
             with:
               path: tetra-public-website
