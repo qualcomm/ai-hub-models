@@ -13,6 +13,7 @@ import requests
 from packaging.version import Version
 from packaging.version import parse as packaging_parse_version
 from pydantic import ValidationError
+from qai_hub_models_cli.fetch import get_asset_url
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models._version import __version__
@@ -119,17 +120,21 @@ def fetch_static_assets(
     else:
         chipset = None
 
-    if packaging_parse_version(parsed_qaihm_version_tag[1:]) < packaging_parse_version(
-        "0.44.0"
-    ):
+    version = packaging_parse_version(parsed_qaihm_version_tag[1:])
+    if version < packaging_parse_version("0.44.0"):
         raise ValueError(
             "Fetching device-specific assets is not supported for QAIHM versions < v0.44.0. Please downgrade your AI Hub Models version to v0.43.0 or earlier to fetch assets for v0.43.0 and earlier."
         )
 
-    asset_url = asset_config.get_release_asset_url(
-        model_id, parsed_qaihm_version_tag, runtime, precision, chipset
+    asset_url = get_asset_url(
+        model=model_id,
+        runtime=runtime.value,
+        precision=str(precision),
+        chipset=chipset,
+        version=version,
+        quiet=True,
     )
-    response = requests.head(asset_url, timeout=30)
+    response = requests.head(asset_url, timeout=30, allow_redirects=True)
     if response.status_code != 200:
         raise ValueError("No release found.")
 

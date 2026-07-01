@@ -262,7 +262,7 @@ def get_asset_url(
     chipset_msg = f", chipset={chipset!r}" if chipset else ""
     raise FileNotFoundError(
         f"No asset found for model={model!r}, runtime={runtime!r}, "
-        f"precision={precision!r}, version={version!r}{chipset_msg}.\n"
+        f"precision={precision!r}, version={version}{chipset_msg}.\n"
         f"  - Browse available models: {AIHUB_MODELS_URL}\n"
         "  - List valid devices/chipsets: qai-hub list-devices (from the qai_hub package)"
     )

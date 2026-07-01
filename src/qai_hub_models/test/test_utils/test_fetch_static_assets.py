@@ -244,7 +244,7 @@ class TestFetchStaticAssetsDevVersion:
         with (
             version_patch("0.45.0"),
             requests_head_patch(404),
-            pytest.raises(ValueError, match=r"No release found"),
+            pytest.raises(FileNotFoundError, match=r"No asset found"),
         ):
             fetch_static_assets(
                 "mobilenet_v2",
