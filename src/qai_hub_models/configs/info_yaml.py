@@ -630,6 +630,20 @@ class QAIHMModelInfo(BaseQAIHMConfig):
             details += f"\n  - {name}: {val}"
         return details
 
+    def check_geniex_runtime_technical_details(self) -> None:
+        missing = [
+            rt.value
+            for rt in (TargetRuntime.GENIEX_QAIRT, TargetRuntime.GENIEX_LLAMACPP)
+            if rt in self.code_gen_config.orchestrator_runtimes
+            and rt not in self.runtime_technical_details
+        ]
+        if missing:
+            raise ValueError(
+                f"{self.id}: info.yaml must define runtime_technical_details for "
+                f"GenieX runtimes listed in code-gen.yaml orchestrator_runtimes: "
+                f"{', '.join(missing)}."
+            )
+
     def get_perf_yaml_path(self, root: Path = QAIHM_PACKAGE_ROOT) -> Path:
         return self.get_package_path(root) / "perf.yaml"
 

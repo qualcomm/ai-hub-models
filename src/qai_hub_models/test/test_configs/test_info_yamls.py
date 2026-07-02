@@ -88,6 +88,7 @@ def _validate_model(model_id: str) -> None:
     assert info_spec.id == model_id, (
         f"{model_id} config ID does not match the model's folder name"
     )
+    info_spec.check_geniex_runtime_technical_details()
 
 
 def test_info_yaml() -> None:
