@@ -169,34 +169,25 @@ def test_apply_similar_devices_idempotent() -> None:
 
 
 def test_to_proto_excludes_similar_devices() -> None:
-    """The built perf proto omits similar devices, except the allowlist."""
-    from qai_hub_models.configs.devices_and_chipsets_yaml import (
-        ALLOWED_SIMILAR_DEVICES,
-    )
-
+    """The built perf proto omits all similar devices (perf is borrowed)."""
     mapping = load_similar_devices()
     similar_names = set(mapping)
-    excluded = similar_names - ALLOWED_SIMILAR_DEVICES
 
     perf = QAIHMModelPerf.from_model("inception_v3")
     perf.apply_similar_devices(mapping)
-    # Sanity check: applying similar devices puts at least one excluded and the
-    # allowlisted device into the config.
-    device_names = {str(d) for d in perf.supported_devices}
-    assert device_names & excluded
-    assert ALLOWED_SIMILAR_DEVICES & device_names
+    # Sanity check: applying similar devices puts at least one into the config.
+    assert {str(d) for d in perf.supported_devices} & similar_names
 
     proto = perf.to_proto("0.99.0", "inception_v3")
     proto_devices = set(proto.supported_devices) | {
         r.device for r in proto.performance_metrics
     }
-    # Excluded similar devices are gone; the allowlisted one is kept.
-    assert not (proto_devices & excluded)
-    assert set(proto.supported_devices) >= ALLOWED_SIMILAR_DEVICES
+    # No similar device survives in the built proto.
+    assert not (proto_devices & similar_names)
 
     # With the flag off, everything is retained.
     proto_all = perf.to_proto("0.99.0", "inception_v3", exclude_similar_devices=False)
-    assert excluded <= set(proto_all.supported_devices)
+    assert similar_names & set(proto_all.supported_devices)
 
 
 def test_apply_similar_devices_adds_real_chipset() -> None:

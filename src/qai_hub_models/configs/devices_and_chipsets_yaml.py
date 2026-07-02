@@ -219,10 +219,13 @@ class DeviceDetailsYaml(BaseQAIHMConfig):
         )
 
 
-# "Similar" devices (from similar_devices.yaml) that should still be published
-# even though their perf is borrowed from a reference device rather than
-# measured. Matched by device name.
-ALLOWED_SIMILAR_DEVICES = frozenset({"Dragonwing IQ-8275 EVK"})
+# By default, similar devices are stripped from the platform protobuf that we publish with releases.
+# This is an exception list. (Similar devices in this list are not stripped.)
+ALLOWED_SIMILAR_DEVICES = frozenset(
+    {
+        "Dragonwing IQ-8275 EVK"  # We hardcoded release assets for this, so it needs to be a valid device in the CLI.
+    }
+)
 
 
 @cache

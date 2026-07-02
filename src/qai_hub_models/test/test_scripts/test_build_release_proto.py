@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 import ruamel.yaml
@@ -14,7 +15,9 @@ from google.protobuf.json_format import Parse
 from qai_hub_models_cli.proto import manifest_pb2
 
 from qai_hub_models._version import __version__
+from qai_hub_models.configs._info_yaml_enums import MODEL_USE_CASE
 from qai_hub_models.scripts.build_release_proto import (
+    _manifest_filter_fields,
     _simplify_enum_values_for_website_import,
     cmd_aws,
     cmd_website,
@@ -22,6 +25,34 @@ from qai_hub_models.scripts.build_release_proto import (
 
 SAMPLE_MODELS = {"mobilenet_v2", "aotgan"}
 RESTRICTED_MODEL = "yolov8_det"
+
+
+@patch(
+    "qai_hub_models.scripts.build_release_proto._similar_chipsets",
+    return_value=frozenset({"qualcomm-sa8255p", "qualcomm-qcs8275"}),
+)
+def test_manifest_drops_similar_chipsets(mock_similar: MagicMock) -> None:
+    """Similar-device chipsets are dropped from a model's supported_chipsets."""
+    perf = MagicMock()
+    perf.for_each_entry = MagicMock()
+    perf.supported_chipsets = [
+        "qualcomm-snapdragon-8-gen-3",  # workbench: kept
+        "qualcomm-sa8255p",  # similar: dropped
+        "qualcomm-qcs8275",  # similar: dropped
+    ]
+
+    prec_details = MagicMock()
+    prec_details.universal_assets = {}
+    prec_details.chipset_assets = {}
+    release_assets = MagicMock()
+    release_assets.precisions = {MagicMock(): prec_details}
+
+    info = MagicMock()
+    info.tags = []
+    info.use_case = MODEL_USE_CASE.IMAGE_CLASSIFICATION
+
+    fields = _manifest_filter_fields(release_assets, perf, info)
+    assert fields["supported_chipsets"] == ["qualcomm-snapdragon-8-gen-3"]
 
 
 @pytest.fixture

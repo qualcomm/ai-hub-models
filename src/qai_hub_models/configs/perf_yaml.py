@@ -26,19 +26,12 @@ from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
 @cache
 def _similar_device_names() -> frozenset[str]:
-    """Names of "similar" (non-workbench) devices excluded from the perf proto.
-
-    These come from similar_devices.yaml (perf borrowed from a reference device
-    rather than measured), minus the allowlist of similar devices we still
-    publish (see ``ALLOWED_SIMILAR_DEVICES``).
-    """
+    """Names of "similar" (non-workbench) devices excluded from the perf proto."""
     from qai_hub_models.configs.devices_and_chipsets_yaml import (
-        ALLOWED_SIMILAR_DEVICES,
         _load_similar_devices_raw,
     )
 
-    names = set(_load_similar_devices_raw().devices.keys())
-    return frozenset(names - ALLOWED_SIMILAR_DEVICES)
+    return frozenset(_load_similar_devices_raw().devices.keys())
 
 
 class QAIHMModelPerf(BaseQAIHMConfig):

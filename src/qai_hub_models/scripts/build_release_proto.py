@@ -9,6 +9,7 @@ import os
 import shutil
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from functools import cache
 from pathlib import Path
 from typing import Any, Literal
 
@@ -22,7 +23,10 @@ from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models._version import __version__
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
-from qai_hub_models.configs.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
+from qai_hub_models.configs.devices_and_chipsets_yaml import (
+    DevicesAndChipsetsYaml,
+    _load_similar_devices_raw,
+)
 from qai_hub_models.configs.info_yaml import QAIHMModelInfo
 from qai_hub_models.configs.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.configs.perf_yaml import QAIHMModelPerf
@@ -306,6 +310,16 @@ def cmd_website(args: argparse.Namespace) -> None:
     print(f"Built website yamls for {len(model_ids)} models in {output_root}")
 
 
+@cache
+def _similar_chipsets() -> frozenset[str]:
+    """Chipsets of "similar" devices (from similar_devices.yaml).
+
+    Their perf is borrowed from a reference device rather than measured, so they
+    are dropped from each model's manifest ``supported_chipsets``.
+    """
+    return frozenset(d.chipset for d in _load_similar_devices_raw().devices.values())
+
+
 def _manifest_filter_fields(
     release_assets: QAIHMModelReleaseAssets,
     perf: QAIHMModelPerf,
@@ -351,10 +365,14 @@ def _manifest_filter_fields(
 
     perf.for_each_entry(_collect_perf)
 
+    # Drop chipsets of "similar" devices (perf borrowed, not measured).
+    similar = _similar_chipsets()
+    supported_chipsets = [c for c in perf.supported_chipsets if c not in similar]
+
     return dict(
         is_quantized=any(p != Precision.float for p in precisions),
         supported_runtimes=sorted(runtime_to_proto(r) for r in runtimes),
-        supported_chipsets=list(perf.supported_chipsets),
+        supported_chipsets=supported_chipsets,
         tags=[tag_to_proto(t) for t in info.tags],
         use_case=use_case_to_proto(info.use_case),
     )
