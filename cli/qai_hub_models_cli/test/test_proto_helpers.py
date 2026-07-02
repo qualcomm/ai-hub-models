@@ -550,84 +550,6 @@ class TestFilterReleaseAssets:
             )
 
 
-class TestMatchReleaseAssets:
-    def _similar_platform(self) -> PlatformInfo:
-        """``_platform_info`` plus a similar device/chipset borrowing from 8 Gen 3."""
-        platform = _platform_info()
-        platform.devices.append(
-            DeviceInfo(
-                name="SA8255P ADP",
-                chipset="qualcomm-sa8255p",
-                form_factor=FormFactor.FORM_FACTOR_AUTO,
-                reference_chipset="qualcomm-snapdragon-8-gen-3",
-            )
-        )
-        platform.chipsets.append(
-            ChipsetInfo(name="qualcomm-sa8255p", marketing_name="Snapdragon SA8255P")
-        )
-        return platform
-
-    def test_direct_match_has_no_similar_fallback(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import match_release_assets
-
-        assets = _model_release_assets()
-        result = match_release_assets(
-            assets, self._similar_platform(), runtime="tflite", precision="float"
-        )
-        assert result.matches.assets
-        assert result.similar_chipset is None
-        assert result.similar_matches is None
-
-    @pytest.mark.parametrize(
-        ("chipset", "device"),
-        [("qualcomm-sa8255p", None), (None, "SA8255P ADP")],
-    )
-    def test_similar_chipset_fallback(
-        self, chipset: str | None, device: str | None
-    ) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import match_release_assets
-
-        # The QNN asset is published for 8 Gen 3, which the SA8255P is similar to.
-        result = match_release_assets(
-            _model_release_assets(),
-            self._similar_platform(),
-            runtime="qnn_context_binary",
-            chipset=chipset,
-            device=device,
-        )
-        assert not result.matches.assets  # nothing for the similar target itself
-        assert result.similar_chipset is not None
-        assert result.similar_chipset.marketing_name == "Snapdragon 8 Gen 3"
-        assert result.similar_matches is not None and result.similar_matches.assets
-
-    def test_primary_chipset_miss_has_no_fallback(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import match_release_assets
-
-        # 8 Gen 3 is a primary chipset; a miss stays a plain miss, no substitute.
-        result = match_release_assets(
-            _model_release_assets(),
-            self._similar_platform(),
-            runtime="tflite",
-            chipset="qualcomm-snapdragon-8-gen-3",
-            precision="w8a8",
-        )
-        assert not result.matches.assets
-        assert result.similar_chipset is None
-
-    def test_list_target_has_no_fallback(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import match_release_assets
-
-        # A list of chipsets never triggers the single-target similar fallback.
-        result = match_release_assets(
-            _model_release_assets(),
-            self._similar_platform(),
-            runtime="qnn_context_binary",
-            chipset=["qualcomm-sa8255p"],
-        )
-        assert not result.matches.assets
-        assert result.similar_chipset is None
-
-
 class TestFormatFetchCommands:
     def test_prefills_known_values_and_chipset_hints(self) -> None:
         from qai_hub_models_cli.proto_helpers.release_assets import (
@@ -727,23 +649,24 @@ class TestResolveChipset:
         from qai_hub_models_cli.proto_helpers.platform import resolve_chipset
 
         platform = _platform_info()
+        cs, dv = platform.chipsets, platform.devices
         expected = "qualcomm-snapdragon-8-gen-3"
         # device name (case-insensitive)
-        assert resolve_chipset(platform, device="samsung galaxy s24").name == expected
+        assert resolve_chipset(cs, dv, device="samsung galaxy s24").name == expected
         # canonical id, marketing name, and alias all resolve.
         assert (
-            resolve_chipset(platform, chipset="qualcomm-snapdragon-8-gen-3").name
+            resolve_chipset(cs, dv, chipset="qualcomm-snapdragon-8-gen-3").name
             == expected
         )
-        assert resolve_chipset(platform, chipset="Snapdragon 8 Gen 3").name == expected
-        assert resolve_chipset(platform, chipset="sd8gen3").name == expected
+        assert resolve_chipset(cs, dv, chipset="Snapdragon 8 Gen 3").name == expected
+        assert resolve_chipset(cs, dv, chipset="sd8gen3").name == expected
 
         with pytest.raises(ValueError, match="exactly one"):
-            resolve_chipset(platform)
+            resolve_chipset(cs, dv)
         with pytest.raises(KeyError, match="qai-hub-models devices"):
-            resolve_chipset(platform, device="nope")
+            resolve_chipset(cs, dv, device="nope")
         with pytest.raises(KeyError, match="qai-hub-models chipsets"):
-            resolve_chipset(platform, chipset="nope")
+            resolve_chipset(cs, dv, chipset="nope")
 
 
 def test_form_factor_and_world_display_names() -> None:

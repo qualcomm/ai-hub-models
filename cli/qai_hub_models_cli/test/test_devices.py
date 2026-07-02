@@ -45,18 +45,6 @@ def _fake_platform() -> PlatformInfo:
                 ),
             ),
             DeviceInfo(
-                name="Galaxy S24 (Family)",
-                chipset="qualcomm-snapdragon-8-gen-3",
-                form_factor=FormFactor.FORM_FACTOR_PHONE,
-                os=OperatingSystem(
-                    ostype=OperatingSystemType.OPERATING_SYSTEM_TYPE_ANDROID,
-                    version="14",
-                ),
-                reference_chipset="qualcomm-snapdragon-8-gen-3",
-            ),
-            # A "similar" device on a chipset not available in workbench; its
-            # perf is borrowed from the snapdragon-8-gen-3 reference chipset.
-            DeviceInfo(
                 name="SA8255P ADP",
                 chipset="qualcomm-sa8255p",
                 form_factor=FormFactor.FORM_FACTOR_AUTO,
@@ -64,7 +52,6 @@ def _fake_platform() -> PlatformInfo:
                     ostype=OperatingSystemType.OPERATING_SYSTEM_TYPE_ANDROID,
                     version="14",
                 ),
-                reference_chipset="qualcomm-snapdragon-8-gen-3",
             ),
         ],
         chipsets=[
@@ -89,7 +76,6 @@ def _fake_platform() -> PlatformInfo:
                 reference_device="Snapdragon X Elite CRD",
                 supports_weight_sharing=False,
             ),
-            # A "similar" chipset, only reachable through the SA8255P ADP device.
             ChipsetInfo(
                 name="qualcomm-sa8255p",
                 marketing_name="SA8255P",
@@ -135,24 +121,19 @@ def test_devices_table(platform: None, capsys: pytest.CaptureFixture[str]) -> No
     assert "Snapdragon 8 Gen 3" in output
     assert "qualcomm-snapdragon-8-gen-3" not in output
     assert "Android 14" in output
-    assert "Total: 2 devices" in output
-    # Devices with a reference_chipset are split into a "Similar Devices" table,
-    # mapping each to its reference device/chipset.
-    assert "Similar Devices" in output
-    assert "Reference Device" in output
-    assert "Reference Chipset" in output
-    assert "Galaxy S24 (Family)" in output
-    assert "Total: 2 similar devices" in output
+    assert "Total: 3 devices" in output
+    # The CLI lists every device in the proto.
+    assert "SA8255P ADP" in output
 
 
 def test_devices_quiet(platform: None, capsys: pytest.CaptureFixture[str]) -> None:
     main(["devices", "-q"])
     lines = capsys.readouterr().out.strip().splitlines()
-    # Sorted by type (form factor) then name: Auto, Compute, then Phone devices.
+    # All proto devices, sorted by type (form factor) then name: Auto, Compute,
+    # then Phone.
     assert lines == [
         "SA8255P ADP",
         "Snapdragon X Elite CRD",
-        "Galaxy S24 (Family)",
         "Samsung Galaxy S24",
     ]
 
@@ -165,10 +146,10 @@ def test_devices_quiet(platform: None, capsys: pytest.CaptureFixture[str]) -> No
         # A multi-value filter keeps devices matching any value.
         (
             ["-t", "phone", "compute"],
-            ["Snapdragon X Elite CRD", "Galaxy S24 (Family)", "Samsung Galaxy S24"],
+            ["Snapdragon X Elite CRD", "Samsung Galaxy S24"],
         ),
         # Only the snapdragon-8-gen-3 chipset supports fp16 in the fixture.
-        (["--fp16"], ["Galaxy S24 (Family)", "Samsung Galaxy S24"]),
+        (["--fp16"], ["Samsung Galaxy S24"]),
     ],
 )
 def test_devices_filters(
@@ -192,20 +173,16 @@ def test_chipsets_table(platform: None, capsys: pytest.CaptureFixture[str]) -> N
     assert "qualcomm-snapdragon-8-gen-3" not in output
     # Aliases get their own column.
     assert "sd8gen3, 8gen3" in output
-    assert "Total: 2 chipsets" in output
-    # Chipsets only reachable through "similar" devices get their own table,
-    # mapping each to its reference chipset/device.
-    assert "Similar Chipsets" in output
-    assert "Reference Chipset" in output
-    assert "Reference Device" in output
+    assert "Total: 3 chipsets" in output
+    # The CLI lists every chipset in the proto.
     assert "SA8255P" in output
-    assert "Total: 1 similar chipset" in output
 
 
 def test_chipsets_quiet(platform: None, capsys: pytest.CaptureFixture[str]) -> None:
     main(["chipsets", "-q"])
     lines = capsys.readouterr().out.strip().splitlines()
-    # Quiet mode prints marketing names, sorted by type (world) then name.
+    # Quiet mode prints marketing names, sorted by type (world) then name:
+    # Automotive (SA8255P), Compute, then Mobile.
     assert lines == ["SA8255P", "Snapdragon X Elite", "Snapdragon 8 Gen 3"]
 
 

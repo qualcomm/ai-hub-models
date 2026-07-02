@@ -280,73 +280,6 @@ def test_get_asset_url_no_match(mock_assets: MagicMock) -> None:
     assert "Precision" not in msg  # no table
 
 
-_SIMILAR_CHIP = "qualcomm-sa8255p"
-
-
-def _platform_with_similar(*_args: object) -> PlatformInfo:
-    """Platform where a "similar" device/chipset borrows assets from ``_CHIP``.
-
-    ``SA8255P ADP`` is a similar device (it carries a ``reference_chipset``) on
-    the ``_SIMILAR_CHIP`` chipset, which is only reachable through that device.
-    Neither has assets of its own; both borrow from ``_CHIP``.
-    """
-    base = _platform()
-    base.devices.append(
-        DeviceInfo(
-            name="SA8255P ADP",
-            chipset=_SIMILAR_CHIP,
-            form_factor=FormFactor.FORM_FACTOR_AUTO,
-            reference_chipset=_CHIP,
-        )
-    )
-    base.chipsets.append(
-        ChipsetInfo(name=_SIMILAR_CHIP, marketing_name="Snapdragon SA8255P")
-    )
-    return base
-
-
-@pytest.mark.parametrize("by", ["device", "chipset"])
-@patch("qai_hub_models_cli.fetch.get_platform", _platform_with_similar)
-@patch("qai_hub_models_cli.fetch.get_model_release_assets")
-def test_get_asset_url_similar_suggests_reference(
-    mock_assets: MagicMock, by: str
-) -> None:
-    """A similar chipset/device with no assets points at its reference chipset."""
-    mock_assets.return_value = _assets((_W8A8, _QNN, _CHIP))
-    with pytest.raises(AssetNotFoundError) as exc:
-        get_asset_url(
-            model="mobilenet_v2",
-            runtime="qnn_context_binary",
-            precision="w8a8",
-            version=_VERSION,
-            device="SA8255P ADP" if by == "device" else None,
-            chipset=None if by == "device" else _SIMILAR_CHIP,
-        )
-    msg = str(exc.value)
-    assert "'similar' to 'Snapdragon 8 Gen 3'" in msg
-    # A ready-to-run fetch command targeting the reference chipset is offered.
-    assert "-c 'Snapdragon 8 Gen 3'" in msg
-
-
-@patch("qai_hub_models_cli.fetch.get_platform", _platform_with_similar)
-@patch("qai_hub_models_cli.fetch.get_model_release_assets")
-def test_get_asset_url_similar_no_reference_asset(mock_assets: MagicMock) -> None:
-    """If the reference chipset also lacks the asset, fall back to the plain error."""
-    # Reference chipset has a QNN asset, but the user asked for tflite.
-    mock_assets.return_value = _assets((_W8A8, _QNN, _CHIP))
-    with pytest.raises(AssetNotFoundError) as exc:
-        get_asset_url(
-            model="mobilenet_v2",
-            runtime="tflite",
-            precision="w8a8",
-            version=_VERSION,
-            device="SA8255P ADP",
-        )
-    msg = str(exc.value)
-    assert "No asset found" in msg
-    assert "similar" not in msg
-
-
 @patch("qai_hub_models_cli.fetch.get_platform", _platform)
 @patch("qai_hub_models_cli.fetch.get_model_release_assets")
 def test_get_asset_url_quiet_omits_table(mock_assets: MagicMock) -> None:
@@ -439,40 +372,39 @@ def test_run_fetch_url_only_prints(
 @patch("qai_hub_models_cli.cli.format_fetch_commands", return_value="CMDS")
 @patch("qai_hub_models_cli.cli.format_release_assets_table", return_value="TABLE")
 @patch("qai_hub_models_cli.cli.get_platform")
-@patch("qai_hub_models_cli.cli.match_release_assets")
+@patch("qai_hub_models_cli.cli.filter_release_assets")
 @patch("qai_hub_models_cli.cli.get_model_release_assets")
 @patch("qai_hub_models_cli.cli.fetch")
 def test_run_fetch_info_filters_and_skips_download(
     mock_fetch: MagicMock,
     mock_get_assets: MagicMock,
-    mock_match: MagicMock,
+    mock_filter: MagicMock,
     mock_platform: MagicMock,
     mock_table: MagicMock,
     mock_cmds: MagicMock,
 ) -> None:
-    mock_match.return_value.matches.assets = [MagicMock()]
+    mock_filter.return_value.assets = [MagicMock()]
     _run_fetch(_make_args(info=True, runtime="tflite", precision=None))
     mock_fetch.assert_not_called()
     # All filter args (incl. parsed sdk_versions) are forwarded.
-    assert "tflite" in mock_match.call_args.args
-    assert mock_match.call_args.args[-1] == {}  # no sdk_version filters
+    assert "tflite" in mock_filter.call_args.args
+    assert mock_filter.call_args.args[-1] == {}  # no sdk_version filters
 
 
 @patch("qai_hub_models_cli.cli.format_release_assets_table")
 @patch("qai_hub_models_cli.cli.get_platform")
-@patch("qai_hub_models_cli.cli.match_release_assets")
+@patch("qai_hub_models_cli.cli.filter_release_assets")
 @patch("qai_hub_models_cli.cli.get_model_release_assets")
 @patch("qai_hub_models_cli.cli.fetch")
 def test_run_fetch_info_no_match(
     mock_fetch: MagicMock,
     mock_get_assets: MagicMock,
-    mock_match: MagicMock,
+    mock_filter: MagicMock,
     mock_platform: MagicMock,
     mock_table: MagicMock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    mock_match.return_value.matches.assets = []
-    mock_match.return_value.similar_chipset = None
+    mock_filter.return_value.assets = []
     _run_fetch(_make_args(info=True))
     mock_fetch.assert_not_called()
     mock_table.assert_not_called()

@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from qai_hub_models_cli.proto.info_pb2 import (
     ModelDomain,
     ModelLicense,
@@ -16,7 +18,7 @@ from qai_hub_models_cli.proto.platform_pb2 import (
     FormFactor,
     OperatingSystem,
     OperatingSystemType,
-    PlatformInfo,
+    RuntimeInfo,
     WebsiteWorld,
 )
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
@@ -102,7 +104,7 @@ def precision_str_to_proto(precision: str | Precision.ValueType) -> Precision.Va
 
 def runtime_proto_to_str(
     runtime: Runtime.ValueType,
-    platform: PlatformInfo | None = None,
+    runtimes: Iterable[RuntimeInfo] | None = None,
     display_name: bool = False,
 ) -> str:
     """
@@ -112,13 +114,13 @@ def runtime_proto_to_str(
     ----------
     runtime
         ``Runtime`` enum value (e.g. ``RUNTIME_TFLITE``).
-    platform
-        Optional platform registry supplying runtime display names. Required
-        when *display_name* is True.
+    runtimes
+        Optional runtime registry (``platform.runtimes``) supplying display
+        names. Required when *display_name* is True.
     display_name
         If True, return the human display name (e.g. ``"TensorFlow Lite"``) from
-        *platform* instead of the lowercase token. Falls back to the token if
-        the runtime has no display name in *platform*.
+        *runtimes* instead of the lowercase token. Falls back to the token if
+        the runtime has no display name in *runtimes*.
 
     Returns
     -------
@@ -131,8 +133,8 @@ def runtime_proto_to_str(
     KeyError
         If *runtime* is not a valid enum value.
     """
-    if display_name and platform is not None:
-        for rt in platform.runtimes:
+    if display_name and runtimes is not None:
+        for rt in runtimes:
             if rt.runtime == runtime and rt.display_name:
                 return rt.display_name
 
@@ -143,30 +145,31 @@ def runtime_proto_to_str(
 
 
 def runtimes_str_to_proto_set(
-    runtimes: str | Runtime.ValueType | list[str | Runtime.ValueType] | None,
-    platform: PlatformInfo | None = None,
+    values: str | Runtime.ValueType | list[str | Runtime.ValueType] | None,
+    runtimes: Iterable[RuntimeInfo] | None = None,
 ) -> set[Runtime.ValueType] | None:
     """
     Resolve a single runtime or a list of runtimes to a set of enum values.
 
     Parameters
     ----------
-    runtimes
+    values
         A single runtime or a list of them. See :func:`runtime_str_to_proto`
         for accepted value forms. ``None`` means no filter.
-    platform
-        Optional platform registry supplying runtime display names.
+    runtimes
+        Optional runtime registry (``platform.runtimes``) supplying display
+        names.
 
     Returns
     -------
     set[Runtime.ValueType] | None
-        The resolved enum values, or ``None`` when *runtimes* is ``None``.
+        The resolved enum values, or ``None`` when *values* is ``None``.
     """
-    if runtimes is None:
+    if values is None:
         return None
-    if isinstance(runtimes, (str, int)):
-        runtimes = [runtimes]
-    return {runtime_str_to_proto(r, platform) for r in runtimes}
+    if isinstance(values, (str, int)):
+        values = [values]
+    return {runtime_str_to_proto(r, runtimes) for r in values}
 
 
 def precisions_str_to_proto_set(
@@ -195,7 +198,7 @@ def precisions_str_to_proto_set(
 
 def runtime_str_to_proto(
     runtime: str | Runtime.ValueType,
-    platform: PlatformInfo | None = None,
+    runtimes: Iterable[RuntimeInfo] | None = None,
 ) -> Runtime.ValueType:
     """
     Convert a runtime string to its proto enum value.
@@ -204,12 +207,13 @@ def runtime_str_to_proto(
     ----------
     runtime
         Runtime name (e.g. ``"tflite"``, ``"qnn_dlc"``, ``"RUNTIME_ONNX"``).
-        Case-insensitive; the ``RUNTIME_`` prefix is optional. If *platform* is
+        Case-insensitive; the ``RUNTIME_`` prefix is optional. If *runtimes* is
         given, the human display name (e.g. ``"TensorFlow Lite"``) is also
         accepted, matched against ``RuntimeInfo.display_name`` ignoring case,
         spaces, and punctuation.
-    platform
-        Optional platform registry supplying runtime display names.
+    runtimes
+        Optional runtime registry (``platform.runtimes``) supplying display
+        names.
 
     Returns
     -------
@@ -232,22 +236,23 @@ def runtime_str_to_proto(
     except ValueError:
         pass
 
-    # Fall back to matching the human display name from the platform registry.
-    if platform is not None:
+    # Fall back to matching the human display name from the runtime registry.
+    runtimes = list(runtimes) if runtimes is not None else None
+    if runtimes is not None:
         target = "".join(c for c in runtime if c.isalnum()).lower()
-        for rt in platform.runtimes:
+        for rt in runtimes:
             display = rt.display_name
             if display and "".join(c for c in display if c.isalnum()).lower() == target:
                 return rt.runtime
 
-    # When the platform is available, list valid runtimes as "Display Name (token)";
+    # When the registry is available, list valid runtimes as "Display Name (token)";
     # otherwise fall back to the bare tokens from the proto enum.
-    if platform is not None:
+    if runtimes is not None:
         valid = ", ".join(
             f"{rt.display_name} ({runtime_proto_to_str(rt.runtime)})"
             if rt.display_name
             else runtime_proto_to_str(rt.runtime)
-            for rt in platform.runtimes
+            for rt in runtimes
         )
     else:
         valid = ", ".join(

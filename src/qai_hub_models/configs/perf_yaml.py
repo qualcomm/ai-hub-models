@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import os
 from collections.abc import Callable
+from functools import cache
 from pathlib import Path
 
 from pydantic import Field
@@ -21,6 +22,23 @@ from qai_hub_models.scorecard import ScorecardDevice, ScorecardProfilePath
 from qai_hub_models.scorecard.results.chipset_helpers import sorted_chipsets
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
+
+
+@cache
+def _similar_device_names() -> frozenset[str]:
+    """Names of "similar" (non-workbench) devices excluded from the perf proto.
+
+    These come from similar_devices.yaml (perf borrowed from a reference device
+    rather than measured), minus the allowlist of similar devices we still
+    publish (see ``ALLOWED_SIMILAR_DEVICES``).
+    """
+    from qai_hub_models.configs.devices_and_chipsets_yaml import (
+        ALLOWED_SIMILAR_DEVICES,
+        _load_similar_devices_raw,
+    )
+
+    names = set(_load_similar_devices_raw().devices.keys())
+    return frozenset(names - ALLOWED_SIMILAR_DEVICES)
 
 
 class QAIHMModelPerf(BaseQAIHMConfig):
@@ -282,8 +300,23 @@ class QAIHMModelPerf(BaseQAIHMConfig):
         self.to_yaml(out)
         return out
 
-    def to_proto(self, aihm_version: str, model_id: str) -> perf_pb2.ModelPerf:
+    def to_proto(
+        self,
+        aihm_version: str,
+        model_id: str,
+        exclude_similar_devices: bool = True,
+    ) -> perf_pb2.ModelPerf:
+        """Serialize this perf data to a ``ModelPerf`` proto.
+
+        When *exclude_similar_devices* is True (default), "similar" devices
+        (those from similar_devices.yaml, whose perf is borrowed from a reference
+        device rather than measured) are dropped from both ``performance_metrics``
+        and ``supported_devices``.
+        """
         perf_details: list[perf_pb2.ModelPerf.PerformanceDetails] = []
+        similar_devices = (
+            _similar_device_names() if exclude_similar_devices else frozenset()
+        )
 
         def _collect(
             precision: Precision,
@@ -292,6 +325,8 @@ class QAIHMModelPerf(BaseQAIHMConfig):
             path: ScorecardProfilePath,
             details: QAIHMModelPerf.PerformanceDetails,
         ) -> None:
+            if str(device) in similar_devices:
+                return
             profile_job = None
             if details.job_id is not None:
                 profile_job = perf_pb2.ModelPerf.ProfileJob(
@@ -359,7 +394,9 @@ class QAIHMModelPerf(BaseQAIHMConfig):
         return perf_pb2.ModelPerf(
             aihm_version=aihm_version,
             model_id=model_id,
-            supported_devices=[str(d) for d in self.supported_devices],
+            supported_devices=[
+                str(d) for d in self.supported_devices if str(d) not in similar_devices
+            ],
             supported_chipsets=self.supported_chipsets,
             performance_metrics=perf_details,
         )

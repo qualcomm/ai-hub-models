@@ -113,7 +113,7 @@ def get_platform(
 
 
 def resolve_runtime(
-    platform: PlatformInfo,
+    runtimes: Iterable[RuntimeInfo],
     runtime: Runtime.ValueType | str,
 ) -> RuntimeInfo:
     """
@@ -121,8 +121,8 @@ def resolve_runtime(
 
     Parameters
     ----------
-    platform
-        Platform registry to look the runtime up in.
+    runtimes
+        Runtime registry (``platform.runtimes``) to look the runtime up in.
     runtime
         Runtime enum value (e.g. ``RUNTIME_TFLITE``), token (e.g. ``"tflite"``),
         or display name (e.g. ``"TensorFlow Lite"``).
@@ -138,8 +138,9 @@ def resolve_runtime(
     KeyError
         If *runtime* is not a known runtime.
     """
-    runtime_val = runtime_str_to_proto(runtime, platform)
-    for rt in platform.runtimes:
+    runtimes = list(runtimes)
+    runtime_val = runtime_str_to_proto(runtime, runtimes)
+    for rt in runtimes:
         if rt.runtime == runtime_val:
             return rt
     runtime_name = (
@@ -161,14 +162,14 @@ def normalize_hw_name(name: str) -> str:
     return " ".join(normalize_label(name).split())
 
 
-def resolve_device(platform: PlatformInfo, device: str) -> DeviceInfo:
+def resolve_device(devices: Iterable[DeviceInfo], device: str) -> DeviceInfo:
     """
     Look up a device by name, matched leniently (see :func:`normalize_hw_name`).
 
     Parameters
     ----------
-    platform
-        Platform registry to resolve against.
+    devices
+        Device registry (``platform.devices``) to resolve against.
     device
         A device name (e.g. ``"Samsung Galaxy S24"``).
 
@@ -183,7 +184,7 @@ def resolve_device(platform: PlatformInfo, device: str) -> DeviceInfo:
         If *device* does not match any known device.
     """
     device_key = normalize_hw_name(device)
-    for d in platform.devices:
+    for d in devices:
         if normalize_hw_name(d.name) == device_key:
             return d
     raise KeyError(
@@ -193,7 +194,8 @@ def resolve_device(platform: PlatformInfo, device: str) -> DeviceInfo:
 
 
 def resolve_chipset(
-    platform: PlatformInfo,
+    chipsets: Iterable[ChipsetInfo],
+    devices: Iterable[DeviceInfo],
     device: str | None = None,
     chipset: str | None = None,
 ) -> ChipsetInfo:
@@ -204,8 +206,10 @@ def resolve_chipset(
 
     Parameters
     ----------
-    platform
-        Platform registry to resolve against.
+    chipsets
+        Chipset registry (``platform.chipsets``) to resolve against.
+    devices
+        Device registry (``platform.devices``), used when resolving by *device*.
     device
         A device name (e.g. ``"Samsung Galaxy S24"``). Resolved to the chipset
         of that device. Matched case-insensitively.
@@ -230,17 +234,17 @@ def resolve_chipset(
     if (device is None) == (chipset is None):
         raise ValueError("Provide exactly one of 'device' or 'chipset'.")
 
-    chipsets_by_name = {c.name: c for c in platform.chipsets}
+    chipsets_by_name = {c.name: c for c in chipsets}
 
     if device is not None:
-        d = resolve_device(platform, device)  # raises if the device is unknown
+        d = resolve_device(devices, device)  # raises if the device is unknown
         if d.chipset in chipsets_by_name:
             return chipsets_by_name[d.chipset]
         raise KeyError(f"Device {d.name!r} references unknown chipset {d.chipset!r}.")
 
     assert chipset is not None  # exactly one of device/chipset, checked above
     chipset_key = normalize_hw_name(chipset)
-    for c in platform.chipsets:
+    for c in chipsets_by_name.values():
         candidates = [c.name, c.marketing_name, *c.aliases]
         if any(normalize_hw_name(candidate) == chipset_key for candidate in candidates):
             return c
@@ -250,33 +254,9 @@ def resolve_chipset(
     )
 
 
-def describe_target(
-    platform: PlatformInfo,
-    chipset: str | None = None,
-    device: str | None = None,
-) -> str:
-    """Return a ``"device '...'"``/``"chipset '...'"`` label with the resolved name.
-
-    The name is resolved against *platform* (device name, or chipset marketing
-    name) so messages show the canonical name rather than what the user typed.
-    Falls back to the given string if it does not resolve. Provide exactly one
-    of *chipset* or *device*.
-    """
-    if device is not None:
-        try:
-            name = resolve_device(platform, device).name
-        except KeyError:
-            name = device
-        return f"device {name!r}"
-    try:
-        name = resolve_chipset(platform, chipset=chipset).marketing_name
-    except KeyError:
-        name = chipset or ""
-    return f"chipset {name!r}"
-
-
 def device_names_for_filter(
-    platform: PlatformInfo,
+    chipsets: Iterable[ChipsetInfo],
+    devices: Iterable[DeviceInfo],
     chipset: str | list[str] | None,
     device: str | list[str] | None,
 ) -> set[str] | None:
@@ -289,20 +269,23 @@ def device_names_for_filter(
     - ``chipset``: every device that runs on the named chipset(s).
     - neither: ``None``, meaning "no device filter".
 
-    Every name is validated against *platform*; an unknown one raises ``KeyError``
-    pointing at the ``devices``/``chipsets`` commands.
+    Every name is validated against *chipsets*/*devices*; an unknown one raises
+    ``KeyError`` pointing at the ``devices``/``chipsets`` commands.
     """
     if chipset is not None and device is not None:
         raise ValueError("Provide at most one of 'chipset' or 'device'.")
     if device is not None:
         names = [device] if isinstance(device, str) else device
         for name in names:
-            resolve_chipset(platform, device=name)  # validate; raises if unknown
+            resolve_chipset(chipsets, devices, device=name)  # validate; raises
         return {name.lower() for name in names}
     if chipset is not None:
+        devices = list(devices)
         refs = [chipset] if isinstance(chipset, str) else chipset
-        chipset_ids = {resolve_chipset(platform, chipset=ref).name for ref in refs}
-        return {d.name.lower() for d in platform.devices if d.chipset in chipset_ids}
+        chipset_ids = {
+            resolve_chipset(chipsets, devices, chipset=ref).name for ref in refs
+        }
+        return {d.name.lower() for d in devices if d.chipset in chipset_ids}
     return None
 
 
@@ -315,7 +298,6 @@ def filter_devices(
     fp16: bool | None = None,
     htp_version: int | list[int] | None = None,
     soc_model: int | list[int] | None = None,
-    similar: bool | None = None,
 ) -> list[DeviceInfo]:
     """
     Filter *devices* by the given criteria, preserving input order.
@@ -341,9 +323,6 @@ def filter_devices(
         Keep only devices whose chipset has this HTP version.
     soc_model
         Keep only devices whose chipset has this SoC model.
-    similar
-        If True, keep only "similar" devices (those with a reference_chipset);
-        if False, exclude them; if None, include all.
 
     Returns
     -------
@@ -360,8 +339,6 @@ def filter_devices(
     chipset_filtered = fp16 is not None or htps is not None or socs is not None
 
     def matches(device: DeviceInfo) -> bool:
-        if similar is not None and bool(device.reference_chipset) != similar:
-            return False
         if form_factors is not None and device.form_factor not in form_factors:
             return False
         if oses is not None and not any(_os_matches(device.os, o) for o in oses):
@@ -474,146 +451,6 @@ def format_devices_table(
                 *chipset_attribute_row(chipsets_by_name.get(d.chipset)),
             ]
             for d in devices
-        ],
-        wrap_column="Name",
-        title=title,
-    )
-
-
-def _chipset_marketing_name(
-    chipsets_by_name: dict[str, ChipsetInfo], chipset_id: str
-) -> str:
-    """Marketing name for *chipset_id*, falling back to the raw id if unknown."""
-    chipset = chipsets_by_name.get(chipset_id)
-    return chipset.marketing_name if chipset else chipset_id
-
-
-def _chipset_reference_device(
-    chipsets_by_name: dict[str, ChipsetInfo], chipset_id: str
-) -> str:
-    """Reference device name for *chipset_id*, or "" if unknown."""
-    chipset = chipsets_by_name.get(chipset_id)
-    return chipset.reference_device if chipset else ""
-
-
-def format_similar_devices_table(
-    devices: Iterable[DeviceInfo],
-    chipsets: Iterable[ChipsetInfo],
-    title: str | None = "Similar Devices",
-) -> str:
-    """
-    Format a table of "similar" devices, mapping each to the reference
-    device/chipset whose metrics it borrows.
-    """
-    chipsets_by_name = {c.name: c for c in chipsets}
-
-    return build_table(
-        ["Type", "Name", "Chipset", "Reference Device", "Reference Chipset"],
-        [
-            [
-                form_factor_proto_to_str(d.form_factor),
-                d.name,
-                _chipset_marketing_name(chipsets_by_name, d.chipset),
-                _chipset_reference_device(chipsets_by_name, d.reference_chipset),
-                _chipset_marketing_name(chipsets_by_name, d.reference_chipset),
-            ]
-            for d in devices
-        ],
-        wrap_column="Name",
-        title=title,
-    )
-
-
-def similar_chipset_references(devices: Iterable[DeviceInfo]) -> dict[str, str]:
-    """
-    Map each "similar" chipset to the reference chipset whose metrics it borrows.
-
-    A "similar" chipset is one used only by devices that are not available in
-    workbench.
-    """
-    devices = list(devices)
-    primary_chipsets = {d.chipset for d in devices if not d.reference_chipset}
-    return {
-        d.chipset: d.reference_chipset
-        for d in devices
-        if d.reference_chipset and d.chipset not in primary_chipsets
-    }
-
-
-def similar_chipset_reference(
-    platform: PlatformInfo,
-    chipset: str | None = None,
-    device: str | None = None,
-) -> ChipsetInfo | None:
-    """
-    Resolve *chipset*/*device* to the reference chipset whose assets it borrows.
-
-    A "similar" target has no assets of its own (assets are published for its
-    reference chipset instead). Provide exactly one of *chipset* or *device*.
-
-    Parameters
-    ----------
-    platform
-        Platform registry to resolve against.
-    chipset
-        A chipset reference (ID, name, or alias). Mutually exclusive with
-        *device*.
-    device
-        A device name. Mutually exclusive with *chipset*.
-
-    Returns
-    -------
-    ChipsetInfo | None
-        The reference chipset, or ``None`` if the target has its own assets.
-
-    Raises
-    ------
-    ValueError
-        If neither or both of *chipset* and *device* are provided.
-    """
-    if (device is None) == (chipset is None):
-        raise ValueError("Provide exactly one of 'device' or 'chipset'.")
-
-    chipsets_by_name = {c.name: c for c in platform.chipsets}
-    reference_name: str | None = None
-    if device is not None:
-        reference_name = resolve_device(platform, device).reference_chipset or None
-    else:
-        target = resolve_chipset(platform, chipset=chipset)
-        reference_name = similar_chipset_references(platform.devices).get(target.name)
-
-    if not reference_name:
-        return None
-    return chipsets_by_name.get(reference_name)
-
-
-def format_similar_chipsets_table(
-    chipsets: Iterable[ChipsetInfo],
-    all_chipsets: Iterable[ChipsetInfo],
-    references: dict[str, str],
-    title: str | None = "Similar Chipsets",
-) -> str:
-    """
-    Format a table of "similar" chipsets, mapping each to the reference
-    chipset/device whose metrics it borrows.
-
-    *references* is the ``{similar_chipset: reference_chipset}`` map from
-    ``similar_chipset_references``; *all_chipsets* is the full registry, used to
-    resolve each reference chipset's marketing name and device.
-    """
-    chipsets_by_name = {c.name: c for c in all_chipsets}
-
-    return build_table(
-        ["Type", "Name", "Aliases", "Reference Chipset", "Reference Device"],
-        [
-            [
-                world_proto_to_str(c.world),
-                c.marketing_name,
-                ", ".join(c.aliases),
-                _chipset_marketing_name(chipsets_by_name, references.get(c.name, "")),
-                _chipset_reference_device(chipsets_by_name, references.get(c.name, "")),
-            ]
-            for c in chipsets
         ],
         wrap_column="Name",
         title=title,

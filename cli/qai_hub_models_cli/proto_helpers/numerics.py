@@ -5,12 +5,13 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Iterable
 from pathlib import Path
 
 from packaging.version import Version
 
 from qai_hub_models_cli.proto.numerics_pb2 import ModelNumerics
-from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo
+from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo, RuntimeInfo
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto_helpers._common import fetch_model_proto
@@ -133,9 +134,11 @@ def filter_numerics(
     """
     if sdk_versions:
         validate_sdk_tools(sdk_versions)
-    runtime_vals = runtimes_str_to_proto_set(runtime, platform)
+    runtime_vals = runtimes_str_to_proto_set(runtime, platform.runtimes)
     precision_vals = precisions_str_to_proto_set(precision)
-    device_names = device_names_for_filter(platform, chipset, device)
+    device_names = device_names_for_filter(
+        platform.chipsets, platform.devices, chipset, device
+    )
 
     filtered = ModelNumerics(
         aihm_version=numerics.aihm_version,
@@ -164,7 +167,7 @@ def filter_numerics(
 def format_numerics_table(
     numerics: ModelNumerics,
     title: str | None = "Numerics (Accuracy)",
-    platform: PlatformInfo | None = None,
+    runtimes: Iterable[RuntimeInfo] | None = None,
 ) -> str:
     """Format a model's numerical accuracy metrics as a table.
 
@@ -173,8 +176,9 @@ def format_numerics_table(
     Versions column is sourced from each result's tool versions (cross-referenced
     from perf at build time).
 
-    *platform*, when provided, is used to render each runtime by its human
-    display name (e.g. ``TensorFlow Lite``) instead of its token.
+    *runtimes* (``platform.runtimes``), when provided, is used to render each
+    runtime by its human display name (e.g. ``TensorFlow Lite``) instead of its
+    token.
 
     Returns a message string when *numerics* has no per-device results.
     """
@@ -194,7 +198,7 @@ def format_numerics_table(
             metric.dataset_name,
             metric.metric_name,
             precision_proto_to_str(dm.precision),
-            runtime_proto_to_str(dm.runtime, platform, display_name=True),
+            runtime_proto_to_str(dm.runtime, runtimes, display_name=True),
             dm.device,
             f"{dm.partial_metric:.3g}{metric.metric_unit}",
             f"{metric.partial_torch_metric:.3g}{metric.metric_unit}",

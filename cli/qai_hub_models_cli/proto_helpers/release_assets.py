@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Iterable
-from dataclasses import dataclass
 from pathlib import Path
 
 from packaging.version import Version
@@ -18,7 +17,11 @@ from qai_hub_models_cli.common import (
     sample_command,
 )
 from qai_hub_models_cli.proto import info_pb2
-from qai_hub_models_cli.proto.platform_pb2 import ChipsetInfo, PlatformInfo
+from qai_hub_models_cli.proto.platform_pb2 import (
+    ChipsetInfo,
+    PlatformInfo,
+    RuntimeInfo,
+)
 from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
@@ -28,7 +31,6 @@ from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
 from qai_hub_models_cli.proto_helpers.platform import (
     resolve_chipset,
     resolve_runtime,
-    similar_chipset_reference,
 )
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_proto_to_str,
@@ -149,14 +151,14 @@ def format_release_assets_table(
     release_assets: ModelReleaseAssets,
     chipsets: Iterable[ChipsetInfo],
     title: str | None = None,
-    platform: PlatformInfo | None = None,
+    runtimes: Iterable[RuntimeInfo] | None = None,
 ) -> str:
     """Format a table of a model's download options.
 
     *chipsets* is used to display each asset's chipset by its marketing name.
-    *platform*, when provided, is used to render each runtime by its human
-    display name (e.g. ``TensorFlow Lite``) instead of its token.
-    Returns only the table; use :func:`format_fetch_commands` for the
+    *runtimes* (``platform.runtimes``), when provided, is used to render each
+    runtime by its human display name (e.g. ``TensorFlow Lite``) instead of its
+    token. Returns only the table; use :func:`format_fetch_commands` for the
     accompanying ``fetch``/``devices`` command hints.
     """
     chipset_names = {c.name: c.marketing_name for c in chipsets}
@@ -164,7 +166,7 @@ def format_release_assets_table(
     grouped: dict[tuple[str, str, str], list[str | None]] = {}
     for asset in release_assets.assets:
         prec = precision_proto_to_str(asset.precision)
-        rt = runtime_proto_to_str(asset.runtime, platform, display_name=True)
+        rt = runtime_proto_to_str(asset.runtime, runtimes, display_name=True)
         sdk = (
             format_tool_versions(asset.tool_versions)
             if asset.HasField("tool_versions")
@@ -333,15 +335,21 @@ def filter_release_assets(
 
     if sdk_versions:
         validate_sdk_tools(sdk_versions)
-    runtime_vals = runtimes_str_to_proto_set(runtime, platform)
+    runtime_vals = runtimes_str_to_proto_set(runtime, platform.runtimes)
     precision_vals = precisions_str_to_proto_set(precision)
     chipset_names: set[str] | None = None
     if chipset is not None:
         refs = [chipset] if isinstance(chipset, str) else chipset
-        chipset_names = {resolve_chipset(platform, chipset=c).name for c in refs}
+        chipset_names = {
+            resolve_chipset(platform.chipsets, platform.devices, chipset=c).name
+            for c in refs
+        }
     elif device is not None:
         refs = [device] if isinstance(device, str) else device
-        chipset_names = {resolve_chipset(platform, device=d).name for d in refs}
+        chipset_names = {
+            resolve_chipset(platform.chipsets, platform.devices, device=d).name
+            for d in refs
+        }
 
     filtered = ModelReleaseAssets(
         aihm_version=release_assets.aihm_version,
@@ -367,91 +375,6 @@ def filter_release_assets(
             continue
         filtered.assets.add().CopyFrom(asset)
     return filtered
-
-
-@dataclass
-class ReleaseAssetMatches:
-    """Result of :func:`match_release_assets`.
-
-    *matches* are the direct matches. If empty and the request targeted a
-    "similar" chipset/device, *similar_chipset* is its reference chipset and
-    *similar_matches* the assets found against it; otherwise both are None/empty.
-    """
-
-    matches: ModelReleaseAssets
-    similar_chipset: ChipsetInfo | None = None
-    similar_matches: ModelReleaseAssets | None = None
-
-
-def match_release_assets(
-    release_assets: ModelReleaseAssets,
-    platform: PlatformInfo,
-    runtime: Runtime.ValueType | str | list[Runtime.ValueType | str] | None = None,
-    precision: Precision.ValueType
-    | str
-    | list[Precision.ValueType | str]
-    | None = None,
-    chipset: str | list[str] | None = None,
-    device: str | list[str] | None = None,
-    sdk_versions: dict[str, str] | None = None,
-) -> ReleaseAssetMatches:
-    """
-    Like :func:`filter_release_assets`, but falls back to a "similar" chipset.
-
-    When the direct filter finds nothing and a single *chipset*/*device* string
-    was requested that is "similar" (borrows assets from a reference chipset),
-    the reference is filtered too and returned alongside the empty direct match.
-    Lists get no fallback. All args match :func:`filter_release_assets`.
-
-    Parameters
-    ----------
-    release_assets
-        The model's release assets to filter.
-    platform
-        Platform registry used to resolve *chipset*/*device* and the fallback.
-    runtime
-        Runtime filter(s).
-    precision
-        Precision filter(s).
-    chipset
-        Chipset reference(s). Mutually exclusive with *device*.
-    device
-        Device name(s). Mutually exclusive with *chipset*.
-    sdk_versions
-        ``{tool: version}`` filter map.
-
-    Returns
-    -------
-    ReleaseAssetMatches
-        The matches, plus any similar reference chipset and its matches.
-    """
-    matches = filter_release_assets(
-        release_assets, platform, runtime, precision, chipset, device, sdk_versions
-    )
-    if matches.assets:
-        return ReleaseAssetMatches(matches)
-
-    # Only a single chipset/device string maps to a similar reference.
-    single_chipset = chipset if isinstance(chipset, str) else None
-    single_device = device if isinstance(device, str) else None
-    if single_chipset is None and single_device is None:
-        return ReleaseAssetMatches(matches)
-
-    reference = similar_chipset_reference(
-        platform, chipset=single_chipset, device=single_device
-    )
-    if reference is None:
-        return ReleaseAssetMatches(matches)
-
-    similar_matches = filter_release_assets(
-        release_assets,
-        platform,
-        runtime,
-        precision,
-        chipset=reference.name,
-        sdk_versions=sdk_versions,
-    )
-    return ReleaseAssetMatches(matches, reference, similar_matches)
 
 
 def get_model_asset_details(
@@ -506,8 +429,8 @@ def get_model_asset_details(
         raise ValueError("Provide at most one of 'chipset' or 'device'.")
 
     model = release_assets.model_id
-    runtime_val = runtime_str_to_proto(runtime, platform)
-    is_aot = resolve_runtime(platform, runtime_val).is_aot_compiled
+    runtime_val = runtime_str_to_proto(runtime, platform.runtimes)
+    is_aot = resolve_runtime(platform.runtimes, runtime_val).is_aot_compiled
 
     errmsg: str | None = None
     if is_aot and chipset is None and device is None:
@@ -532,6 +455,6 @@ def get_model_asset_details(
     )
     errmsg += f"The following are valid fetch options for {model}:\n"
     errmsg += format_release_assets_table(
-        release_assets, platform.chipsets, platform=platform
+        release_assets, platform.chipsets, runtimes=platform.runtimes
     )
     raise AssetNotFoundError(errmsg)

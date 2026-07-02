@@ -62,18 +62,14 @@ from qai_hub_models_cli.proto_helpers.perf import (
     get_model_perf,
 )
 from qai_hub_models_cli.proto_helpers.platform import (
-    describe_target,
     filter_chipsets,
     filter_devices,
     format_chipsets_table,
     format_devices_table,
     format_runtime_links,
     format_runtimes_table,
-    format_similar_chipsets_table,
-    format_similar_devices_table,
     get_platform,
     resolve_chipset,
-    similar_chipset_references,
 )
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     domain_proto_to_str,
@@ -92,11 +88,11 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     world_str_to_proto,
 )
 from qai_hub_models_cli.proto_helpers.release_assets import (
+    filter_release_assets,
     format_fetch_commands,
     format_release_assets_table,
     get_model_asset_details,
     get_model_release_assets,
-    match_release_assets,
 )
 from qai_hub_models_cli.proto_helpers.tool_versions import format_tool_versions
 from qai_hub_models_cli.utils import build_table, wrap_table_column
@@ -133,7 +129,7 @@ def _run_fetch(args: argparse.Namespace) -> None:
     if args.info:
         all_assets = get_model_release_assets(args.model, args.qaihm_version)
         platform = get_platform(args.qaihm_version)
-        match = match_release_assets(
+        release_assets = filter_release_assets(
             all_assets,
             platform,
             args.runtime,
@@ -142,27 +138,6 @@ def _run_fetch(args: argparse.Namespace) -> None:
             args.device,
             sdk_versions,
         )
-        release_assets = match.matches
-        # Similar chipset/device with no assets: show its reference's instead.
-        chipset = args.chipset
-        substituted = False
-        if (
-            not release_assets.assets
-            and match.similar_chipset is not None
-            and match.similar_matches is not None
-            and match.similar_matches.assets
-        ):
-            requested = describe_target(
-                platform, chipset=args.chipset, device=args.device
-            )
-            print(
-                f"No assets are published for {requested}. It is 'similar' to "
-                f"{match.similar_chipset.marketing_name!r}, whose assets serve as "
-                "a substitute compilation target and are shown below.\n"
-            )
-            release_assets = match.similar_matches
-            chipset = match.similar_chipset.marketing_name
-            substituted = True
         if not release_assets.assets:
             print("No release assets match the given filters.")
             return
@@ -171,7 +146,7 @@ def _run_fetch(args: argparse.Namespace) -> None:
                 release_assets,
                 platform.chipsets,
                 title="Download Options",
-                platform=platform,
+                runtimes=platform.runtimes,
             )
         )
         print()
@@ -183,10 +158,8 @@ def _run_fetch(args: argparse.Namespace) -> None:
                 subset=False,
                 runtime=args.runtime,
                 precision=args.precision,
-                chipset=chipset,
-                # After a substitution the command targets the reference chipset,
-                # so drop the user's (similar) device to avoid a contradiction.
-                device=None if substituted else args.device,
+                chipset=args.chipset,
+                device=args.device,
                 sdk_versions=sdk_versions,
                 version=args.qaihm_version,
             )
@@ -313,7 +286,7 @@ def _run_find(args: argparse.Namespace) -> None:
             suffix = " (no matching asset)"
         print(f"Searching v{version}...{suffix}", file=sys.stderr)
 
-    results, similar_chipset = find_matching_releases(
+    results = find_matching_releases(
         args.model,
         runtime=args.runtime,
         precision=args.precision,
@@ -327,27 +300,7 @@ def _run_find(args: argparse.Namespace) -> None:
     )
 
     if not results:
-        msg = "\n\nCould not find a release with an asset matching the given filters."
-        # The requested chipset/device is "similar" to a reference chipset with
-        # assets; suggest searching for that chipset directly.
-        if similar_chipset is not None:
-            requested = describe_target(
-                get_platform(), chipset=args.chipset, device=args.device
-            )
-            retry = build_filter_command(
-                "find",
-                args.model,
-                runtimes=[args.runtime] if args.runtime else None,
-                precisions=[args.precision] if args.precision else None,
-                chipsets=[similar_chipset.marketing_name],
-                show_chipset_placeholder=False,
-            )
-            msg += (
-                f"\n\nHowever, {requested} is 'similar' to "
-                f"{similar_chipset.marketing_name!r}, which serves as a substitute "
-                f"compilation target. Search for it with:\n\n  {retry}"
-            )
-        print(msg)
+        print("\nCould not find a release with an asset matching the given filters.")
         return
 
     if args.quiet:
@@ -362,7 +315,7 @@ def _run_find(args: argparse.Namespace) -> None:
                 release_assets,
                 platform.chipsets,
                 title=f"Matching Assets (v{version})",
-                platform=platform,
+                runtimes=platform.runtimes,
             )
         )
         print()
@@ -523,7 +476,7 @@ def _run_numerics(args: argparse.Namespace) -> None:
         device=flatten_multi_arg(args.device),
         sdk_versions=parse_sdk_version_filters(args.sdk_version or []),
     )
-    print(format_numerics_table(numerics, platform=platform))
+    print(format_numerics_table(numerics, runtimes=platform.runtimes))
     if numerics.metrics:
         _print_model_metric_footer("numerics", args)
 
@@ -751,8 +704,10 @@ def _run_list_models(args: argparse.Namespace) -> None:
 
     if args.chipset or args.device:
         try:
+            reg = get_platform(args.qaihm_version)
             chipset_name = resolve_chipset(
-                get_platform(args.qaihm_version),
+                reg.chipsets,
+                reg.devices,
                 chipset=args.chipset,
                 device=args.device,
             ).name
@@ -803,7 +758,11 @@ def _run_list_models(args: argparse.Namespace) -> None:
                 row += [
                     "Yes" if entry.is_quantized else "No",
                     ", ".join(
-                        runtime_proto_to_str(r, platform, display_name=True)
+                        runtime_proto_to_str(
+                            r,
+                            platform.runtimes if platform else None,
+                            display_name=True,
+                        )
                         for r in entry.supported_runtimes
                     ),
                 ]
@@ -970,27 +929,17 @@ def _run_list_devices(args: argparse.Namespace) -> None:
             print(device.name)
         return
 
-    # Devices with a reference_chipset are "similar" devices whose perf numbers
-    # are duplicated from another chipset; show them in a separate table.
-    primary = [d for d in devices if not d.reference_chipset]
-    similar = [d for d in devices if d.reference_chipset]
-
-    print(format_devices_table(primary, platform.chipsets))
+    print(format_devices_table(devices, platform.chipsets))
     print(
-        f"Total: {len(primary)} devices. This table is a snapshot of devices tested with AI Hub Models v{args.qaihm_version}. AI Hub Workbench may support a different set of devices."
+        f"Total: {len(devices)} devices. This table is a snapshot of devices supported by AI Hub Models v{args.qaihm_version}. AI Hub Workbench supports a different set of devices.\n"
+    )
+    print(
+        f"NOTE: Customized model commands (export, evaluate --- see `{sample_command('--help')}`) support the devices available on AI Hub Workbench rather than this table.\n      To print devices available with AI Hub Workbench, run: `pip install qai_hub; qai-hub list-devices` "
     )
 
-    if similar:
-        print()
-        print(format_similar_devices_table(similar, platform.chipsets))
-        print(
-            f"Total: {len(similar)} similar devices. Devices in this table have not "
-            "been tested with AI Hub Models. However, the corresponding 'Reference Device' / 'Reference Chipset' "
-            "serve as substitute compilation targets and have been tested. Assets built for the 'Reference Device' / 'Reference Chipset' "
-            "are likely to run on the device, though performance and accuracy metrics may differ."
-        )
-
-    print(f"\nSee all supported chipsets using `{sample_command('chipsets')}`.")
+    print(
+        f"\nSee all chipsets supported by AI Hub Models using `{sample_command('chipsets', version_flag(args.qaihm_version))}`."
+    )
 
     print_upgrade_notice()
 
@@ -1054,29 +1003,17 @@ def _run_list_chipsets(args: argparse.Namespace) -> None:
             print(chipset.marketing_name)
         return
 
-    # Chipsets only reachable through "similar" devices (those whose perf numbers
-    # are duplicated from another chipset) are themselves "similar"; show them in
-    # a separate table, mirroring the `devices` command.
-    references = similar_chipset_references(platform.devices)
-    primary = [c for c in chipsets if c.name not in references]
-    similar = [c for c in chipsets if c.name in references]
-
-    print(format_chipsets_table(primary))
+    print(format_chipsets_table(chipsets))
     print(
-        f"Total: {len(primary)} chipsets. This table is a snapshot of chipsets tested with AI Hub Models v{args.qaihm_version}. AI Hub Workbench may support a different set of chipsets."
+        f"Total: {len(chipsets)} chipsets. This table is a snapshot of chipsets supported by AI Hub Models v{args.qaihm_version}. AI Hub Workbench supports a different set of chipsets.\n"
+    )
+    print(
+        f"NOTE: Customized model commands (export, evaluate --- see `{sample_command('--help')}`) support the chipsets available on AI Hub Workbench rather than this table.\n      To print devices available with AI Hub Workbench, run: `pip install qai_hub; qai-hub list-devices` "
     )
 
-    if similar:
-        print()
-        print(format_similar_chipsets_table(similar, platform.chipsets, references))
-        print(
-            f"Total: {len(similar)} similar chipsets. Chipsets in this table have not "
-            "been tested with AI Hub Models. However, the corresponding 'Reference Chipset' / 'Reference Device' "
-            "serve as substitute compilation targets and have been tested. Assets built for the 'Reference Chipset' / 'Reference Device' "
-            "are likely to run on the chipset, though performance and accuracy metrics may differ."
-        )
-
-    print(f"\nSee all supported devices using `{sample_command('devices')}`.")
+    print(
+        f"\nSee all devices supported by AI Hub Models using `{sample_command('devices', version_flag(args.qaihm_version))}`."
+    )
     print_upgrade_notice()
 
 
@@ -1188,7 +1125,7 @@ def _run_info(args: argparse.Namespace) -> None:
                         "Supported Runtimes",
                         ", ".join(
                             runtime_proto_to_str(
-                                r, metadata_platform, display_name=True
+                                r, metadata_platform.runtimes, display_name=True
                             )
                             for r in entry.supported_runtimes
                         ),
@@ -1251,7 +1188,9 @@ def _run_info(args: argparse.Namespace) -> None:
 
     for rt_details in info.runtime_technical_details:
         runtime_name = runtime_proto_to_str(
-            rt_details.runtime, get_platform(args.qaihm_version), display_name=True
+            rt_details.runtime,
+            get_platform(args.qaihm_version).runtimes,
+            display_name=True,
         )
         print(
             _technical_details_table(
@@ -1269,7 +1208,7 @@ def _run_info(args: argparse.Namespace) -> None:
                 release_assets,
                 info_platform.chipsets,
                 title="Download Options",
-                platform=info_platform,
+                runtimes=info_platform.runtimes,
             )
         )
         print()

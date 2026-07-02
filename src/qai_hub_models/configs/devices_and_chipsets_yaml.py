@@ -219,6 +219,12 @@ class DeviceDetailsYaml(BaseQAIHMConfig):
         )
 
 
+# "Similar" devices (from similar_devices.yaml) that should still be published
+# even though their perf is borrowed from a reference device rather than
+# measured. Matched by device name.
+ALLOWED_SIMILAR_DEVICES = frozenset({"Dragonwing IQ-8275 EVK"})
+
+
 @cache
 def _load_similar_devices_raw() -> DevicesAndChipsetsYaml:
     """Load the similar devices YAML as typed DeviceDetailsYaml entries."""
@@ -450,7 +456,18 @@ class DevicesAndChipsetsYaml(BaseQAIHMConfig):
 
         return out
 
-    def to_proto(self, aihm_version: str) -> platform_pb2.PlatformInfo:
+    def to_proto(
+        self,
+        aihm_version: str,
+        exclude_similar_devices: bool = True,
+    ) -> platform_pb2.PlatformInfo:
+        """Serialize to a ``PlatformInfo`` proto.
+
+        When *exclude_similar_devices* is True (default), "similar" devices
+        (those with a ``reference_chipset``, whose perf is borrowed rather than
+        measured) are dropped, along with any chipset only those devices use.
+        Devices in :data:`ALLOWED_SIMILAR_DEVICES` are kept regardless.
+        """
         runtimes = [
             platform_pb2.RuntimeInfo(
                 runtime=runtime_to_proto(path.runtime),
@@ -466,16 +483,29 @@ class DevicesAndChipsetsYaml(BaseQAIHMConfig):
         form_factors = [
             ff_yaml.to_proto(ff) for ff, ff_yaml in self.form_factors.items()
         ]
-        devices = [details.to_proto(name) for name, details in self.devices.items()]
-        chipsets = [
-            chipset_yaml.to_proto(name) for name, chipset_yaml in self.chipsets.items()
+
+        devices = self.devices
+        chipsets = self.chipsets
+        if exclude_similar_devices:
+            devices = {
+                name: d
+                for name, d in self.devices.items()
+                if d.reference_chipset is None or name in ALLOWED_SIMILAR_DEVICES
+            }
+            # Keep only chipsets still used by a retained device.
+            used = {d.chipset for d in devices.values()}
+            chipsets = {name: c for name, c in self.chipsets.items() if name in used}
+
+        device_protos = [details.to_proto(name) for name, details in devices.items()]
+        chipset_protos = [
+            chipset_yaml.to_proto(name) for name, chipset_yaml in chipsets.items()
         ]
         return platform_pb2.PlatformInfo(
             aihm_version=aihm_version,
             runtimes=runtimes,
             form_factors=form_factors,
-            devices=devices,
-            chipsets=chipsets,
+            devices=device_protos,
+            chipsets=chipset_protos,
         )
 
     @staticmethod
