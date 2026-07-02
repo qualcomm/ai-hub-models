@@ -14,21 +14,26 @@ from qai_hub_models_cli.common import (
     AIHUB_MODELS_URL,
     ASSET_FOLDER,
     STORE_URL,
+    build_filter_command,
     sample_command,
 )
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
-from qai_hub_models_cli.proto_helpers.platform import get_platform, resolve_runtime
+from qai_hub_models_cli.proto_helpers.platform import (
+    describe_target,
+    get_platform,
+    resolve_runtime,
+)
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_proto_to_str,
     runtime_proto_to_str,
 )
 from qai_hub_models_cli.proto_helpers.release_assets import (
     AssetNotFoundError,
-    filter_release_assets,
     format_fetch_commands,
     format_release_assets_table,
     get_model_release_assets,
+    match_release_assets,
 )
 from qai_hub_models_cli.utils import download, get_next_free_path
 from qai_hub_models_cli.versions import (
@@ -164,10 +169,11 @@ def get_asset_url(
         release_assets = get_model_release_assets(model, version)
         platform = get_platform(version)
 
-        # Filter the assets down to the user's args.
-        matches = filter_release_assets(
+        # Filter to the user's args, with a "similar" chipset fallback.
+        result = match_release_assets(
             release_assets, platform, runtime, precision, chipset, device, sdk_versions
         )
+        matches = result.matches
 
         # A download must resolve to exactly one asset.
         if len(matches.assets) == 1:
@@ -175,6 +181,31 @@ def get_asset_url(
 
         # Nothing matched: the user's filters don't correspond to any asset.
         if not matches.assets:
+            # A "similar" chipset/device with no assets of its own: point the
+            # user at its reference chipset, which does have matching assets.
+            if (
+                result.similar_chipset is not None
+                and result.similar_matches is not None
+                and result.similar_matches.assets
+            ):
+                requested = describe_target(platform, chipset=chipset, device=device)
+                suggestion = build_filter_command(
+                    "fetch",
+                    model,
+                    version_flag(version),
+                    runtimes=[runtime] if isinstance(runtime, str) else None,
+                    precisions=[precision] if isinstance(precision, str) else None,
+                    chipsets=[result.similar_chipset.marketing_name],
+                    show_chipset_placeholder=False,
+                    extra_flags=["--url-only"] if url_only else None,
+                )
+                raise AssetNotFoundError(
+                    f"No assets are published for {requested}, but it is "
+                    f"'similar' to {result.similar_chipset.marketing_name!r}, which "
+                    "has matching assets that serve as a substitute compilation "
+                    "target. Fetch those instead with:\n\n"
+                    f"  {suggestion}"
+                )
             raise AssetNotFoundError(
                 f"No asset found for model={model!r} with runtime={runtime!r}, "
                 f"precision={precision!r}, chipset={chipset!r}, device={device!r}.\n"

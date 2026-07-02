@@ -194,6 +194,46 @@ def test_perf_llm_table_includes_compute_unit() -> None:
     assert "CPU" in table
 
 
+def _platform_with_similar() -> PlatformInfo:
+    """``_platform`` plus a "similar" device borrowing perf from 8 Gen 3."""
+    platform = _platform()
+    platform.devices.append(
+        DeviceInfo(
+            name="SA8255P ADP",
+            chipset="qualcomm-sa8255p",
+            reference_chipset="qualcomm-snapdragon-8-gen-3",
+        )
+    )
+    return platform
+
+
+def test_perf_table_marks_similar_devices() -> None:
+    # A perf record on a "similar" device gets a "*" and a disclaimer footnote.
+    perf = ModelPerf(
+        model_id="mobilenet_v2",
+        performance_metrics=[
+            ModelPerf.PerformanceDetails(
+                precision=Precision.PRECISION_FLOAT,
+                device="SA8255P ADP",
+                runtime=Runtime.RUNTIME_TFLITE,
+                metrics=ModelPerf.PerfMetrics(
+                    inference_time_milliseconds=2.5, primary_compute_unit="NPU"
+                ),
+            ),
+        ],
+    )
+    table = format_perf_table(perf, platform=_platform_with_similar())
+    assert "SA8255P ADP *" in table
+    assert "marked with '*' in the Device column" in table
+
+
+def test_perf_table_no_disclaimer_without_similar_devices() -> None:
+    # No similar device in the results -> no "*" marker and no disclaimer.
+    table = format_perf_table(_perf(), platform=_platform_with_similar())
+    assert "*" not in table
+    assert "Similar device" not in table
+
+
 def test_numerics_filter() -> None:
     filtered = filter_numerics(_numerics(), _platform(), precision="float")
     # Only the float (S24/tflite) device result survives.

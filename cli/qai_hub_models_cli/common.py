@@ -106,14 +106,15 @@ def build_filter_command(
     chipsets: list[str] | None = None,
     devices: list[str] | None = None,
     show_chipset_placeholder: bool = True,
+    extra_flags: list[str] | None = None,
 ) -> str:
     """Build a full ``qai-hub-models <command> <model> -r ... -p ... [-c/-d ...]``.
 
     Echoes the given filter values (or placeholders) for the ``fetch`` download
-    hint and the ``perf``/``numerics`` "filter these results" hint. Callers append
-    any command-specific flags (``-s``, ``--component``, ``--url-only``) to the
-    result. *show_chipset_placeholder* controls whether the
+    hint and the ``perf``/``numerics`` "filter these results" hint.
+    *show_chipset_placeholder* controls whether the
     ``[ -c '<chipset>' || -d '<device>' ]`` hint appears when neither is given.
+    *extra_flags* are appended verbatim (e.g. ``["--url-only"]``).
     """
     if devices:
         target = "-d " + " ".join(f"'{d}'" for d in devices)
@@ -130,6 +131,7 @@ def build_filter_command(
         _filter_flag("-r", runtimes, "<runtime>"),
         _filter_flag("-p", precisions, "<precision>"),
         target,
+        *(extra_flags or []),
     )
 
 

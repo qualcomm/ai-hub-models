@@ -62,6 +62,7 @@ from qai_hub_models_cli.proto_helpers.perf import (
     get_model_perf,
 )
 from qai_hub_models_cli.proto_helpers.platform import (
+    describe_target,
     filter_chipsets,
     filter_devices,
     format_chipsets_table,
@@ -91,11 +92,11 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     world_str_to_proto,
 )
 from qai_hub_models_cli.proto_helpers.release_assets import (
-    filter_release_assets,
     format_fetch_commands,
     format_release_assets_table,
     get_model_asset_details,
     get_model_release_assets,
+    match_release_assets,
 )
 from qai_hub_models_cli.proto_helpers.tool_versions import format_tool_versions
 from qai_hub_models_cli.utils import build_table, wrap_table_column
@@ -132,7 +133,7 @@ def _run_fetch(args: argparse.Namespace) -> None:
     if args.info:
         all_assets = get_model_release_assets(args.model, args.qaihm_version)
         platform = get_platform(args.qaihm_version)
-        release_assets = filter_release_assets(
+        match = match_release_assets(
             all_assets,
             platform,
             args.runtime,
@@ -141,6 +142,27 @@ def _run_fetch(args: argparse.Namespace) -> None:
             args.device,
             sdk_versions,
         )
+        release_assets = match.matches
+        # Similar chipset/device with no assets: show its reference's instead.
+        chipset = args.chipset
+        substituted = False
+        if (
+            not release_assets.assets
+            and match.similar_chipset is not None
+            and match.similar_matches is not None
+            and match.similar_matches.assets
+        ):
+            requested = describe_target(
+                platform, chipset=args.chipset, device=args.device
+            )
+            print(
+                f"No assets are published for {requested}. It is 'similar' to "
+                f"{match.similar_chipset.marketing_name!r}, whose assets serve as "
+                "a substitute compilation target and are shown below.\n"
+            )
+            release_assets = match.similar_matches
+            chipset = match.similar_chipset.marketing_name
+            substituted = True
         if not release_assets.assets:
             print("No release assets match the given filters.")
             return
@@ -161,8 +183,10 @@ def _run_fetch(args: argparse.Namespace) -> None:
                 subset=False,
                 runtime=args.runtime,
                 precision=args.precision,
-                chipset=args.chipset,
-                device=args.device,
+                chipset=chipset,
+                # After a substitution the command targets the reference chipset,
+                # so drop the user's (similar) device to avoid a contradiction.
+                device=None if substituted else args.device,
                 sdk_versions=sdk_versions,
                 version=args.qaihm_version,
             )
@@ -289,7 +313,7 @@ def _run_find(args: argparse.Namespace) -> None:
             suffix = " (no matching asset)"
         print(f"Searching v{version}...{suffix}", file=sys.stderr)
 
-    results = find_matching_releases(
+    results, similar_chipset = find_matching_releases(
         args.model,
         runtime=args.runtime,
         precision=args.precision,
@@ -303,7 +327,27 @@ def _run_find(args: argparse.Namespace) -> None:
     )
 
     if not results:
-        print("\nCould not find a release with an asset matching the given filters.")
+        msg = "\n\nCould not find a release with an asset matching the given filters."
+        # The requested chipset/device is "similar" to a reference chipset with
+        # assets; suggest searching for that chipset directly.
+        if similar_chipset is not None:
+            requested = describe_target(
+                get_platform(), chipset=args.chipset, device=args.device
+            )
+            retry = build_filter_command(
+                "find",
+                args.model,
+                runtimes=[args.runtime] if args.runtime else None,
+                precisions=[args.precision] if args.precision else None,
+                chipsets=[similar_chipset.marketing_name],
+                show_chipset_placeholder=False,
+            )
+            msg += (
+                f"\n\nHowever, {requested} is 'similar' to "
+                f"{similar_chipset.marketing_name!r}, which serves as a substitute "
+                f"compilation target. Search for it with:\n\n  {retry}"
+            )
+        print(msg)
         return
 
     if args.quiet:
@@ -941,8 +985,8 @@ def _run_list_devices(args: argparse.Namespace) -> None:
         print(format_similar_devices_table(similar, platform.chipsets))
         print(
             f"Total: {len(similar)} similar devices. Devices in this table have not "
-            "been tested with AI Hub Models. However, the corresponding similar device / chipset "
-            "serve as substitute compilation targets and have been tested. Assets built for the 'similar device' / 'similar chipset' "
+            "been tested with AI Hub Models. However, the corresponding 'Reference Device' / 'Reference Chipset' "
+            "serve as substitute compilation targets and have been tested. Assets built for the 'Reference Device' / 'Reference Chipset' "
             "are likely to run on the device, though performance and accuracy metrics may differ."
         )
 
@@ -1027,8 +1071,8 @@ def _run_list_chipsets(args: argparse.Namespace) -> None:
         print(format_similar_chipsets_table(similar, platform.chipsets, references))
         print(
             f"Total: {len(similar)} similar chipsets. Chipsets in this table have not "
-            "been tested with AI Hub Models. However, the corresponding similar chipset / device "
-            "serve as substitute compilation targets and have been tested. Assets built for the 'similar chipset' / 'similar device' "
+            "been tested with AI Hub Models. However, the corresponding 'Reference Chipset' / 'Reference Device' "
+            "serve as substitute compilation targets and have been tested. Assets built for the 'Reference Chipset' / 'Reference Device' "
             "are likely to run on the chipset, though performance and accuracy metrics may differ."
         )
 
@@ -1419,7 +1463,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {CURRENT_VERSION}",
     )
-    subparsers = parser.add_subparsers(metavar="<command>")
+    subparsers = parser.add_subparsers(metavar="<command>", dest="command")
 
     add_fetch_parser(subparsers)
     add_info_parser(subparsers)
@@ -1484,7 +1528,16 @@ def main(args: list[str] | None = None) -> None:
         return
 
     parser = _build_parser()
-    parsed = parser.parse_args(args)
+    # parse_known_args lets us route an unrecognized-arg error to the chosen
+    # subcommand's parser (showing its usage) instead of the top-level one.
+    parsed, extras = parser.parse_known_args(args)
+    if extras:
+        subparsers_action = next(
+            a for a in parser._actions if isinstance(a, argparse._SubParsersAction)
+        )
+        cmd = getattr(parsed, "command", None)
+        target = subparsers_action.choices.get(cmd, parser) if cmd else parser
+        target.error(f"unrecognized arguments: {' '.join(extras)}")
     if hasattr(parsed, "func"):
         try:
             parsed.func(parsed)

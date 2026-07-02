@@ -246,13 +246,29 @@ def format_perf_table(
     # Precompute runtime -> display name once; runtime_proto_to_str otherwise
     # rescans platform.runtimes for every record.
     runtime_names: dict[int, str] = {}
+    # "Similar" devices (those with a reference_chipset) borrow their metrics;
+    # mark them with a "*" and explain it in a footnote.
+    similar_device_names: set[str] = set()
     if platform is not None:
         runtime_names = {
             rt.runtime: rt.display_name for rt in platform.runtimes if rt.display_name
         }
+        similar_device_names = {
+            d.name.lower() for d in platform.devices if d.reference_chipset
+        }
 
     def _runtime_name(runtime: Runtime.ValueType) -> str:
         return runtime_names.get(runtime) or runtime_proto_to_str(runtime)
+
+    marked_similar = False
+
+    def _device_cell(device: str) -> str:
+        """Device name, suffixed with "*" when it is a "similar" device."""
+        nonlocal marked_similar
+        if device.lower() in similar_device_names:
+            marked_similar = True
+            return f"{device} *"
+        return device
 
     tables: list[str] = []
 
@@ -272,7 +288,7 @@ def format_perf_table(
             row = [
                 precision_proto_to_str(r.precision),
                 _runtime_name(r.runtime),
-                r.device,
+                _device_cell(r.device),
             ]
             if show_component:
                 row.append(r.component if r.HasField("component") else "")
@@ -313,7 +329,7 @@ def format_perf_table(
                 row = [
                     precision_proto_to_str(r.precision),
                     _runtime_name(r.runtime),
-                    r.device,
+                    _device_cell(r.device),
                 ]
                 if show_component:
                     row.append(r.component if r.HasField("component") else "")
@@ -344,4 +360,13 @@ def format_perf_table(
 
     if not tables:
         return "No performance metrics match the given filters."
-    return "\n\n".join(tables)
+    output = "\n\n".join(tables)
+    if marked_similar:
+        output += (
+            "\n\n* Devices marked with '*' in the Device column above are "
+            "'similar' devices (not tested directly). Their metrics are copied "
+            "from a reference device that serves as a substitute compilation "
+            "target. Run `qai-hub-models devices` to see each similar device's "
+            "reference."
+        )
+    return output

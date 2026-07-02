@@ -25,6 +25,7 @@ from qai_hub_models_cli.proto_helpers._common import fetch_release_proto
 from qai_hub_models_cli.proto_helpers.manifest import get_manifest
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     form_factor_proto_to_str,
+    normalize_label,
     os_proto_to_str,
     runtime_proto_to_str,
     runtime_str_to_proto,
@@ -147,6 +148,50 @@ def resolve_runtime(
     raise KeyError(f"Unknown runtime {runtime_name!r}.")
 
 
+def normalize_hw_name(name: str) -> str:
+    """Normalize a device or chipset name for lenient matching.
+
+    Case-folds and unifies separators (via :func:`normalize_label`), drops
+    trademark symbols (``®``/``™``/``©``), and collapses whitespace. So
+    ``"Snapdragon® 8 Gen 1 Mobile"``, ``"snapdragon 8 gen 1 mobile"``, and
+    ``"snapdragon_8-gen-1_mobile"`` all normalize to the same key.
+    """
+    for symbol in ("®", "™", "©"):
+        name = name.replace(symbol, " ")
+    return " ".join(normalize_label(name).split())
+
+
+def resolve_device(platform: PlatformInfo, device: str) -> DeviceInfo:
+    """
+    Look up a device by name, matched leniently (see :func:`normalize_hw_name`).
+
+    Parameters
+    ----------
+    platform
+        Platform registry to resolve against.
+    device
+        A device name (e.g. ``"Samsung Galaxy S24"``).
+
+    Returns
+    -------
+    DeviceInfo
+        The matching device.
+
+    Raises
+    ------
+    KeyError
+        If *device* does not match any known device.
+    """
+    device_key = normalize_hw_name(device)
+    for d in platform.devices:
+        if normalize_hw_name(d.name) == device_key:
+            return d
+    raise KeyError(
+        f"Unknown device {device!r}. "
+        "Run `qai-hub-models devices` to see supported devices."
+    )
+
+
 def resolve_chipset(
     platform: PlatformInfo,
     device: str | None = None,
@@ -188,24 +233,46 @@ def resolve_chipset(
     chipsets_by_name = {c.name: c for c in platform.chipsets}
 
     if device is not None:
-        device_key = device.lower()
-        for d in platform.devices:
-            if d.name.lower() == device_key and d.chipset in chipsets_by_name:
-                return chipsets_by_name[d.chipset]
-        raise KeyError(
-            f"Unknown device {device!r}. "
-            "Run `qai-hub-models devices` to see supported devices."
-        )
+        d = resolve_device(platform, device)  # raises if the device is unknown
+        if d.chipset in chipsets_by_name:
+            return chipsets_by_name[d.chipset]
+        raise KeyError(f"Device {d.name!r} references unknown chipset {d.chipset!r}.")
 
-    chipset_key = chipset.lower()  # type: ignore[union-attr]
+    assert chipset is not None  # exactly one of device/chipset, checked above
+    chipset_key = normalize_hw_name(chipset)
     for c in platform.chipsets:
         candidates = [c.name, c.marketing_name, *c.aliases]
-        if any(candidate.lower() == chipset_key for candidate in candidates):
+        if any(normalize_hw_name(candidate) == chipset_key for candidate in candidates):
             return c
     raise KeyError(
         f"Unknown chipset {chipset!r}. "
         "Run `qai-hub-models chipsets` to see supported chipsets."
     )
+
+
+def describe_target(
+    platform: PlatformInfo,
+    chipset: str | None = None,
+    device: str | None = None,
+) -> str:
+    """Return a ``"device '...'"``/``"chipset '...'"`` label with the resolved name.
+
+    The name is resolved against *platform* (device name, or chipset marketing
+    name) so messages show the canonical name rather than what the user typed.
+    Falls back to the given string if it does not resolve. Provide exactly one
+    of *chipset* or *device*.
+    """
+    if device is not None:
+        try:
+            name = resolve_device(platform, device).name
+        except KeyError:
+            name = device
+        return f"device {name!r}"
+    try:
+        name = resolve_chipset(platform, chipset=chipset).marketing_name
+    except KeyError:
+        name = chipset or ""
+    return f"chipset {name!r}"
 
 
 def device_names_for_filter(
@@ -441,7 +508,7 @@ def format_similar_devices_table(
     chipsets_by_name = {c.name: c for c in chipsets}
 
     return build_table(
-        ["Type", "Name", "Chipset", "Similar Device", "Similar Chipset"],
+        ["Type", "Name", "Chipset", "Reference Device", "Reference Chipset"],
         [
             [
                 form_factor_proto_to_str(d.form_factor),
@@ -473,6 +540,53 @@ def similar_chipset_references(devices: Iterable[DeviceInfo]) -> dict[str, str]:
     }
 
 
+def similar_chipset_reference(
+    platform: PlatformInfo,
+    chipset: str | None = None,
+    device: str | None = None,
+) -> ChipsetInfo | None:
+    """
+    Resolve *chipset*/*device* to the reference chipset whose assets it borrows.
+
+    A "similar" target has no assets of its own (assets are published for its
+    reference chipset instead). Provide exactly one of *chipset* or *device*.
+
+    Parameters
+    ----------
+    platform
+        Platform registry to resolve against.
+    chipset
+        A chipset reference (ID, name, or alias). Mutually exclusive with
+        *device*.
+    device
+        A device name. Mutually exclusive with *chipset*.
+
+    Returns
+    -------
+    ChipsetInfo | None
+        The reference chipset, or ``None`` if the target has its own assets.
+
+    Raises
+    ------
+    ValueError
+        If neither or both of *chipset* and *device* are provided.
+    """
+    if (device is None) == (chipset is None):
+        raise ValueError("Provide exactly one of 'device' or 'chipset'.")
+
+    chipsets_by_name = {c.name: c for c in platform.chipsets}
+    reference_name: str | None = None
+    if device is not None:
+        reference_name = resolve_device(platform, device).reference_chipset or None
+    else:
+        target = resolve_chipset(platform, chipset=chipset)
+        reference_name = similar_chipset_references(platform.devices).get(target.name)
+
+    if not reference_name:
+        return None
+    return chipsets_by_name.get(reference_name)
+
+
 def format_similar_chipsets_table(
     chipsets: Iterable[ChipsetInfo],
     all_chipsets: Iterable[ChipsetInfo],
@@ -490,7 +604,7 @@ def format_similar_chipsets_table(
     chipsets_by_name = {c.name: c for c in all_chipsets}
 
     return build_table(
-        ["Type", "Name", "Aliases", "Similar Chipset", "Similar Device"],
+        ["Type", "Name", "Aliases", "Reference Chipset", "Reference Device"],
         [
             [
                 world_proto_to_str(c.world),

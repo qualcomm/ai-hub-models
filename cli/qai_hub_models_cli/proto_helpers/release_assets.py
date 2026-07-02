@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 from packaging.version import Version
@@ -27,6 +28,7 @@ from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
 from qai_hub_models_cli.proto_helpers.platform import (
     resolve_chipset,
     resolve_runtime,
+    similar_chipset_reference,
 )
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_proto_to_str,
@@ -365,6 +367,91 @@ def filter_release_assets(
             continue
         filtered.assets.add().CopyFrom(asset)
     return filtered
+
+
+@dataclass
+class ReleaseAssetMatches:
+    """Result of :func:`match_release_assets`.
+
+    *matches* are the direct matches. If empty and the request targeted a
+    "similar" chipset/device, *similar_chipset* is its reference chipset and
+    *similar_matches* the assets found against it; otherwise both are None/empty.
+    """
+
+    matches: ModelReleaseAssets
+    similar_chipset: ChipsetInfo | None = None
+    similar_matches: ModelReleaseAssets | None = None
+
+
+def match_release_assets(
+    release_assets: ModelReleaseAssets,
+    platform: PlatformInfo,
+    runtime: Runtime.ValueType | str | list[Runtime.ValueType | str] | None = None,
+    precision: Precision.ValueType
+    | str
+    | list[Precision.ValueType | str]
+    | None = None,
+    chipset: str | list[str] | None = None,
+    device: str | list[str] | None = None,
+    sdk_versions: dict[str, str] | None = None,
+) -> ReleaseAssetMatches:
+    """
+    Like :func:`filter_release_assets`, but falls back to a "similar" chipset.
+
+    When the direct filter finds nothing and a single *chipset*/*device* string
+    was requested that is "similar" (borrows assets from a reference chipset),
+    the reference is filtered too and returned alongside the empty direct match.
+    Lists get no fallback. All args match :func:`filter_release_assets`.
+
+    Parameters
+    ----------
+    release_assets
+        The model's release assets to filter.
+    platform
+        Platform registry used to resolve *chipset*/*device* and the fallback.
+    runtime
+        Runtime filter(s).
+    precision
+        Precision filter(s).
+    chipset
+        Chipset reference(s). Mutually exclusive with *device*.
+    device
+        Device name(s). Mutually exclusive with *chipset*.
+    sdk_versions
+        ``{tool: version}`` filter map.
+
+    Returns
+    -------
+    ReleaseAssetMatches
+        The matches, plus any similar reference chipset and its matches.
+    """
+    matches = filter_release_assets(
+        release_assets, platform, runtime, precision, chipset, device, sdk_versions
+    )
+    if matches.assets:
+        return ReleaseAssetMatches(matches)
+
+    # Only a single chipset/device string maps to a similar reference.
+    single_chipset = chipset if isinstance(chipset, str) else None
+    single_device = device if isinstance(device, str) else None
+    if single_chipset is None and single_device is None:
+        return ReleaseAssetMatches(matches)
+
+    reference = similar_chipset_reference(
+        platform, chipset=single_chipset, device=single_device
+    )
+    if reference is None:
+        return ReleaseAssetMatches(matches)
+
+    similar_matches = filter_release_assets(
+        release_assets,
+        platform,
+        runtime,
+        precision,
+        chipset=reference.name,
+        sdk_versions=sdk_versions,
+    )
+    return ReleaseAssetMatches(matches, reference, similar_matches)
 
 
 def get_model_asset_details(

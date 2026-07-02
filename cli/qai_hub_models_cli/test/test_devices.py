@@ -136,8 +136,11 @@ def test_devices_table(platform: None, capsys: pytest.CaptureFixture[str]) -> No
     assert "qualcomm-snapdragon-8-gen-3" not in output
     assert "Android 14" in output
     assert "Total: 2 devices" in output
-    # Devices with a reference_chipset are split into a "Similar Devices" table.
+    # Devices with a reference_chipset are split into a "Similar Devices" table,
+    # mapping each to its reference device/chipset.
     assert "Similar Devices" in output
+    assert "Reference Device" in output
+    assert "Reference Chipset" in output
     assert "Galaxy S24 (Family)" in output
     assert "Total: 2 similar devices" in output
 
@@ -189,11 +192,12 @@ def test_chipsets_table(platform: None, capsys: pytest.CaptureFixture[str]) -> N
     assert "qualcomm-snapdragon-8-gen-3" not in output
     # Aliases get their own column.
     assert "sd8gen3, 8gen3" in output
-    # Reference Device is a devices-only column, not shown for chipsets.
-    assert "Reference Device" not in output
     assert "Total: 2 chipsets" in output
-    # Chipsets only reachable through "similar" devices get their own table.
+    # Chipsets only reachable through "similar" devices get their own table,
+    # mapping each to its reference chipset/device.
     assert "Similar Chipsets" in output
+    assert "Reference Chipset" in output
+    assert "Reference Device" in output
     assert "SA8255P" in output
     assert "Total: 1 similar chipset" in output
 

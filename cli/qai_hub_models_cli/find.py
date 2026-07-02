@@ -8,17 +8,22 @@ from collections.abc import Callable, Iterable
 
 from packaging.version import Version
 
+from qai_hub_models_cli.proto.platform_pb2 import ChipsetInfo
 from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
-from qai_hub_models_cli.proto_helpers.platform import get_platform
+from qai_hub_models_cli.proto_helpers.platform import (
+    get_platform,
+    resolve_chipset,
+    resolve_device,
+)
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_str_to_proto,
     runtime_str_to_proto,
 )
 from qai_hub_models_cli.proto_helpers.release_assets import (
-    filter_release_assets,
     get_model_release_assets,
+    match_release_assets,
 )
 from qai_hub_models_cli.proto_helpers.tool_versions import validate_sdk_tools
 from qai_hub_models_cli.versions import (
@@ -36,7 +41,7 @@ def find_in_version(
     chipset: str | None = None,
     device: str | None = None,
     sdk_versions: dict[str, str] | None = None,
-) -> tuple[ModelReleaseAssets | None, str | None]:
+) -> tuple[ModelReleaseAssets | None, str | None, ChipsetInfo | None]:
     """
     Search a single release for assets of *model* matching the filters.
 
@@ -60,12 +65,16 @@ def find_in_version(
 
     Returns
     -------
-    tuple[ModelReleaseAssets | None, str | None]
-        ``(assets, skip_reason)``. On a match, *assets* is the matching assets
-        and *skip_reason* is None. Otherwise *assets* is None and *skip_reason*
-        is a human-readable reason the release was skipped (model/chipset/device
-        not valid for it, or it predates the asset manifest), or None when the
-        release was searched normally but simply had no matching asset.
+    tuple[ModelReleaseAssets | None, str | None, ChipsetInfo | None]
+        ``(assets, skip_reason, similar_chipset)``:
+
+        - *assets*: the matching assets, or None if there was no match.
+        - *skip_reason*: why there was no match (release skipped, or the
+          requested target is "similar"), or None on a match or plain miss.
+        - *similar_chipset*: set only when the requested chipset/device is
+          "similar" (never matches directly) *and* its reference chipset does
+          have matching assets — that reference chipset, so the caller can
+          suggest searching against it. None otherwise.
 
     Raises
     ------
@@ -78,26 +87,26 @@ def find_in_version(
     try:
         assets = get_model_release_assets(model, version)
     except UnsupportedVersionError:
-        return None, "release predates the asset manifest"
+        return None, "release predates the asset manifest", None
     except (FileNotFoundError, KeyError):
         # Model is absent from this release (or has no published assets).
-        return None, f"model {model!r} is not in this release"
+        return None, f"model {model!r} is not in this release", None
     platform = get_platform(version)
 
     # Check the chipset/device against this release explicitly, so an unknown
     # one is reported as a skip reason rather than surfacing as a filter error.
-    if chipset is not None and not any(
-        chipset.lower()
-        in (c.name.lower(), c.marketing_name.lower(), *map(str.lower, c.aliases))
-        for c in platform.chipsets
-    ):
-        return None, f"chipset {chipset!r} is not in this release"
-    if device is not None and not any(
-        device.lower() == d.name.lower() for d in platform.devices
-    ):
-        return None, f"device {device!r} is not in this release"
+    if chipset is not None:
+        try:
+            resolve_chipset(platform, chipset=chipset)
+        except KeyError:
+            return None, f"chipset {chipset!r} is not in this release", None
+    if device is not None:
+        try:
+            resolve_device(platform, device)
+        except KeyError:
+            return None, f"device {device!r} is not in this release", None
 
-    matched = filter_release_assets(
+    result = match_release_assets(
         assets,
         platform,
         runtime=runtime,
@@ -106,9 +115,21 @@ def find_in_version(
         device=device,
         sdk_versions=sdk_versions,
     )
-    if matched.assets:
-        return matched, None
-    return None, None
+    if result.matches.assets:
+        return result.matches, None, None
+    # Similar chipset/device: don't match, but report its reference chipset so
+    # the caller can suggest searching against it directly.
+    if (
+        result.similar_chipset is not None
+        and result.similar_matches is not None
+        and result.similar_matches.assets
+    ):
+        return (
+            None,
+            f"similar to {result.similar_chipset.marketing_name!r}",
+            result.similar_chipset,
+        )
+    return None, None, None
 
 
 def default_search_versions(
@@ -147,7 +168,7 @@ def find_matching_releases(
     max_version: Version | None = None,
     first_only: bool = False,
     progress: Callable[[Version, bool, str | None], None] | None = None,
-) -> list[tuple[Version, ModelReleaseAssets]]:
+) -> tuple[list[tuple[Version, ModelReleaseAssets]], ChipsetInfo | None]:
     """
     Search releases for assets of *model* matching the given fetch filters.
 
@@ -178,15 +199,18 @@ def find_matching_releases(
     first_only
         If True, stop and return after the first (newest) matching release.
     progress
-        Optional callback invoked as ``(version, found, skip_reason)`` after
-        each release is searched. *found* is whether a matching asset was found;
-        *skip_reason* is why the release had no match (see
-        :func:`find_in_version`), or None on a match or plain miss.
+        Optional callback ``(version, found, skip_reason)`` invoked per release.
 
     Returns
     -------
-    list[tuple[Version, ModelReleaseAssets]]
-        ``(version, matching_assets)`` pairs, newest-first.
+    tuple[list[tuple[Version, ModelReleaseAssets]], ChipsetInfo | None]
+        ``(results, similar_chipset)``:
+
+        - *results*: the ``(version, assets)`` pairs, newest-first.
+        - *similar_chipset*: set only when *results* is empty *and* the
+          requested "similar" target's reference chipset has matching assets in
+          some searched release — that reference chipset, so the caller can
+          suggest searching against it. None otherwise.
 
     Raises
     ------
@@ -217,14 +241,18 @@ def find_matching_releases(
         versions = default_search_versions(min_version, max_version)
 
     results: list[tuple[Version, ModelReleaseAssets]] = []
+    similar_chipset: ChipsetInfo | None = None
     for version in versions:
-        matched, skip_reason = find_in_version(
+        matched, skip_reason, similar = find_in_version(
             model, version, runtime, precision, chipset, device, sdk_versions
         )
         if progress is not None:
             progress(version, matched is not None, skip_reason)
+        if similar is not None and similar_chipset is None:
+            similar_chipset = similar
         if matched is not None:
             results.append((version, matched))
             if first_only:
                 break
-    return results
+    # A real match supersedes the substitute suggestion.
+    return results, (None if results else similar_chipset)
