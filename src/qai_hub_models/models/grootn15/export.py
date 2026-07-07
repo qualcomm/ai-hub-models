@@ -620,7 +620,12 @@ def export_model(
     )
 
 
-SUPPORTED_PRECISION_RUNTIMES: dict[Precision, list[TargetRuntime]] = {}
+SUPPORTED_PRECISION_RUNTIMES: dict[Precision, list[TargetRuntime]] = {
+    Precision.float: [
+        TargetRuntime.QNN_CONTEXT_BINARY,
+        TargetRuntime.PRECOMPILED_QNN_ONNX,
+    ],
+}
 
 
 DEFAULT_EXPORT_DEVICE = "Dragonwing IQ-9075 EVK"
