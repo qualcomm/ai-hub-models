@@ -340,6 +340,7 @@ and many more.
 | -- | -- |
 | | |
 | [EasyOCR](https://aihub.qualcomm.com/models/easyocr) | [qai_hub_models.models.easyocr](src/qai_hub_models/models/easyocr/README.md) |
+| [GR00TN1.5](https://aihub.qualcomm.com/models/grootn15) | [qai_hub_models.models.grootn15](src/qai_hub_models/models/grootn15/README.md) |
 | [MiniLM-v2](https://aihub.qualcomm.com/models/minilm_v2) | [qai_hub_models.models.minilm_v2](src/qai_hub_models/models/minilm_v2/README.md) |
 | [Nomic-Embed-Text](https://aihub.qualcomm.com/models/nomic_embed_text) | [qai_hub_models.models.nomic_embed_text](src/qai_hub_models/models/nomic_embed_text/README.md) |
 | [OpenAI-Clip](https://aihub.qualcomm.com/models/openai_clip) | [qai_hub_models.models.openai_clip](src/qai_hub_models/models/openai_clip/README.md) |
