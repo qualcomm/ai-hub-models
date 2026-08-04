@@ -5,9 +5,11 @@
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from qai_hub_models import TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import MODEL_DOMAIN_USE_CASES
 from qai_hub_models.configs.manifest_yaml import (
     MODEL_DOMAIN,
+    MODEL_STATUS,
     MODEL_USE_CASE,
     QAIHMModelManifest,
 )
@@ -89,6 +91,9 @@ def _validate_model(model_id: str) -> None:
         f"{model_id} config ID does not match the model's folder name"
     )
     manifest.check_geniex_runtime_technical_details()
+    if manifest.status == MODEL_STATUS.PUBLISHED:
+        can_publish, reason = manifest.can_promote_to_published()
+        assert can_publish, reason
 
 
 def test_manifest_yaml() -> None:
@@ -105,4 +110,27 @@ def test_manifest_yaml() -> None:
                 errors.append(f"{model_id}: {err!s}")
     assert not errors, f"{len(errors)} model(s) failed validation:\n" + "\n".join(
         errors
+    )
+
+
+def test_export_paths_include_aot_on_jit() -> None:
+    """
+    JIT models (`requires_aot_prepare=False`) can still be exported to AOT
+    runtimes via the JIT-compile + link path. `get_supported_paths_for_export`
+    must include those AOT runtimes even though
+    `get_supported_paths_for_testing` filters them out.
+    """
+    manifest = QAIHMModelManifest.from_model("vit")
+    assert not manifest.requires_aot_prepare
+
+    testing_paths = manifest.get_supported_paths_for_testing()
+    export_paths = manifest.get_supported_paths_for_export()
+
+    for precision, runtimes in testing_paths.items():
+        assert precision in export_paths
+        assert set(runtimes).issubset(set(export_paths[precision]))
+
+    assert any(TargetRuntime.QNN_CONTEXT_BINARY in rts for rts in export_paths.values())
+    assert not any(
+        TargetRuntime.QNN_CONTEXT_BINARY in rts for rts in testing_paths.values()
     )

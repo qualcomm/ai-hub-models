@@ -9,7 +9,13 @@ from __future__ import annotations
 import argparse
 from unittest.mock import Mock, patch
 
-from qai_hub_models.cli.dispatch import run_model_script
+from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.cli.dispatch import (
+    build_evaluate_parser_for,
+    build_export_parser_for,
+    run_model_script,
+)
+from qai_hub_models.utils.base_model import BaseModel
 
 
 def test_dispatch_export_builds_parser_and_runs() -> None:
@@ -125,3 +131,57 @@ def test_dispatch_evaluate_prompts_for_unpublished_model() -> None:
 
         mock_check.assert_called_once()
         mock_select.assert_not_called()
+
+
+def test_export_parser_uses_export_paths() -> None:
+    """
+    Bug fix: JIT models were rejecting `--target-runtime qnn_context_binary`
+    because the parser was fed `get_supported_paths_for_testing()`, which
+    drops AOT runtimes for JIT models. The parser must be fed
+    `get_supported_paths_for_export()`.
+    """
+    manifest = Mock()
+    export_paths = {Precision.w8a8: [TargetRuntime.QNN_CONTEXT_BINARY]}
+    testing_paths = {Precision.w8a8: [TargetRuntime.QNN_DLC]}
+    manifest.get_supported_paths_for_export.return_value = export_paths
+    manifest.get_supported_paths_for_testing.return_value = testing_paths
+    manifest.default_device = None
+    manifest.separate_quantize_script = False
+
+    resolved = Mock(model_cls=Mock(), manifest=manifest)
+
+    with (
+        patch("qai_hub_models.cli.dispatch.select_pipeline"),
+        patch("qai_hub_models.cli.dispatch.export_parser") as mock_export_parser,
+    ):
+        build_export_parser_for(resolved)
+
+        kwargs = mock_export_parser.call_args.kwargs
+        assert kwargs["supported_precision_runtimes"] is export_paths
+        assert kwargs["supported_precision_runtimes"] is not testing_paths
+
+
+def test_evaluate_parser_uses_export_paths() -> None:
+    """
+    Same bug applies to evaluate: JIT models must accept AOT runtimes via
+    the JIT-compile + link path. Parser must be fed
+    `get_supported_paths_for_export()`.
+    """
+    manifest = Mock()
+    export_paths = {Precision.w8a8: [TargetRuntime.QNN_CONTEXT_BINARY]}
+    testing_paths = {Precision.w8a8: [TargetRuntime.QNN_DLC]}
+    manifest.get_supported_paths_for_export.return_value = export_paths
+    manifest.get_supported_paths_for_testing.return_value = testing_paths
+    manifest.default_device = None
+    manifest.num_calibration_samples = None
+
+    model_cls = Mock(spec=BaseModel)
+    model_cls.get_eval_dataset_classes.return_value = []
+    resolved = Mock(model_cls=model_cls, manifest=manifest, supports_quant_cpu=False)
+
+    with patch("qai_hub_models.cli.dispatch.evaluate_parser") as mock_evaluate_parser:
+        build_evaluate_parser_for(resolved)
+
+        kwargs = mock_evaluate_parser.call_args.kwargs
+        assert kwargs["supported_precision_runtimes"] is export_paths
+        assert kwargs["supported_precision_runtimes"] is not testing_paths

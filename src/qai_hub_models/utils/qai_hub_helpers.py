@@ -360,20 +360,17 @@ def raise_if_fp_is_unsupported(device: hub.Device, precision: Precision) -> None
     Raise ValueError if the device does not support FP16 but the precision
     requires floating-point activations on the NPU.
 
-    Checks the hub device attributes for htp-supports-fp16:true.
+    Parameters
+    ----------
+    device
+        A fully-resolved ``hub.Device`` (as returned by
+        :func:`qai_hub_models.utils.device.resolve_hub_device`), so
+        ``device.attributes`` is guaranteed to be Hub's full attribute list.
+    precision
+        The precision requested for export.
     """
     if not precision.has_float_activations:
         return
-
-    # Check hub device attributes
-    if not device.attributes:
-        devices = hub.get_devices(device.name, device.os)
-        if len(devices) == 0:
-            raise ValueError(
-                f"Device {device.name} does not exist. Use `qai-hub list-devices` to get the valid device list."
-            )
-        device = devices[0]
-
     if "htp-supports-fp16:true" not in device.attributes:
         raise ValueError(
             f"The selected precision ({precision}) requires FP16 support, "

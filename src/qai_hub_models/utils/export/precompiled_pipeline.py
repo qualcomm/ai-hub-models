@@ -245,10 +245,7 @@ def export_model(
     output_path = Path(output_dir or Path.cwd() / "export_assets")
     is_collection = issubclass(model_cls, PrecompiledCollectionModel)
 
-    hub_device = hub.get_devices(
-        name=device.name, attributes=device.attributes, os=device.os
-    )[-1]
-    _, chipset = get_device_and_chipset_name(hub_device)
+    _, chipset = get_device_and_chipset_name(device)
     download_dir = output_path / ASSET_CONFIG.get_release_asset_name(
         model_id, target_runtime, precision, chipset
     )

@@ -37,6 +37,7 @@ from qai_hub_models.utils.base_model import (
     PrecompiledWorkbenchModel,
     WorkbenchModel,
 )
+from qai_hub_models.utils.device import resolve_hub_device
 from qai_hub_models.utils.envvars import DevModeEnvvar
 from qai_hub_models.utils.evaluate.helpers import EvalMode
 from qai_hub_models.utils.inference import OnDeviceModel, compile_model_from_args
@@ -182,16 +183,14 @@ class QAIHMArgumentParser(argparse.ArgumentParser):
         device: str | None = None, chipset: str | None = None, device_os: str = ""
     ) -> hub.Device | None:
         """
-        Get a hub.Device given a device name and/or chipset name.
-        If neither is specified, the function returns None.
+        Get a fully-resolved hub.Device given a device name and/or chipset.
+        If neither is specified, returns None.
         """
-        if chipset or device:
-            return hub.Device(
-                name=device or "",
-                attributes=f"chipset:{chipset}" if chipset else [],
-                os=device_os,
-            )
-        return None
+        if not device and not chipset:
+            return None
+        return resolve_hub_device(
+            name=device or "", chipset=chipset or "", os=device_os
+        )
 
     def parse_args(  # type: ignore[override]
         self, args: list[str] | None = None, namespace: argparse.Namespace | None = None

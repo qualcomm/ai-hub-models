@@ -145,10 +145,7 @@ def export_model(
             f"Precision {precision!s} is not supported by {model_name}"
         )
 
-    hub_device = hub.get_devices(
-        name=device.name, attributes=device.attributes, os=device.os
-    )[-1]
-    _, chipset = get_device_and_chipset_name(hub_device)
+    _, chipset = get_device_and_chipset_name(device)
 
     # 1. Instantiate the PyTorch model and upload its TorchScript form.
     model = model_cls.from_pretrained(
@@ -210,29 +207,41 @@ def export_model(
         calibration_data=_aimet_calibration_data(model, manifest),
     )
 
-    # 4. Link (AOT runtimes only).
-    compiled_model = compile_job.get_target_model()
-    assert compiled_model is not None, f"Compile job failed: {compile_job}"
-    link_job = (
-        run_link(compiled_model, device, model_name, model, target_runtime)
-        if target_runtime.uses_hub_link
-        else None
+    # 4. Link (AOT runtimes only). Only wait on the compile job if a downstream
+    # step actually needs the compiled artifact.
+    needs_target_model = (
+        target_runtime.uses_hub_link
+        or not skip_profiling
+        or not skip_inferencing
+        or not skip_downloading
     )
-    target_model = link_job.get_target_model() if link_job else compiled_model
-    assert target_model is not None, "Link job did not produce a target model"
+    link_job: hub.client.LinkJob | None = None
+    target_model: hub.Model | None = None
+    if needs_target_model:
+        compiled_model = compile_job.get_target_model()
+        assert compiled_model is not None, f"Compile job failed: {compile_job}"
+        if target_runtime.uses_hub_link:
+            link_job = run_link(
+                compiled_model, device, model_name, model, target_runtime
+            )
+            target_model = link_job.get_target_model()
+        else:
+            target_model = compiled_model
+        assert target_model is not None, "Link job did not produce a target model"
 
     profile_opts = model.get_hub_profile_options(target_runtime, profile_options)
 
     # 5. Profile.
-    profile_job = (
-        run_profile(model_name, device, profile_opts, target_model)
-        if not skip_profiling
-        else None
-    )
+    profile_job: hub.client.ProfileJob | None = None
+    if not skip_profiling:
+        assert target_model is not None
+        profile_job = run_profile(model_name, device, profile_opts, target_model)
 
     # 6. Inference.
-    inference_job = (
-        run_inference(
+    inference_job: hub.client.InferenceJob | None = None
+    if not skip_inferencing:
+        assert target_model is not None
+        inference_job = run_inference(
             model.sample_inputs(
                 input_spec=input_spec,
                 use_channel_last_format=target_runtime.channel_last_native_execution,
@@ -242,9 +251,6 @@ def export_model(
             profile_opts,
             target_model,
         )
-        if not skip_inferencing
-        else None
-    )
 
     # 7. Tool versions (needed for both download metadata and the summary).
     if not skip_summary or not skip_downloading:
@@ -259,6 +265,7 @@ def export_model(
     # 8. Download.
     download_path: Path | None = None
     if not skip_downloading and tool_versions is not None:
+        assert target_model is not None
         download_path = download_model_bundle(
             output_dir=output_path
             / ASSET_CONFIG.get_release_asset_name(
@@ -272,7 +279,7 @@ def export_model(
             tool_versions=tool_versions,
             target_model=target_model,
             zip_assets=zip_assets,
-            hub_device=hub_device,
+            hub_device=device,
         )
 
     if not skip_summary:

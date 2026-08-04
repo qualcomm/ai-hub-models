@@ -80,6 +80,43 @@ def _get_cached_device(device_name: str) -> hub.Device | None:
     return device
 
 
+def resolve_hub_device(name: str = "", chipset: str = "", os: str = "") -> hub.Device:
+    """Resolve a CLI ``--device`` / ``--chipset`` to a fully-populated hub.Device.
+
+    Callers must pass at least one of ``name`` or ``chipset``. The returned
+    ``hub.Device`` is guaranteed to carry Hub's full attribute list, so
+    downstream consumers can rely on ``device.attributes`` without worrying
+    about stubs.
+
+    When ``os`` is set, the caches are bypassed on both read and write so that
+    OS-scoped requests always go to Hub. That path is rare, and skipping the
+    cache is simpler than keying it on ``(name, os)`` / ``(chipset, os)``.
+    """
+    if not name and not chipset:
+        raise ValueError(
+            "resolve_hub_device requires either a device name or a chipset."
+        )
+    if not os:
+        if name and (cached := _get_cached_device(name)) is not None:
+            return cached
+        if chipset and not name:
+            for rd in RegisteredDevice._registry.values():
+                if chipset == rd.chipset or chipset in rd.chipset_aliases:
+                    return rd.hub_device
+    devices = hub.get_devices(
+        name=name, os=os, attributes=[f"chipset:{chipset}"] if chipset else []
+    )
+    if not devices:
+        raise ValueError(
+            f"No hub device found for name={name!r} chipset={chipset!r}. "
+            "Use `qai-hub list-devices` to see valid devices."
+        )
+    device = devices[0]
+    if not os:
+        _DEVICE_CACHE[device.name] = device
+    return device
+
+
 # -----------------------------------------------------------------------------
 # HubDeviceAttributes mixin
 # -----------------------------------------------------------------------------

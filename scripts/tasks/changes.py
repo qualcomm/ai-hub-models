@@ -22,15 +22,13 @@ from .github import on_github
 from .plan import Task
 from .util import new_cd, run, run_and_get_output
 
-REPRESENTATIVE_EXPORT_MODELS = [
-    "sinet",
-    "whisper_tiny",
-]
+SINET_MODEL = "sinet"
+WHISPER_TINY_MODEL = "whisper_tiny"
+REPRESENTATIVE_EXPORT_MODELS = [SINET_MODEL, WHISPER_TINY_MODEL]
 CODEGEN_FALLBACK_LLM_MODEL = "llama_v3_2_1b_instruct"
-REPRESENTATIVE_EXPORT_FILES = [
-    f"src/qai_hub_models/models/{model}/export.py"
-    for model in REPRESENTATIVE_EXPORT_MODELS
-]
+SINET_EXPORT_FILE = f"src/qai_hub_models/models/{SINET_MODEL}/export.py"
+WHISPER_TINY_EXPORT_FILE = f"src/qai_hub_models/models/{WHISPER_TINY_MODEL}/export.py"
+REPRESENTATIVE_EXPORT_FILES = [SINET_EXPORT_FILE, WHISPER_TINY_EXPORT_FILE]
 
 # stable_diffusion_v1_5 is an AIMET collection model (PretrainedCollectionModel
 # with quantized components). Including it in representative sets for base_model.py
@@ -81,6 +79,9 @@ QWEN_VL_REPRESENTATIVE_EXPORT_FILE = (
     "src/qai_hub_models/models/qwen3_vl_4b_instruct/export.py"
 )
 PI05_REPRESENTATIVE_EXPORT_FILE = "src/qai_hub_models/models/pi05/export.py"
+PRECOMPILED_REPRESENTATIVE_EXPORT_FILE = (
+    "src/qai_hub_models/models/qwen2_7b_instruct/export.py"
+)
 _SHARED_DIR = Path(REPO_ROOT, "src/qai_hub_models/models/_shared")
 _LLAMA_REP_FILES = sorted(
     p.relative_to(REPO_ROOT).as_posix()
@@ -127,6 +128,21 @@ MANUAL_EDGES = {
     "src/qai_hub_models/utils/quantization_aimet_onnx.py": [
         REPRESENTATIVE_AIMET_MODEL_FILE,
     ],
+    "src/qai_hub_models/utils/export/pipeline.py": [SINET_EXPORT_FILE],
+    "src/qai_hub_models/utils/export/collection_pipeline.py": [
+        WHISPER_TINY_EXPORT_FILE
+    ],
+    "src/qai_hub_models/utils/export/multi_graph_pipeline.py": [
+        LLAMA_REPRESENTATIVE_EXPORT_FILE
+    ],
+    "src/qai_hub_models/utils/export/multi_graph_collection_pipeline.py": [
+        LLAMA_REPRESENTATIVE_EXPORT_FILE
+    ],
+    "src/qai_hub_models/utils/export/precompiled_pipeline.py": [
+        PRECOMPILED_REPRESENTATIVE_EXPORT_FILE
+    ],
+    "src/qai_hub_models/utils/export/dispatch.py": REPRESENTATIVE_EXPORT_FILES,
+    "src/qai_hub_models/utils/device.py": REPRESENTATIVE_EXPORT_FILES,
     **{f: [LLAMA_REPRESENTATIVE_EXPORT_FILE] for f in _LLAMA_REP_FILES},
     **{f: [QWEN_REPRESENTATIVE_EXPORT_FILE] for f in _QWEN_REP_FILES},
     **{f: [QWEN_VL_REPRESENTATIVE_EXPORT_FILE] for f in _QWEN_VL_REP_FILES},

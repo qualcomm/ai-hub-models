@@ -192,16 +192,17 @@ def llama_parser() -> argparse.ArgumentParser:
 def test_device_parsing(llama_parser: argparse.ArgumentParser) -> None:
     device = llama_parser.parse_args(["--device", "Samsung Galaxy S25"]).device
     assert device.name == "Samsung Galaxy S25"
-    assert device.attributes == []
+    assert any(a.startswith("chipset:") for a in device.attributes)
+    assert "htp-supports-fp16:true" in device.attributes
 
     device = llama_parser.parse_args(["--chipset", "qualcomm-snapdragon-8gen3"]).device
-    assert device.name == ""
-    assert device.attributes == "chipset:qualcomm-snapdragon-8gen3"
+    assert "chipset:qualcomm-snapdragon-8gen3" in device.attributes
 
     device = llama_parser.parse_args(
         ["--chipset", "qualcomm-snapdragon-8gen3", "--device-os", "14"]
     ).device
-    assert device.os == "14"
+    assert device.os.startswith("14")
+    assert "chipset:qualcomm-snapdragon-8gen3" in device.attributes
 
     device = llama_parser.parse_args([]).device
     assert device.name == "Snapdragon 8 Elite QRD"
@@ -497,7 +498,7 @@ def test_compile_model_from_args() -> None:
         compile_model_from_args(RESNET_MODEL_ID, args, {})
         kwargs = resnet_export_mock.call_args_list[0][1]
         assert isinstance(kwargs["device"], hub.Device)
-        assert kwargs["device"].attributes == "chipset:qualcomm-snapdragon-8gen3"
+        assert "chipset:qualcomm-snapdragon-8gen3" in kwargs["device"].attributes
         assert kwargs["compile_options"] == "'--qairt_version=2.39'"
         assert kwargs["quantize_options"] == "'--range_scheme min_max'"
 

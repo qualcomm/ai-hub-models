@@ -99,8 +99,8 @@ def _save_url_cache(cache: dict[str, float]) -> None:
 
 
 def _make_url_check_session() -> requests.Session:
-    """Create a Session that retries on 502 (transient proxy errors) and connection failures."""
-    retry = Retry(total=4, backoff_factor=1, status_forcelist=[502])
+    """Create a Session that retries on transient gateway/timeout errors and connection failures."""
+    retry = Retry(total=4, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session = requests.Session()
     session.mount("https://", adapter)
@@ -926,6 +926,35 @@ class QAIHMModelManifest(BaseQAIHMConfig):
                 out[precision] = runtimes
         return out
 
+    def get_supported_paths_for_export(
+        self,
+    ) -> dict[Precision, list[TargetRuntime]]:
+        """
+        Returns {precision: [runtime]} pairs a user can request via
+        ``qai-hub-models export``.
+
+        Unlike :func:`get_supported_paths_for_testing`, this does not filter
+        out AOT runtimes on JIT models — those are still reachable via the
+        JIT-compile + link path — and it does not filter out paths with known
+        scorecard failures (users may have local fixes or accept the risk).
+        """
+        out: dict[Precision, list[TargetRuntime]] = {}
+        for precision in self.supported_precisions:
+            runtimes = [
+                r
+                for r in TargetRuntime
+                if self.is_supported(
+                    precision,
+                    r,
+                    consider_scorecard_failures=False,
+                    consider_user_defined_failures=False,
+                    consider_timeouts=False,
+                )
+            ]
+            if runtimes:
+                out[precision] = runtimes
+        return out
+
     # =============================================================================
     # Combined validators from both schemas
     # =============================================================================
@@ -1017,12 +1046,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
                 raise ValueError(
                     "Arxiv links should be `abs` links, not link directly to pdfs."
                 )
-
-            # Status
-            if self.status == MODEL_STATUS.PUBLISHED:
-                can_be_published, reason = self.can_promote_to_published()
-                if not can_be_published:
-                    raise ValueError(f"Model cannot be published: {reason}")
 
             # License validation
             if not self.license and self.license_type != MODEL_LICENSE.COMMERCIAL:

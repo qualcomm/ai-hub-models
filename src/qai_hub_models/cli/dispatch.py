@@ -79,7 +79,7 @@ def build_export_parser_for(resolved: ResolvedModel) -> argparse.ArgumentParser:
     return export_parser(
         model_cls=resolved.model_cls,
         export_fn=select_pipeline(resolved),
-        supported_precision_runtimes=resolved.manifest.get_supported_paths_for_testing(),
+        supported_precision_runtimes=resolved.manifest.get_supported_paths_for_export(),
         default_export_device=resolved.manifest.default_device,
         omit_precision=resolved.manifest.separate_quantize_script,
     )
@@ -140,7 +140,7 @@ def build_evaluate_parser_for(resolved: ResolvedModel) -> argparse.ArgumentParse
     return evaluate_parser(
         model_cls=model_cls,
         supported_dataset_classes=model_cls.get_eval_dataset_classes(),
-        supported_precision_runtimes=resolved.manifest.get_supported_paths_for_testing(),
+        supported_precision_runtimes=resolved.manifest.get_supported_paths_for_export(),
         uses_quantize_job=resolved.supports_quant_cpu,
         num_calibration_samples=resolved.manifest.num_calibration_samples
         if resolved.manifest.num_calibration_samples

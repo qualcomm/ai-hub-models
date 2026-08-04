@@ -132,10 +132,7 @@ def export_model(
     )
     output_path = Path(output_dir or Path.cwd() / "export_assets")
 
-    hub_device = hub.get_devices(
-        name=device.name, attributes=device.attributes, os=device.os
-    )[-1]
-    _, chipset = get_device_and_chipset_name(hub_device)
+    _, chipset = get_device_and_chipset_name(device)
 
     # 1. Instantiate the model and upload one source per (component, graph).
     model = model_cls.from_pretrained(
@@ -228,7 +225,7 @@ def export_model(
             tool_versions=tool_versions,
             target_models=target_models,
             zip_assets=zip_assets,
-            hub_device=hub_device,
+            hub_device=device,
         )
 
     if not skip_summary:
