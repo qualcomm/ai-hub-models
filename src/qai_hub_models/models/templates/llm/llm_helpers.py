@@ -273,7 +273,7 @@ def create_genie_config(
                 "rope-theta": int(get_rope_theta(llm_config)),
                 "rope-scaling": {
                     "rope-type": rope_scaling["rope_type"],
-                    "factor": 8.0,
+                    "factor": rope_scaling.get("factor", 8.0),
                     "low-freq-factor": rope_scaling["low_freq_factor"],
                     "high-freq-factor": rope_scaling["high_freq_factor"],
                     "original-max-position-embeddings": rope_scaling[
