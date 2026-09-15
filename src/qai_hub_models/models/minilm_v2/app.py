@@ -63,3 +63,7 @@ class MiniLMApp:
                 outputs.append(self.model(input_ids, attention_mask))
 
         return torch.cat(outputs, dim=0)
+
+    def predict(self, texts: str | list[str]) -> torch.Tensor:
+        """Inference entry point; equivalent to :meth:`encode`."""
+        return self.encode(texts)
