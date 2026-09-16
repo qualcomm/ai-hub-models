@@ -129,7 +129,9 @@ class CheckpointType(Enum):
             return CheckpointType.HF_LOCAL
 
         # Aimet ONNX export (ONNX + encodings)
-        if cp_path.glob("model*.onnx") and (cp_path / "model.encodings").is_file():
+        if (cp_path / "model.encodings").is_file() and any(
+            path.is_file() for path in cp_path.glob("model*.onnx")
+        ):
             return CheckpointType.AIMET_ONNX_EXPORT
 
         # Single PyTorch state-dict
