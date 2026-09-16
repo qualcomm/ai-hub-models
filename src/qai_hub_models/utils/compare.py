@@ -137,7 +137,7 @@ def compare_psnr(
     eps2: float = 1e-10,
 ) -> None:
     """Raises an error if the PSNR between two tensors is below a threshold."""
-    psnr = compute_psnr(output_a, output_b, eps, eps2)
+    psnr = compute_psnr(output_a, output_b, eps=eps, eps2=eps2)
     assert psnr > psnr_threshold
 
 

@@ -4,13 +4,42 @@
 # ---------------------------------------------------------------------
 
 import numpy as np
+import pytest
+import torch
 
 from qai_hub_models.utils.compare import (
+    compare_psnr,
     compute_mae,
     compute_max_abs_diff,
     compute_mse,
     compute_top_k_accuracy,
 )
+
+
+@pytest.mark.parametrize("as_tensor", [False, True])
+def test_compare_psnr(as_tensor: bool) -> None:
+    a = np.array([0.999], dtype=np.float32)
+    b = np.array([1.0], dtype=np.float32)
+    output_a = torch.from_numpy(a) if as_tensor else a
+    output_b = torch.from_numpy(b) if as_tensor else b
+
+    # Automatic data-range estimation gives approximately 60 dB.
+    compare_psnr(output_a, output_b, psnr_threshold=30)
+    with pytest.raises(AssertionError):
+        compare_psnr(output_a, output_b, psnr_threshold=70)
+
+
+@pytest.mark.parametrize("as_tensor", [False, True])
+def test_compare_psnr_custom_epsilons(as_tensor: bool) -> None:
+    a = np.array([0.9], dtype=np.float32)
+    b = np.array([1.0], dtype=np.float32)
+    output_a = torch.from_numpy(a) if as_tensor else a
+    output_b = torch.from_numpy(b) if as_tensor else b
+
+    # PSNR = 20 * log10((1 + 0.5) / (0.1 + 0.1)), approximately 17.5 dB.
+    compare_psnr(output_a, output_b, psnr_threshold=17, eps=0.5, eps2=0.1)
+    with pytest.raises(AssertionError):
+        compare_psnr(output_a, output_b, psnr_threshold=18, eps=0.5, eps2=0.1)
 
 
 def test_compute_mse() -> None:
