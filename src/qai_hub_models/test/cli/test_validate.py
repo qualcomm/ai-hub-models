@@ -48,6 +48,7 @@ from qai_hub_models.cli.validate import (
     _extract_pip_command_pkgs,
     _extract_shape,
     _iter_requirements,
+    _recipe_opts_out_of_base_requirements,
     _render_json,
     _render_text,
     _run_all_checks,
@@ -316,6 +317,35 @@ class TestRequirementsTxt:
         _check_requirements_txt(tmp_path, report)
         statuses = {r.name: r.status for r in report.rows}
         assert statuses["requirements.txt vs. base package"] is Status.PASS
+
+    def test_conflict_skipped_when_opted_out(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / "requirements.txt").write_text("torch==2.99\n")
+        monkeypatch.setattr(
+            validate_mod,
+            "_load_base_package_pins",
+            lambda: {"torch": SpecifierSet(">=2.4,<=2.11.0")},
+        )
+        report = Report()
+        _check_requirements_txt(tmp_path, report, allow_base_conflicts=True)
+        row = next(
+            r for r in report.rows if r.name == "requirements.txt vs. base package"
+        )
+        assert row.status is Status.SKIP
+
+
+class TestRecipeOptsOut:
+    def test_none_manifest_does_not_opt_out(self) -> None:
+        assert _recipe_opts_out_of_base_requirements(None) is False
+
+    def test_unknown_model_does_not_opt_out(self) -> None:
+        manifest = _make_manifest(id="__model_that_does_not_exist__")
+        assert _recipe_opts_out_of_base_requirements(manifest) is False
+
+    def test_in_tree_opt_out_is_detected(self) -> None:
+        manifest = _make_manifest(id="gemma_4_e4b_it")
+        assert _recipe_opts_out_of_base_requirements(manifest) is True
 
 
 class TestRequirementsHelpers:
