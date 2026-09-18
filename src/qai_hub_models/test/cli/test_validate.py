@@ -38,6 +38,7 @@ from qai_hub_models.cli.validate import (
     _check_multi_graph_sample_inputs,
     _check_name_style,
     _check_no_self_referential_imports,
+    _check_pip_commands,
     _check_related_not_self,
     _check_requirements_txt,
     _check_status_not_unset,
@@ -46,6 +47,7 @@ from qai_hub_models.cli.validate import (
     _check_website_fields_set,
     _collect_manifest_urls,
     _extract_pip_command_pkgs,
+    _extract_pip_command_reqs,
     _extract_shape,
     _iter_requirements,
     _render_json,
@@ -337,6 +339,116 @@ class TestRequirementsHelpers:
     def test_extract_pip_command_pkgs_skips_editable_and_vcs(self) -> None:
         assert _extract_pip_command_pkgs("pip install -e ./src") == []
         assert _extract_pip_command_pkgs("pip install git+https://x/y.git") == []
+
+    def test_extract_pip_command_reqs(self) -> None:
+        reqs = _extract_pip_command_reqs(
+            "pip install foo==1.0 bar>=2 -e ./src --extra-index-url https://pypi.org git+https://x/y.git"
+        )
+        assert [r.name for r in reqs] == ["foo", "bar"]
+        assert [str(r.specifier) for r in reqs] == ["==1.0", ">=2"]
+
+
+class TestCheckPipCommands:
+    def test_no_commands_is_noop(self) -> None:
+        manifest = _make_manifest(
+            pre_pip_install_commands=[], post_pip_install_commands=[]
+        )
+        report = Report()
+        _check_pip_commands(manifest, report)
+        assert not report.rows
+
+    def test_prefix_package_names_do_not_conflict_regardless_of_order(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            validate_mod,
+            "_load_base_package_pins",
+            lambda: {
+                "torch": SpecifierSet(">=2.4,<=2.11.0"),
+                "torchvision": SpecifierSet(">=0.19,<=0.26.0"),
+                "onnx": SpecifierSet("==1.18.0"),
+                "onnxruntime": SpecifierSet("==1.22.1"),
+            },
+        )
+        # Order 1: longer prefix first (torchvision before torch, onnxruntime before onnx)
+        manifest1 = _make_manifest(
+            pre_pip_install_commands=[
+                SimpleNamespace(command="pip install torchvision==0.24.0 torch==2.9.0"),
+                SimpleNamespace(command="pip install onnxruntime==1.22.1 onnx==1.18.0"),
+            ],
+            post_pip_install_commands=[],
+        )
+        report1 = Report()
+        _check_pip_commands(manifest1, report1)
+        row1 = next(
+            r
+            for r in report1.rows
+            if r.name == "manifest pip commands vs. base package"
+        )
+        assert row1.status is Status.PASS
+
+        # Order 2: shorter prefix first (torch before torchvision, onnx before onnxruntime)
+        manifest2 = _make_manifest(
+            pre_pip_install_commands=[
+                SimpleNamespace(command="pip install torch==2.9.0 torchvision==0.24.0"),
+                SimpleNamespace(command="pip install onnx==1.18.0 onnxruntime==1.22.1"),
+            ],
+            post_pip_install_commands=[],
+        )
+        report2 = Report()
+        _check_pip_commands(manifest2, report2)
+        row2 = next(
+            r
+            for r in report2.rows
+            if r.name == "manifest pip commands vs. base package"
+        )
+        assert row2.status is Status.PASS
+
+    def test_detects_real_conflict(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            validate_mod,
+            "_load_base_package_pins",
+            lambda: {
+                "torch": SpecifierSet(">=2.4,<=2.11.0"),
+            },
+        )
+        manifest = _make_manifest(
+            pre_pip_install_commands=[
+                SimpleNamespace(command="pip install torch==1.12.0"),
+            ],
+            post_pip_install_commands=[],
+        )
+        report = Report()
+        _check_pip_commands(manifest, report)
+        row = next(
+            r for r in report.rows if r.name == "manifest pip commands vs. base package"
+        )
+        assert row.status is Status.FAIL
+        assert "torch" in row.detail
+        assert "1.12.0" in row.detail
+
+    def test_unpinned_or_unlisted_package_passes(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            validate_mod,
+            "_load_base_package_pins",
+            lambda: {
+                "torch": SpecifierSet(">=2.4,<=2.11.0"),
+            },
+        )
+        manifest = _make_manifest(
+            pre_pip_install_commands=[
+                SimpleNamespace(command="pip install other-package==1.0.0 torch"),
+            ],
+            post_pip_install_commands=[],
+        )
+        report = Report()
+        _check_pip_commands(manifest, report)
+        row = next(
+            r for r in report.rows if r.name == "manifest pip commands vs. base package"
+        )
+        assert row.status is Status.PASS
 
 
 class TestExtractShape:
