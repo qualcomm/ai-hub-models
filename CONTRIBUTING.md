@@ -135,7 +135,9 @@ When your model depends on external code (e.g., from a GitHub repo or third-part
 
 2. **Monkeypatching** - If you need to modify external code behavior, use monkeypatching rather than copying source (see [Appendix: Monkeypatching](#appendix-monkeypatching)).
 
-3. **SourceAsRoot (Last Resort)** - Only use `SourceAsRoot` when the above approaches are not possible (e.g., the code is not installable, requires heavy modifications, or has incompatible dependencies). This utility clones the external repo to the user's machine and sets up the Python environment as if running from that repo's source root. It also allows you to apply patches to the cloned source. Should be avoided when possible.
+3. **External repos** - For upstream code that is not installable from PyPI, declare it under `external_repos:` in `manifest.yaml`. The repo is shallow-cloned (pinned to a commit) into `<model_folder>/external_repos/<repo_name>/` at import time, and an optional patch file can be applied. See `.claude/docs/onboarding/external-repos.md` for the schema and import conventions.
+
+`SourceAsRoot` is legacy — do not use it for new recipes. It clones the repo and mutates the Python environment to make the clone importable, which is fragile and hides what changed. Existing recipes that use it may continue to do so.
 
 For pretrained weights:
 
