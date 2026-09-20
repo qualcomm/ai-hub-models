@@ -36,6 +36,7 @@ from qai_hub_models.cli.install import InstallAborted, install_model
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, QAIHM_WEB_ASSET
 from qai_hub_models.utils.base_collection_model import CollectionModel
 from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
@@ -491,7 +492,30 @@ def _iter_requirements(text: str) -> list[tuple[int, str]]:
     return out
 
 
-def _check_requirements_txt(source_dir: Path, report: Report) -> None:
+def _recipe_opts_out_of_base_requirements(
+    manifest: QAIHMModelManifest | None,
+) -> bool:
+    """Whether the recipe opts out of the base package's version pins.
+
+    Set via ``global_requirements_incompatible: true`` in the model's
+    ``scorecard-config.yaml``. Standalone recipes (no in-tree model folder)
+    cannot set it.
+    """
+    if manifest is None or manifest.id is None:
+        return False
+    try:
+        return QAIHMModelScorecardConfig.from_model(
+            manifest.id
+        ).global_requirements_incompatible
+    except ValueError:
+        return False
+
+
+def _check_requirements_txt(
+    source_dir: Path,
+    report: Report,
+    allow_base_conflicts: bool = False,
+) -> None:
     req_path = source_dir / "requirements.txt"
     if not req_path.exists():
         return
@@ -544,13 +568,22 @@ def _check_requirements_txt(source_dir: Path, report: Report) -> None:
             Result("requirements.txt entries pinned", "Requirements", Status.PASS)
         )
 
-    if conflicts:
+    if conflicts and not allow_base_conflicts:
         report.add(
             Result(
                 "requirements.txt vs. base package",
                 "Requirements",
                 Status.FAIL,
                 "; ".join(conflicts),
+            )
+        )
+    elif conflicts:
+        report.add(
+            Result(
+                "requirements.txt vs. base package",
+                "Requirements",
+                Status.SKIP,
+                "recipe opts out via global_requirements_incompatible: true",
             )
         )
     else:
@@ -607,7 +640,11 @@ def _extract_pip_command_pkgs(cmd: str) -> list[str]:
     return names
 
 
-def _check_pip_commands(manifest: QAIHMModelManifest, report: Report) -> None:
+def _check_pip_commands(
+    manifest: QAIHMModelManifest,
+    report: Report,
+    allow_base_conflicts: bool = False,
+) -> None:
     commands = list(manifest.pre_pip_install_commands) + list(
         manifest.post_pip_install_commands
     )
@@ -633,13 +670,22 @@ def _check_pip_commands(manifest: QAIHMModelManifest, report: Report) -> None:
                     )
             except (InvalidRequirement, StopIteration):
                 continue
-    if conflicts:
+    if conflicts and not allow_base_conflicts:
         report.add(
             Result(
                 "manifest pip commands vs. base package",
                 "Requirements",
                 Status.FAIL,
                 "; ".join(conflicts),
+            )
+        )
+    elif conflicts:
+        report.add(
+            Result(
+                "manifest pip commands vs. base package",
+                "Requirements",
+                Status.SKIP,
+                "recipe opts out via global_requirements_incompatible: true",
             )
         )
     else:
@@ -1628,9 +1674,10 @@ def _run_all_checks(
     _check_no_self_referential_imports(source_dir, report)
     manifest = _check_manifest(source_dir, report)
     if manifest is not None:
+        allow_base_conflicts = _recipe_opts_out_of_base_requirements(manifest)
         _check_external_repos_init(source_dir, manifest, report)
-        _check_requirements_txt(source_dir, report)
-        _check_pip_commands(manifest, report)
+        _check_requirements_txt(source_dir, report, allow_base_conflicts)
+        _check_pip_commands(manifest, report, allow_base_conflicts)
 
     if not install_ok:
         _skip_downstream_on_install_failure(report)
