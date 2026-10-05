@@ -26,6 +26,8 @@ from qai_hub_models.utils.input_spec import (
 MODEL_ID = __name__.split(".")[-2]
 DEFAULT_WEIGHTS = "apple/mobilevit-small"
 MODEL_ASSET_VERSION = 1
+INPUT_HEIGHT = 256
+INPUT_WIDTH = 256
 TEST_IMAGE = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "dog.jpg"
 )
@@ -47,7 +49,7 @@ class MobileVIT(ImagenetClassifier):
     def from_pretrained(cls, ckpt_name: str = DEFAULT_WEIGHTS) -> Self:
         feature_extractor = MobileViTFeatureExtractor.from_pretrained(ckpt_name)
         assert isinstance(feature_extractor, MobileViTFeatureExtractor)
-        feature_extractor.size = {"height": 256, "width": 256}
+        feature_extractor.size = {"height": INPUT_HEIGHT, "width": INPUT_WIDTH}
         net = MobileViTForImageClassification.from_pretrained(ckpt_name)
         assert isinstance(net, MobileViTForImageClassification)
         return cls(net, feature_extractor)
@@ -58,7 +60,7 @@ class MobileVIT(ImagenetClassifier):
     def get_input_spec(self, batch_size: int = 1) -> InputSpec:
         return {
             "image_tensor": TensorSpec(
-                shape=(batch_size, 3, 256, 256),
+                shape=(batch_size, 3, INPUT_HEIGHT, INPUT_WIDTH),
                 dtype="float32",
                 io_type=IoType.IMAGE,
                 value_range=(0.0, 1.0),
