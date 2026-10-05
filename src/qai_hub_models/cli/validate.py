@@ -581,8 +581,8 @@ def _specifier_is_satisfiable(spec: SpecifierSet) -> bool:
     return True
 
 
-def _extract_pip_command_pkgs(cmd: str) -> list[str]:
-    """Return package names installed by a ``pip install ...`` command.
+def _extract_pip_command_reqs(cmd: str) -> list[Requirement]:
+    """Return ``Requirement`` objects installed by a ``pip install ...`` command.
 
     Skips ``-e`` / ``-r`` / ``--find-links`` / VCS URLs — those can't be
     matched against base pins by name alone.
@@ -590,7 +590,7 @@ def _extract_pip_command_pkgs(cmd: str) -> list[str]:
     tokens = cmd.split()
     if len(tokens) < 3 or tokens[0] != "pip" or tokens[1] != "install":
         return []
-    names: list[str] = []
+    reqs: list[Requirement] = []
     i = 2
     while i < len(tokens):
         tok = tokens[i]
@@ -605,9 +605,18 @@ def _extract_pip_command_pkgs(cmd: str) -> list[str]:
         except InvalidRequirement:
             i += 1
             continue
-        names.append(req.name)
+        reqs.append(req)
         i += 1
-    return names
+    return reqs
+
+
+def _extract_pip_command_pkgs(cmd: str) -> list[str]:
+    """Return package names installed by a ``pip install ...`` command.
+
+    Skips ``-e`` / ``-r`` / ``--find-links`` / VCS URLs — those can't be
+    matched against base pins by name alone.
+    """
+    return [req.name for req in _extract_pip_command_reqs(cmd)]
 
 
 def _constraint_pins(source_dir: Path) -> tuple[dict[str, SpecifierSet], str]:
@@ -636,14 +645,12 @@ def _check_pip_commands(
     base, constraint_label = _constraint_pins(source_dir)
     conflicts: list[str] = []
     for cmd in commands:
-        for name in _extract_pip_command_pkgs(cmd.command):
+        for req in _extract_pip_command_reqs(cmd.command):
+            name = req.name
             base_spec = base.get(name.lower())
             if base_spec is None:
                 continue
-            # Command-line pin extraction is heuristic — flag as WARN not FAIL.
             try:
-                token = next(t for t in cmd.command.split() if t.startswith(name))
-                req = Requirement(token)
                 if req.specifier and not _specifier_is_satisfiable(
                     SpecifierSet(f"{base_spec},{req.specifier}")
                 ):
@@ -651,7 +658,7 @@ def _check_pip_commands(
                         f"{name}: manifest command wants {req.specifier}, "
                         f"{constraint_label} wants {base_spec}"
                     )
-            except (InvalidRequirement, StopIteration):
+            except (InvalidRequirement, Exception):
                 continue
     if conflicts:
         report.add(
