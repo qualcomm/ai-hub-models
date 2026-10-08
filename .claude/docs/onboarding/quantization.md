@@ -2,15 +2,22 @@
 
 How to add quantized precision support (e.g., w8a8) to a model.
 
+The canonical workflow is the `add-quantization` skill
+(`plugin/skills/add-quantization/SKILL.md`). This guide is the reference for the
+model-side changes it performs.
+
 ## Prerequisites
 
 You need a dataset and evaluator. Check if existing ones fit your task (browse `qai_hub_models/datasets/` and the evaluators inside `qai_hub_models/models/templates/<name>/` or per-model folders). If you need new ones, see `.claude/docs/onboarding/datasets-and-evaluators.md`.
 
 ## Steps
 
-1. Add `eval_datasets()`, `calibration_dataset_name()`, and `get_evaluator()` methods to model.py — look at any existing model with quantization support for the pattern
+1. Add these methods to `model.py` — look at any existing model with quantization support for the pattern:
+   - `get_eval_dataset_classes(cls) -> list[type[BaseDataset]]`
+   - `get_calibration_dataset_cls(self) -> type[BaseDataset]`
+   - `get_evaluator(self) -> BaseEvaluator` (return an instance)
 2. Add supported precisions to `manifest.yaml` (e.g., `w8a8`, `w8a16`)
-3. Re-run codegen to generate `evaluate.py`
+3. Re-run codegen for in-tree recipes so the generated `evaluate.py` picks up the new precisions: `python qai_hub_models/scripts/run_codegen.py -m <model_id>`
 4. Run evaluation at both float and quantized precision
 5. Verify accuracy drop is acceptable
 

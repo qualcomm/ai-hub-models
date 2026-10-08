@@ -6,10 +6,9 @@ Detailed reference for the qai_hub_models repository. Load this document when yo
 
 ```
 qai_hub_models/
-├── models/           # ~188 model implementations (each has model.py, app.py, demo.py, test.py, manifest.yaml)
-├── configs/          # Configuration utilities
+├── models/           # ~240 model recipes (folder per model; most have model.py, app.py, demo.py, test.py, manifest.yaml)
+├── configs/          # Configuration utilities (manifest schema, enums)
 ├── datasets/         # Dataset loaders for training/evaluation
-├── evaluators/       # Accuracy evaluation classes
 ├── scorecard/        # Performance benchmarking
 ├── scripts/          # tooling (codegen, autofill, etc.)
 ├── test/             # Shared test utilities
