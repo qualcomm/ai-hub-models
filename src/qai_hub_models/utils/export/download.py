@@ -33,7 +33,10 @@ from qai_hub_models.utils.base_multi_graph_collection_model import (
 )
 from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.onnx.helpers import download_and_unzip_workbench_onnx_model
+from qai_hub_models.utils.onnx.helpers import (
+    download_and_unzip_workbench_onnx_model,
+    get_onnx_model_bundle_metadata,
+)
 from qai_hub_models.utils.path_helpers import get_next_free_path
 
 
@@ -53,6 +56,7 @@ def download_model_bundle(
     """Download the compiled hub model and write semantic + file metadata alongside it."""
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
+    supplementary_files: dict[str, str]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dst_path = Path(tmpdir) / output_folder_name
@@ -62,10 +66,13 @@ def download_model_bundle(
             onnx_result = download_and_unzip_workbench_onnx_model(
                 target_model, dst_path, model_id
             )
-            model_file_name = onnx_result.onnx_graph_name
+            model_file_name, supplementary_files = get_onnx_model_bundle_metadata(
+                onnx_result, dst_path, model_id
+            )
         else:
             downloaded_path = target_model.download(os.path.join(dst_path, model_id))
             model_file_name = os.path.basename(downloaded_path)
+            supplementary_files = {}
 
         file_metadata = ModelFileMetadata.from_hub_model(target_model)
         merge_input_metadata(file_metadata, model.get_input_spec(), runtime)
@@ -83,6 +90,7 @@ def download_model_bundle(
                 else None
             ),
             use_case=use_case,
+            supplementary_files=supplementary_files,
         )
 
         model.write_supplementary_files(dst_path, model_metadata)
@@ -146,6 +154,7 @@ def download_collection_model_bundle(
     """Download each component's hub model and write combined semantic metadata."""
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
+    supplementary_files: dict[str, str] = {}
 
     with tempfile.TemporaryDirectory() as tmpdir:
         dst_path = Path(tmpdir) / output_folder_name
@@ -157,7 +166,12 @@ def download_collection_model_bundle(
                 onnx_result = download_and_unzip_workbench_onnx_model(
                     target_model, dst_path, component_name
                 )
-                model_file_name = onnx_result.onnx_graph_name
+                model_file_name, supplementary_files_component = (
+                    get_onnx_model_bundle_metadata(
+                        onnx_result, dst_path, component_name
+                    )
+                )
+                supplementary_files.update(supplementary_files_component)
             else:
                 downloaded_path = target_model.download(
                     os.path.join(dst_path, component_name)
@@ -190,6 +204,7 @@ def download_collection_model_bundle(
                 else None
             ),
             use_case=use_case,
+            supplementary_files=supplementary_files,
         )
         model.write_supplementary_files(dst_path, model_metadata)
         model_metadata.to_json(dst_path / "metadata.json")
@@ -234,16 +249,15 @@ def download_multi_graph_collection_model_bundle(
 
         file_metadata_by_name: dict[str, ModelFileMetadata] = {}
         for component_name, target_model in target_models.items():
-            if target_model.model_type == hub.SourceModelType.ONNX:
-                onnx_result = download_and_unzip_workbench_onnx_model(
-                    target_model, dst_path, component_name
+            if target_model.model_type != hub.SourceModelType.QNN_CONTEXT_BINARY:
+                raise ValueError(
+                    "Multi graph models may only consist of context binaries."
                 )
-                model_file_name = onnx_result.onnx_graph_name
-            else:
-                downloaded_path = target_model.download(
-                    os.path.join(dst_path, component_name)
-                )
-                model_file_name = os.path.basename(downloaded_path)
+
+            downloaded_path = target_model.download(
+                os.path.join(dst_path, component_name)
+            )
+            model_file_name = os.path.basename(downloaded_path)
 
             file_metadata = ModelFileMetadata.from_hub_model(target_model)
             for graph_spec in all_input_specs.by_component(component_name).values():
@@ -313,14 +327,11 @@ def download_multi_graph_model_bundle(
         dst_path = Path(tmpdir) / output_folder_name
         dst_path.mkdir()
 
-        if target_model.model_type == hub.SourceModelType.ONNX:
-            onnx_result = download_and_unzip_workbench_onnx_model(
-                target_model, dst_path, model_id
-            )
-            model_file_name = onnx_result.onnx_graph_name
-        else:
-            downloaded_path = target_model.download(os.path.join(dst_path, model_id))
-            model_file_name = os.path.basename(downloaded_path)
+        if target_model.model_type != hub.SourceModelType.QNN_CONTEXT_BINARY:
+            raise ValueError("Multi graph models may only consist of context binaries.")
+
+        downloaded_path = target_model.download(os.path.join(dst_path, model_id))
+        model_file_name = os.path.basename(downloaded_path)
 
         file_metadata = ModelFileMetadata.from_hub_model(target_model)
         for graph_spec in all_input_specs.values():

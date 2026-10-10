@@ -295,9 +295,63 @@ def download_and_unzip_workbench_onnx_model(
             bundle_folder = tmpdir
 
         bundle = ONNXBundle.from_bundle_path(bundle_folder)
-        bundle.move(dst_folder, model_name or model.name)
+        dst_model_name = model_name or model.name
+        use_subfolder = (
+            bundle.onnx_weights_name
+            or bundle.aimet_encodings_name
+            or bundle.qairt_bin_name
+        )
+        bundle.move(
+            (str(Path(dst_folder) / dst_model_name) + "_onnx")
+            if use_subfolder
+            else dst_folder,
+            dst_model_name,
+        )
 
     return bundle
+
+
+def get_onnx_model_bundle_metadata(
+    bundle: ONNXBundle,
+    model_bundle_path: str | os.PathLike,
+    model_name: str,
+) -> tuple[str, dict[str, str]]:
+    """
+    Reads the given onnx bundle and returns metadata.
+
+    Parameters
+    ----------
+    bundle
+        The ONNX bundle to read (created by download_and_unzip_workbench_onnx_model)
+    model_bundle_path
+        The path to the root of the model bundle being downloaded (this is the dst_path param passed to download_and_unzip_workbench_onnx_model)
+    model_name
+        The target model name (this is the model_name param passed to download_and_unzip_workbench_onnx_model)
+
+    Returns
+    -------
+    relative_onnx_path : str
+        Path to the onnx file relative to model_bundle_path.
+    supplementary_files : dict[str, str]
+        map<path to supplementary file relative to model_bundle_path, description of supplementary file>
+    """
+    model_file_name = str(bundle.onnx_graph_path.relative_to(model_bundle_path))
+
+    supplementary_files: dict[str, str] = {}
+    if bundle.onnx_weights_path:
+        supplementary_files[
+            str(bundle.onnx_weights_path.relative_to(model_bundle_path))
+        ] = f"Model weights loaded by {model_name}.onnx"
+    if bundle.qairt_context_binary_path:
+        supplementary_files[
+            str(bundle.qairt_context_binary_path.relative_to(model_bundle_path))
+        ] = f"QAIRT context loaded by {model_name}.onnx"
+    if bundle.aimet_encodings_path:
+        supplementary_files[
+            str(bundle.aimet_encodings_path.relative_to(model_bundle_path))
+        ] = f"AIMET encodings file to combine with {model_name}.onnx"
+
+    return model_file_name, supplementary_files
 
 
 # Maps type strings returned by onnxruntime.InferenceSession.get_inputs() to numpy types.

@@ -23,6 +23,7 @@ from qai_hub_models.utils.onnx.helpers import (
     ONNXBundle,
     download_and_unzip_workbench_onnx_model,
     generate_wrapper_onnx_file,
+    get_onnx_model_bundle_metadata,
     verify_onnx_export_is_compatible_with_ai_hub,
 )
 from qai_hub_models.utils.runtime_torch_wrapper import ModelIODetails
@@ -272,9 +273,10 @@ def test_download_and_unzip_workbench_onnx_model() -> None:
             PatchedModel(zippath), tmpdir, "test_model"
         )
         assert out.onnx_graph_path.exists()
-        assert out.onnx_graph_path == tmppath / "test_model.onnx"
+        bundle_dir = tmppath / "test_model_onnx"
+        assert out.onnx_graph_path == bundle_dir / "test_model.onnx"
         assert out.onnx_weights_path and out.onnx_weights_path.exists()
-        assert out.onnx_weights_path == tmppath / "test_model.data"
+        assert out.onnx_weights_path == bundle_dir / "test_model.data"
         assert out.aimet_encodings_path is None
 
     #
@@ -291,10 +293,11 @@ def test_download_and_unzip_workbench_onnx_model() -> None:
             zipf.writestr("model_blah.encodings", "")
         out = download_and_unzip_workbench_onnx_model(PatchedModel(zippath), tmpdir)
         assert out.onnx_graph_path.exists()
-        assert out.onnx_graph_path == tmppath / "dummy_name.onnx"
+        bundle_dir = tmppath / "dummy_name_onnx"
+        assert out.onnx_graph_path == bundle_dir / "dummy_name.onnx"
         assert out.onnx_weights_path is None
         assert out.aimet_encodings_path and out.aimet_encodings_path.exists()
-        assert out.aimet_encodings_path == tmppath / "dummy_name.encodings"
+        assert out.aimet_encodings_path == bundle_dir / "dummy_name.encodings"
 
     #
     # Download structure:
@@ -309,6 +312,53 @@ def test_download_and_unzip_workbench_onnx_model() -> None:
         assert out.onnx_graph_path == tmppath / "dummy_name.onnx"
         assert out.onnx_weights_path is None
         assert out.aimet_encodings_path is None
+
+
+def test_get_onnx_model_bundle_metadata() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        bundle_dir = root / "test_model_onnx"
+        bundle_dir.mkdir()
+        names = [
+            "test_model.onnx",
+            "test_model.data",
+            "test_model.bin",
+            "test_model.encodings",
+        ]
+        for name in names:
+            (bundle_dir / name).touch()
+        bundle = ONNXBundle(
+            bundle_path=bundle_dir,
+            onnx_graph_name="test_model.onnx",
+            onnx_weights_name="test_model.data",
+            qairt_bin_name="test_model.bin",
+            aimet_encodings_name="test_model.encodings",
+        )
+
+        model_file_name, supplementary_files = get_onnx_model_bundle_metadata(
+            bundle, root, "test_model"
+        )
+
+        assert model_file_name == "test_model_onnx/test_model.onnx"
+        assert supplementary_files == {
+            "test_model_onnx/test_model.data": "Model weights loaded by test_model.onnx",
+            "test_model_onnx/test_model.bin": "QAIRT context loaded by test_model.onnx",
+            "test_model_onnx/test_model.encodings": "AIMET encodings file to combine with test_model.onnx",
+        }
+
+
+def test_get_onnx_model_bundle_metadata_graph_only() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "test_model.onnx").touch()
+        bundle = ONNXBundle(bundle_path=root, onnx_graph_name="test_model.onnx")
+
+        model_file_name, supplementary_files = get_onnx_model_bundle_metadata(
+            bundle, root, "test_model"
+        )
+
+        assert model_file_name == "test_model.onnx"
+        assert supplementary_files == {}
 
 
 def test_verify_onnx_export_is_compatible_with_ai_hub() -> None:

@@ -1441,7 +1441,16 @@ def export_test_e2e(
                 ),
             )
         )
-
+        mocks.append(
+            mock.patch(
+                "qai_hub_models.utils.export.download.get_onnx_model_bundle_metadata",
+                mock.MagicMock(
+                    side_effect=[
+                        (component, {}) for component in (component_names or [model_id])
+                    ]
+                ),
+            )
+        )
     # Test export script end to end.
     #
     # Capture any exception raised during the export call so we can still
