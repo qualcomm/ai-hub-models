@@ -28,7 +28,6 @@ jobs:
   weekly:
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       is_gpu_weekly: true
       models: ${{ inputs.models || 'all' }}
       deployment: ${{ inputs.deployment || 'prod' }}

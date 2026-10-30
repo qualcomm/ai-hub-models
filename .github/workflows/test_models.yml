@@ -55,9 +55,10 @@ on:
         default: ''
 
       python_version:
-        description: Python version to install and test with; also used for artifact naming
+        description: Python version to install and test with. Defaults to .github/python-version
         type: string
-        default: '3.10'
+        required: false
+        default: ''
 
       disable_override_workbench_job_timeout:
         description: Disable shorter workbench job timeout used for QAIHM PRs.
@@ -87,7 +88,6 @@ on:
 env:
   # Versions MUST be quoted, otherwise they will be interpreted as a floats
   # (and version like 3.10 can be interpreted as 3.1).
-  PYTHON_VERSION: ${{ inputs.python_version }}
   PYTHONUNBUFFERED: 1
   QAIHM_CI: 1
   VENV_PATH: build/ci-envs/qaihm-build
@@ -160,6 +160,11 @@ jobs:
           fi
 
       - uses: actions/checkout@v7
+
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
 
       - name: Mark workspace as a safe git directory
         run: |
@@ -368,7 +373,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ (inputs.test_scope == 'unit' || inputs.test_scope == 'unit_and_compile') && format('test-results-models-py{0}{1}', inputs.python_version, inputs.split_name != '' && format('-{0}', inputs.split_name) || '') || format('test-results-scorecard-models{0}', inputs.split_name != '' && format('-{0}', inputs.split_name) || '') }}
+          name: ${{ (inputs.test_scope == 'unit' || inputs.test_scope == 'unit_and_compile') && format('test-results-models-py{0}{1}', env.PYTHON_VERSION, inputs.split_name != '' && format('-{0}', inputs.split_name) || '') || format('test-results-scorecard-models{0}', inputs.split_name != '' && format('-{0}', inputs.split_name) || '') }}
           path: build/combined-test-results
           if-no-files-found: ignore
 
@@ -387,7 +392,7 @@ jobs:
         if: ${{ always() && steps.dump_env.outcome == 'success' && inputs.test_scope != 'unit' }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.test_scope == 'unit_and_compile' && format('Test Cached Artifact (Flaky-Job-IDs, {0}, py{1}{2})', github.run_id, inputs.python_version, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') || format('Scorecard Cached Artifact (Flaky-Job-IDs, {0}{1})', github.run_id, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') }}
+          name: ${{ inputs.test_scope == 'unit_and_compile' && format('Test Cached Artifact (Flaky-Job-IDs, {0}, py{1}{2})', github.run_id, env.PYTHON_VERSION, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') || format('Scorecard Cached Artifact (Flaky-Job-IDs, {0}{1})', github.run_id, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') }}
           path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
 
       - name: Restore workspace ownership (GPU node only)

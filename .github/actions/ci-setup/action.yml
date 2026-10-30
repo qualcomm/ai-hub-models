@@ -9,9 +9,9 @@ inputs:
     default: ""
 
   python-version:
-    description: "Python version to install, or USE_EXISTING_INSTALL to skip setup and use the system python"
+    description: "Python version to install, or USE_EXISTING_INSTALL to skip setup and use the system python. Defaults to .github/python-version"
     required: false
-    default: "3.10"
+    default: ""
   venv-path:
     description: Path for the virtual environment (empty to skip venv creation)
     required: false
@@ -74,6 +74,7 @@ runs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ inputs.python-version }}
+        python-version-file: ${{ inputs.python-version == '' && '.github/python-version' || '' }}
 
     - name: Resolve Python Path
       id: resolve_python

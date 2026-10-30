@@ -42,7 +42,6 @@ on:
         default: dev
 
 env:
-  PYTHON_VERSION: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
   VENV_PATH: build/ci-envs/qaihm-build
   # Hub env/profile to compile against: 'dev' on schedule, bespoke sandbox on manual dispatch.
   HUB_ENV: ${{ inputs.hub_env || 'dev' }}
@@ -62,7 +61,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}
@@ -92,7 +90,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: prod,${{ env.HUB_ENV }}
@@ -185,7 +182,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: prod,${{ env.HUB_ENV }}
@@ -243,7 +239,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}
@@ -321,7 +316,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}

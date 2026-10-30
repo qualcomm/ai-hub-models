@@ -112,7 +112,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+          python-version-file: .github/python-version
 
       - name: Install scrape deps
         run: pip install slack_sdk
@@ -270,7 +270,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+          python-version-file: .github/python-version
 
       - name: Recover classified JSON from agent job log
         # The reusable agent workflow does not propagate repo secrets to user

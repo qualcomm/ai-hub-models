@@ -46,7 +46,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
           sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
 

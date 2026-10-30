@@ -105,7 +105,6 @@ jobs:
           SRC_BRANCH_NAME: ${{ inputs.source_branch_name || 'curr_ref' }}
           DST_BRANCH_NAME: ${{ inputs.dst_branch_name || format('dev/qaihm_bot-QCOM/{0}', inputs.scorecard_action_id || github.run_id ) }}
           NODE_VERSION: 22.x
-          PYTHON_VERSION: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
           VENV_PATH: build/ci-envs/release
           IMPORT_MODE: ${{ inputs.import_mode }}
 

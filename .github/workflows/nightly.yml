@@ -115,7 +115,6 @@ jobs:
         - name: CI Setup
           uses: ./.github/actions/ci-setup
           with:
-            python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
             sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
             venv-path: ${{ env.VENV_PATH }}
 
@@ -269,7 +268,6 @@ jobs:
           id: ci_setup
           uses: ./.github/actions/ci-setup
           with:
-            python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
             venv-path: ${{ env.VENV_PATH }}
 
         - name: Download Combined Test Results
@@ -422,7 +420,7 @@ jobs:
 
         - uses: actions/setup-python@v7
           with:
-              python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+              python-version-file: .github/python-version
 
         - name: Recover Breeze comment from agent job log
           env:

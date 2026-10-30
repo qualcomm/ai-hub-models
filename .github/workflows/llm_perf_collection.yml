@@ -472,7 +472,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       is_grader: true
       deployment: ${{ inputs.deployment || 'prod' }}
       grader_artifacts_run_id: ${{ github.run_id }}

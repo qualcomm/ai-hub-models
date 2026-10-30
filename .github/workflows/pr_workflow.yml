@@ -19,12 +19,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Job names can't read files, so read the version here to show it in the check name.
+  python_version:
+    runs-on: [tetra-ubuntu-2204, self-hosted]
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/python-version
+          sparse-checkout-cone-mode: false
+      - id: read
+        run: echo "version=$(cat .github/python-version)" >> "$GITHUB_OUTPUT"
+
   build-and-test-workflow:
-    name: Test QAIHM (py3.10)
+    needs: python_version
+    name: Test QAIHM (py${{ needs.python_version.outputs.version }})
     secrets: inherit
     uses: ./.github/workflows/test.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+      python_version: ${{ needs.python_version.outputs.version }}
       precommit_scope: ALL # never skippable
       models: ${{ github.actor == 'dependabot[bot]' && 'none' || (contains(github.event.pull_request.body, '%ALL_MODELS%') && 'all' || (contains(github.event.pull_request.body, '%SKIP_ALL_CI%') && 'none' || 'changed')) }}
       enable_compile_tests: ${{ github.actor != 'dependabot[bot]' }}
