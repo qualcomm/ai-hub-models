@@ -12,6 +12,8 @@ no data-dependent control flow.
 
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -44,7 +46,14 @@ def apply_partial_rope(
 
 
 def _l2norm(x: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    return x * torch.rsqrt((x * x).sum(dim=-1, keepdim=True) + eps)
+    # Scaling by sqrt(d) makes mean(x^2) == sum(x^2), so eps is unchanged and aimet
+    # fuses this as an RMSNormalization supergroup instead of quantizing rsqrt/sum.
+    # gamma is a [d] tensor, not a scalar: qairt-converter rejects one scalar
+    # constant shared as gamma by the query and key RMSNorms.
+    d = x.shape[-1]
+    x = x * d**0.5
+    gamma = torch.full((d,), d**-0.5, dtype=x.dtype, device=x.device)
+    return x * torch.rsqrt((x * x).mean(dim=-1, keepdim=True) + eps) * gamma
 
 
 def _solve_triangular(
@@ -57,10 +66,8 @@ def _solve_triangular(
     keeps float32 stable; unmasked, this cancels catastrophically.
     """
     eye = torch.eye(chunk_size, dtype=attn.dtype, device=attn.device)
-    mask_acc = torch.triu(
-        torch.ones(chunk_size, chunk_size, dtype=attn.dtype, device=attn.device),
-        diagonal=-order,
-    )
+    idx = torch.arange(chunk_size, device=attn.device)
+    mask_acc = (idx[:, None] - idx[None, :] <= order).to(attn.dtype)
 
     m_mat = eye - attn
     acc = eye + attn
@@ -143,7 +150,7 @@ def gated_delta_rule(
         x.transpose(1, 2).reshape(-1, seq_len).to(torch.float32) for x in (beta, g)
     )
     state = state.reshape(-1, k_head_dim, v_head_dim)
-    chunk_size = torch.sym_min(seq_len, chunk_size)  # type: ignore[assignment, unused-ignore]
+    chunk_size = cast(int, torch.sym_min(seq_len, chunk_size))
 
     mask = (
         valid[:, None, :]
@@ -174,9 +181,10 @@ def gated_delta_rule(
     )
     g = g.reshape(g.shape[0], -1, chunk_size)
 
-    tril_mask = torch.tril(
-        torch.ones(chunk_size, chunk_size, dtype=torch.float32, device=query.device)
-    )
+    # Masks come from integer indices, not tril/triu of float ones: those inputs
+    # get Q/DQ when quantized, which stops them folding before QNN sees Trilu.
+    idx = torch.arange(chunk_size, device=query.device)
+    tril_mask = (idx[:, None] >= idx[None, :]).to(torch.float32)
     eye = torch.eye(chunk_size, dtype=torch.float32, device=query.device)
     strict_lower_tri = tril_mask - eye
 
@@ -284,9 +292,9 @@ def linear_attention_forward(
         Updated recurrent state.
     """
     batch_size, seq_len, _ = hidden_states.shape
-    token_pos = torch.arange(seq_len, device=valid.device, dtype=valid.dtype)
-    first_valid = (token_pos + (1 - valid[0]) * seq_len).min()
-    last_valid = (token_pos * valid[0]).max()
+    # Sums, not min/max: aimet can't handle ReduceMin/Max in either export form.
+    first_valid = (valid[0].cumsum(dim=0) == 0).to(valid.dtype).sum(dim=0)
+    last_valid = first_valid + valid[0].sum(dim=0) - 1
 
     mixed_qkv = module.in_proj_qkv(hidden_states).transpose(1, 2)
     mixed_qkv, new_conv_state = _conv_with_state(

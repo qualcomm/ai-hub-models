@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
 # isort: on
 
 import atexit
-import contextlib
 import functools
 import gc
 import glob
@@ -689,13 +688,9 @@ class DynamicPreSplitOnnxMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.onnx_splits: dict[int, ONNXBundle] = {}
+        # TemporaryDirectory removes itself when collected. No __del__ here:
+        # torch.export's AttrProxy copies share this __dict__ and would run it mid-export.
         self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
-
-    def __del__(self) -> None:
-        """Ensure temp directory is cleaned up on deletion."""
-        if hasattr(self, "_temp_dir") and self._temp_dir is not None:
-            with contextlib.suppress(Exception):
-                self._temp_dir.cleanup()
 
     def convert_to_onnx_and_split(self, part_id: int = 1) -> ONNXBundle:
         """Convert to ONNX and split into parts. Results are cached.
@@ -3455,8 +3450,17 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
         def make_io_metadata(
             specs: dict[str, Any], encodings: dict[str, Any]
         ) -> dict[str, TensorSpec]:
-            uses_lists = Version(encodings["version"]) >= Version("1.0.0")
-            if uses_lists:
+            if "encodings" in encodings:
+                # 2.0.0: y_scale / y_zero_point, with the zero point already negated.
+                all_encodings = {
+                    v["name"]: {
+                        "scale": np.atleast_1d(v["y_scale"]).tolist(),
+                        "offset": (-np.atleast_1d(v.get("y_zero_point", 0))).tolist(),
+                    }
+                    for v in encodings["encodings"]
+                    if "y_scale" in v
+                }
+            elif Version(encodings["version"]) >= Version("1.0.0"):
                 all_encodings = {
                     v["name"]: v for v in encodings["activation_encodings"]
                 }

@@ -355,11 +355,53 @@ def _propagate_8b_upstream(
         _propagate_8b_upstream(quantsim_model, inp.name, visited)
 
 
-def _set_matmul_second_input_to_8b(quantsim_model: QuantSimOnnx) -> None:
+def _reads_kv_cache(sim: QuantSimOnnx, tensor_name: str, kv_io: set[str]) -> bool:
+    """Whether tensor_name is fed from the KV cache through data-movement ops only."""
+    cg = sim.connected_graph
+    stack = [tensor_name]
+    seen: set[str] = set()
+    while stack:
+        name = stack.pop()
+        if name in kv_io:
+            return True
+        if name in seen:
+            continue
+        seen.add(name)
+        product = cg.get_product(name)
+        producer = product.producer if product is not None else None
+        if producer is None or not producer.inputs:
+            continue
+        if producer.type == "Concat":
+            stack.extend(t.name for t in producer.inputs)
+        elif producer.type == "ScatterElements":
+            stack.extend(
+                producer.inputs[i].name
+                for i in _SCATTER_VALUE_INPUTS
+                if i < len(producer.inputs)
+            )
+        elif producer.type in _VALUE_PRESERVING_OPS | _PROPAGATE_8B_OPS:
+            stack.append(producer.inputs[0].name)
+    return False
+
+
+def _set_matmul_second_input_to_8b(
+    quantsim_model: QuantSimOnnx, kv_io_map: dict[str, str] | None = None
+) -> None:
+    """Make MatMul second inputs 8-bit so HTP runs them as 16x8.
+
+    With kv_io_map, only MatMuls whose second input is read from the KV cache.
+    """
     cg = quantsim_model.connected_graph
+    # Not _kv_write_path_tensors: that flood crosses Slice/Reshape shape inputs,
+    # which constant sharing links to nearly every tensor in the graph.
+    kv_io = {*kv_io_map.keys(), *kv_io_map.values()} if kv_io_map is not None else None
 
     for op in reversed(cg.ordered_ops):
         if op.type != "MatMul":
+            continue
+        if kv_io is not None and not _reads_kv_cache(
+            quantsim_model, op.inputs[1].name, kv_io
+        ):
             continue
 
         upper_quantizer = quantsim_model._get_enabled_quantizer(op.inputs[1].name)  # pylint: disable=protected-access
@@ -417,6 +459,6 @@ def _apply_int8_kv_cache_tying_and_lm_head(
     sim._rebuild_session()  # pylint: disable=protected-access
 
     if use_16x8_matmuls:
-        _set_matmul_second_input_to_8b(sim)
+        _set_matmul_second_input_to_8b(sim, kv_io_map)
 
     return sim
