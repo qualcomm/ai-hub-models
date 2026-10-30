@@ -172,7 +172,8 @@ jobs:
   start_gpu_jobs:
     name: Submit Jobs (${{ matrix.split.split_name }})
     needs: split_models
-    if: ${{ !cancelled() && needs.split_models.result == 'success' && needs.split_models.outputs.has_gpu_splits == 'true' }}
+    # GPU outage: GPU splits disabled until Monday. Revert by dropping `false &&`.
+    if: ${{ false && !cancelled() && needs.split_models.result == 'success' && needs.split_models.outputs.has_gpu_splits == 'true' }}
     permissions:
       contents: read
       id-token: write

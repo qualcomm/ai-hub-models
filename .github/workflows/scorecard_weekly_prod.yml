@@ -2,9 +2,9 @@ name: QAI Hub Models Weekly Prod Scorecard
 
 on:
     workflow_dispatch: # Allows users to start this manually from the GitHub Actions UI.
-    schedule:
+    # GPU outage: re-enable Monday. schedule:
         # 10 PM PST (11 PM PDT) on Fridays -- (Cron is in UTC, since GitHub Actions run in UTC)
-        - cron: '0 6 * * SAT'
+        # - cron: '0 6 * * SAT'
 jobs:
     select-llm-models:
         name: Select Weekend LLM Models

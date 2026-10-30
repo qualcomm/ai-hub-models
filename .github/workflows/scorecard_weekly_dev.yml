@@ -2,9 +2,9 @@ name: QAI Hub Models Weekly Dev Scorecard ("Bench")
 
 on:
     workflow_dispatch: # Allows users to start this manually from the GitHub Actions UI.
-    schedule:
+    # GPU outage: re-enable Monday. schedule:
         # 11 PM PST (12 AM PDT) on Wednesday Night / Thursday Morning -- (Cron is in UTC, since GitHub Actions run in UTC)
-        - cron: '0 7 * * THU'
+        # - cron: '0 7 * * THU'
 jobs:
     run-scorecard:
         name: Run Dev ("Bench") Scorecard
