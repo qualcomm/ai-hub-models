@@ -165,10 +165,9 @@ Assets:
 - Assets are stored in our asset storage, versioned and small. Nothing that can change, comes from a third party or is large is committed.
 
 Tests:
-- Tests can fail. They compare results with an independent reference and allow a suitable tolerance.
-- Test inputs exercise the risky cases, and nothing in a test hides a failure.
-- Rewritten code is tested against the original code it replaced.
+- Review the tests the PR includes. A test that can't fail, or that hides a failure, is a finding.
 - Test data is stored in our asset storage, and the code documents where it came from.
+- Don't ask for more tests. The scorecard and the existing CI already cover evaluators, accuracy, tracing and each precision, so don't suggest new tests for evaluator code, rewritten code or extra coverage.
 
 Other:
 - A model copied from a similar one inherits that model's gaps, so check them.
@@ -237,14 +236,14 @@ Drop what does not hold. A finding you cannot verify from both ends is not `high
 
 | Field | Content |
 |---|---|
-| `severity` | `high`: fails validation, gives wrong results, or ships a false claim. `medium`: a real bug on a plausible path, an untested path, or work that should move into the model. `low`: cleanup or convention |
+| `severity` | `high`: fails validation, gives wrong results, or ships a false claim. `medium`: a real bug on a plausible path, or work that should move into the model. `low`: cleanup or convention |
 | `file:line` | New-side location at the PR head |
 | `claim` | One sentence stating the defect |
 | `evidence` | The input or state that makes it fail, the quoted rule, the sibling showing the convention, or the upstream line |
 | `fix` | A short suggested change. Give a code suggestion only if it fully resolves the issue |
 
 Severity guide:
-- Usually `high`: data-path mismatches, a confirmed difference from upstream math that changes outputs, calibration on eval data or on non-commercial data, an evaluator that does not follow the benchmark protocol, an app that cannot run on device, a declared spec that disagrees with the graph, silent fallbacks that mask a broken model, an export that drops upstream heads, tests that cannot fail, and metadata that claims something unproven.
+- Usually `high`: data-path mismatches, a confirmed difference from upstream math that changes outputs, calibration on eval data or on non-commercial data, an evaluator that does not follow the benchmark protocol, an app that cannot run on device, a declared spec that disagrees with the graph, silent fallbacks that mask a broken model, an export that drops upstream heads, and metadata that claims something unproven.
 - Raise "move into the model" from `medium` to `high` when it is the heaviest step or when every app must decode raw outputs itself.
 - Duplication and dead code are `low` unless the copies have already drifted.
 
@@ -280,9 +279,10 @@ Only when the user explicitly asks, and only on the PR they named.
 
 ### Verdict rules (aggregator)
 
-Running the aggregator workflow counts as the request to post. The verdict is one of two:
+Running the aggregator workflow counts as the request to post. The verdict is one of three:
 
-- **Comment:** any `high` or `medium` finding remains after merging, any lens output is missing, or the PR is a draft.
-- **Approve:** all lenses reported, no `high` or `medium` findings remain, and the PR is not a draft. Low-severity findings don't block approval and still get inline comments.
+- **Request changes:** any `high` or `medium` finding is open. That counts new findings and findings that an unresolved comment already raises.
+- **Approve:** all lenses reported, nothing `high` or `medium` is open, and the PR is not a draft. Low-severity findings don't block approval and still get inline comments.
+- **Comment:** everything else, such as a missing lens or a draft with nothing `high` or `medium` open.
 
-Never request changes, and never approve when a lens is missing.
+Never approve when a lens is missing or the PR is a draft.

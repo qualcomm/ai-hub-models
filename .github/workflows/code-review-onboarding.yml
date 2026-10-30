@@ -1,31 +1,145 @@
 name: Code Review Onboarding
+run-name: Code Review Onboarding PR #${{ github.event.pull_request.number || inputs.pr_number }}
 
-# Reviews a model-onboarding PR. Runs one review agent per lens, then an aggregator agent
-# that merges their findings and posts the review.
+# Reviews a model-onboarding PR.
+#  - Round 1: when the "Onboarding - Non-GenAI" or "Onboarding - Robotics" label is added to a
+#    PR, or a labeled draft is marked ready for review, runs one review agent per lens, then an
+#    aggregator agent that merges their findings and posts the review.
+#  - Re-review: when someone re-requests review from the review bot, runs one agent that does
+#    every step of the skill itself, with no subagents.
+# Either can also be started by hand with a PR number.
 on:
+  pull_request:
+    types: [labeled, review_requested, ready_for_review]
   workflow_dispatch:
     inputs:
       pr_number:
         description: Pull request number to review
         required: true
         type: string
+      mode:
+        description: Which review to run
+        required: false
+        type: choice
+        options: [review, rereview]
+        default: review
       lenses:
-        description: JSON list of lens agents to run. Use one for a fast test.
+        description: JSON list of lens agents to run in a review. Use one for a fast test.
         required: false
         type: string
         default: '["review-math-fidelity","review-data-path","review-dataset-evaluator","review-quantization","review-outside-model-work","review-flexible-shapes","review-app-contract","review-manifest","review-structure"]'
 
 concurrency:
-  group: code-review-onboarding-${{ inputs.pr_number }}
+  group: code-review-onboarding-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
+  # Decides what to run and holds the settings that every agent job shares.
+  setup:
+    name: setup
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.resolve.outputs.mode }}
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      lenses: ${{ steps.resolve.outputs.lenses }}
+      read_tools: ${{ steps.resolve.outputs.read_tools }}
+      lens_tools: ${{ steps.resolve.outputs.lens_tools }}
+      post_tools: ${{ steps.resolve.outputs.post_tools }}
+    steps:
+      - name: Resolve the mode, PR number and tool lists
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          ADDED_LABEL: ${{ github.event.label.name }}
+          REQUESTED_REVIEWER: ${{ github.event.requested_reviewer.login }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          IS_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_FROM_EVENT: ${{ github.event.pull_request.number }}
+          PR_FROM_INPUT: ${{ inputs.pr_number }}
+          MODE_FROM_INPUT: ${{ inputs.mode }}
+          LENSES_FROM_INPUT: ${{ inputs.lenses }}
+          # The PR labels that mean a PR is a model onboarding.
+          ONBOARDING_LABELS: '["Onboarding - Non-GenAI", "Onboarding - Robotics"]'
+          DEFAULT_LENSES: '["review-math-fidelity","review-data-path","review-dataset-evaluator","review-quantization","review-outside-model-work","review-flexible-shapes","review-app-contract","review-manifest","review-structure"]'
+          # Tools every agent gets: read the PR and the repo, fetch upstream source, write scratch files.
+          READ_TOOLS: >-
+            Bash(gh api:*),
+            Bash(gh pr view:*),
+            Bash(gh pr diff:*),
+            Bash(gh pr list:*),
+            Bash(git show:*),
+            Bash(git diff:*),
+            Bash(git log:*),
+            Bash(git rev-parse:*),
+            Bash(git fetch:*),
+            Bash(git clone:*),
+            Bash(grep:*),
+            Bash(ls:*),
+            Bash(find:*),
+            Bash(cat:*),
+            Bash(head:*),
+            Bash(tail:*),
+            Bash(wc:*),
+            Bash(diff:*),
+            Bash(mkdir:*),
+            WebFetch,
+            Read,
+            Write(//tmp/claude/**),
+            Edit(//tmp/claude/**)
+          # Extra for lens agents, which write their report to a folder that gets uploaded.
+          LENS_TOOLS: >-
+            Write(review-findings/**),
+            Edit(review-findings/**)
+          # Extra for the aggregator, which downloads the lens reports.
+          POST_TOOLS: >-
+            Bash(gh run download:*)
+        run: |
+          set -euo pipefail
+
+          # True if a JSON list of label names (argument 1) has an onboarding label.
+          has_onboarding_label() {
+            echo "$1" | jq -e --argjson wanted "$ONBOARDING_LABELS" 'any(.[]; . as $l | $wanted | index($l))' > /dev/null
+          }
+
+          # mode is review, rereview, or skip (nothing to do for this event).
+          mode=skip
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            mode="${MODE_FROM_INPUT:-review}"
+          elif [[ "$EVENT_ACTION" == "labeled" && "$IS_DRAFT" != "true" ]]; then
+            if has_onboarding_label "[\"$ADDED_LABEL\"]"; then
+              mode=review
+            fi
+          elif [[ "$EVENT_ACTION" == "ready_for_review" ]]; then
+            # A labeled draft was skipped earlier, so this is its first review.
+            if has_onboarding_label "$PR_LABELS"; then
+              mode=review
+            fi
+          elif [[ "$EVENT_ACTION" == "review_requested" && "$REQUESTED_REVIEWER" == breeze-code-action* ]]; then
+            if has_onboarding_label "$PR_LABELS"; then
+              mode=rereview
+            fi
+          fi
+          echo "Mode: $mode"
+
+          {
+            echo "mode=$mode"
+            echo "pr_number=${PR_FROM_EVENT:-$PR_FROM_INPUT}"
+            echo "lenses=${LENSES_FROM_INPUT:-$DEFAULT_LENSES}"
+            echo "read_tools=$(echo $READ_TOOLS)"
+            echo "lens_tools=$(echo $LENS_TOOLS)"
+            echo "post_tools=$(echo $POST_TOOLS)"
+          } >> "$GITHUB_OUTPUT"
+
+  # Round 1, one agent per lens.
   review:
     name: review (${{ matrix.agent }})
+    needs: setup
+    if: ${{ needs.setup.outputs.mode == 'review' }}
     strategy:
       fail-fast: false
       matrix:
-        agent: ${{ fromJSON(inputs.lenses) }}
+        agent: ${{ fromJSON(needs.setup.outputs.lenses) }}
     uses: qcom-eng-Nimbus/custom-templates/.github/workflows/breeze-agent-reusable.yaml@main
     secrets: inherit
     with:
@@ -35,54 +149,20 @@ jobs:
       claude_output_mode: "none"
       max_turns: 80
       artifact_upload: "review-findings/${{ matrix.agent }}.md"
-      base_allowed_tools: >-
-        Bash(python:*),
-        Bash(python3:*),
-        Bash(pre-commit:*),
-        Bash(pip:*),
-        Bash(pytest:*),
-        Bash(git status:*),
-        Bash(git log:*),
-        Bash(git diff:*),
-        Bash(git show:*),
-        Bash(git branch:*),
-        Bash(git checkout:*),
-        Bash(git stash:*),
-        Bash(git fetch:*),
-        Bash(git merge-base:*),
-        Bash(git rev-parse:*),
-        Bash(git ls-files:*),
-        Bash(gh:*),
-        Bash(qai-hub-models:*),
-        Bash(qai-hub:*),
-        Bash(git clone:*),
-        Bash(grep:*),
-        Bash(ls:*),
-        Bash(find:*),
-        Bash(cat:*),
-        Bash(head:*),
-        Bash(tail:*),
-        Bash(wc:*),
-        Bash(diff:*),
-        Bash(mkdir:*),
-        WebFetch,
-        Read,
-        Write(//tmp/claude/**),
-        Write(review-findings/**),
-        Edit(//tmp/claude/**),
-        Edit(review-findings/**)
+      base_allowed_tools: ${{ format('{0},{1}', needs.setup.outputs.read_tools, needs.setup.outputs.lens_tools) }}
       prompt: >-
-        Review PR #${{ inputs.pr_number }} in ${{ github.repository }} as the ${{ matrix.agent }} reviewer.
+        Review PR #${{ needs.setup.outputs.pr_number }} in ${{ github.repository }} as the ${{ matrix.agent }} reviewer.
         Nothing has run Phase 1 for you, so do the Phase 1 scoping from
         .agents/skills/model-onboarding-review/SKILL.md yourself, then apply only your lens.
         Do not post anything to GitHub. Write your report in the SKILL.md report format to
         review-findings/${{ matrix.agent }}.md. Write the file even when you have no findings.
         A separate aggregator agent merges the reports and posts the review.
 
+  # Round 1, merges the lens reports and posts the review.
   aggregate:
     name: aggregate
-    needs: review
-    if: ${{ !cancelled() }}
+    needs: [setup, review]
+    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.setup.outputs.mode == 'review' }}
     uses: qcom-eng-Nimbus/custom-templates/.github/workflows/breeze-agent-reusable.yaml@main
     secrets: inherit
     with:
@@ -94,31 +174,31 @@ jobs:
       fetch_pr_thread_state: true
       additional_permissions: |
         actions: read
-      base_allowed_tools: >-
-        Bash(gh api:*),
-        Bash(gh pr view:*),
-        Bash(gh pr diff:*),
-        Bash(gh pr list:*),
-        Bash(gh pr review:*),
-        Bash(gh pr comment:*),
-        Bash(gh run download:*),
-        Bash(git show:*),
-        Bash(git diff:*),
-        Bash(git log:*),
-        Bash(git rev-parse:*),
-        Bash(grep:*),
-        Bash(ls:*),
-        Bash(cat:*),
-        Bash(head:*),
-        Bash(wc:*),
-        Bash(mkdir:*),
-        Read,
-        Write(//tmp/claude/**),
-        Edit(//tmp/claude/**)
+      base_allowed_tools: ${{ format('{0},{1}', needs.setup.outputs.read_tools, needs.setup.outputs.post_tools) }}
       prompt: >-
-        Aggregate the lens reviews for PR #${{ inputs.pr_number }} in ${{ github.repository }}.
+        Aggregate the lens reviews for PR #${{ needs.setup.outputs.pr_number }} in ${{ github.repository }}.
         The lens agents ran in workflow run ${{ github.run_id }} and the review job result was
-        ${{ needs.review.result }}. The lenses that ran are: ${{ inputs.lenses }}. Expect only
+        ${{ needs.review.result }}. The lenses that ran are: ${{ needs.setup.outputs.lenses }}. Expect only
         those, and don't mark other lenses as missing. If fewer than all of them ran, don't
         approve. Follow .agents/agents/review-aggregator.md to collect their
         findings, merge them, decide the verdict, and post the review.
+
+  # Re-review, one agent that does every step of the skill.
+  rereview:
+    name: rereview
+    needs: setup
+    if: ${{ needs.setup.outputs.mode == 'rereview' }}
+    uses: qcom-eng-Nimbus/custom-templates/.github/workflows/breeze-agent-reusable.yaml@main
+    secrets: inherit
+    with:
+      agent_name: "review-rereview"
+      sub_category: "model-onboarding-rereview"
+      track_progress: false
+      claude_output_mode: "none"
+      max_turns: 120
+      fetch_pr_thread_state: true
+      base_allowed_tools: ${{ needs.setup.outputs.read_tools }}
+      prompt: >-
+        Re-review PR #${{ needs.setup.outputs.pr_number }} in ${{ github.repository }}.
+        Follow .agents/agents/review-rereview.md. Read all of
+        .agents/skills/model-onboarding-review/SKILL.md first, and work alone with no subagents.

@@ -17,7 +17,7 @@ You are given the PR number, the workflow run id, and the result of the lens job
 
 ## 1. Collect
 
-1. Check the PR with `gh pr view`. If it is closed or merged, post nothing and say why. If it is a draft, post inline comments and a `--comment` summary only. Never approve a draft.
+1. Check the PR with `gh pr view`. If it is closed or merged, post nothing and say why. If it is a draft, post inline comments and a `COMMENT` summary only. Never approve or request changes on a draft.
 2. Download the lens outputs: `gh run download <run id> -D /tmp/claude/lens-findings`. Each lens writes `review-findings/<lens agent>.md`.
 3. The expected lenses are all the agents in the table in `SKILL.md` (9 at the time of writing). Mark each one as `reported`, `no findings`, or `missing` (no file, empty file, or a failed job). A missing lens is never treated as clean.
 
@@ -34,12 +34,14 @@ You are given the PR number, the workflow run id, and the result of the lens job
 
 | Condition | Verdict |
 |---|---|
-| Any `high` or `medium` finding after merging | `comment` |
-| Any lens `missing`, or any unresolved "Not verified" item that matters | `comment` |
-| All lenses reported, no `high` or `medium`, PR not a draft | `approve` |
+| Any `high` or `medium` finding is open and the PR is not a draft | `request_changes` |
+| Any `high` or `medium` finding is open and the PR is a draft | `comment` |
+| Any lens `missing`, or any unresolved "Not verified" item that matters, and nothing `high` or `medium` is open | `comment` |
+| All lenses reported, nothing `high` or `medium` is open, PR not a draft | `approve` |
 
+- A finding is open if it's new, or if an earlier comment already raises it and its thread is unresolved or no change was made. So request changes even when every `high` and `medium` finding is already covered by existing comments, as long as they're still open. Count how many are open before you choose.
 - `low` findings don't block approval. They still get an inline comment (see "Post").
-- Never request changes. Never approve when a lens is missing.
+- Never approve when a lens is missing or the PR is a draft.
 - Say in the summary that the review is automated and does not replace the human reviewers.
 
 ## 4. Post
@@ -49,7 +51,7 @@ Post only the findings that no existing comment covers. If none remain and the v
 Post exactly one review, with the inline comments attached to it. Do not use the MCP inline-comment tool, it is not available in CI.
 
 1. Get the head SHA with `gh pr view <n> --json headRefOid`.
-2. Write `/tmp/claude/review.json` with `commit_id` (the head SHA), `event` (`COMMENT` or `APPROVE`), `body` (the summary below), and `comments`. Each entry in `comments` is one finding of any severity (`high`, `medium` and `low`) with `path`, `line`, `side: "RIGHT"` and a `body` written as described in "Writing the comments". Add a suggestion block only when it fully resolves the issue. Use only lines that are on the new side of the diff, because GitHub rejects the whole review if one comment cannot be anchored. Move any finding you can't anchor into the summary body instead.
+2. Write `/tmp/claude/review.json` with `commit_id` (the head SHA), `event` (`REQUEST_CHANGES`, `COMMENT` or `APPROVE`, matching the verdict), `body` (the summary below), and `comments`. Each entry in `comments` is one finding of any severity (`high`, `medium` and `low`) with `path`, `line`, `side: "RIGHT"` and a `body` written as described in "Writing the comments". Add a suggestion block only when it fully resolves the issue. Use only lines that are on the new side of the diff, because GitHub rejects the whole review if one comment cannot be anchored. Move any finding you can't anchor into the summary body instead.
 3. Submit it with `gh api repos/<owner>/<repo>/pulls/<n>/reviews --method POST --input /tmp/claude/review.json`. The summary body uses this layout:
 
 ```
