@@ -522,6 +522,7 @@ jobs:
             --perf-regressions-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/perf-regressions-2x-*.json" \
             --numerics-regressions-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/numerics-regressions-*.json" \
             --newly-disabled-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/newly-disabled-*.json" \
+            --quantized-failures-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/quantized-failures-*.json" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --perf-diff-url "${{ steps.upload-perf-diff-summary.outputs.artifact-url || 'N/A' }}" \
             --numerics-diff-url "${{ steps.upload-numerics-diff-summary.outputs.artifact-url || 'N/A' }}" \

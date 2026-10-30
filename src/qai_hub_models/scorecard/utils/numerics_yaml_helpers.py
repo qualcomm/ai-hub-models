@@ -196,6 +196,17 @@ def create_numerics_yaml(
         threshold_override=threshold_override,
     )
     if numerics_diff is not None:
+        model_df = accuracy_df[
+            (accuracy_df.model_id == model_name) & accuracy_df["Sim Accuracy"].notna()
+        ]
+        for _, row in model_df.iterrows():
+            key = (
+                model_name,
+                row.dataset_name,
+                row.metric_name,
+                Precision.parse(row.precision),
+            )
+            numerics_diff.sim_accuracies[key] = float(row["Sim Accuracy"])
         numerics_diff.update_summary(
             model_name, existing_struct, numerics_struct, benchmark=benchmark
         )

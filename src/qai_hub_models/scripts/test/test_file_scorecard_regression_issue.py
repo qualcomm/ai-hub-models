@@ -29,7 +29,7 @@ def test_body_includes_accuracy_sections_when_present() -> None:
         {
             "Model ID": "fresh_bench",
             "Accuracy Type": "device",
-            "Actual Value": "0.30",
+            "Device Value": "0.30",
             "Benchmark Value": "0.70",
             "Newly Disabled": "True",
         }
@@ -47,3 +47,27 @@ def test_body_includes_accuracy_sections_when_present() -> None:
     assert "## Newly Failing Benchmarks" in body
     assert "fresh_model" in body
     assert "fresh_bench" in body
+
+
+def test_body_shows_quantized_failures_without_new_disables() -> None:
+    """Already-disabled quantized failures still render, so every issue shows sim vs on-target."""
+    quantized = [
+        {
+            "Model ID": "ddrnet23_slim",
+            "Precision": "w8a8",
+            "Runtime": "tflite",
+            "Sim Accuracy": "77.5 mIOU",
+            "Device Accuracy": "41.2 mIOU",
+        }
+    ]
+    body = build_issue_body(
+        perf_regressions=[],
+        numerics_regressions=[],
+        run_url=_RUN_URL,
+        perf_diff_url=_PERF_URL,
+        numerics_diff_url=_NUMERICS_URL,
+        quantized_failures=quantized,
+    )
+    assert "## Quantized Accuracy Failures (Sim vs On-Target)" in body
+    assert "## Newly Disabled Configurations" not in body
+    assert "| ddrnet23_slim | w8a8 | tflite | 77.5 mIOU | 41.2 mIOU |" in body

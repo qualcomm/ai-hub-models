@@ -66,8 +66,12 @@ class NumericsDiff:
             tuple[str, str, str, ScorecardDevice, Precision, ScorecardProfilePath]
         ] = []
 
+        # Off-target (quantized ONNX on CPU) accuracy, keyed by
+        # (Model ID, Dataset Name, Metric Name, Precision). Not per-path: sim runs once per precision.
+        self.sim_accuracies: dict[tuple[str, str, str, Precision], float] = {}
+
         # tuple<Model ID, Dataset Name, Metric Name, Device, Precision, Path,
-        #       FP Accuracy, Device Accuracy, Previous FP Accuracy, Previous Device Accuracy,
+        #       FP Accuracy, Sim Accuracy, Device Accuracy, Previous FP Accuracy, Previous Device Accuracy,
         #       Inference Job ID, Previous Inference Job ID>
         # Progression == Accuracy is closer to target than previous. Regression == Accuracy is further from target than previous.
         self.progressions: list[
@@ -78,6 +82,7 @@ class NumericsDiff:
                 ScorecardDevice,
                 Precision,
                 ScorecardProfilePath,
+                str,
                 str,
                 str,
                 str,
@@ -100,10 +105,11 @@ class NumericsDiff:
                 str,
                 str,
                 str,
+                str,
             ]
         ] = []
 
-        # tuple<Model ID, Dataset Name, Metric Name, Accuracy Type ("torch" or "device"), Precision | None, Path | None, Actual Value, Benchmark Value, Difference, Threshold, Newly Disabled>
+        # tuple<Model ID, Dataset Name, Metric Name, Accuracy Type ("torch" or "device"), Precision | None, Path | None, Sim Value, Device Value, Benchmark Value, Difference, Threshold, Newly Disabled>
         # Precision and Path are None for torch failures (torch accuracy is not per-device/path).
         self.benchmark_failures: list[
             tuple[
@@ -113,6 +119,7 @@ class NumericsDiff:
                 str,
                 Precision | None,
                 ScorecardProfilePath | None,
+                str,
                 str,
                 str,
                 str,
@@ -129,7 +136,7 @@ class NumericsDiff:
             if details.form_factor == FormFactor.AUTO
         }
 
-        # tuple<Model ID, Dataset Name, Metric Name, Device, Precision, Path, FP Accuracy, Current Device Accuracy, Difference, Difference Threshold, Newly Disabled>
+        # tuple<Model ID, Dataset Name, Metric Name, Device, Precision, Path, FP Accuracy, Sim Accuracy, Current Device Accuracy, Difference, Difference Threshold, Newly Disabled>
         self.device_vs_float_greater_than_enablement_threshold: list[
             tuple[
                 str,
@@ -138,6 +145,7 @@ class NumericsDiff:
                 ScorecardDevice,
                 Precision,
                 ScorecardProfilePath,
+                str,
                 str,
                 str,
                 str,
@@ -168,6 +176,25 @@ class NumericsDiff:
         )
         return inference_jobs.get_job_id(params) or "null"
 
+    def _sim_cell(
+        self,
+        model_id: str,
+        metric_details: QAIHMModelNumerics.MetricDetails,
+        precision: Precision | None,
+    ) -> str:
+        """Return the Sim Accuracy cell, blank when sim is unavailable."""
+        if precision is None:
+            return ""
+        sim = self.sim_accuracies.get(
+            (
+                model_id,
+                metric_details.dataset_name,
+                metric_details.metric_name,
+                precision,
+            )
+        )
+        return "" if sim is None else f"{sim} {metric_details.metric_unit}"
+
     def merge_from(self, other: NumericsDiff) -> None:
         self.missing_models.extend(other.missing_models)
         self.new_models.extend(other.new_models)
@@ -186,6 +213,7 @@ class NumericsDiff:
         self.device_vs_float_greater_than_enablement_threshold.extend(
             other.device_vs_float_greater_than_enablement_threshold
         )
+        self.sim_accuracies.update(other.sim_accuracies)
 
     def _update_summary_for_path(
         self,
@@ -267,6 +295,7 @@ class NumericsDiff:
                     precision,
                     path,
                     f"{new_metric_details.partial_torch_metric} {new_metric_details.metric_unit}",
+                    self._sim_cell(model_id, new_metric_details, precision),
                     f"{new_metric.partial_metric} {new_metric_details.metric_unit}",
                     f"{device_vs_float:.3f} {new_metric_details.metric_unit}",
                     f"{new_metric_details.metric_enablement_threshold} {new_metric_details.metric_unit}",
@@ -301,6 +330,7 @@ class NumericsDiff:
                         "device",
                         precision,
                         path,
+                        self._sim_cell(model_id, new_metric_details, precision),
                         f"{new_metric.partial_metric} {new_metric_details.metric_unit}",
                         f"{benchmark.value} {new_metric_details.metric_unit}",
                         f"{device_vs_benchmark:.3f} {new_metric_details.metric_unit}",
@@ -338,6 +368,7 @@ class NumericsDiff:
                         precision,
                         path,
                         f"{new_metric_details.partial_torch_metric} {new_metric_details.metric_unit}",
+                        self._sim_cell(model_id, new_metric_details, precision),
                         f"{new_metric.partial_metric} {new_metric_details.metric_unit}",
                         f"{previous_metric_details.partial_torch_metric} {previous_metric_details.metric_unit}",
                         f"{prev_metric.partial_metric} {previous_metric_details.metric_unit}",
@@ -547,6 +578,7 @@ class NumericsDiff:
                             "torch",
                             None,
                             None,
+                            "",
                             f"{new_report_metric.partial_torch_metric} {new_report_metric.metric_unit}",
                             f"{benchmark.value} {new_report_metric.metric_unit}",
                             f"{torch_vs_benchmark:.3f} {new_report_metric.metric_unit}",
@@ -625,6 +657,7 @@ class NumericsDiff:
                 str,
                 str,
                 str,
+                str,
             ]
         ],
     ) -> PrettyTable:
@@ -635,9 +668,9 @@ class NumericsDiff:
         ----------
         data
             List of tuples containing model id, dataset name, metric name, device,
-            precision, path, FP accuracy, device accuracy, previous FP accuracy,
-            previous device accuracy, inference job id, and previous inference
-            job id.
+            precision, path, FP accuracy, sim accuracy, device accuracy, previous
+            FP accuracy, previous device accuracy, inference job id, and previous
+            inference job id.
 
         Returns
         -------
@@ -656,6 +689,7 @@ class NumericsDiff:
                 "Precision",
                 "Runtime",
                 "FP Accuracy",
+                "Sim Accuracy",
                 "Device Accuracy",
                 "Previous FP Accuracy",
                 "Previous Device Accuracy",
@@ -684,6 +718,7 @@ class NumericsDiff:
                         "Precision",
                         "Runtime",
                         "FP Accuracy",
+                        "Sim Accuracy",
                         "Device Accuracy",
                         "Difference",
                         "Difference Threshold",
@@ -709,7 +744,8 @@ class NumericsDiff:
                         "Accuracy Type",
                         "Precision",
                         "Runtime",
-                        "Actual Value",
+                        "Sim Value",
+                        "Device Value",
                         "Benchmark Value",
                         "Difference",
                         "Threshold",
@@ -871,6 +907,7 @@ class NumericsDiff:
         "Precision",
         "Runtime",
         "FP Accuracy",
+        "Sim Accuracy",
         "Device Accuracy",
         "Difference",
         "Difference Threshold",
@@ -883,7 +920,8 @@ class NumericsDiff:
         "Accuracy Type",
         "Precision",
         "Runtime",
-        "Actual Value",
+        "Sim Value",
+        "Device Value",
         "Benchmark Value",
         "Difference",
         "Threshold",
@@ -932,3 +970,34 @@ class NumericsDiff:
         print(
             f"Newly-disabled accuracy JSON written to {json_path} ({len(rows)} entries)"
         )
+
+    _QUANTIZED_FAILURE_COLUMNS = [
+        "Model ID",
+        "Device",
+        "Precision",
+        "Runtime",
+        "FP Accuracy",
+        "Sim Accuracy",
+        "Device Accuracy",
+    ]
+
+    def dump_quantized_failures_json(self, json_path: str) -> None:
+        """Write every disabled configuration that has a Sim value, new or not.
+
+        Unlike dump_newly_disabled_json, already-disabled rows are kept so the
+        issue always shows whether each quantized failure is off-target or on-target.
+        """
+        rows: list[dict[str, str]] = []
+        for disabled_row in self.device_vs_float_greater_than_enablement_threshold:
+            full = {
+                k: str(v)
+                for k, v in zip(
+                    self._DISABLED_CONFIG_COLUMNS, disabled_row, strict=False
+                )
+            }
+            if full["Sim Accuracy"]:
+                rows.append({k: full[k] for k in self._QUANTIZED_FAILURE_COLUMNS})
+        rows.sort(key=lambda r: r["Model ID"])
+        with open(json_path, "w") as f:
+            json.dump(rows, f, indent=2)
+        print(f"Quantized failures JSON written to {json_path} ({len(rows)} entries)")

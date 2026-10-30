@@ -164,7 +164,7 @@ def update_code_gen_accuracy_failure_reasons(
         if path.runtime not in reasons_by_runtime:
             reasons_by_runtime[path.runtime] = ModelDisableReasons()
         reasons = reasons_by_runtime[path.runtime]
-        reasons.scorecard_accuracy_failure = f"Torch and On-device accuracy diff ({disabled_path[8]}) above threshold ({disabled_path[9]})"
+        reasons.scorecard_accuracy_failure = f"Torch and On-device accuracy diff ({disabled_path[9]}) above threshold ({disabled_path[10]})"
 
     for benchmark_failure in model_diff.benchmark_failures:
         diff_model_id = benchmark_failure[0]
@@ -189,7 +189,7 @@ def update_code_gen_accuracy_failure_reasons(
             if bf_path.runtime not in reasons_by_runtime:
                 reasons_by_runtime[bf_path.runtime] = ModelDisableReasons()
             reasons = reasons_by_runtime[bf_path.runtime]
-            reasons.scorecard_accuracy_failure = f"Device accuracy ({benchmark_failure[6]}) deviates from benchmark ({benchmark_failure[7]}) by {benchmark_failure[8]}, threshold: {benchmark_failure[9]}"
+            reasons.scorecard_accuracy_failure = f"Device accuracy ({benchmark_failure[7]}) deviates from benchmark ({benchmark_failure[8]}) by {benchmark_failure[9]}, threshold: {benchmark_failure[10]}"
 
         elif accuracy_type == "torch":
             # Torch accuracy failure affects all paths for all precisions
@@ -203,7 +203,7 @@ def update_code_gen_accuracy_failure_reasons(
                     if sc_path.runtime not in reasons_by_runtime:
                         reasons_by_runtime[sc_path.runtime] = ModelDisableReasons()
                     reasons = reasons_by_runtime[sc_path.runtime]
-                    reasons.scorecard_accuracy_failure = f"Torch accuracy ({benchmark_failure[6]}) deviates from benchmark ({benchmark_failure[7]}) by {benchmark_failure[8]}, threshold: {benchmark_failure[9]}"
+                    reasons.scorecard_accuracy_failure = f"Torch accuracy ({benchmark_failure[7]}) deviates from benchmark ({benchmark_failure[8]}) by {benchmark_failure[9]}, threshold: {benchmark_failure[10]}"
 
 
 def update_model_publish_status(manifest: QAIHMModelManifest) -> bool:

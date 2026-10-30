@@ -73,6 +73,20 @@ _…and {{ numerics_dropped }} more numerics regression(s) omitted to fit GitHub
 
 {% endfor %}
 {% endif %}
+{% if quantized_failures %}
+## Quantized Accuracy Failures (Sim vs On-Target)
+
+_Sim = quantized model evaluated off-target on CPU. Sim close to FP but Device far off points to the AISW compiler/runtime; Sim already far off from FP points to the quantizer. Includes configurations disabled in earlier runs._
+
+| {% for col in quantized_failures[0].keys() %}{{ col }} | {% endfor %}
+
+| {% for col in quantized_failures[0].keys() %}--- | {% endfor %}
+
+{% for r in quantized_failures %}
+| {% for val in r.values() %}{{ val }} | {% endfor %}
+
+{% endfor %}
+{% endif %}
 {% if accuracy_dropped %}
 _…and {{ accuracy_dropped }} more accuracy row(s) omitted to fit GitHub's issue body size limit. See the [Numerics Diff]({{ numerics_diff_url }}) artifact for the full list._
 {% endif %}
