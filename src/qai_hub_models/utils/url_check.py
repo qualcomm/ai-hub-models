@@ -2,11 +2,15 @@
 # Copyright (c) 2026 Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
-"""Shared HTTP HEAD checker for manifest URLs.
+"""Shared HTTP reachability checker for manifest URLs.
 
 Extracted from ``qai_hub_models.configs.manifest_yaml`` so both the
 in-tree lint (``test_manifest_yamls``) and the ``qai-hub-models validate``
 CLI can share the same 24 h JSON cache and retry policy.
+
+Checks start with HEAD. A 403 or 405 falls back to a streaming GET whose
+body is never read, because some hosts reject HEAD while still serving
+the resource.
 """
 
 from __future__ import annotations
@@ -34,6 +38,21 @@ URL_VALIDATION_SKIPLIST = {
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/",
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2/",
 }
+
+# HEAD statuses that mean the resource is reachable. 202 is what IEEE returns
+# to HEAD; 429 is treated as reachable so a rate limit is not a missing asset.
+_REACHABLE_STATUSES = (
+    requests.codes.ok,
+    requests.codes.accepted,
+    requests.codes.too_many_requests,
+)
+
+# Hosts that reject HEAD but still serve GET. qwen.ai answers HEAD with 405;
+# 403 is the same shape from some CDNs. Confirm with a body-less GET.
+_HEAD_FALLBACK_STATUSES = (
+    requests.codes.forbidden,
+    requests.codes.method_not_allowed,
+)
 
 
 def _load_url_cache() -> dict[str, float]:
@@ -66,7 +85,16 @@ def head_check_urls(urls: list[tuple[str, str]]) -> list[str]:
     """HEAD-check a list of ``(url, error_label)`` pairs in parallel.
 
     URLs that were successfully checked within the last 24 hours are
-    skipped. Returns the list of failure messages (empty on success).
+    skipped, as are URLs on the validation skiplist. Returns the list of
+    failure messages (empty on success).
+
+    HEAD 200, 202, and 429 are accepted as reachable. HEAD 403 and 405 are
+    not final: the same session then issues a streaming GET with the same
+    headers, redirects, 10-second timeout, and 502/503/504 retry policy.
+    The GET body is never read. GET 200, 202, and 429 are accepted for
+    compatibility with hosts that reject HEAD; GET 403, 405, any other
+    status, and GET request exceptions fail. HEAD request exceptions do
+    not fall back to GET. Only a successful final outcome is cached.
 
     Parameters
     ----------
@@ -96,25 +124,43 @@ def head_check_urls(urls: list[tuple[str, str]]) -> list[str]:
         return []
 
     session = _make_url_check_session()
+    # IEEE rejects HEAD requests that arrive without a User-Agent (error 418).
+    headers = {"User-Agent": "QAIHM Test Suite"}
 
     def _check(url: str, label: str) -> str | None:
         try:
-            # IEEE requires a header or rejects all head requests with error 418.
-            headers = {"User-Agent": "QAIHM Test Suite"}
-            status = session.head(
+            head_response = session.head(
                 url, allow_redirects=True, timeout=10, headers=headers
-            ).status_code
-            # Some sites respond to HEAD requests differently (IEEE: 202,
-            # qwen.ai: 405). We also ignore those.
-            if status not in [
-                requests.codes.ok,
-                requests.codes.accepted,
-                requests.codes.too_many_requests,
-                requests.codes.method_not_allowed,
-            ]:
-                return f"{label} at {url} (status: {status})"
+            )
+        except requests.RequestException as e:
+            # A HEAD transport failure is final. Do not fall back to GET.
+            return f"{label} at {url} ({e})"
+        try:
+            status = head_response.status_code
         except requests.RequestException as e:
             return f"{label} at {url} ({e})"
+        finally:
+            # Release the HEAD connection before a possible GET fallback.
+            head_response.close()
+
+        # 403/405 often means the host blocks HEAD (qwen.ai returns 405)
+        # while GET still serves the resource. Stream the GET and do not
+        # read the body.
+        if status in _HEAD_FALLBACK_STATUSES:
+            try:
+                with session.get(
+                    url,
+                    allow_redirects=True,
+                    timeout=10,
+                    headers=headers,
+                    stream=True,
+                ) as get_response:
+                    status = get_response.status_code
+            except requests.RequestException as e:
+                return f"{label} at {url} ({e})"
+
+        if status not in _REACHABLE_STATUSES:
+            return f"{label} at {url} (status: {status})"
         cache[url] = now
         return None
 
@@ -127,10 +173,11 @@ def head_check_urls(urls: list[tuple[str, str]]) -> list[str]:
 
 
 def validate_urls_exist(urls: list[tuple[str, str]]) -> None:
-    """HEAD-check URLs and raise ``ValueError`` on failure.
+    """Check URLs and raise ``ValueError`` on failure.
 
     Thin wrapper around :func:`head_check_urls` kept for callers (like the
     old manifest_yaml validator) that expect an exception-based interface.
+    HEAD 403 and 405 fall back to a streaming GET before the URL is failed.
     """
     errors = head_check_urls(urls)
     if errors:

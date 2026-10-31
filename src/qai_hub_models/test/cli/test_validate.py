@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -1164,3 +1165,364 @@ class TestInternalChecks:
             report = Report()
             _run_internal_checks(tmp_path, None, report)
         assert any(r.status is Status.SKIP for r in report.rows)
+
+
+_SKIP_DETAIL = "skipped via --skip-url-checks"
+
+_URL_MANIFEST = """\
+id: skip_url_recipe
+name: Skip-Url
+headline: A model for testing.
+description: A model for testing manifest validation.
+domain: Computer Vision
+use_case: Image Classification
+license_type: apache-2.0
+license: https://example.invalid/license
+source_repo: https://example.invalid/repo
+research_paper: https://arxiv.org/abs/1234.5678
+research_paper_title: A Paper
+status: pending
+form_factors:
+- Phone
+applicable_scenarios:
+- Inventory Management
+supported_precisions:
+- float
+has_static_banner: true
+has_animated_banner: true
+"""
+
+
+def _forbid_url_checks(_pairs: list[tuple[str, str]]) -> list[str]:
+    raise AssertionError("head_check_urls should not run")
+
+
+class TestSkipUrlChecks:
+    """``--skip-url-checks`` omits reachability probes and reports SKIP."""
+
+    def test_parser_defaults_and_documents_flag(self) -> None:
+        parser = validate_mod.build_parser()
+        assert parser.parse_args(["my_model"]).skip_url_checks is False
+        assert parser.parse_args(["my_model", "--skip-url-checks"]).skip_url_checks
+        help_text = " ".join(parser.format_help().split())
+        assert "--skip-url-checks" in help_text
+        assert "Skip explicit URL reachability checks only" in help_text
+        assert (
+            "Installation, initialization, and tests can still require network access."
+            in help_text
+        )
+
+    def test_main_forwards_flag_to_ordinary_and_internal(self, tmp_path: Path) -> None:
+        seen: list[tuple[str, bool]] = []
+
+        def _all(_source: Path, report: Report, **kwargs: Any) -> Any:
+            seen.append(("all", kwargs["skip_url_checks"]))
+            report.add(Result("x", "Manifest", Status.PASS))
+            return _make_manifest(id="mymodel")
+
+        def _internal(
+            _source: Path, _manifest: Any, _report: Report, **kwargs: Any
+        ) -> None:
+            seen.append(("internal", kwargs["skip_url_checks"]))
+
+        def _invoke(argv: list[str]) -> None:
+            with (
+                patch(
+                    "qai_hub_models.cli.validate.resolve_recipe_dir",
+                    return_value=tmp_path,
+                ),
+                patch(
+                    "qai_hub_models.cli.validate._run_all_checks",
+                    side_effect=_all,
+                ),
+                patch(
+                    "qai_hub_models.cli.validate._run_internal_checks",
+                    side_effect=_internal,
+                ),
+                pytest.raises(SystemExit) as exc,
+            ):
+                validate_mod.main(argv)
+            assert exc.value.code == 0
+
+        _invoke(["fake-target", "--internal"])
+        _invoke(["fake-target", "--internal", "--skip-url-checks"])
+        _invoke(["fake-target", "--skip-url-checks"])
+        assert seen == [
+            ("all", False),
+            ("internal", False),
+            ("all", True),
+            ("internal", True),
+            ("all", True),
+        ]
+
+    def test_skip_alone_exits_zero_and_unrelated_failure_exits_nonzero(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        manifest = _make_manifest(
+            license="https://example.invalid/license",
+            source_repo=None,
+            research_paper=None,
+            external_repos=None,
+        )
+        monkeypatch.setattr(validate_mod, "head_check_urls", _forbid_url_checks)
+        fail = False
+
+        def _run(_source: Path, report: Report, **kwargs: Any) -> None:
+            _check_url_reachability(
+                manifest, report, skip_url_checks=kwargs["skip_url_checks"]
+            )
+            if fail:
+                report.add(
+                    Result("manifest.yaml loads", "Manifest", Status.FAIL, "nope")
+                )
+
+        with (
+            patch(
+                "qai_hub_models.cli.validate.resolve_recipe_dir",
+                return_value=tmp_path,
+            ),
+            patch("qai_hub_models.cli.validate._run_all_checks", side_effect=_run),
+            pytest.raises(SystemExit) as exc,
+        ):
+            validate_mod.main(["fake-target", "--skip-url-checks"])
+        assert exc.value.code == 0
+
+        fail = True
+        with (
+            patch(
+                "qai_hub_models.cli.validate.resolve_recipe_dir",
+                return_value=tmp_path,
+            ),
+            patch("qai_hub_models.cli.validate._run_all_checks", side_effect=_run),
+            pytest.raises(SystemExit) as exc,
+        ):
+            validate_mod.main(["fake-target", "--skip-url-checks"])
+        assert exc.value.code == 1
+
+    def test_text_and_json_reports_show_skip_reason(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        manifest = _make_manifest(
+            id="skip_url_recipe",
+            name="Skip-Url",
+            license="https://example.invalid/license",
+            source_repo="https://example.invalid/repo",
+            research_paper=None,
+            external_repos=None,
+            has_static_banner=True,
+            has_animated_banner=True,
+        )
+        monkeypatch.setattr(validate_mod, "head_check_urls", _forbid_url_checks)
+        report = Report()
+        _check_url_reachability(manifest, report, skip_url_checks=True)
+        validate_mod._check_web_asset_urls(manifest, report, skip_url_checks=True)
+        assert not report.failed
+
+        text = _render_text(report)
+        assert "SKIP" in text
+        assert _SKIP_DETAIL in text
+        assert "URL reachability" in text
+        assert "Internal" in text
+
+        payload = json.loads(_render_json(report))
+        assert payload["failed"] is False
+        assert payload["counts"]["FAIL"] == 0
+        assert payload["counts"]["SKIP"] == len(payload["rows"])
+        names = set()
+        for row in payload["rows"]:
+            assert row["status"] == "SKIP"
+            assert row["detail"] == _SKIP_DETAIL
+            names.add(row["name"])
+        assert {"license", "source_repo", "static banner", "animated banner"} <= names
+
+    def test_empty_urls_keep_existing_skip_reason(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        manifest = _make_manifest(
+            license=None,
+            source_repo=None,
+            research_paper=None,
+            external_repos=None,
+            id="skip_url_recipe",
+            has_static_banner=False,
+            has_animated_banner=False,
+        )
+        calls: list[list[tuple[str, str]]] = []
+
+        def _spy(pairs: list[tuple[str, str]]) -> list[str]:
+            calls.append(pairs)
+            return []
+
+        monkeypatch.setattr(validate_mod, "head_check_urls", _spy)
+        report = Report()
+        _check_url_reachability(manifest, report, skip_url_checks=True)
+        validate_mod._check_web_asset_urls(manifest, report, skip_url_checks=True)
+        assert calls == []
+        assert report.rows == [
+            Result(
+                "URLs reachable",
+                "URL reachability",
+                Status.SKIP,
+                "no URLs declared in manifest.",
+            )
+        ]
+
+    @pytest.mark.parametrize("skip_install", [False, True])
+    @pytest.mark.parametrize("skip_url_checks", [False, True])
+    def test_missing_manifest_does_not_url_check(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        skip_install: bool,
+        skip_url_checks: bool,
+    ) -> None:
+        source = tmp_path / "bare_recipe"
+        source.mkdir()
+        calls: list[list[tuple[str, str]]] = []
+
+        def _spy(pairs: list[tuple[str, str]]) -> list[str]:
+            calls.append(pairs)
+            return []
+
+        def _install(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError("pip broke")
+
+        monkeypatch.setattr(validate_mod, "head_check_urls", _spy)
+        monkeypatch.setattr(validate_mod, "install_model", _install)
+        report = Report()
+        manifest = _run_all_checks(
+            source,
+            report,
+            skip_install=skip_install,
+            skip_url_checks=skip_url_checks,
+        )
+        assert manifest is None
+        assert calls == []
+        assert not any(r.category == "URL reachability" for r in report.rows)
+        assert any(
+            r.name == "manifest.yaml loads" and r.status is Status.FAIL
+            for r in report.rows
+        )
+
+    @pytest.mark.parametrize(
+        ("mode", "skip_url_checks"),
+        [
+            ("no_install", True),
+            ("install_success", True),
+            ("install_failure", True),
+            ("no_install", False),
+            ("install_success", False),
+            ("install_failure", False),
+        ],
+    )
+    def test_orchestration_paths(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        mode: str,
+        skip_url_checks: bool,
+    ) -> None:
+        source = tmp_path / "skip_url_recipe"
+        source.mkdir()
+        (source / "__init__.py").write_text("")
+        (source / "model.py").write_text("")
+        (source / "manifest.yaml").write_text(_URL_MANIFEST)
+
+        calls: list[list[tuple[str, str]]] = []
+        install_calls = 0
+        downstream = {"init": 0, "model": 0, "pytest": 0}
+
+        def _spy(pairs: list[tuple[str, str]]) -> list[str]:
+            calls.append(list(pairs))
+            return []
+
+        def _install(*_args: Any, **_kwargs: Any) -> None:
+            nonlocal install_calls
+            install_calls += 1
+            if mode == "install_failure":
+                raise RuntimeError("pip broke")
+
+        def _count(key: str) -> Any:
+            def _inner(*_args: Any, **_kwargs: Any) -> None:
+                downstream[key] += 1
+
+            return _inner
+
+        monkeypatch.setattr(validate_mod, "head_check_urls", _spy)
+        monkeypatch.setattr(validate_mod, "install_model", _install)
+        monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _path: True)
+        monkeypatch.setattr(validate_mod, "_check_init_exports", _count("init"))
+        monkeypatch.setattr(validate_mod, "_check_model_code", _count("model"))
+        monkeypatch.setattr(validate_mod, "_check_pytest", _count("pytest"))
+
+        report = Report()
+        manifest = _run_all_checks(
+            source,
+            report,
+            skip_install=mode == "no_install",
+            skip_url_checks=skip_url_checks,
+        )
+        assert manifest is not None
+        _run_internal_checks(source, manifest, report, skip_url_checks=skip_url_checks)
+
+        url_rows = [r for r in report.rows if r.category == "URL reachability"]
+        assert {r.name for r in url_rows} == {
+            "license",
+            "source_repo",
+            "research_paper",
+        }
+        banners = [
+            r for r in report.rows if r.name in {"static banner", "animated banner"}
+        ]
+        assert {r.name for r in banners} == {"static banner", "animated banner"}
+        if skip_url_checks:
+            assert calls == []
+            assert all(
+                r.status is Status.SKIP and r.detail == _SKIP_DETAIL for r in url_rows
+            )
+            assert all(
+                r.status is Status.SKIP and r.detail == _SKIP_DETAIL for r in banners
+            )
+        else:
+            assert len(calls) == 2
+            assert {url for url, _label in calls[0]} == {
+                "https://example.invalid/license",
+                "https://example.invalid/repo",
+                "https://arxiv.org/abs/1234.5678",
+            }
+            assert {label for _url, label in calls[1]} == {
+                "static banner unreachable",
+                "animated banner unreachable",
+            }
+            assert all(r.status is Status.PASS for r in url_rows)
+            assert all(r.status is Status.PASS for r in banners)
+
+        assert any(
+            r.name == "Required files present" and r.status is Status.PASS
+            for r in report.rows
+        )
+        assert any(
+            r.name == "demo.py present" and r.status is Status.WARN for r in report.rows
+        )
+        assert any(
+            r.name == "name style" and r.status is Status.PASS for r in report.rows
+        )
+        install_row = next(r for r in report.rows if r.category == "Install")
+        if mode == "no_install":
+            assert install_calls == 0
+            assert install_row.status is Status.SKIP
+            assert install_row.detail == "skipped via --no-install"
+        elif mode == "install_success":
+            assert install_calls == 1
+            assert install_row.status is Status.PASS
+        else:
+            assert install_calls == 1
+            assert install_row.status is Status.FAIL
+            assert "install failed" in {r.detail for r in report.rows}
+
+        if mode == "install_failure":
+            assert downstream == {"init": 0, "model": 0, "pytest": 0}
+            assert report.failed
+        else:
+            assert downstream == {"init": 1, "model": 1, "pytest": 1}
+            assert not report.failed

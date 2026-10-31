@@ -1325,7 +1325,11 @@ def _collect_manifest_urls(
     return urls
 
 
-def _check_url_reachability(manifest: QAIHMModelManifest, report: Report) -> None:
+def _check_url_reachability(
+    manifest: QAIHMModelManifest,
+    report: Report,
+    skip_url_checks: bool = False,
+) -> None:
     triples = _collect_manifest_urls(manifest)
     if not triples:
         report.add(
@@ -1336,6 +1340,17 @@ def _check_url_reachability(manifest: QAIHMModelManifest, report: Report) -> Non
                 "no URLs declared in manifest.",
             )
         )
+        return
+    if skip_url_checks:
+        for name, _url, _label in triples:
+            report.add(
+                Result(
+                    name,
+                    "URL reachability",
+                    Status.SKIP,
+                    "skipped via --skip-url-checks",
+                )
+            )
         return
     pairs = [(url, label) for _, url, label in triples]
     errors = head_check_urls(pairs)
@@ -1616,9 +1631,17 @@ def _collect_web_asset_urls(
     return urls
 
 
-def _check_web_asset_urls(manifest: QAIHMModelManifest, report: Report) -> None:
+def _check_web_asset_urls(
+    manifest: QAIHMModelManifest,
+    report: Report,
+    skip_url_checks: bool = False,
+) -> None:
     triples = _collect_web_asset_urls(manifest)
     if not triples:
+        return
+    if skip_url_checks:
+        for name, _url, _label in triples:
+            _add(report, name, Status.SKIP, "skipped via --skip-url-checks")
         return
     pairs = [(url, label) for _, url, label in triples]
     errors = head_check_urls(pairs)
@@ -1636,7 +1659,10 @@ def _check_web_asset_urls(manifest: QAIHMModelManifest, report: Report) -> None:
 
 
 def _run_internal_checks(
-    source_dir: Path, manifest: QAIHMModelManifest | None, report: Report
+    source_dir: Path,
+    manifest: QAIHMModelManifest | None,
+    report: Report,
+    skip_url_checks: bool = False,
 ) -> None:
     _check_in_tree_status(source_dir, report)
     if manifest is None:
@@ -1659,7 +1685,7 @@ def _run_internal_checks(
     _check_default_device_canary(manifest, report)
     _check_llm_call_to_action(manifest, report)
     _check_qaihm_repo_path(manifest, report)
-    _check_web_asset_urls(manifest, report)
+    _check_web_asset_urls(manifest, report, skip_url_checks=skip_url_checks)
 
 
 # =========================================================================
@@ -1671,6 +1697,7 @@ def _run_all_checks(
     source_dir: Path,
     report: Report,
     skip_install: bool = False,
+    skip_url_checks: bool = False,
 ) -> QAIHMModelManifest | None:
     if skip_install:
         report.add(
@@ -1697,7 +1724,7 @@ def _run_all_checks(
     if not install_ok:
         _skip_downstream_on_install_failure(report)
         if manifest is not None:
-            _check_url_reachability(manifest, report)
+            _check_url_reachability(manifest, report, skip_url_checks=skip_url_checks)
         return manifest
 
     _check_init_exports(source_dir, report)
@@ -1709,7 +1736,7 @@ def _run_all_checks(
         _check_evaluator(model, report)
     _check_pytest(source_dir, report)
     if manifest is not None:
-        _check_url_reachability(manifest, report)
+        _check_url_reachability(manifest, report, skip_url_checks=skip_url_checks)
     return manifest
 
 
@@ -1787,8 +1814,17 @@ def build_parser() -> argparse.ArgumentParser:
             "manifest fields (name/headline style, CANARY_DEVICES, arxiv "
             "/abs/, status_reason coupling, PUBLISHED artifact requirements, "
             "numerics_benchmark metric pair, LLM call-to-action rules, "
-            "QAIHM repo path) plus static/animated banner URL HEAD checks. "
-            "Only meaningful for recipes under src/qai_hub_models/models/."
+            "QAIHM repo path) plus static/animated banner URL reachability "
+            "checks. Only meaningful for recipes under src/qai_hub_models/models/."
+        ),
+    )
+    parser.add_argument(
+        "--skip-url-checks",
+        action="store_true",
+        help=(
+            "Skip explicit URL reachability checks only (manifest URLs and, "
+            "with --internal, static and animated banner URLs). Installation, "
+            "initialization, and tests can still require network access."
         ),
     )
     parser.add_argument(
@@ -1811,9 +1847,19 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(1)
 
     report = Report()
-    manifest = _run_all_checks(source_dir, report, skip_install=args.no_install)
+    manifest = _run_all_checks(
+        source_dir,
+        report,
+        skip_install=args.no_install,
+        skip_url_checks=args.skip_url_checks,
+    )
     if args.internal:
-        _run_internal_checks(source_dir, manifest, report)
+        _run_internal_checks(
+            source_dir,
+            manifest,
+            report,
+            skip_url_checks=args.skip_url_checks,
+        )
 
     output = _render_json(report) if args.as_json else _render_text(report)
     print(output)
