@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -85,6 +86,17 @@ def _unbatch(tensor: torch.Tensor) -> list[torch.Tensor | np.ndarray]:
     return list(torch.unbind(tensor.unsqueeze(1)))
 
 
+def _camera_mask(img_embeds: list[torch.Tensor]) -> torch.Tensor:
+    """Return [B, NUM_CAMERAS] float32 mask with 1.0 for each provided camera."""
+    base = img_embeds[0]
+    return (
+        (torch.arange(NUM_CAMERAS, device=base.device) < len(img_embeds))
+        .to(torch.float32)
+        .unsqueeze(0)
+        .expand(base.shape[0], -1)
+    )
+
+
 class BatchedOnDeviceModel:
     """
     Wraps OnDeviceModel to present a torch-module-like interface.
@@ -153,8 +165,12 @@ class Pi05App(torch.nn.Module):
         # When components are OnDeviceModel instances, wrap them so that
         # call sites can pass batched tensors directly (like a torch module).
         self._on_device = isinstance(vision_encoder, OnDeviceModel)
+        self._token_emb_has_camera_mask = (
+            not isinstance(token_emb, OnDeviceModel)
+            or "camera_mask" in token_emb.input_names
+        )
         self.vision_encoder = vision_encoder
-        self.token_emb = (
+        self.token_emb: ExecutableModelProtocol = (
             BatchedOnDeviceModel(token_emb)
             if isinstance(token_emb, OnDeviceModel)
             else token_emb
@@ -257,6 +273,7 @@ class Pi05App(torch.nn.Module):
         # Token embedding packs images + language and produces prefix
         # embeddings/masks and RoPE tensors.
         # On-device path needs padding to NUM_CAMERAS (fixed input spec).
+        camera_mask = _camera_mask(img_embeds)
         if self._on_device:
             padded_embeds: list[torch.Tensor] = list(img_embeds)
             if len(padded_embeds) < NUM_CAMERAS:
@@ -265,16 +282,26 @@ class Pi05App(torch.nn.Module):
                     torch.zeros_like(base)
                     for _ in range(NUM_CAMERAS - len(padded_embeds))
                 )
-            te_out = self.token_emb(
+            token_inputs = [
                 lang_tokens,
                 lang_mask.to(dtype=torch.float32),
                 *padded_embeds,
-            )
+            ]
+            if self._token_emb_has_camera_mask:
+                token_inputs.append(camera_mask)
+            elif len(img_embeds) < NUM_CAMERAS:
+                warnings.warn(
+                    "token_emb has no camera_mask input, so padded cameras won't be "
+                    "masked. Re-export token_emb to fix this.",
+                    stacklevel=2,
+                )
+            te_out = self.token_emb(*token_inputs)
         else:
             te_out = self.token_emb(
                 lang_tokens,
                 lang_mask.to(dtype=torch.float32),
                 *img_embeds,
+                camera_mask=camera_mask,
             )
         assert isinstance(te_out, tuple)
         (
@@ -600,7 +627,12 @@ class Pi05App(torch.nn.Module):
                         _suffix_sin,
                         _suffix_cos,
                         _full_att_4d,
-                    ) = token_emb(lang_tokens, lang_mask, *img_embeds)
+                    ) = token_emb(
+                        lang_tokens,
+                        lang_mask,
+                        *img_embeds,
+                        camera_mask=_camera_mask(img_embeds),
+                    )
                 tensors_per_input[0].append(prefix_emb)
                 tensors_per_input[1].append(prefix_att_2d)
                 tensors_per_input[2].append(prefix_sin)
@@ -648,7 +680,12 @@ class Pi05App(torch.nn.Module):
                     suffix_sin,
                     suffix_cos,
                     full_att_4d,
-                ) = token_emb(lang_tokens, lang_mask, *img_embeds)
+                ) = token_emb(
+                    lang_tokens,
+                    lang_mask,
+                    *img_embeds,
+                    camera_mask=_camera_mask(img_embeds),
+                )
 
                 rest_full = backbone_full(
                     prefix_emb, prefix_att_2d, prefix_sin, prefix_cos
