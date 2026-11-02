@@ -1,49 +1,24 @@
-applicable_scenarios:
-- Robotic Navigation
-- Camera
-dataset:
-- detection-datasets/coco
 description: DETR is a machine learning model that can detect objects (trained on COCO dataset).
 disabled_paths:
   float:
     tflite:
       scorecard_failure: 'Failing jobs: jgnz8e9qg'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Transformer based object detection model architecture developed by Roboflow.
 id: rf_detr
-imsdk_supported: true
 license: https://github.com/roboflow/rf-detr/blob/develop/LICENSE
 license_type: apache-2.0
-model_maker_id: roboflow
 name: RF-DETR
 outputs_to_skip_validation:
   '0': PSNR is not a meaningful metric for pixel-space bounding box coordinates
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- detr_resnet50_dc5
-- detr_resnet101_dc5
-- detr_resnet101
 research_paper: https://blog.roboflow.com/rf-detr/
 research_paper_title: RF-DETR A SOTA Real-Time Object Detection Model
 source_repo: https://github.com/roboflow/rf-detr
 supported_precisions:
 - float
 - w8a16
-status: published
-technical_details:
-  Input resolution: 512x512
-  Model checkpoint: RF-DETR-small
-  Supported variants: nano (384x384), small (512x512), medium (576x576), base (560x560)
-  Model size (float): 110 MB
-  Number of parameters: 28.5M
-  Model size (w8a16): 31.8 MB
 templates:
 - detr
 use_case: Object Detection

@@ -1,23 +1,8 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: GoogLeNet is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: googlenet
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: GoogLeNet
@@ -27,23 +12,12 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 69.8
-related_models:
-- mobilenet_v2
-- densenet121
-- squeezenet1_1
 research_paper: https://arxiv.org/abs/1409.4842
 research_paper_title: Going Deeper with Convolutions
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/googlenet.py
-status: published
 supported_precisions:
 - float
 - w8a8
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 25.3 MB
-  Model size (w8a8): 6.54 MB
-  Number of parameters: 6.62M
 templates:
 - imagenet_classifier
 use_case: Image Classification

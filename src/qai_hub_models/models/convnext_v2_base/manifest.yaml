@@ -1,26 +1,12 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
 description: ConvNextV2Base is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 disabled_paths:
   w8a16:
     qnn_dlc:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-85.900 %) above threshold (10.0 %)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: convnext_v2_base
-imsdk_supported: true
 license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 license_type: apache-2.0
 name: ConvNextV2-Base
@@ -30,26 +16,13 @@ numerics_benchmark:
   source: https://github.com/facebookresearch/ConvNeXt-V2/blob/main/README.md
   unit: '%'
   value: 86.8
-related_models:
-- convnext_tiny
-- convnext_base
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/2301.00808
 research_paper_title: 'ConvNeXt V2: Co-designing and Scaling ConvNets with Masked Autoencoders'
 source_repo: https://github.com/huggingface/transformers/blob/main/src/transformers/models/convnextv2/modeling_convnextv2.py
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - backbone
 - bu-auto
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 339 MB
-  Model size (w8a16): 91.7 MB
-  Number of parameters: 88.7M
 use_case: Image Classification

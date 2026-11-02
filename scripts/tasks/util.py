@@ -69,16 +69,21 @@ def check_manifest_field(model_name: str, field_name: str) -> bool:
 def check_scorecard_config_field(model_name: str, field_name: str) -> bool:
     """
     This process does not have the yaml package, so use this primitive way
-    to check if a scorecard-config field is true and apply branching logic within CI/scorecard.
+    to check if an internal-config field is true and apply branching logic within CI/scorecard.
     """
     yaml_path = (
-        Path(SCORECARD_PACKAGE_MODELS_ROOT) / model_name / "scorecard-config.yaml"
+        Path(SCORECARD_PACKAGE_MODELS_ROOT) / model_name / "internal-config.yaml"
     )
-    if yaml_path.exists():
-        with open(yaml_path) as f:
-            if f"{field_name}: true" in f.read():
-                return True
-    return False
+    # Static bench models have no config. For a recipe, returning False would
+    # silently *enable* scorecard when its author set skip_scorecard, so refuse.
+    if not yaml_path.exists():
+        if not (Path(PY_PACKAGE_MODELS_ROOT) / model_name / "manifest.yaml").exists():
+            return False
+        raise FileNotFoundError(
+            f"{model_name} has no {yaml_path}; cannot tell whether {field_name} is set."
+        )
+    with open(yaml_path) as f:
+        return f"{field_name}: true" in f.read()
 
 
 @functools.cache

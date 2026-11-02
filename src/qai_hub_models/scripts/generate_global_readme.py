@@ -18,6 +18,7 @@ from qai_hub_models.configs.manifest_yaml import (
     MODEL_USE_CASE,
     QAIHMModelManifest,
 )
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.path_helpers import (
     MODEL_IDS,
@@ -99,9 +100,9 @@ def generate_global_readme(
 ) -> tuple[Path, Path]:
     """Generate the repo README and PyPI README by filling in the model table.
 
+    *models* must already be filtered to published models.
     Returns (repo_readme_path, pypi_readme_path).
     """
-    models = [m for m in models if m.status == MODEL_STATUS.PUBLISHED]
     model_directory = _get_model_directory(models)
 
     paths: list[Path] = []
@@ -122,8 +123,12 @@ def generate_global_readme(
 
 
 def main() -> None:
-    """Generate the global README with a summary table for all models (including private ones)."""
-    models = [QAIHMModelManifest.from_model(mid) for mid in MODEL_IDS]
+    """Generate the global README with a summary table of published models."""
+    models = [
+        sc.manifest
+        for sc in (QAIHMModelInternalConfig.from_model(mid) for mid in MODEL_IDS)
+        if sc.status is MODEL_STATUS.PUBLISHED
+    ]
     generate_global_readme(models, QAIHM_REPO_ROOT, QAIHM_PACKAGE_SRC_ROOT)
 
 

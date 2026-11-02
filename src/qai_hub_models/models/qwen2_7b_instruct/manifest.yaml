@@ -2,48 +2,25 @@ additional_readme_section: |
   ## Deploying Qwen2-7B-Instruct on-device
 
   Please follow the [LLM on-device deployment]({genie_url}) tutorial.
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Customer Support
 description: The Qwen2-7B-Instruct is a state-of-the-art multilingual language model with 7.07 billion parameters, excelling in language understanding, generation, coding, and mathematics.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: qwen2_7b_instruct
 is_collection_model: true
 is_precompiled: true
 license: https://huggingface.co/Qwen/Qwen2-7B-Instruct/blob/main/LICENSE
 license_type: apache-2.0
-llm_details:
-  call_to_action: View Readme
-  genie_compatible: true
 model_type_llm: true
 name: Qwen2-7B-Instruct
 research_paper: https://arxiv.org/abs/2407.10671v1
 research_paper_title: Qwen2 Technical Report
 skip_example_usage: true
 source_repo: https://github.com/QwenLM/Qwen2.5
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - generative-ai
-technical_details:
-  Context length: '4096'
-  Information about the model parts: Prompt Processor and Token Generator are split into 5 parts each. Each corresponding Prompt Processor and Token Generator part share weights.
-  Input sequence length for Prompt Processor: '128'
-  Number of parameters: 7.07B
-  Quantization Type: w4a16 + w8a16 (few layers)
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: English, Chinese, German, French, Spanish, Portuguese, Italian, Dutch, Russian, Czech, Polish, Arabic, Persian, Hebrew, Turkish, Japanese, Korean, Vietnamese, Thai, Indonesian, Malay, Lao, Burmese, Cebuano, Khmer, Tagalog, Hindi, Bengali, Urdu.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (4096 tokens).
 templates:
 - llm
 use_case: Text Generation

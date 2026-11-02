@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Injury prevention training
-- Sports performance analysis
-- Posture recognition
-dataset:
-- coco
 datasets:
 - coco
 description: Movenet performs pose estimation on human images.
@@ -13,31 +7,16 @@ external_repos:
     commit_sha: d7262410af2776afe66d3f7a2282b64becb82601
     patches_filename: movenet_pytorch_patches.diff
     repo_url: https://github.com/lee-man/movenet-pytorch/
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Perform accurate human pose estimation.
 id: movenet
 license: http://www.apache.org/licenses/LICENSE-2.0
 license_type: apache-2.0
 name: Movenet
-related_models:
-- litehrnet
-- hrnet_pose
 research_paper: https://blog.tensorflow.org/2021/05/next-generation-pose-detection-with-movenet-and-tensorflowjs.html
 research_paper_title: 'MoveNet: Ultra fast and accurate pose detection model'
 source_repo: https://github.com/lee-man/movenet-pytorch
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
-technical_details:
-  Input resolution: 192x192
-  Model checkpoint: None
-  Model size (float): 8.91 MB
-  Number of parameters: 2.33M
 use_case: Pose Estimation

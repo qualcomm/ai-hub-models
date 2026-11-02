@@ -1,19 +1,8 @@
-applicable_scenarios:
-- Image Search
-- Content Moderation
-- Caption Creation
-dataset:
-- cococaptions
 datasets:
 - cococaptions
 description: Contrastive Language-Image Pre-Training (CLIP) uses a ViT like transformer to get visual features and a causal language model to get the text features. Both the text and visual features can then be used for a variety of zero-shot learning tasks.
 domain: Multimodal
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Multi-modal foundational model for vision and language tasks like image/text similarity and for zero-shot image classification.
 id: openai_clip
 license: https://github.com/openai/CLIP/blob/main/LICENSE
@@ -30,16 +19,9 @@ post_pip_install_commands:
 research_paper: https://arxiv.org/abs/2103.00020
 research_paper_title: Learning Transferable Visual Models From Natural Language Supervision
 source_repo: https://github.com/openai/CLIP/
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - foundation
-technical_details:
-  Image input resolution: 224x224
-  Model checkpoint: ViT-B/16
-  Model size (float): 571 MB
-  Number of parameters: 150M
-  Text context length: '77'
 use_case: Image Classification

@@ -1,13 +1,5 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
 description: OpusMT Japanese to English translation model is a state-of-the-art neural machine translation system designed for translating Japanese text into English. This model is based on the Marian transformer architecture and has been optimized for edge inference by splitting into encoder and decoder components with modified attention mechanisms. It exhibits robust performance for real-world translation tasks, making it highly reliable for practical applications. The model supports input sequences up to 256 tokens and can generate Japanese translations with high accuracy.
 domain: Multimodal
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
 headline: OpusMT Japanese to English neural machine translation model based on MarianMT transformer architecture.
 id: opus_mt_ja_en
 is_aimet: true
@@ -18,35 +10,15 @@ name: OpusMT-Ja-En
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
 - voice_ai
-related_models:
-- opus_mt_en_es
-- opus_mt_es_en
-- opus_mt_zh_en
 requires_aot_prepare: true
 research_paper: https://aclanthology.org/2020.eamt-1.61/
 research_paper_title: OPUS-MT – Building open translation services for the World
 source_repo: https://github.com/Helsinki-NLP/Opus-MT
-status: published
 supported_precisions:
 - w8a16
 - float
 tags:
 - foundation
-technical_details:
-  Attention heads: 8
-  Hidden dimension: 512
-  Input resolution: 256 tokens (Japanese text)
-  Max input sequence length: 256 tokens
-  Max output sequence length: 256 tokens
-  Model checkpoint: Helsinki-NLP/opus-mt-ja-en
-  Model size (decoder) (float): 340 MB
-  Model size (decoder) (w8a16): 90.8 MB
-  Model size (encoder) (float): 212 MB
-  Model size (encoder) (w8a16): 55.2 MB
-  Number of decoder layers: 6
-  Number of encoder layers: 6
-  Number of parameters (decoder): 55.7M
-  Number of parameters (encoder): 55.5M
 templates:
 - opus_mt
 use_case: Text Generation

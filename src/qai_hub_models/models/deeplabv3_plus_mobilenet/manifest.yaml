@@ -1,8 +1,3 @@
-applicable_scenarios:
-- Anomaly Detection
-- Inventory Management
-dataset:
-- VOC2012
 description: DeepLabV3 is designed for semantic segmentation at multiple scales, trained on the various datasets. It uses MobileNet as a backbone.
 domain: Computer Vision
 external_repos:
@@ -10,16 +5,9 @@ external_repos:
     commit_sha: 9135e104a7a51ea9effa9c6676a2fcffe6a6a2e6
     patches_filename: pytorch_deeplab_xception_patches.diff
     repo_url: https://github.com/jfzhang95/pytorch-deeplab-xception
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Deep Convolutional Neural Network model for semantic segmentation.
 id: deeplabv3_plus_mobilenet
-imsdk_supported: true
 license: https://github.com/jfzhang95/pytorch-deeplab-xception/blob/master/LICENSE
 license_type: mit
 name: DeepLabV3-Plus-MobileNet
@@ -29,23 +17,13 @@ numerics_benchmark:
   source: https://github.com/jfzhang95/pytorch-deeplab-xception
   unit: mIOU
   value: 70.8
-related_models:
-- fcn_resnet50
 research_paper: https://arxiv.org/abs/1706.05587
 research_paper_title: Rethinking Atrous Convolution for Semantic Image Segmentation
 source_repo: https://github.com/jfzhang95/pytorch-deeplab-xception
-status: published
 supported_precisions:
 - float
 - w8a16
 - w8a8
-technical_details:
-  Input resolution: 513x513
-  Model checkpoint: VOC2012
-  Model size (float): 22.2 MB
-  Model size (w8a16): 6.67 MB
-  Number of output classes: '21'
-  Number of parameters: 5.80M
 templates:
 - deeplab
 use_case: Semantic Segmentation

@@ -10,10 +10,8 @@ import json
 from prettytable import PrettyTable
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import (
-    NumericsAccuracyBenchmark,
-    QAIHMModelManifest,
-)
+from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics

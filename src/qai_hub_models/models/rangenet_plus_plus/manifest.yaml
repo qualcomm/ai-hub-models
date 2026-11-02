@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Autonomous Driving
-- Robotics
-- HD Mapping
-dataset:
-- semantickitti
 datasets:
 - pandaset
 - semantic_kitti
@@ -14,34 +8,19 @@ external_repos:
     commit_sha: 99b827f0228ff0e997473ac8e2cecbaa4af7d7c7
     patches_filename: lidar_bonnetal_patches.diff
     repo_url: https://github.com/PRBonn/lidar-bonnetal.git
-form_factors:
-- Auto
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time LiDAR point cloud semantic segmentation using range images.
 id: rangenet_plus_plus
 license: https://github.com/PRBonn/lidar-bonnetal/blob/master/LICENSE
 license_type: mit
 name: RangeNet-Plus-Plus
-related_models:
-- pidnet
-- ddrnet23_slim
 research_paper: https://ieeexplore.ieee.org/document/8967762
 research_paper_title: 'RangeNet++: Fast and Accurate LiDAR Semantic Segmentation'
 source_repo: https://github.com/PRBonn/lidar-bonnetal
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
 - bu-auto
-technical_details:
-  Backbone: DarkNet-53
-  Input channels: '5'
-  Input resolution: 64x2048
-  Model checkpoint: darknet53_rangenet++
-  Number of output classes: '20'
 use_case: Driver Assistance

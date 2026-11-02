@@ -25,7 +25,6 @@ from qai_hub_models_cli.proto_helpers._common import (
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models._version import __version__
-from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.proto_helpers import (
     domain_to_proto,
@@ -40,6 +39,7 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     _load_similar_devices_raw,
 )
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar, SpecialModelSetting
+from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
@@ -155,16 +155,15 @@ def _build_model_protos(
     fmts: list[Format],
     internal: bool = False,
 ) -> tuple[list[Path], str | None]:
-    manifest = QAIHMModelManifest.from_model(model_id)
-    assert manifest.status is not MODEL_STATUS.UNSET
-    if not internal and manifest.status != MODEL_STATUS.PUBLISHED:
-        return [], f"status={manifest.status.value}"
+    model_info = WebsiteModelInfo.from_model(model_id)
+    if not internal and not model_info.is_published:
+        return [], f"status={model_info.internal.status.value}"
 
     written: list[Path] = []
 
     output_dir.mkdir(parents=True, exist_ok=True)
     written.extend(
-        _write_proto_multi(manifest.to_proto(aihm_version), output_dir / "info", fmts)
+        _write_proto_multi(model_info.to_proto(aihm_version), output_dir / "info", fmts)
     )
 
     perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
@@ -186,7 +185,7 @@ def _build_model_protos(
             )
         )
 
-    if internal or not manifest.restrict_model_sharing:
+    if internal or not model_info.manifest.restrict_model_sharing:
         written.extend(
             _write_release_assets_proto(
                 model_id, aihm_version, output_dir, fmts, internal=internal
@@ -250,7 +249,8 @@ def cmd_website(args: argparse.Namespace) -> None:
     _copy_global_yamls(output_root, args.version)
 
     def build_model(model_id: str) -> tuple[int, str | None]:
-        manifest = QAIHMModelManifest.from_model(model_id)
+        info = WebsiteModelInfo.from_model(model_id)
+        manifest = info.manifest
         model_src = QAIHM_MODELS_ROOT / model_id
         model_dst = output_root / "models" / model_id
         model_dst.mkdir(parents=True, exist_ok=True)
@@ -261,7 +261,7 @@ def cmd_website(args: argparse.Namespace) -> None:
             src = (model_src / yaml_name).resolve()
             dst = (model_dst / yaml_name).resolve()
             if src.exists():
-                if manifest.status != MODEL_STATUS.PUBLISHED:
+                if not info.is_published:
                     # The website build is usually in-source (meaning it is targeting the repo source tree rather than dumped to a separate folder).
                     # We need to delete the in-source YAML file instead of just not copying it.
                     if src == dst:
@@ -273,14 +273,14 @@ def cmd_website(args: argparse.Namespace) -> None:
 
         # Derive info.yaml from manifest for the website
         info_dst = model_dst / "info.yaml"
-        if manifest.status == MODEL_STATUS.PUBLISHED:
-            manifest.to_website_info_yaml(info_dst)
+        if info.is_published:
+            info.to_website_info_yaml(info_dst)
             written += 1
         elif model_src.resolve() == model_dst.resolve() and info_dst.exists():
             # Delete unpublished model's info.yaml in in-source builds
             info_dst.unlink()
 
-        if manifest.restrict_model_sharing or manifest.status != MODEL_STATUS.PUBLISHED:
+        if manifest.restrict_model_sharing or not info.is_published:
             dst_yml = model_dst / "release-assets.yaml"
             # The website build is usually in-source (meaning it is targeting the repo source tree rather than dumped to a separate folder).
             # We need to delete the in-source YAML file instead of just not writing it.

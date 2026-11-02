@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Robotics
-dataset:
-- PickNPlace
 default_device: Dragonwing IQ-9075 EVK
 description: |
   GR00T N1.5 is a vision-language-action (VLA) model for generalist robot control. The model supports multiple robot embodiments and is designed for dexterous, long-horizon manipulation tasks.
@@ -12,10 +8,6 @@ external_repos:
     commit_sha: 4af2b622892f7dcb5aae5a3fb70bcb02dc217b96
     patches_filename: gr00t_patches.diff
     repo_url: https://github.com/NVIDIA/Isaac-GR00T
-form_factors:
-- Auto
-has_animated_banner: true
-has_static_banner: true
 headline: State-of-the-art vision-language-action model for dexterous robot manipulation, enabling zero-shot generalization across diverse embodiments via diffusion-based action generation.
 id: grootn15
 is_aimet: true
@@ -30,22 +22,14 @@ post_pip_install_commands:
   machine: gpu
 python_version_less_than: '3.13'
 python_version_less_than_reason: numpy<2 and onnxsim have no Python 3.13 wheels
-related_models:
-- pi05
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2503.14734
 research_paper_title: 'GR00T N1: An Open Foundation Model for Generalist Humanoid Robots'
 source_repo: https://github.com/NVIDIA/Isaac-GR00T/tree/n1.5-release
-status: published
 supported_precisions:
 - mixed
 - float
 tags:
 - generative-ai
 - robotics
-technical_details:
-  Input: |
-    RGB camera frames (one or more views), a natural language task instruction and robot proprioceptive state (joint positions/velocities).
-  Output: |
-    Action chunk representing predicted joint commands over the next N timesteps, generated via diffusion denoising.
 use_case: Robotics

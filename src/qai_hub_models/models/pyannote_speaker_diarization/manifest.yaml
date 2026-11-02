@@ -1,15 +1,7 @@
-applicable_scenarios:
-- Meeting Transcription
-- Smart Home
-- Accessibility
 description: |
   Pyannote Speaker Diarization is an open-source speaker diarization model that identifies "who spoke when" in an audio recording. It detects per-frame speaker activity and encodes speaker identity, enabling accurate multi-speaker attribution in meetings, interviews, and other multi-party conversations.
 disabled_paths: {}
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-has_static_banner: true
 headline: Open-source speaker diarization model identifying "who spoke when" in audio recordings.
 id: pyannote_speaker_diarization
 is_collection_model: true
@@ -19,21 +11,12 @@ name: Pyannote-Speaker-Diarization
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
 - voice_ai
-related_models:
-- whisper_small
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/1911.01255
 research_paper_title: 'pyannote.audio: neural building blocks for speaker diarization'
 source_repo: https://github.com/pyannote/pyannote-audio
-status: published
 supported_precisions:
 - mixed_with_float
 tags:
 - foundation
-technical_details:
-  Input resolution (embedding): 32 x 498 x 80 (batch x frames x mel-bins)
-  Input resolution (segmentation): 32 x 1 x 80000 (batch x channel x 5s at 16kHz)
-  Model checkpoint: pyannote/speaker-diarization-3.1
-  Number of speakers (segmentation output): 7 (powerset encoding for up to 3 speakers)
-  Quantization: Segmentation float, Embedding W8A16 via AI Hub
 use_case: Speaker Diarization

@@ -11,7 +11,7 @@ from pathlib import Path
 from packaging import version
 
 from qai_hub_models.cli.install import Node, NodeKind, build_install_order
-from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.utils.asset_loaders import load_yaml
 from qai_hub_models.utils.path_helpers import (
     MODEL_IDS,
@@ -44,7 +44,7 @@ def get_files_to_process() -> list[Path]:
             continue
 
         # skip model if it has opted out via "global_requirements_incompatible: True"
-        if QAIHMModelScorecardConfig.from_model(
+        if QAIHMModelInternalConfig.from_model(
             model_name
         ).global_requirements_incompatible:
             continue
@@ -87,7 +87,7 @@ def get_requirements(files: list[Path]) -> dict[str, str]:
 
                 if requirements.get(package, version) != version:
                     raise ValueError(
-                        f"ERROR: Version conflict for {package} in {file}: {requirements[package]} vs {version}. Use option global_requirements_incompatible: True in scorecard-config.yaml to bypass this check if needed."
+                        f"ERROR: Version conflict for {package} in {file}: {requirements[package]} vs {version}. Use option global_requirements_incompatible: True in internal-config.yaml to bypass this check if needed."
                     )
                 requirements[package] = version
 

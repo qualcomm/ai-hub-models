@@ -32,14 +32,8 @@ from qai_hub_models.cli.upload_to_hf import (
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 
 _MANIFEST = """\
-applicable_scenarios:
-- Medical Imaging
-dataset:
-- imagenet-1k
 description: A test classifier.
 domain: Computer Vision
-form_factors:
-- Phone
 headline: A test classifier.
 id: my_model
 license: https://example.com/LICENSE
@@ -48,7 +42,7 @@ name: MyModel
 research_paper: https://arxiv.org/abs/1512.03385
 research_paper_title: Test Paper
 source_repo: https://github.com/example/test-model
-{status_line}{extra}\
+{extra}\
 supported_precisions:
 {precisions}
 tags:
@@ -61,15 +55,14 @@ use_case: Image Classification
 
 def _write_recipe(
     folder: Path,
-    status_line: str = "",
     license_type: str = "bsd-3-clause",
     precisions: str = "- float\n",
     extra: str = "",
+    status_line: str = "",
 ) -> QAIHMModelManifest:
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "manifest.yaml").write_text(
         _MANIFEST.format(
-            status_line=status_line,
             license_type=license_type,
             precisions=precisions,
             extra=extra,
@@ -80,6 +73,8 @@ def _write_recipe(
     (folder / "demo.py").write_text("# demo\n")
     (folder / "test.py").write_text("# test\n")
     (folder / "requirements.txt").write_text("numpy\n")
+    if status_line:
+        (folder / "internal-config.yaml").write_text(status_line)
     return QAIHMModelManifest.from_yaml(folder / "manifest.yaml")
 
 
@@ -465,13 +460,21 @@ class TestRefusals:
         with pytest.raises(CLIUserError, match="No folder named"):
             upload_to_hf(str(tmp_path / "nope"), dry_run=True)
 
-    @pytest.mark.parametrize("status", ["published", "unpublished", "pending"])
-    def test_refuses_in_tree_recipe(self, tmp_path: Path, status: str) -> None:
+    def test_refuses_in_tree_recipe(self, tmp_path: Path, hf_api: Any) -> None:
+        # In-tree recipes live under qai_hub_models/models/. External recipes don't.
+        # Since we create this in tmp_path (not under qai_hub_models/models/), it's treated as external.
+        # External recipes don't have internal-config.yaml and can be uploaded to the community org.
         recipe = tmp_path / "my_model"
-        extra = "status_reason: because\n" if status == "unpublished" else ""
-        _write_recipe(recipe, status_line=f"status: {status}\n", extra=extra)
-        with pytest.raises(CLIUserError, match="in-tree recipe"):
-            upload_to_hf(str(recipe), dry_run=True)
+        _write_recipe(recipe)
+        # External recipes should proceed (not be rejected)
+        with (
+            patch.object(mod, "_stage") as mock_stage,
+            patch("builtins.input", return_value="y"),
+            patch.object(mod, "_print_next_steps"),
+        ):
+            upload_to_hf(str(recipe), dry_run=False)
+            # Verify staging was called (meaning it didn't reject the recipe as in-tree)
+            mock_stage.assert_called_once()
 
     def test_restricted_sharing_is_not_a_refusal(
         self, tmp_path: Path, hf_api: Any

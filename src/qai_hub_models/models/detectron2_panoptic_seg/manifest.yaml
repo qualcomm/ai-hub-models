@@ -1,19 +1,8 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- detection-datasets/coco
 datasets:
 - coco
 description: Detectron2-Panoptic-Segmentation is a machine learning model that performs panoptic segmentation (trained on COCO dataset), combining instance and semantic segmentation.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
-has_static_banner: true
 headline: Panoptic segmentation combining instance and semantic predictions on COCO.
 id: detectron2_panoptic_seg
 is_collection_model: true
@@ -30,19 +19,10 @@ post_pip_install_commands:
 - pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
 pre_pip_install_commands:
 - pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
-related_models:
-- detectron2_detection
-- mask2former
 source_repo: https://github.com/facebookresearch/detectron2/
-status: published
 supported_precisions:
 - float
 - mixed
-technical_details:
-  Input resolution: 800x800
-  Model checkpoint: panoptic_fpn_R_50_1x
-  Model size (float): 176 MB
-  Number of parameters: 46.0M
 templates:
 - detectron2
 - proposal_based_detection

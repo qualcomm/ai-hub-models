@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Incabinet driver monitoring
-- phone unlocking
-- building access control.
-dataset:
-- lfw
 description: MobileFaceNet is an efficient CNN that maps a 112x112 face image to a compact 128-dimensional embedding. Two embeddings are compared via cosine similarity to determine whether they belong to the same person, achieving 99.48% accuracy on the LFW benchmark. The model uses depthwise-separable convolutions and inverted residual blocks (MobileNetV2-style) to stay under 1M parameters, making it well-suited for real-time face verification on mobile and edge devices. Trained with ArcFace loss on MS-Celeb-1M.
 domain: Computer Vision
 external_repos:
@@ -11,13 +5,7 @@ external_repos:
     commit_sha: a6cc9032a659b615f477833e1a70b5e7931bcccc
     patches_filename: mobile_facenet_patches.diff
     repo_url: https://github.com/foamliu/MobileFaceNet.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Lightweight real-time face verification on-device.
 id: mobile_facenet
 license: https://github.com/foamliu/MobileFaceNet/blob/master/LICENSE
@@ -29,20 +17,11 @@ numerics_benchmark:
   source: https://github.com/foamliu/MobileFaceNet/blob/master/README.md
   unit: '%'
   value: 99.48
-related_models:
-- cavaface
 source_repo: https://github.com/foamliu/MobileFaceNet
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
 - bu-auto
-technical_details:
-  Embedding dimension: 128
-  Input resolution: 112x112
-  Model checkpoint: mobilefacenet.pt
-  Model size (float): 4MB
-  Number of parameters: 1M
 use_case: Object Detection

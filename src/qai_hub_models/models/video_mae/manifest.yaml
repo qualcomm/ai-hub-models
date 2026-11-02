@@ -1,6 +1,3 @@
-applicable_scenarios:
-- Camera
-- Action Recognition
 datasets:
 - kinetics400
 description: Video MAE (Masked Auto Encoder) is a network for doing video classification that uses the ViT (Vision Transformer) backbone.
@@ -9,14 +6,8 @@ external_repos:
   videomae:
     commit_sha: 14ef8d856287c94ef1f985fe30f958eb4ec2c55d
     repo_url: https://github.com/MCG-NJU/VideoMAE.git
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
-has_static_banner: true
 headline: Sports and human action recognition in videos.
 id: video_mae
-imsdk_supported: true
 license: https://github.com/MCG-NJU/VideoMAE/blob/main/LICENSE
 license_type: cc-by-4.0
 name: Video-MAE
@@ -26,24 +17,14 @@ numerics_benchmark:
   source: https://github.com/MCG-NJU/VideoMAE/blob/main/MODEL_ZOO.md
   unit: '%'
   value: 81.5
-related_models:
-- resnet_3d
-- resnet_2plus1d
-- resnet_mixed
 research_paper: https://arxiv.org/abs/2203.12602
 research_paper_title: Masked Autoencoders are Data-Efficient Learners for Self-Supervised Video Pre-Training
 source_repo: https://github.com/MCG-NJU/VideoMAE
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - backbone
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Kinectics-400
-  Model size (float): 335 MB
-  Number of parameters: 87.7M
 templates:
 - video_classifier
 use_case: Video Classification

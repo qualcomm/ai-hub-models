@@ -1,21 +1,8 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- detection-datasets/coco
 description: DETR is a machine learning model that can detect objects (trained on COCO dataset).
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Transformer based object detector with ResNet50 backbone.
 id: conditional_detr_resnet50
-imsdk_supported: true
 license: https://github.com/huggingface/transformers/blob/main/LICENSE
 license_type: apache-2.0
 name: Conditional-DETR-ResNet50
@@ -25,23 +12,12 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2108.06152
   unit: mAP
   value: 41.0
-related_models:
-- detr_resnet50_dc5
-- detr_resnet101_dc5
-- detr_resnet101
-- detr_resnet50
 research_paper: https://arxiv.org/abs/2108.06152
 research_paper_title: Conditional {DETR} for Fast Training Convergence
 source_repo: https://github.com/huggingface/transformers/tree/main/src/transformers/models/conditional_detr
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_fp16
-technical_details:
-  Input resolution: 480x480
-  Model checkpoint: ResNet50
-  Model size (float): 166 MB
-  Number of parameters: 43.6M
 templates:
 - detr
 use_case: Object Detection

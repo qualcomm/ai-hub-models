@@ -1,15 +1,7 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
 datasets:
 - common_voice
 description: PiperTTS is a high-quality multi-lingual text-to-speech library. This model uses the Amy English voice (medium quality). Its training data is licensed CC-BY-SA-4.0 per the mimic3-voices project (https://github.com/MycroftAI/mimic3-voices).
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
 headline: High-quality text-to-speech for English (Amy voice).
 id: pipertts_en_amy
 is_collection_model: true
@@ -30,26 +22,12 @@ readme_install_system_deps: |
   ```bash
   sudo apt install libportaudio2
   ```
-related_models:
-- pipertts_en
-- melotts_en
-- pipertts_de
 requires_aot_prepare: true
 research_paper: https://github.com/rhasspy/piper
 research_paper_title: PiperTTS High-quality Multi-lingual Multi-accent Text-to-Speech
 source_repo: https://github.com/rhasspy/piper
-status: published
 tags:
 - real-time
-technical_details:
-  Max decoded sequence length: 64 tokens
-  Model checkpoint: rhasspy/piper-checkpoints (en_US/amy/medium)
-  Model size (charsiu_decoder) (float): 21.9 MB
-  Model size (charsiu_encoder) (float): 57.7 MB
-  Model size (decoder) (float): 6.43 MB
-  Model size (encoder) (float): 28.9 MB
-  Model size (flow) (float): 28.4 MB
-  Model size (sdp) (float): 2.50 MB
 templates:
 - pipertts
 use_case: Audio Generation

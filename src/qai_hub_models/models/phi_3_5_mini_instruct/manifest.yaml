@@ -2,26 +2,13 @@ additional_readme_section: |
   ## Deploying Phi-3.5-mini-instruct on-device
 
   Please follow the [LLM on-device deployment](https://github.com/quic/ai-hub-apps/tree/main/tutorials/llm_on_genie) tutorial.
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Customer Support
 description: Phi-3.5-mini is a lightweight, state-of-the-art open model built upon datasets used for Phi-3 - synthetic data and filtered publicly available websites - with a focus on very high-quality, reasoning dense data. The model belongs to the Phi-3 model family and supports 128K token context length. The model underwent a rigorous enhancement process, incorporating both supervised fine-tuning, proximal policy optimization, and direct preference optimization to ensure precise instruction adherence and robust safety measures.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: phi_3_5_mini_instruct
 is_precompiled: true
 license: https://huggingface.co/microsoft/Phi-3.5-mini-instruct/blob/main/LICENSE
 license_type: mit
-llm_details:
-  call_to_action: Download
-  genie_compatible: true
 model_type_llm: true
 name: Phi-3.5-Mini-Instruct
 orchestrator_runtimes:
@@ -30,19 +17,9 @@ research_paper: https://arxiv.org/abs/2404.14219
 research_paper_title: 'Phi-3 Technical Report: A Highly Capable Language Model Locally on Your Phone'
 skip_example_usage: true
 source_repo: https://huggingface.co/microsoft/Phi-3.5-mini-instruct
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - generative-ai
-technical_details:
-  Context lengths: 512, 1024, 2048, 3072, 4096
-  Input sequence length for Prompt Processor: '128'
-  Measurement details: The model was benchmarked using a short prompt only. Since the model asset supports multiple context lengths, the short prompt may have triggered lower context lengths. The upper bound of the TTFT is approximated based on the performance of the model with the short prompt, and the assumption that TTFT scales linearly with the context length.
-  Minimum QAIRT SDK: 2.43.1
-  Number of parameters: 3.8B
-  Quantization Type: w4a16 + w8a16 (few layers)
-  Response Rate: Rate of response generation after the first response token.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (4096 tokens).
 use_case: Text Generation

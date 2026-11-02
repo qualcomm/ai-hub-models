@@ -1,22 +1,10 @@
-applicable_scenarios:
-- Augmented Reality
-- Visual Localisation
-- Robotics
-- Autonomous Vehicles
-dataset:
-- hpatches
 description: SuperPoint is a self-supervised framework for detecting interest points and computing their descriptors in a single forward pass. It uses a VGG-style encoder shared between a keypoint detector head and a descriptor head, trained via homographic adaptation on synthetic shapes and real images. The model outputs up to 500 keypoints per image with 256-dimensional L2-normalised descriptors, suitable for feature matching, visual localisation, and SLAM.
 domain: Computer Vision
 external_repos:
   superpoint:
     commit_sha: 1411bbd68c50163555d39c1b26e9e046ebd48f27
     repo_url: https://github.com/rpautrat/SuperPoint.git
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
-has_static_banner: true
 headline: Self-supervised keypoint detector and descriptor for image matching and SLAM.
 id: superpoint
 license: https://github.com/rpautrat/SuperPoint/blob/master/LICENSE.txt
@@ -31,18 +19,9 @@ numerics_benchmark:
 research_paper: https://arxiv.org/abs/1712.07629
 research_paper_title: 'SuperPoint: Self-Supervised Interest Point Detection and Description'
 source_repo: https://github.com/rpautrat/SuperPoint
-status: published
 supported_precisions:
 - float
 - w8a8
 tags:
 - real-time
-technical_details:
-  Descriptor dimension: 256
-  Input resolution: 480x640
-  Model checkpoint: superpoint_v6_from_tf.pth
-  Model size (float): 19.6 MB
-  Model size (w8a8): 3.22 MB
-  Number of parameters: 5.12M
-  Output keypoints (max): 500
 use_case: Pose Estimation

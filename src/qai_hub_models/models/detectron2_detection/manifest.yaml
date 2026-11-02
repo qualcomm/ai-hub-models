@@ -1,21 +1,9 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- detection-datasets/coco
 datasets:
 - coco
 description: Detectron2-Detection is a machine learning model that can detect objects (trained on COCO dataset).
 disabled_paths: {}
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: A next-generation library for object detection.
 id: detectron2_detection
 is_collection_model: true
@@ -32,21 +20,11 @@ post_pip_install_commands:
 - pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
 pre_pip_install_commands:
 - pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
-related_models:
-- detr_resnet50_dc5
-- detr_resnet101_dc5
-- detr_resnet101
 source_repo: https://github.com/facebookresearch/detectron2/
-status: published
 supported_precisions:
 - float
 - w8a16
 - w8a8
-technical_details:
-  Input resolution: 800x800
-  Model checkpoint: faster_rcnn_R_50_C4_1x
-  Model size (float): 129 MB
-  Number of parameters: 33.8M
 templates:
 - detectron2
 - proposal_based_detection

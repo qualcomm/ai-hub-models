@@ -15,8 +15,9 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scripts.generate_global_readme import generate_global_readme
 from qai_hub_models.scripts.generate_model_readme import generate_and_write_model_readme
 from qai_hub_models.utils.path_helpers import (
@@ -170,7 +171,7 @@ def _generate_template_external_repos(environment: Environment) -> list[str]:
 
 def generate_code_for_model(model_name: str) -> list[str]:
     model_dir = QAIHM_MODELS_ROOT / model_name
-    scorecard_config = QAIHMModelScorecardConfig.from_model(model_name)
+    scorecard_config = QAIHMModelInternalConfig.from_model(model_name)
     manifest = scorecard_config.manifest
 
     if scorecard_config.skip_export:
@@ -181,7 +182,7 @@ def generate_code_for_model(model_name: str) -> list[str]:
         loader=FileSystemLoader(Path(__file__).parent / "templates/"),
         keep_trailing_newline=True,
     )
-    model_status = manifest.status.value
+    model_status = scorecard_config.status.value
     generated_files: list[str] = []
     # Generate or clean up external repo files
     external_repos_dir = model_dir / "external_repos"
@@ -302,11 +303,15 @@ def main() -> None:
             raise ValueError(f"Failed to generate export files for {model}") from e
 
     # Generate global README
-    all_manifests = [QAIHMModelManifest.from_model(mid) for mid in MODEL_IDS]
+    published = [
+        sc.manifest
+        for sc in (QAIHMModelInternalConfig.from_model(mid) for mid in MODEL_IDS)
+        if sc.status is MODEL_STATUS.PUBLISHED
+    ]
     modified_files.extend(
         str(p)
         for p in generate_global_readme(
-            all_manifests, QAIHM_REPO_ROOT, QAIHM_PACKAGE_SRC_ROOT
+            published, QAIHM_REPO_ROOT, QAIHM_PACKAGE_SRC_ROOT
         )
     )
 

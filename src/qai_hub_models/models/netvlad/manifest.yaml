@@ -1,18 +1,6 @@
-applicable_scenarios:
-- Autonomous navigation and mapping
-- Augmented reality scene anchoring
-- Robotics localization
 default_device: Samsung Galaxy S25 (Family)
-description: NetVLAD is a CNN-based visual place recognition model that aggregates
-  dense local descriptors into a compact VLAD descriptor using a differentiable soft
-  assignment to learned cluster centroids. Built on a VGG-16 backbone, it produces
-  a 32,768-d L2-normalized descriptor suitable for nearest-neighbour place retrieval
-  across images taken under varying conditions.
+description: NetVLAD is a CNN-based visual place recognition model that aggregates dense local descriptors into a compact VLAD descriptor using a differentiable soft assignment to learned cluster centroids. Built on a VGG-16 backbone, it produces a 32,768-d L2-normalized descriptor suitable for nearest-neighbour place retrieval across images taken under varying conditions.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
 headline: CNN-based visual place recognition via VLAD descriptor aggregation.
 id: netvlad
@@ -25,12 +13,9 @@ numerics_benchmark:
   source: https://github.com/Nanne/pytorch-NetVlad
   unit: '%'
   value: 96.8
-related_models:
-- osnet
 research_paper: https://arxiv.org/abs/1511.07247
-research_paper_title: "NetVLAD: CNN architecture for weakly supervised place recognition"
+research_paper_title: 'NetVLAD: CNN architecture for weakly supervised place recognition'
 source_repo: https://github.com/Nanne/pytorch-NetVlad
-status: pending
 supported_precisions:
 - w8a8_mixed_int16
 - float

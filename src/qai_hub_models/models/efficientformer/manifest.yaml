@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
 description: EfficientFormer is a vision transformer model that can classify images from the Imagenet dataset.
 domain: Computer Vision
 external_repos:
@@ -11,18 +5,9 @@ external_repos:
     commit_sha: d01da426243a38303d0a35d01fc928b0e37d38d3
     patches_filename: efficientformer_patches.diff
     repo_url: https://github.com/snap-research/EfficientFormer
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-- Auto
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: efficientformer
-imsdk_supported: true
 license: https://github.com/snap-research/EfficientFormer?tab=License-1-ov-file#readme
 license_type: apache-2.0
 name: EfficientFormer
@@ -32,28 +17,14 @@ numerics_benchmark:
   source: https://github.com/snap-research/EfficientFormer
   unit: '%'
   value: 79.2
-private_perf_form_factors:
-- Auto
-related_models:
-- levit
-- efficientvit_b2_cls
-- efficientvit_l2_cls
-- squeezenet1_1
 research_paper: https://arxiv.org/abs/2212.08059
 research_paper_title: Rethinking Vision Transformers for MobileNet Size and Speed
 source_repo: https://github.com/snap-research/EfficientFormer
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: efficientformer_l1_300d
-  Model size (float): 46.9 MB
-  Model size (w8a16): 12.2 MB
-  Number of parameters: 12.3M
 templates:
 - imagenet_classifier
 use_case: Image Classification

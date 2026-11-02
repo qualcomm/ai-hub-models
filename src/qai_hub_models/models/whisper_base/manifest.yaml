@@ -1,15 +1,6 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
 description: HuggingFace Whisper-Base ASR (Automatic Speech Recognition) model is a state-of-the-art system designed for transcribing spoken language into written text. This model is based on the transformer architecture and has been optimized for edge inference by replacing Multi-Head Attention (MHA) with Single-Head Attention (SHA) and linear layers with convolutional (conv) layers. It exhibits robust performance in realistic, noisy environments, making it highly reliable for real-world applications. Specifically, it excels in long-form transcription, capable of accurately transcribing audio clips up to 30 seconds long. Time to the first token is the encoder's latency, while time to each additional token is decoder's latency, where we assume a max decoded length specified below.
 disabled_paths: {}
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: Transformer-based automatic speech recognition (ASR) model for multilingual transcription and translation available on HuggingFace.
 id: whisper_base
 is_collection_model: true
@@ -28,25 +19,12 @@ readme_install_system_deps: |
   ```
   winget install ffmpeg
   ```
-related_models:
-- whisper_tiny
-- whisper_small
-- huggingface_wavlm_base_plus
 requires_aot_prepare: true
 research_paper: https://cdn.openai.com/papers/whisper.pdf
 research_paper_title: Robust Speech Recognition via Large-Scale Weak Supervision
 source_repo: https://github.com/huggingface/transformers/tree/v4.42.3/src/transformers/models/whisper
-status: published
 tags:
 - foundation
-technical_details:
-  Input resolution: 80x3000 (30 seconds audio)
-  Max decoded sequence length: 200 tokens
-  Model checkpoint: openai/whisper-base
-  Model size (decoder) (float): 187 MB
-  Model size (encoder) (float): 90.7 MB
-  Number of parameters (decoder): 48.9M
-  Number of parameters (encoder): 23.7M
 templates:
 - hf_whisper
 use_case: Speech Recognition

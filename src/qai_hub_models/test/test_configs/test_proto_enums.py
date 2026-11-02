@@ -181,8 +181,6 @@ class TestTagMapping:
 class TestStatusMapping:
     def test_python_to_proto(self) -> None:
         for s in MODEL_STATUS:
-            if s is MODEL_STATUS.UNSET:
-                continue
             assert s.value in _STATUS_TO_PROTO, (
                 f"MODEL_STATUS.{s.name} has no proto mapping"
             )

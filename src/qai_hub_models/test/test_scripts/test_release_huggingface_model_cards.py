@@ -11,6 +11,7 @@ from unittest import mock
 
 from qai_hub_models._version import __version__ as qaihm_version
 from qai_hub_models.configs.manifest_yaml import MODEL_STATUS, QAIHMModelManifest
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scripts.release_huggingface_model_cards import (
     HF_REPO_NAMES_TO_NEVER_DEPRECATE,
@@ -92,8 +93,10 @@ def test_generate_and_dry_run_release_hf_model_cards() -> None:
         # Verify output for each model
         for model_id in model_ids:
             model_output_dir = output_dir / model_id
-            manifest = QAIHMModelManifest.from_model(model_id)
-            if manifest.status != MODEL_STATUS.PUBLISHED:
+            if (
+                QAIHMModelInternalConfig.from_model(model_id).status
+                != MODEL_STATUS.PUBLISHED
+            ):
                 assert not model_output_dir.exists(), (
                     f"Expected non-published model {model_id} to be skipped, but {model_output_dir} exists"
                 )
@@ -134,9 +137,10 @@ def test_generate_and_dry_run_release_hf_model_cards() -> None:
         # Verify release_assets.json is created for models with release assets
         models_with_manifest = 0
         for model_id in model_ids:
-            manifest = QAIHMModelManifest.from_model(model_id)
-            if manifest.status != MODEL_STATUS.PUBLISHED:
+            sc = QAIHMModelInternalConfig.from_model(model_id)
+            if sc.status != MODEL_STATUS.PUBLISHED:
                 continue
+            manifest = sc.manifest
             release_assets = QAIHMModelReleaseAssets.from_model(
                 model_id, not_exists_ok=True
             )

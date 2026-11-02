@@ -1,76 +1,41 @@
-name: Parakeet-TDT-0.6B-v3
-id: parakeet_tdt
-status: pending
-headline: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture.
+description: Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using TDT architecture with a FastConformer encoder and 2-layer LSTM predictor, split into Encoder, Decoder, and Joint components for efficient on-device inference across English and 25 European languages.
 disabled_paths:
   float:
     tflite:
       scorecard_failure: 'Failing jobs: jg9o0ojlg'
-  mixed_with_float:
+  mixed:
     tflite:
       scorecard_failure: 'Failing jobs: jg9o0ojlg'
-  mixed:
+  mixed_with_float:
     tflite:
       scorecard_failure: 'Failing jobs: jg9o0ojlg'
   w8a8:
     tflite:
       scorecard_failure: 'Failing jobs: jg9o0ojlg'
 domain: Audio
-description: Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using TDT architecture with a FastConformer encoder and 2-layer LSTM predictor, split into Encoder, Decoder, and Joint components for efficient on-device inference across English and 25 European languages.
-use_case: Speech Recognition
-tags:
-- foundation
-- real-time
-applicable_scenarios:
-- Voice Assistants
-- Transcription Services
-- Accessibility
-- Smart Home
-- Real-time Transcription
-related_models:
-- whisper_base
-- whisper_small
-- deepspeech2
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
-has_animated_banner: false
-dataset:
-- libri_speech
-technical_details:
-  Model checkpoint: nvidia/parakeet-tdt-0.6b-v3
-  Input resolution: 128 mel bins x variable time (16kHz mono audio)
-  Supported languages: English + 25 European languages
-  Number of parameters (encoder): 609.5M  # FastConformer (608.9M) + encoder projector (0.66M)
-  Model size (encoder) (float): 2270 MB
-  Number of parameters (decoder): 12.2M
-  Model size (decoder) (float): 47 MB
-  Number of parameters (joint): 5.3M
-  Model size (joint) (float): 20 MB
-  Total parameters: 627.0M
-  Vocabulary size: 8193 (8192 BPE + 1 blank)
-  TDT durations: 5 (0,1,2,3,4 frames)
-  WER (LibriSpeech test-clean): 1.93%
-  WER (LibriSpeech test-other): 3.59%
+headline: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture.
+id: parakeet_tdt
+is_collection_model: true
+license: https://creativecommons.org/licenses/by/4.0/legalcode.en
+license_type: cc-by-4.0
+name: Parakeet-TDT-0.6B-v3
 numerics_benchmark:
   dataset_name: libri_speech
   metric_name: Word Error Rate
   source: https://github.com/qcom-ai-hub/tetracode/issues/22220
   unit: WER
   value: 3.964
-
-license_type: cc-by-4.0
-research_paper: https://arxiv.org/abs/2509.14128
-research_paper_title: 'Canary-1B-v2 & Parakeet-TDT-0.6B-v3: Efficient and High-Performance Models for Multilingual ASR and AST'
-source_repo: https://github.com/NVIDIA/NeMo
-license: https://creativecommons.org/licenses/by/4.0/legalcode.en
-supported_precisions:
-  - float
-  - mixed_with_float
-  - mixed
-is_collection_model: true
 post_pip_install_commands:
 - command: pip install transformers==5.15.0 soundfile==0.14.0 librosa==0.10.0
   machine: any
+research_paper: https://arxiv.org/abs/2509.14128
+research_paper_title: 'Canary-1B-v2 & Parakeet-TDT-0.6B-v3: Efficient and High-Performance Models for Multilingual ASR and AST'
+source_repo: https://github.com/NVIDIA/NeMo
+supported_precisions:
+- float
+- mixed_with_float
+- mixed
+tags:
+- foundation
+- real-time
+use_case: Speech Recognition

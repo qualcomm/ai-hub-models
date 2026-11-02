@@ -1,0 +1,20 @@
+applicable_scenarios:
+- Factory Automation
+- Robotic Navigation
+- Camera
+has_animated_banner: true
+has_static_banner: true
+imsdk_supported: true
+related_models:
+- yolov3
+status: published
+technical_details:
+  2D detector: COCO-pretrained YOLOv3 (paper uses KITTI-trained MS-CNN)
+  Accuracy (2D AP E/M/H): ~73/59/45 (COCO YOLOv3) vs 92.98/89.04/77.17 (paper MS-CNN). Gap is due to the 2D detector only; VGG 3D head weights are identical to the paper.
+  Input resolution(VGG): 224x224
+  Input resolution(YOLO): 416x416
+  Model checkpoint: YOLOv3
+  Model size (vgg_3d_detection) (float): 176 MB
+  Model size (yolo_2d_detection) (float): 236 MB
+  Number of parameters (vgg_3d_detection): 46.1M
+  Number of parameters (yolo_2d_detection): 61.9M

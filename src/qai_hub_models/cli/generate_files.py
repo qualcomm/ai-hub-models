@@ -33,7 +33,10 @@ from qai_hub_models_cli.registry import default_alias
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.utils.asset_loaders import UNPUBLISHED_MODEL_WARNING
-from qai_hub_models.utils.export.context import resolve_recipe_dir
+from qai_hub_models.utils.export.context import (
+    resolve_publish_status,
+    resolve_recipe_dir,
+)
 from qai_hub_models.utils.path_helpers import QAIHM_PACKAGE_ROOT
 
 _TEMPLATES_DIR = QAIHM_PACKAGE_ROOT / "scripts" / "templates"
@@ -119,7 +122,7 @@ def write_readme(
 ) -> Path:
     """Render the model README from the manifest into ``<out_dir>/README.md``.
 
-    Standalone / external recipes (``status: unset``) get an external-flavored
+    Standalone / external recipes (outside ``qai_hub_models/models/``) get an external-flavored
     README whose commands take the folder name (``qai-hub-models install
     <folder>``, ``qai-hub-models demo <folder>``, ``qai-hub-models export
     <folder>``) and which drops the catalog-only Quick Start block, the
@@ -161,7 +164,8 @@ def write_readme(
             "generation (headline). Fill it in and re-run generate-files."
         )
 
-    is_external = manifest.status is MODEL_STATUS.UNSET
+    status = resolve_publish_status(folder)
+    is_external = status is None
 
     env = Environment(
         loader=FileSystemLoader(_TEMPLATES_DIR),
@@ -180,7 +184,9 @@ def write_readme(
     template_vars = get_shared_template_args(manifest)
     template_vars.update(
         {
-            "model_status": manifest.status.value,
+            # External recipes have no status; the template only shows the
+            # unpublished banner for in-tree recipes anyway.
+            "model_status": (status or MODEL_STATUS.PUBLISHED).value,
             "unpublished_model_warning": UNPUBLISHED_MODEL_WARNING,
             "model_headline": manifest.headline.strip("."),
             "model_package": manifest.get_package_name(),

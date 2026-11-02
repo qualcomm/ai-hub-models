@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Injury prevention training
-- Sports performance analysis
-- Posture recognition
 datasets:
 - cocowholebody
 description: RTMPose is a machine learning model that detects human pose and returns a location and confidence for each of 133 joints.
@@ -10,13 +6,7 @@ disabled_paths:
     qnn_dlc:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-51.485 mAP) above threshold (10.0 mAP)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Human pose estimation.
 id: rtmpose_body2d
 license: https://github.com/open-mmlab/mmpose/blob/main/LICENSE
@@ -30,20 +20,12 @@ numerics_benchmark:
   value: 51.7
 pre_pip_install_commands:
 - pip install mmpose==1.2.0 --no-deps
-related_models:
-- hrnet_pose
 research_paper: https://arxiv.org/abs/2303.07399
 research_paper_title: 'RTMPose: Real-Time Multi-Person Pose Estimation based on MMPose'
 source_repo: https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
-status: published
 supported_precisions:
 - float
 - w8a16
-technical_details:
-  Input resolution: 256x192
-  Model size (float): 68.5 MB
-  Model size (w8a16): 18.2 MB
-  Number of parameters: 17.9M
 templates:
 - mmpose
 use_case: Pose Estimation

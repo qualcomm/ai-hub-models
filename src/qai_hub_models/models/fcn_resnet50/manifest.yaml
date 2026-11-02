@@ -1,21 +1,8 @@
-applicable_scenarios:
-- Anomaly Detection
-- Inventory Management
-dataset:
-- coco
 description: FCN_ResNet50 is a machine learning model that can segment images from the COCO dataset. It uses ResNet50 as a backbone.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Fully-convolutional network model for image segmentation.
 id: fcn_resnet50
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: FCN-ResNet50
@@ -25,23 +12,12 @@ numerics_benchmark:
   source: AI Hub Models Reference Eval
   unit: mIOU
   value: 59.8
-related_models:
-- deeplabv3_plus_mobilenet
-- ddrnet23_slim
 research_paper: https://arxiv.org/abs/1411.4038
 research_paper_title: Fully Convolutional Networks for Semantic Segmentation
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/fcn.py
-status: published
 supported_precisions:
 - float
 - w8a8
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: COCO_WITH_VOC_LABELS_V1
-  Model size (float): 126 MB
-  Model size (w8a8): 32.2 MB
-  Number of output classes: '21'
-  Number of parameters: 33.0M
 templates:
 - deeplab
 use_case: Semantic Segmentation

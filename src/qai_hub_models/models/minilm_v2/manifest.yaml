@@ -1,46 +1,24 @@
-applicable_scenarios:
-- Semantic Search
-- Text Classification
-- Clustering
-dataset:
-- 1B+ training pairs from multiple sources
 description: All-MiniLM-L6-v2 maps sentences to a 384-dimensional dense vector space. Trained on 1B+ sentence pairs, it excels at semantic search, clustering, and sentence similarity tasks while being small enough to run on mobile devices.
 disabled_paths:
   w8a8:
     tflite:
       scorecard_failure: 'Failing jobs: jp2o8yzmg'
 domain: Multimodal
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Lightweight sentence embedding model for semantic similarity and search.
 id: minilm_v2
 license: https://github.com/UKPLab/sentence-transformers/blob/master/LICENSE
 license_type: apache-2.0
 name: MiniLM-v2
-related_models:
-- bert_base_uncased_hf
-- distil_bert_base_uncased_hf
 research_paper: https://arxiv.org/abs/1908.10084
 research_paper_title: 'Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks'
 source_repo: https://github.com/UKPLab/sentence-transformers
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - foundation
 - real-time
-technical_details:
-  Embedding dimension: 384
-  Input resolution: 128 tokens
-  Model checkpoint: sentence-transformers/all-MiniLM-L6-v2
-  Model size (float): 86.7 MB
-  Number of parameters: 22.7M
 templates:
 - bert_hf
 use_case: Text Generation

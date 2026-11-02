@@ -1,6 +1,3 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
 datasets:
 - common_voice
 description: Zipformer streaming ASR (Automatic Speech Recognition) model is a state-of-the-art system designed for transcribing spoken language into written text streamingly. This model is based on the transformer architecture and has been optimized for edge inference by replacing linear layers with convolutional (conv) layers. It exhibits robust performance in realistic, noisy environments, making it highly reliable for real-world applications. Specifically, it excels in long-form transcription, capable of accurately transcribing audios. Time to the first token is the encoder's latency, while time to each additional token is joiner's latency, where we assume a max decoded length specified below.
@@ -11,12 +8,6 @@ external_repos:
     commit_sha: 693f069de73fd91d7c2009571245d97221cc3a3f
     patches_filename: icefall_patches.diff
     repo_url: https://github.com/k2-fsa/icefall.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: Transformer-based automatic speech recognition (ASR) model for English and Chinese language.
 id: zipformer
 is_collection_model: true
@@ -27,26 +18,13 @@ post_pip_install_commands:
 - pip install k2==1.24.4.dev20251029+cpu.torch2.9.0 -f https://k2-fsa.github.io/k2/cpu.html
 pre_pip_install_commands:
 - pip install torch==2.9.0+cpu -f https://download.pytorch.org/whl/torch/
-related_models:
-- whisper_small
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2310.11230
 research_paper_title: Zipformer A faster and better encoder for automatic speech recognition
 source_repo: https://github.com/k2-fsa/icefall
-status: published
 supported_precisions:
 - float
 - mixed
 tags:
 - foundation
-technical_details:
-  Input resolution: 80x71 (0.71 seconds audio)
-  Max decoded sequence length: 200 tokens
-  Model checkpoint: pfluo/k2fsa-zipformer-chinese-english-mixed
-  Model size (decoder) (float): 13.2 MB
-  Model size (encoder) (float): 242 MB
-  Model size (joiner) (float): 12.2 MB
-  Number of parameters (decoder): 3.47M
-  Number of parameters (encoder): 63.2M
-  Number of parameters (joiner): 3.21M
 use_case: Speech Recognition

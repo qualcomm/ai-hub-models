@@ -1,22 +1,8 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: ConvNextTiny is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: convnext_tiny
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: ConvNext-Tiny
@@ -26,26 +12,15 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 82.5
-related_models:
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/2201.03545
 research_paper_title: A ConvNet for the 2020s
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/convnext.py
-status: published
 supported_precisions:
 - float
 - w8a16
 - w8a8
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 109 MB
-  Model size (w8a16): 28.9 MB
-  Number of parameters: 28.6M
 templates:
 - imagenet_classifier
 use_case: Image Classification

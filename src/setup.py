@@ -13,6 +13,7 @@ from setuptools_scm import get_version
 
 PACKAGE_ROOT = (pathlib.Path(__file__).parent / "qai_hub_models").absolute()
 MODELS_ROOT = PACKAGE_ROOT / "models"
+SCORECARD_MODELS_ROOT = PACKAGE_ROOT / "scorecard" / "models"
 REQS_FILENAME = "requirements.txt"
 
 # Packages under qai_hub_models that are excluded from release builds
@@ -32,10 +33,10 @@ IS_RELEASE_BUILD = os.environ.get("QAIHM_RELEASE_BUILD", "0").lower() in [
 def _get_model_status(
     model_dir: pathlib.Path,
 ) -> Literal["published", "unpublished", "pending"] | None:
-    manifest_yaml = model_dir / "manifest.yaml"
-    if not manifest_yaml.exists():
+    config_yaml = SCORECARD_MODELS_ROOT / model_dir.name / "internal-config.yaml"
+    if not config_yaml.exists():
         return None
-    with open(manifest_yaml) as f:
+    with open(config_yaml) as f:
         for line in f:
             if m := re.match(r"^status:\s*(\S+)", line):
                 out = m.group(1)

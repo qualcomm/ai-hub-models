@@ -1,25 +1,14 @@
-applicable_scenarios:
-- Protective Gear Detection
-- Mask Detection
 datasets:
 - coco
 description: Detect if a person is wearing personal protective equipments (PPE) in real-time.  This model's architecture was developed by Qualcomm. The model was trained by Qualcomm on a proprietary dataset, but can be used on any image.
 disabled_paths: {}
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Object detection for personal protective equipments (PPE).
 id: gear_guard_net
-imsdk_supported: true
 license: https://github.com/qualcomm/ai-hub-models/blob/main/LICENSE
 license_type: bsd-3-clause
 name: PPE-Detection
-status: published
 supported_precisions:
 - float
 - w8a16
@@ -27,14 +16,6 @@ supported_precisions:
 tags:
 - real-time
 - bu-iot
-technical_details:
-  Inference latency: RealTime
-  Input resolution: 320x192
-  Model size (float): 23.6 MB
-  Model size (w8a16): 6.65 MB
-  Model size (w8a8): 6.23 MB
-  Number of output classes: '2'
-  Number of parameters: 6.19M
 templates:
 - detection
 - gear_guard_net

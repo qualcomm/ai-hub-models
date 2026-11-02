@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import NumericsAccuracyBenchmark
+from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.numerics_yaml import (
     QAIHMModelNumerics,

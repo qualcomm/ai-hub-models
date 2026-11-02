@@ -1,25 +1,11 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- coco
 datasets:
 - coco
 description: Ultralytics YOLO-World is an open-vocabulary object detection model that uses a prompt-then-detect strategy to predict bounding boxes for user-specified classes.
 disabled_paths: {}
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time prompt based object detection optimized for mobile and edge by Ultralytics.
 id: yolo_world
-imsdk_supported: true
 is_collection_model: true
 license: https://github.com/AILab-CVC/YOLO-World/blob/master/LICENSE
 license_type: gpl-3.0
@@ -28,27 +14,16 @@ models:
 name: YOLO-WORLD
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- yolov8_det
-- yolov8_seg
 research_paper: https://arxiv.org/abs/2401.17270
 research_paper_title: 'YOLO-World: Real-Time Open-Vocabulary Object Detection'
 restrict_model_sharing: true
 source_repo: https://github.com/AILab-CVC/YOLO-World
-status: published
 supported_precisions:
 - float
 - w8a8
 - w8a16
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: yolov8s-worldv2
-  Model size (float): 48.2 MB
-  Model size (w8a16): 24.9 MB
-  Model size (w8a8): 12.4 MB
-  Number of parameters: 12.7M
 templates:
 - ultralytics
 - yolo

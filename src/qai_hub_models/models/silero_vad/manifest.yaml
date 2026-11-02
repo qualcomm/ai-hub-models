@@ -1,35 +1,17 @@
-applicable_scenarios:
-- Smart Home
-- Voice Assistants
-- Accessibility
-- Transcription Services
 description: Silero VAD is a compact, production-ready Voice Activity Detection model trained on a large multilingual corpus. It processes 32 ms audio chunks at 16 kHz and outputs a speech probability per chunk, enabling real-time detection of speech segments in streaming or file-based audio. The model uses an LSTM-based architecture and is well-suited for edge deployment on Qualcomm Snapdragon devices.
 disabled_paths: {}
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
 headline: Lightweight, high-accuracy voice activity detection model for real-time speech/silence classification.
 id: silero_vad
 license: https://github.com/snakers4/silero-vad/blob/master/LICENSE
 license_type: mit
 name: Silero-VAD
-related_models:
-- whisper_tiny
 research_paper: https://arxiv.org/abs/2108.10447
 research_paper_title: Silero VAD - pre-trained enterprise-grade Voice Activity Detector
 source_repo: https://github.com/snakers4/silero-vad
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
 tags:
 - real-time
-technical_details:
-  Input resolution: 512 samples (32 ms at 16 kHz)
-  Model size (float): 2.27 MB
-  Number of parameters: 0.24M
-  Supported sample rates: 16000 Hz
 use_case: Voice Activity Detection

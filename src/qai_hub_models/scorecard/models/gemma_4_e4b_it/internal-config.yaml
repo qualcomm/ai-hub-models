@@ -1,0 +1,30 @@
+applicable_scenarios:
+- Dialogue
+- Content Generation
+global_requirements_incompatible: true
+has_animated_banner: true
+has_static_banner: true
+llm_details:
+  call_to_action: Download and View Readme
+  genie_compatible: true
+  geniex_llamacpp_compatible: true
+numerics_threshold_override: 25.0
+related_models:
+- gemma_4_e2b_it
+- gemma_3n_e4b_it
+skip_evaluate: true
+standalone_components:
+  vision_encoder: Vision-Encoder
+status: published
+technical_details:
+  Input sequence length for Prompt Processor: '128'
+  Minimum QNN SDK version required: 2.45.0
+  Model architecture: Transformer with SigLIP-style ViT Vision Encoder, Per-Layer Embeddings (PLE), interleaved sliding-window/global attention with Grouped Query Attention (GQA), and shared KV layers.
+  Number of parameters: 4B (effective)
+  Precision: w4a16
+  Response Rate: Rate of response generation after the first response token.
+  Supported languages: Multilingual (trained on 140+ languages)
+  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt.
+  Use: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
+test_split: llm
+weekend_group: week2

@@ -20,8 +20,8 @@ from qai_hub_models.scorecard.artifacts import (
     ScorecardArtifact,
 )
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar
-from qai_hub_models.scorecard.scorecard_config_yaml import (
-    QAIHMModelScorecardConfig,
+from qai_hub_models.scorecard.internal_config_yaml import (
+    QAIHMModelInternalConfig,
     TestRunnerSplit,
 )
 from qai_hub_models.scorecard.static.list_models import (
@@ -201,7 +201,7 @@ def split_torch_models(
         torch_models = {
             m
             for m in torch_models
-            if QAIHMModelScorecardConfig.from_model(m).test_split
+            if QAIHMModelInternalConfig.from_model(m).test_split
             not in exclude_test_splits
         }
 
@@ -246,7 +246,7 @@ def split_torch_models(
         all_models_aot = []
         for model in all_torch_models:
             manifest = QAIHMModelManifest.from_model(model)
-            scorecard_config = QAIHMModelScorecardConfig.from_model(model)
+            scorecard_config = QAIHMModelInternalConfig.from_model(model)
             if scorecard_config.test_split != TestRunnerSplit.DEFAULT:
                 if manifest.requires_aot_prepare:
                     custom_splits_aot.setdefault(

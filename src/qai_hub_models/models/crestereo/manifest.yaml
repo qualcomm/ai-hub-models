@@ -1,8 +1,3 @@
-applicable_scenarios:
-- Robotics
-- AR/VR
-- Autonomous Driving
-- 3D Reconstruction
 description: CREStereo (Cascaded Recurrent Network with Adaptive Correlation) is a CVPR 2022 Oral paper that achieves state-of-the-art stereo matching accuracy.
 disabled_paths: {}
 domain: Computer Vision
@@ -11,32 +6,13 @@ external_repos:
     commit_sha: b6c7a9fe8dc2e9e56ba7b96f4677312309282d15
     patches_filename: crestereo_patches.diff
     repo_url: https://github.com/ibaiGorordo/CREStereo-Pytorch.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Cascaded recurrent stereo matching network for high-accuracy disparity estimation.
 id: crestereo
 license: https://github.com/megvii-research/CREStereo/blob/master/LICENSE
 license_type: apache-2.0
 name: CREStereo
-related_models:
-- stereonet
-- midas
-- depth_anything
-- depth_anything_v2
 research_paper: https://arxiv.org/abs/2203.11483
 research_paper_title: Practical Stereo Matching via Cascaded Recurrent Network with Adaptive Correlation
 source_repo: https://github.com/ibaiGorordo/CREStereo-Pytorch
-status: published
-technical_details:
-  Input: Rectified stereo pair — left and right RGB images
-  Input resolution: 240x320
-  Model checkpoint: CREStereo ETH3D pretrained (crestereo_eth3d.pt)
-  Model size (float): 20.7 MB
-  Number of parameters: 5.43M
-  Output: Disparity map
 use_case: Depth Estimation

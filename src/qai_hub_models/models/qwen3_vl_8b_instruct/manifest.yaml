@@ -1,6 +1,3 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
 description: Qwen3-VL is a vision-language model from Alibaba Cloud capable of understanding both text and images for multimodal reasoning tasks such as visual question answering and image captioning.
 disabled_paths:
   w4a16:
@@ -15,21 +12,13 @@ disabled_paths:
       - Samsung Galaxy S26 (Family)
       issue: https://github.com/qcom-ai-hub/tetracode/issues/21748
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: Multimodal 8B vision-language model with enhanced visual reasoning capabilities.
 id: qwen3_vl_8b_instruct
 is_aimet: true
 is_collection_model: true
 license: https://www.apache.org/licenses/LICENSE-2.0
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download and View Readme
-  genie_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -87,10 +76,6 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
-related_models:
-- qwen3_vl_2b_instruct
-- qwen3_vl_4b_instruct
-- qwen2_5_vl_7b_instruct
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2505.09388
 research_paper_title: Qwen3 Technical Report
@@ -104,18 +89,12 @@ runtime_technical_details:
     model_infer_id: ai-hub-models/Qwen3-VL-8B-Instruct
 separate_quantize_script: true
 source_repo: https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - vlm
 - generative-ai
-technical_details:
-  Model architecture: Transformer with ViT Vision Encoder, Grouped Query Attention (GQA), and SwiGLU activation.
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: 100+ languages and dialects
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt.
 templates:
 - llm
 - qwen3_vl

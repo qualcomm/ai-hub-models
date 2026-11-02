@@ -29,12 +29,12 @@ from qai_hub_models.scorecard.execution_helpers import (
     get_evaluation_parameterized_pytest_config,
     get_model_test_parameterizations,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.results.yaml import ComponentNamesYaml
-from qai_hub_models.scorecard.scorecard_config_yaml import (
-    QAIHMModelScorecardConfig,
+from qai_hub_models.scorecard.internal_config_yaml import (
+    QAIHMModelInternalConfig,
     TestRunnerSplit,
 )
+from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.results.yaml import ComponentNamesYaml
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
 )
@@ -62,7 +62,7 @@ def _extract_codegen_test_options(
     bool,
     bool,
 ]:
-    sc = QAIHMModelScorecardConfig.from_model(model_id)
+    sc = QAIHMModelInternalConfig.from_model(model_id)
     manifest = sc.manifest
     return (
         sc.skip_hub_tests_and_scorecard or sc.skip_scorecard,
@@ -244,7 +244,7 @@ def count_device_jobs(
     enabled_torch_models = {
         m
         for m in enabled_torch_models
-        if QAIHMModelScorecardConfig.from_model(m).test_split is not TestRunnerSplit.LLM
+        if QAIHMModelInternalConfig.from_model(m).test_split is not TestRunnerSplit.LLM
     }
     for model_id in enabled_torch_models:
         # Get profile & inference job paramaterizations, concat them

@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Automotive
-- Autonomous Driving
-- Camera
-dataset:
-- cityscapes
 description: EfficientViT is a machine learning model that can segment images from the Cityscape dataset. It has lightweight and hardware-efficient operations and thus delivers significant speedup on diverse hardware platforms
 disabled_paths:
   float:
@@ -16,39 +10,19 @@ disabled_paths:
     tflite:
       scorecard_failure: 'Failing jobs: jp3z2ymx5'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Semantic segmentation in higher resuolution.
 id: efficientvit_l2_seg
 license: https://github.com/CVHub520/efficientvit/blob/main/LICENSE
 license_type: bsd-3-clause
 name: EfficientViT-l2-seg
 num_calibration_samples: 5
-private_perf_form_factors:
-- Auto
-related_models:
-- ffnet_54s
-- ffnet_78s
-- deeplabv3_plus_mobilenet
-- ddrnet23_slim
 research_paper: https://arxiv.org/abs/2205.14756
 research_paper_title: 'EfficientViT: Multi-Scale Linear Attention for High-Resolution Dense Prediction'
 source_repo: https://github.com/CVHub520/efficientvit
-status: pending
-status_reason: No successful runtimes in scorecard (this field was auto-populated by the scorecard run)
 tags:
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 2048x1024
-  Model checkpoint: l2.pt
-  Model size (float): 201 MB
-  Number of output classes: '19'
 templates:
 - cityscapes_segmentation
 - efficientvit

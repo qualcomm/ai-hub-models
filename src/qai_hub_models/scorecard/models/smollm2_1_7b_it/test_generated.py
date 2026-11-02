@@ -19,7 +19,6 @@ import qai_hub_models.models.smollm2_1_7b_it as _model_module
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.models.smollm2_1_7b_it import MODEL_ID, Model
-from qai_hub_models.models.templates.llm.test import stub_llm_checkpoint_resolution
 from qai_hub_models.scorecard import (
     ScorecardCompilePath,
     ScorecardDevice,
@@ -28,15 +27,19 @@ from qai_hub_models.scorecard import (
 from qai_hub_models.scorecard.errors import CachedScorecardJobError
 from qai_hub_models.scorecard.execution_helpers import (
     get_compile_parameterized_pytest_config,
+    get_evaluation_parameterized_pytest_config,
     get_export_parameterized_pytest_config,
     get_link_parameterized_pytest_config,
+    get_profile_parameterized_pytest_config,
     pytest_device_idfn,
 )
 from qai_hub_models.scorecard.utils.testing import skip_invalid_runtime_device
 from qai_hub_models.scorecard.utils.testing_export_eval import (
+    accuracy_on_sample_inputs_via_export,
     compile_via_export,
     export_test_e2e,
     link_via_export,
+    profile_via_export,
 )
 from qai_hub_models.utils.export.compile import (
     run_multi_graph_collection_compile as compile_model,
@@ -45,6 +48,9 @@ from qai_hub_models.utils.export.context import resolve_recipe_dir
 from qai_hub_models.utils.export.dispatch import select_pipeline
 from qai_hub_models.utils.export.link import (
     run_multi_graph_collection_link as link_model,
+)
+from qai_hub_models.utils.export.profile import (
+    run_multi_graph_collection_profile as profile_model,
 )
 from qai_hub_models.utils.export.upload import (
     upload_multi_graph_collection_source as upload_model,
@@ -66,12 +72,6 @@ HAS_EVAL_DATASET = len(Model.get_eval_dataset_classes()) > 0
 export_model = select_pipeline(resolve_recipe_dir(MODEL_ID))
 
 
-@pytest.fixture
-def _llm_stub_checkpoint_resolution() -> Generator[None, None, None]:
-    with stub_llm_checkpoint_resolution(Model):
-        yield
-
-
 @pytest.mark.compile
 def test_runtime_model_validation() -> None:
     perform_runtime_model_validation(
@@ -86,7 +86,6 @@ def test_runtime_model_validation() -> None:
         ENABLED_PRECISION_RUNTIMES,
         PASSING_PRECISION_RUNTIMES,
         can_use_quantize_job=False,
-        is_llm=True,
     ),
     ids=pytest_device_idfn,
 )
@@ -117,7 +116,6 @@ def test_compile(
         ENABLED_PRECISION_RUNTIMES,
         PASSING_PRECISION_RUNTIMES,
         can_use_quantize_job=False,
-        is_llm=True,
     ),
     ids=pytest_device_idfn,
 )
@@ -129,6 +127,34 @@ def test_link(
     try:
         link_via_export(
             link_model,
+            MODEL_ID,
+            Model.from_pretrained(checkpoint=f"DEFAULT_{str(precision).upper()}"),
+            precision,
+            scorecard_path,
+            device,
+        )
+    except CachedScorecardJobError as e:
+        pytest.skip(str(e))
+
+
+@pytest.mark.parametrize(
+    ("precision", "scorecard_path", "device"),
+    get_profile_parameterized_pytest_config(
+        MODEL_ID,
+        ENABLED_PRECISION_RUNTIMES,
+        PASSING_PRECISION_RUNTIMES,
+        can_use_quantize_job=False,
+    ),
+    ids=pytest_device_idfn,
+)
+@pytest.mark.profile
+def test_profile(
+    precision: Precision, scorecard_path: ScorecardProfilePath, device: ScorecardDevice
+) -> None:
+    skip_invalid_runtime_device(Model, scorecard_path.runtime, device)
+    try:
+        profile_via_export(
+            profile_model,
             MODEL_ID,
             Model.from_pretrained(checkpoint=f"DEFAULT_{str(precision).upper()}"),
             precision,
@@ -163,6 +189,38 @@ def torch_evaluate_mock_outputs(
 
 @pytest.mark.parametrize(
     ("precision", "scorecard_path", "device"),
+    get_evaluation_parameterized_pytest_config(
+        MODEL_ID,
+        EVAL_DEVICE,
+        ENABLED_PRECISION_RUNTIMES,
+        PASSING_PRECISION_RUNTIMES,
+        can_use_quantize_job=False,
+    ),
+    ids=pytest_device_idfn,
+)
+@pytest.mark.compute_device_accuracy
+def test_val_accuracy(
+    precision: Precision,
+    scorecard_path: ScorecardProfilePath,
+    device: ScorecardDevice,
+    torch_val_outputs: list[np.ndarray],
+    torch_evaluate_mock_outputs: list[torch.Tensor | tuple[torch.Tensor, ...]],
+) -> None:
+    try:
+        accuracy_on_sample_inputs_via_export(
+            export_model,
+            MODEL_ID,
+            Model.from_pretrained(checkpoint=f"DEFAULT_{str(precision).upper()}"),
+            precision,
+            scorecard_path,
+            device,
+        )
+    except CachedScorecardJobError as e:
+        pytest.skip(str(e))
+
+
+@pytest.mark.parametrize(
+    ("precision", "scorecard_path", "device"),
     get_export_parameterized_pytest_config(
         MODEL_ID,
         EVAL_DEVICE,
@@ -170,12 +228,10 @@ def torch_evaluate_mock_outputs(
         PASSING_PRECISION_RUNTIMES,
         can_use_quantize_job=False,
         requires_aot_prepare=True,
-        is_llm=True,
     ),
     ids=pytest_device_idfn,
 )
-@pytest.mark.llm_export
-@pytest.mark.usefixtures("_llm_stub_checkpoint_resolution")
+@pytest.mark.export
 def test_export(
     precision: Precision, scorecard_path: ScorecardProfilePath, device: ScorecardDevice
 ) -> None:

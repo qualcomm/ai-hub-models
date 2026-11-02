@@ -1,41 +1,23 @@
 name: AG-Pose
 id: agpose
-status: pending
 headline: Category-level 6D object pose estimation.
 domain: Computer Vision
 description: AG-Pose is a category-level 6D object pose estimation model that predicts rotation, translation, and size of objects from RGB-D input. It uses DINOv2-S (ViT-S/14) as the RGB backbone and PointNet++ for 3D point cloud processing, with an Instance-Adaptive Keypoint Detector (IAKD) and Geometric-Aware Feature Aggregator (GAFA) for robust pose estimation across 6 object categories.
-use_case: Pose Estimation
-tags: []
-dataset: ["nocs_real275"]
-applicable_scenarios:
-  - Robotic manipulation
-  - Augmented reality
-  - Scene understanding
-form_factors:
-  - Phone
-  - Tablet
-  - IoT
 numerics_benchmark:
   dataset_name: nocs_real275
   metric_name: Mean Average Precision
   value: 57
   unit: mAP@5deg2cm
   source: https://github.com/Leeiieeo/AG-Pose
-has_static_banner: true
-has_animated_banner: false
-technical_details:
-  Model checkpoint: epoch_30.pt
-  Input resolution: 1 x 3 x 224 x 224
-  Number of parameters: 30.4M
-  Model size (float): ~116 MB
-  Supported categories: bottle, bowl, camera, can, laptop, mug
+use_case: Pose Estimation
+tags: []
 license_type: mit
 research_paper: https://arxiv.org/abs/2403.19527
 research_paper_title: 'AG-Pose: Instance-Adaptive and Geometric-Aware Keypoint Learning for Category-Level 6D Object Pose Estimation'
 source_repo: https://github.com/Leeiieeo/AG-Pose
 license: https://github.com/Leeiieeo/AG-Pose/blob/main/LICENSE
 supported_precisions:
-  - float
+- float
 has_on_target_demo: true
 is_collection_model: true
 external_repos:

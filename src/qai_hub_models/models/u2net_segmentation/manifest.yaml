@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Background Removal
-- Portrait Segmentation
-- E-Commerce Product Imaging
-dataset:
-- duts
 description: U2-Net is a machine learning model for salient object detection and foreground extraction. It uses a two-level nested U-structure (RSU blocks) to capture both local and global context at multiple scales, producing high-quality binary foreground masks. The model is trained on the DUTS dataset and is well-suited for background removal, portrait segmentation, and object extraction on mobile and edge devices.
 disabled_paths:
   float:
@@ -17,13 +11,7 @@ external_repos:
   u2net:
     commit_sha: ac7e1c817ecab7c7dff5ce6b1abba61cd213ff29
     repo_url: https://github.com/xuebinqin/U-2-Net.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
 has_on_target_demo: true
-has_static_banner: true
 headline: Salient object segmentation for high-quality foreground extraction.
 id: u2net_segmentation
 license: https://github.com/xuebinqin/U-2-Net/blob/master/LICENSE
@@ -35,20 +23,12 @@ numerics_benchmark:
   source: AI Hub Models Reference Eval
   unit: MAE
   value: 0.0437
-related_models:
-- unet_segmentation
 research_paper: https://arxiv.org/abs/2005.09007
 research_paper_title: 'U^2-Net: Going Deeper with Nested U-Structure for Salient Object Detection'
 source_repo: https://github.com/xuebinqin/U-2-Net
-status: published
 supported_precisions:
 - float
 - w8a8
 tags:
 - real-time
-technical_details:
-  Input resolution: 320x320
-  Model checkpoint: u2net.pth
-  Number of output classes: 1 (salient foreground mask)
-  Number of parameters: 44.0M
 use_case: Semantic Segmentation

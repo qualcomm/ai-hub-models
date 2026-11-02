@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from packaging.requirements import InvalidRequirement, Requirement
@@ -44,9 +44,11 @@ from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.device import CANARY_DEVICES
 from qai_hub_models.utils.export.context import (
     import_recipe_module,
+    is_in_tree_recipe,
     resolve_manifest,
     resolve_model_app_cls,
     resolve_model_cls,
+    resolve_publish_status,
     resolve_recipe_dir,
 )
 from qai_hub_models.utils.input_spec import InputSpec, make_torch_inputs
@@ -58,6 +60,9 @@ from qai_hub_models.utils.path_helpers import (
 )
 from qai_hub_models.utils.url_check import head_check_urls
 from qai_hub_models.utils.validation import perform_runtime_model_validation
+
+if TYPE_CHECKING:
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 
 
 class Status(Enum):
@@ -117,11 +122,7 @@ OPTIONAL_INIT_EXPORTS = ("App",)
 
 
 def _is_in_tree(source_dir: Path) -> bool:
-    try:
-        source_dir.resolve().relative_to(QAIHM_MODELS_ROOT.resolve())
-    except ValueError:
-        return False
-    return True
+    return is_in_tree_recipe(source_dir)
 
 
 # =========================================================================
@@ -381,7 +382,7 @@ def _check_manifest(source_dir: Path, report: Report) -> QAIHMModelManifest | No
         report.add(Result("manifest.yaml validates", "Manifest", Status.FAIL, str(exc)))
 
     _check_id_matches_folder(source_dir, raw_manifest, report)
-    _check_status_not_unset(source_dir, raw_manifest, report)
+    _check_publish_status(source_dir, report)
     _check_external_repo_shas(raw_manifest, report)
     return raw_manifest
 
@@ -407,32 +408,29 @@ def _check_id_matches_folder(
         report.add(Result("id matches folder name", "Manifest", Status.PASS))
 
 
-def _check_status_not_unset(
-    source_dir: Path, manifest: QAIHMModelManifest, report: Report
-) -> None:
+def _check_publish_status(source_dir: Path, report: Report) -> None:
     if not _is_in_tree(source_dir):
         return
-    if manifest.status is MODEL_STATUS.UNSET:
+    try:
+        status = resolve_publish_status(source_dir)
+    except Exception as exc:
         report.add(
             Result(
                 "status set (in-tree recipe)",
                 "Manifest",
                 Status.FAIL,
                 (
-                    "in-tree recipes must set `status:` to one of published, "
+                    f"{exc.__class__.__name__}: {exc}. In-tree recipes must set "
+                    "`status:` in internal-config.yaml to one of published, "
                     "pending, or unpublished."
                 ),
             )
         )
-    else:
-        report.add(
-            Result(
-                "status set (in-tree recipe)",
-                "Manifest",
-                Status.PASS,
-                manifest.status.value,
-            )
-        )
+        return
+    assert status is not None
+    report.add(
+        Result("status set (in-tree recipe)", "Manifest", Status.PASS, status.value)
+    )
 
 
 def _check_external_repo_shas(manifest: QAIHMModelManifest, report: Report) -> None:
@@ -504,18 +502,18 @@ def _recipe_opts_out_of_global_requirements(
     """Whether the recipe opts out of global_requirements.txt version pins.
 
     Set via ``global_requirements_incompatible: true`` in the model's
-    ``scorecard-config.yaml``. Standalone recipes (no in-tree model folder)
+    ``internal-config.yaml``. Standalone recipes (no in-tree model folder)
     cannot set it.
     """
     if manifest is None or manifest.id is None or manifest.id not in MODEL_IDS:
         # External recipes do not need to match the global requirement list.
         return True
 
-    from qai_hub_models.scorecard.scorecard_config_yaml import (
-        QAIHMModelScorecardConfig,
+    from qai_hub_models.scorecard.internal_config_yaml import (
+        QAIHMModelInternalConfig,
     )
 
-    return QAIHMModelScorecardConfig.from_model(
+    return QAIHMModelInternalConfig.from_model(
         manifest.id
     ).global_requirements_incompatible
 
@@ -1419,10 +1417,11 @@ def _check_headline_period(manifest: QAIHMModelManifest, report: Report) -> None
     _add(report, "headline ends with period", Status.PASS)
 
 
-def _check_related_not_self(manifest: QAIHMModelManifest, report: Report) -> None:
+def _check_related_not_self(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
     if manifest.id is None:
         return
-    for r_model in manifest.related_models:
+    for r_model in info.internal.related_models:
         if r_model == manifest.id:
             _add(
                 report,
@@ -1449,8 +1448,9 @@ def _check_arxiv_abs(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "arxiv link is /abs/", Status.PASS)
 
 
-def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is MODEL_STATUS.UNPUBLISHED and not manifest.status_reason:
+def _check_status_reason(info: WebsiteModelInfo, report: Report) -> None:
+    internal = info.internal
+    if internal.status is MODEL_STATUS.UNPUBLISHED and not internal.status_reason:
         _add(
             report,
             "status_reason coupled with status",
@@ -1458,7 +1458,7 @@ def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
             "unpublished models must set status_reason with an issue link.",
         )
         return
-    if manifest.status is MODEL_STATUS.PUBLISHED and manifest.status_reason:
+    if internal.status is MODEL_STATUS.PUBLISHED and internal.status_reason:
         _add(
             report,
             "status_reason coupled with status",
@@ -1469,10 +1469,10 @@ def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "status_reason coupled with status", Status.PASS)
 
 
-def _check_can_publish(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is not MODEL_STATUS.PUBLISHED:
+def _check_can_publish(info: WebsiteModelInfo, report: Report) -> None:
+    if info.internal.status is not MODEL_STATUS.PUBLISHED:
         return
-    can_publish, reason = manifest.can_promote_to_published()
+    can_publish, reason = info.can_promote_to_published()
     if not can_publish:
         _add(
             report,
@@ -1484,8 +1484,9 @@ def _check_can_publish(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "can be promoted to published", Status.PASS)
 
 
-def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is not MODEL_STATUS.PUBLISHED or manifest.id is None:
+def _check_published_artifacts(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
+    if info.internal.status is not MODEL_STATUS.PUBLISHED or manifest.id is None:
         return
     pkg_path = manifest.get_package_path()
     problems: list[str] = []
@@ -1495,7 +1496,7 @@ def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> 
         problems.append("perf.yaml missing (published models need one)")
     if not manifest.supports_at_least_1_runtime:
         problems.append("no runtime supported")
-    if not manifest.has_static_banner:
+    if not info.internal.has_static_banner:
         problems.append("has_static_banner is false")
     if problems:
         _add(
@@ -1508,13 +1509,11 @@ def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> 
     _add(report, "published artifacts present", Status.PASS)
 
 
-def _check_numerics_benchmark(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.numerics_benchmark is None:
+def _check_numerics_benchmark(info: WebsiteModelInfo, report: Report) -> None:
+    benchmark = info.manifest.numerics_benchmark
+    if benchmark is None:
         return
-    pair = (
-        manifest.numerics_benchmark.metric_name,
-        manifest.numerics_benchmark.unit,
-    )
+    pair = (benchmark.metric_name, benchmark.unit)
     if pair not in VALID_METRIC_PAIRS:
         _add(
             report,
@@ -1538,14 +1537,12 @@ def _check_default_device_canary(manifest: QAIHMModelManifest, report: Report) -
     _add(report, "default_device in CANARY_DEVICES", Status.PASS)
 
 
-def _check_llm_call_to_action(manifest: QAIHMModelManifest, report: Report) -> None:
-    if (
-        manifest.id is None
-        or not manifest.model_type_llm
-        or manifest.llm_details is None
-    ):
+def _check_llm_call_to_action(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
+    llm_details = info.internal.llm_details
+    if manifest.id is None or not manifest.model_type_llm or llm_details is None:
         return
-    cta = manifest.llm_details.call_to_action
+    cta = llm_details.call_to_action
     download_ctas = {
         LLM_CALL_TO_ACTION.DOWNLOAD,
         LLM_CALL_TO_ACTION.DOWNLOAD_AND_VIEW_README,
@@ -1590,12 +1587,13 @@ def _check_qaihm_repo_path(manifest: QAIHMModelManifest, report: Report) -> None
 
 
 def _collect_web_asset_urls(
-    manifest: QAIHMModelManifest,
+    info: WebsiteModelInfo,
 ) -> list[tuple[str, str, str]]:
+    manifest = info.manifest
     if manifest.id is None:
         return []
     urls: list[tuple[str, str, str]] = []
-    if manifest.has_static_banner:
+    if info.internal.has_static_banner:
         urls.append(
             (
                 "static banner",
@@ -1603,7 +1601,7 @@ def _collect_web_asset_urls(
                 "static banner unreachable",
             )
         )
-    if manifest.has_animated_banner:
+    if info.internal.has_animated_banner:
         urls.append(
             (
                 "animated banner",
@@ -1616,8 +1614,8 @@ def _collect_web_asset_urls(
     return urls
 
 
-def _check_web_asset_urls(manifest: QAIHMModelManifest, report: Report) -> None:
-    triples = _collect_web_asset_urls(manifest)
+def _check_web_asset_urls(info: WebsiteModelInfo, report: Report) -> None:
+    triples = _collect_web_asset_urls(info)
     if not triples:
         return
     pairs = [(url, label) for _, url, label in triples]
@@ -1647,19 +1645,25 @@ def _run_internal_checks(
             "skipped: manifest failed to load.",
         )
         return
+    # The internal package is dev-only, so import it here rather than at module
+    # scope: --internal is unreachable without it.
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
+
+    info = WebsiteModelInfo.from_manifest(manifest)
+
     _check_website_fields_set(manifest, report)
     _check_name_style(manifest, report)
     _check_headline_period(manifest, report)
-    _check_related_not_self(manifest, report)
+    _check_related_not_self(info, report)
     _check_arxiv_abs(manifest, report)
-    _check_status_reason(manifest, report)
-    _check_can_publish(manifest, report)
-    _check_published_artifacts(manifest, report)
-    _check_numerics_benchmark(manifest, report)
+    _check_status_reason(info, report)
+    _check_can_publish(info, report)
+    _check_published_artifacts(info, report)
+    _check_numerics_benchmark(info, report)
     _check_default_device_canary(manifest, report)
-    _check_llm_call_to_action(manifest, report)
+    _check_llm_call_to_action(info, report)
     _check_qaihm_repo_path(manifest, report)
-    _check_web_asset_urls(manifest, report)
+    _check_web_asset_urls(info, report)
 
 
 # =========================================================================

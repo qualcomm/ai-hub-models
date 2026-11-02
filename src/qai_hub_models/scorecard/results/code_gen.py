@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
@@ -22,6 +23,8 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipset
 from qai_hub_models.scorecard.execution_helpers import (
     get_model_test_precisions,
 )
+from qai_hub_models.scorecard.internal_config_yaml import write_publish_status
+from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
@@ -206,27 +209,27 @@ def update_code_gen_accuracy_failure_reasons(
                     reasons.scorecard_accuracy_failure = f"Torch accuracy ({benchmark_failure[7]}) deviates from benchmark ({benchmark_failure[8]}) by {benchmark_failure[9]}, threshold: {benchmark_failure[10]}"
 
 
-def update_model_publish_status(manifest: QAIHMModelManifest) -> bool:
-    """Update the model publishing status based on failure reasons. Returns true if the status was changed, false otherwise."""
-    # Update model status & reason, if applicable
-    can_promote, reason = manifest.can_promote_to_published()
-    if manifest.status == MODEL_STATUS.PENDING:
+def update_model_publish_status(manifest: QAIHMModelManifest) -> Path | None:
+    """
+    Promote or demote the model based on its current failure reasons.
+
+    Writes the new status to internal-config.yaml and returns its path, or returns
+    None if the status did not change.
+    """
+    info = WebsiteModelInfo.from_manifest(manifest)
+    assert manifest.id is not None
+    can_promote, reason = info.can_promote_to_published()
+    if info.internal.status == MODEL_STATUS.PENDING:
         if can_promote:
-            manifest.status = MODEL_STATUS.PUBLISHED
-            manifest.status_reason = None
             print(f"{manifest.id} | Set model to PUBLISHED")
-            return True
+            return write_publish_status(manifest.id, MODEL_STATUS.PUBLISHED, None)
         # Model has passing runtimes but is missing other requirements
         print(f"{manifest.id} | Skipping promotion to PUBLISHED: {reason}")
-    elif manifest.status == MODEL_STATUS.PUBLISHED:
-        if not can_promote:
-            # Demote PUBLISHED to PENDING if no longer eligible
-            manifest.status = MODEL_STATUS.PENDING
-            manifest.status_reason = reason
-            print(f"{manifest.id} | Set model to PENDING ({reason})")
-            return True
+    elif info.internal.status == MODEL_STATUS.PUBLISHED and not can_promote:
+        print(f"{manifest.id} | Set model to PENDING ({reason})")
+        return write_publish_status(manifest.id, MODEL_STATUS.PENDING, reason)
 
-    return False
+    return None
 
 
 def _also_strip_genie_if_geniex_fails(

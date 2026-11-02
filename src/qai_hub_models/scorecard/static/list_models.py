@@ -14,9 +14,9 @@ from qai_hub_models.scorecard.envvars import (
     SpecialModelSetting,
     StaticModelsDirEnvvar,
 )
-from qai_hub_models.scorecard.scorecard_config_yaml import (
+from qai_hub_models.scorecard.internal_config_yaml import (
     LLMWeekendGroup,
-    QAIHMModelScorecardConfig,
+    QAIHMModelInternalConfig,
     TestRunnerSplit,
     get_downloadable_llm_model_ids,
     get_week_model_ids,
@@ -84,11 +84,11 @@ def get_all_bench_models() -> list[str]:
 
 @lru_cache
 def get_pytorch_no_llm_model_ids() -> frozenset[str]:
-    """Pytorch recipes with scorecard_config.test_split != llm."""
+    """Pytorch recipes with internal_config.test_split != llm."""
     return frozenset(
         m
         for m in PYTORCH_RECIPE_MODEL_IDS
-        if QAIHMModelScorecardConfig.from_model(m).test_split != TestRunnerSplit.LLM
+        if QAIHMModelInternalConfig.from_model(m).test_split != TestRunnerSplit.LLM
     )
 
 

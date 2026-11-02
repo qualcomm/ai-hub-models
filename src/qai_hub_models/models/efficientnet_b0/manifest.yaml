@@ -1,22 +1,8 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: EfficientNetB0 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: efficientnet_b0
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: EfficientNet-B0
@@ -26,26 +12,15 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 77.7
-related_models:
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/1905.11946
 research_paper_title: 'EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
 tags:
 - backbone
 - bu-auto
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 20.1 MB
-  Model size (w8a16): 6.99 MB
-  Number of parameters: 5.27M
 templates:
 - imagenet_classifier
 use_case: Image Classification

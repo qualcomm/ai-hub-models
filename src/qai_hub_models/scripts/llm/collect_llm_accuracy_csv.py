@@ -9,7 +9,7 @@ accuracy.csv row per file. The resolved manifest baseline is also written back
 into each grade file as ``reference_score_pct``, for the CI summary to render.
 
 To add an FP32 baseline for an LLM model, add a ``numerics_benchmark`` block to the
-model's ``info.yaml``.
+model's ``manifest.yaml``.
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ import os
 from pathlib import Path
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.datasets.device_eval import (
     DEFAULT_DEVICE_EVAL_DATASET,
     get_device_eval_dataset,
 )
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.utils.testing_async_utils import write_accuracy
 from qai_hub_models.utils.base_dataset import DatasetMetadata
@@ -44,18 +44,18 @@ def _metric_name(dataset_name: str) -> str:
 
 
 def _reference_grade(model_id: str, dataset_name: str) -> float | None:
-    """FP baseline grade from the manifest's numerics_benchmark, if comparable.
+    """FP baseline grade from manifest.yaml's numerics_benchmark, if comparable.
 
     The baseline must have been measured on the same dataset and metric as this
     run: a Grace1 number beside a Grace2 device score is two different metrics,
     not a float-vs-device delta.
     """
     try:
-        manifest = QAIHMModelManifest.from_model(model_id)
+        sc = QAIHMModelInternalConfig.from_model(model_id)
     except Exception as e:
-        print(f"  Could not load manifest.yaml for {model_id}: {e}")
+        print(f"  Could not load internal-config.yaml for {model_id}: {e}")
         return None
-    benchmark = manifest.numerics_benchmark
+    benchmark = sc.manifest.numerics_benchmark
     if benchmark is None:
         return None
     if (

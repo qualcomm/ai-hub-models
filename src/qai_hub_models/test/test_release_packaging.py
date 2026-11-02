@@ -36,6 +36,7 @@ import yaml
 SETUP_PY = Path(__file__).parents[2] / "setup.py"
 MODELS_ROOT = Path(__file__).parents[1] / "models"
 PACKAGE_ROOT = Path(__file__).parents[1]
+SCORECARD_MODELS_ROOT = PACKAGE_ROOT / "scorecard" / "models"
 
 # Directories that are themselves excluded from release builds, or are test-only,
 # so a reference from inside them is fine.
@@ -89,7 +90,8 @@ def _published_recipes_with_source() -> list[str]:
             continue
         if not (d / "__init__.py").exists():
             continue
-        with open(manifest) as f:
+        config = SCORECARD_MODELS_ROOT / d.name / "internal-config.yaml"
+        with open(config) as f:
             if (yaml.safe_load(f) or {}).get("status") == "published":
                 out.append(d.name)
     return out

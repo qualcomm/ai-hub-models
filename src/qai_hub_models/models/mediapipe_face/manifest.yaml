@@ -1,45 +1,21 @@
-applicable_scenarios:
-- Accessibility
-- Augmented Reality
-- Gaming
 description: Designed for sub-millisecond processing, this model predicts bounding boxes and pose skeletons (left eye, right eye, nose tip, mouth, left eye tragion, and right eye tragion) of faces in an image.
 disabled_paths: {}
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Detect faces and locate facial features in real-time video and image streams.
 id: mediapipe_face
 is_collection_model: true
 license: https://github.com/zmurez/MediaPipePyTorch/blob/master/LICENSE
 license_type: apache-2.0
 name: MediaPipe-Face-Detection
-related_models:
-- mediapipe_hand
-- mediapipe_pose
-- mediapipe_selfie
 research_paper: https://arxiv.org/abs/1907.05047
 research_paper_title: 'BlazeFace: Sub-millisecond Neural Face Detection on Mobile GPUs'
 source_repo: https://github.com/zmurez/MediaPipePyTorch/
-status: published
 supported_precisions:
 - w8a8
 - float
 tags:
 - real-time
-technical_details:
-  Input resolution: 256x256
-  Model size (face_detector) (float): 557 KB
-  Model size (face_detector) (w8a8): 260 KB
-  Model size (face_landmark_detector) (float): 2.33 MB
-  Model size (face_landmark_detector) (w8a8): 750 KB
-  Number of output classes: '6'
-  Number of parameters (face_detector): 135K
-  Number of parameters (face_landmark_detector): 603K
 templates:
 - mediapipe
 use_case: Object Detection

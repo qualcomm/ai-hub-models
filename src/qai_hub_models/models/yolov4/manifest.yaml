@@ -1,24 +1,12 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
 description: YoloV4 is a machine learning model that predicts bounding boxes and classes of objects in an image.
 domain: Computer Vision
 external_repos:
   yolov4:
     commit_sha: 1bbb2f281b09aaf7522ab871a9abf417e8e19587
     repo_url: https://github.com/bubbliiiing/yolov4-tiny-pytorch.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolov4
-imsdk_supported: true
 license: https://github.com/bubbliiiing/yolov4-tiny-pytorch?tab=MIT-1-ov-file#
 license_type: mit
 name: Yolo-v4
@@ -30,27 +18,16 @@ numerics_benchmark:
   value: 21.5
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- yolov6
-- yolov7
-- yolov8_det
 research_paper: https://arxiv.org/abs/2004.10934
 research_paper_title: 'YOLOv4: Optimal Speed and Accuracy of Object Detection'
 restrict_model_sharing: true
 source_repo: https://github.com/bubbliiiing/yolov4-tiny-pytorch.git
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 416x416
-  Model checkpoint: YoloV4 Tiny
-  Model size (float): 23.1 MB
-  Model size (w8a16): 6.07 MB
-  Number of parameters: 6.06M
 templates:
 - yolo
 use_case: Object Detection

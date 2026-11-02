@@ -21,6 +21,10 @@ from qai_hub_models.scorecard.execution_helpers import (
     get_evaluation_parameterized_pytest_config,
     get_profile_parameterized_pytest_config,
 )
+from qai_hub_models.scorecard.internal_config_yaml import (
+    QAIHMModelInternalConfig,
+    model_perf_component_key,
+)
 from qai_hub_models.scorecard.params import (
     ScExportTestParams,
     ScJobParams,
@@ -45,10 +49,6 @@ from qai_hub_models.scorecard.results.yaml import (
     PreQDQCompileScorecardJobYaml,
     ProfileScorecardJobYaml,
     QuantizeScorecardJobYaml,
-)
-from qai_hub_models.scorecard.scorecard_config_yaml import (
-    QAIHMModelScorecardConfig,
-    model_perf_component_key,
 )
 from qai_hub_models.scorecard.static.model_config import ScorecardModelConfig
 from qai_hub_models.scorecard.static.model_exec import (
@@ -349,7 +349,7 @@ class ModelTestConfig:
             manifest.can_use_quantize_job,
         )
 
-        scorecard_config = QAIHMModelScorecardConfig.from_model(model_id)
+        scorecard_config = QAIHMModelInternalConfig.from_model(model_id)
 
         # is_llm must match what the generated test_profile ran with, or the scope
         # computed here covers devices the model never profiles on.

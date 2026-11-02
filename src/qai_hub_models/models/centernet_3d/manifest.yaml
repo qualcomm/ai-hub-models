@@ -1,39 +1,20 @@
-applicable_scenarios:
-- Object Detection
-dataset:
-- kitti
 datasets:
 - kitti
 description: CenterNet is a machine learning model for generating a birds eye view represenation from the sensors(cameras) mounted on a vehicle.
 disabled_paths: {}
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- Auto
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Construct a bird’s eye view from sensors mounted on a vehicle.
 id: centernet_3d
 license: https://github.com/xingyizhou/CenterNet/blob/master/LICENSE
 license_type: mit
 name: CenterNet-3D
-related_models:
-- bevdet
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/1904.07850
 research_paper_title: Objects as Points
 source_repo: https://github.com/xingyizhou/CenterNet
-status: published
 supported_precisions:
 - w8a16_mixed_fp16
-technical_details:
-  Input resolution: 1 x 3 x 384 x 1280
-  Model checkpoint: ddd_3dop.pth
-  Model size: 79 MB
-  Number of parameters: 20.6M
 templates:
 - centernet
 use_case: Driver Assistance

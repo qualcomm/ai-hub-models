@@ -1,0 +1,20 @@
+applicable_scenarios:
+- Dialogue
+- Content Generation
+- Customer Support
+has_animated_banner: true
+has_static_banner: true
+llm_details:
+  call_to_action: View Readme
+  genie_compatible: true
+skip_hub_tests_and_scorecard: true
+status: published
+technical_details:
+  Context length: '4096'
+  Information about the model parts: Prompt Processor and Token Generator are split into 5 parts each. Each corresponding Prompt Processor and Token Generator part share weights.
+  Input sequence length for Prompt Processor: '128'
+  Number of parameters: 7.07B
+  Quantization Type: w4a16 + w8a16 (few layers)
+  Response Rate: Rate of response generation after the first response token.
+  Supported languages: English, Chinese, German, French, Spanish, Portuguese, Italian, Dutch, Russian, Czech, Polish, Arabic, Persian, Hebrew, Turkish, Japanese, Korean, Vietnamese, Thai, Indonesian, Malay, Lao, Burmese, Cebuano, Khmer, Tagalog, Hindi, Bengali, Urdu.
+  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (4096 tokens).

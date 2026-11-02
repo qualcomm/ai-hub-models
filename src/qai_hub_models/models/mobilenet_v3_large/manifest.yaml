@@ -1,23 +1,8 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: MobileNet-v3-Large is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: mobilenet_v3_large
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: MobileNet-v3-Large
@@ -27,14 +12,9 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 74.0
-related_models:
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/1905.02244
 research_paper_title: Searching for MobileNetV3
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/mobilenetv3.py
-status: published
 supported_precisions:
 - float
 - w8a8
@@ -42,12 +22,6 @@ tags:
 - backbone
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 20.9 MB
-  Model size (w8a8): 5.77 MB
-  Number of parameters: 5.47M
 templates:
 - imagenet_classifier
 use_case: Image Classification

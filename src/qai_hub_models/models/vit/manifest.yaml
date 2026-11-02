@@ -1,23 +1,8 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: VIT is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: vit
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: VIT
@@ -27,14 +12,9 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 81.1
-related_models:
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/2010.11929
 research_paper_title: 'An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/vision_transformer.py
-status: published
 supported_precisions:
 - float
 - w8a8_mixed_int16
@@ -42,13 +22,6 @@ supported_precisions:
 - w8a8
 tags:
 - backbone
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 330 MB
-  Model size (w8a16): 86.2 MB
-  Model size (w8a8): 83.2 MB
-  Number of parameters: 86.6M
 templates:
 - imagenet_classifier
 use_case: Image Classification

@@ -22,8 +22,14 @@ from typing import Any
 
 from qai_hub_models_cli.errors import CLIUserError
 
+from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.utils.path_helpers import MODEL_IDS, QAIHM_MODELS_ROOT
+from qai_hub_models.utils.asset_loaders import load_yaml
+from qai_hub_models.utils.path_helpers import (
+    MODEL_IDS,
+    QAIHM_MODELS_ROOT,
+    SCORECARD_MODELS_ROOT,
+)
 
 _LIST_MODEL_IDS_HINT = "Run `qai-hub-models models -q` to list model IDs."
 
@@ -174,6 +180,32 @@ def import_recipe_module(source_dir: Path) -> Any:
 def resolve_manifest(source_dir: Path) -> QAIHMModelManifest:
     """Load the manifest for the recipe at *source_dir*."""
     return QAIHMModelManifest.from_yaml(source_dir / "manifest.yaml")
+
+
+def is_in_tree_recipe(source_dir: Path) -> bool:
+    """True if *source_dir* is a model folder under ``qai_hub_models/models/``."""
+    try:
+        source_dir.resolve().relative_to(QAIHM_MODELS_ROOT.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def resolve_publish_status(source_dir: Path) -> MODEL_STATUS | None:
+    """
+    Publish status of the recipe at *source_dir*, or None for external recipes.
+
+    Read from the raw internal-config.yaml so the public CLI never imports the
+    internal-only scorecard package. In-tree recipes without one are a repo bug.
+    """
+    if not is_in_tree_recipe(source_dir):
+        return None
+    config_path = SCORECARD_MODELS_ROOT / source_dir.name / "internal-config.yaml"
+    if not config_path.exists():
+        raise FileNotFoundError(
+            f"{source_dir.name} is an in-tree recipe but has no {config_path}."
+        )
+    return MODEL_STATUS((load_yaml(config_path) or {})["status"])
 
 
 def resolve_model_cls(source_dir: Path) -> Any:

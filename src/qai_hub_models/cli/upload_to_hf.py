@@ -69,9 +69,12 @@ from qai_hub_models.cli.hf_common import (
     COMMUNITY_TAG_SEARCH_URL,
     timeout_retry,
 )
-from qai_hub_models.configs._info_yaml_enums import MODEL_LICENSE, MODEL_STATUS
+from qai_hub_models.configs._info_yaml_enums import MODEL_LICENSE
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.utils.export.context import resolve_manifest
+from qai_hub_models.utils.export.context import (
+    resolve_manifest,
+    resolve_publish_status,
+)
 
 # Files that are build output or local state, never published.
 _EXCLUDE_FROM_UPLOAD = (
@@ -684,11 +687,11 @@ def upload_to_hf(
     source_dir = _resolve_upload_dir(target)
     manifest = resolve_manifest(source_dir)
 
-    if manifest.status is not MODEL_STATUS.UNSET:
+    if resolve_publish_status(source_dir) is not None:
         raise CLIUserError(
-            f"{source_dir.name} has status {manifest.status.value!r}, so it is an "
-            "in-tree recipe. The community org is for external recipes; in-tree "
-            "models are published to the `qualcomm` org by the release scripts."
+            f"{source_dir.name} is an in-tree recipe. The community org is for external "
+            "recipes; in-tree models are published to the `qualcomm` org by the release "
+            "scripts."
         )
 
     # Resolved before staging so a missing token fails immediately. A dry run

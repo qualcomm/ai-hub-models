@@ -34,7 +34,7 @@ class SpecialModelSetting(Enum):
     # Enable all models that are pyTorch recipes.
     PYTORCH = "pytorch"
 
-    # Enable pyTorch recipes minus those whose scorecard-config.yaml sets
+    # Enable pyTorch recipes minus those whose internal-config.yaml sets
     # test_split: llm (i.e. exclude LLMs/VLMs).
     PYTORCH_NO_LLM = "pytorch_no_llm"
 
@@ -44,7 +44,7 @@ class SpecialModelSetting(Enum):
     #  Models enabled for the weekly "bench" scorecard.
     BENCH = "bench"
 
-    # LLMs assigned to weekend rotation week1 / week2 via scorecard-config.yaml weekend_group.
+    # LLMs assigned to weekend rotation week1 / week2 via internal-config.yaml weekend_group.
     LLM_WEEK1 = "llm_week1"
     LLM_WEEK2 = "llm_week2"
 
@@ -98,7 +98,7 @@ Special options:
  * 'pytorch' -- Enable pytorch model recipes (all models under qai_hub_models/models)
  * 'pytorch_no_llm' -- Enable pytorch recipes except those flagged test_split: llm
  * 'static' -- Enable test models in qai_hub_models/scorecard/static
- * 'llm_week1' / 'llm_week2' -- Enable the LLMs in that weekend rotation (scorecard-config.yaml weekend_group)
+ * 'llm_week1' / 'llm_week2' -- Enable the LLMs in that weekend rotation (internal-config.yaml weekend_group)
  * 'llm_no_week' -- Enable LLMs excluded from the week1/week2 rotation (weekend_group: no_week). Never run on a schedule; on-demand only.
  * 'llm_downloadable' -- Enable LLMs that publish downloadable release assets
 """

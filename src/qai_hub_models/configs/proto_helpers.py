@@ -95,6 +95,13 @@ def form_factor_to_proto(ff: FormFactor) -> int:
     return _FORM_FACTOR_TO_PROTO[ff.value]
 
 
+def form_factor_from_proto(value: int) -> FormFactor:
+    for name, proto_value in _FORM_FACTOR_TO_PROTO.items():
+        if proto_value == value:
+            return FormFactor(name)
+    raise ValueError(f"Unknown form factor proto value: {value}")
+
+
 _LICENSE_TO_PROTO: dict[str, int] = {
     MODEL_LICENSE.UNLICENSED.value: info_pb2.MODEL_LICENSE_UNLICENSED,
     MODEL_LICENSE.COMMERCIAL.value: info_pb2.MODEL_LICENSE_COMMERCIAL,
@@ -235,3 +242,46 @@ def voice_ai_sdk_to_proto(sdk: VOICE_AI_SDK | None) -> int:
     if sdk.value not in _VOICE_AI_SDK_TO_PROTO:
         raise ValueError(f"Unknown voice AI SDK: {sdk.value}")
     return _VOICE_AI_SDK_TO_PROTO[sdk.value]
+
+
+def _invert(mapping: dict[str, int]) -> dict[int, str]:
+    return {v: k for k, v in mapping.items()}
+
+
+_PROTO_TO_LICENSE = _invert(_LICENSE_TO_PROTO)
+_PROTO_TO_DOMAIN = _invert(_DOMAIN_TO_PROTO)
+_PROTO_TO_TAG = _invert(_TAG_TO_PROTO)
+_PROTO_TO_STATUS = _invert(_STATUS_TO_PROTO)
+_PROTO_TO_USE_CASE = _invert(_USE_CASE_TO_PROTO)
+_PROTO_TO_CALL_TO_ACTION = _invert(_CALL_TO_ACTION_TO_PROTO)
+_PROTO_TO_VOICE_AI_SDK = _invert(_VOICE_AI_SDK_TO_PROTO)
+
+
+def license_from_proto(value: int) -> MODEL_LICENSE:
+    return MODEL_LICENSE(_PROTO_TO_LICENSE[value])
+
+
+def domain_from_proto(value: int) -> MODEL_DOMAIN:
+    return MODEL_DOMAIN(_PROTO_TO_DOMAIN[value])
+
+
+def tag_from_proto(value: int) -> MODEL_TAG:
+    return MODEL_TAG(_PROTO_TO_TAG[value])
+
+
+def status_from_proto(value: int) -> MODEL_STATUS:
+    return MODEL_STATUS(_PROTO_TO_STATUS[value])
+
+
+def use_case_from_proto(value: int) -> MODEL_USE_CASE:
+    return MODEL_USE_CASE(_PROTO_TO_USE_CASE[value])
+
+
+def call_to_action_from_proto(value: int) -> LLM_CALL_TO_ACTION:
+    return LLM_CALL_TO_ACTION(_PROTO_TO_CALL_TO_ACTION[value])
+
+
+def voice_ai_sdk_from_proto(value: int) -> VOICE_AI_SDK | None:
+    if value == info_pb2.VOICE_AI_SDK_UNSPECIFIED:
+        return None
+    return VOICE_AI_SDK(_PROTO_TO_VOICE_AI_SDK[value])

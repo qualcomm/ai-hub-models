@@ -10,8 +10,7 @@ import shlex
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import Field, model_serializer, model_validator
-from qai_hub_models_cli.proto import info_pb2, numerics_pb2
+from pydantic import ConfigDict, Field, model_serializer, model_validator
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import (
@@ -22,19 +21,8 @@ from qai_hub_models.configs._info_yaml_enums import (
     MODEL_USE_CASE,
     VOICE_AI_SDK,
 )
-from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION, LLMDetails
 from qai_hub_models.configs.model_disable_reasons import ModelDisableReasonsMapping
-from qai_hub_models.configs.proto_helpers import (
-    call_to_action_to_proto,
-    domain_to_proto,
-    form_factor_to_proto,
-    license_to_proto,
-    runtime_to_proto,
-    status_to_proto,
-    tag_to_proto,
-    use_case_to_proto,
-    voice_ai_sdk_to_proto,
-)
+from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 
 # configs normally does not import from models, but lm_schema is a self-contained,
 # dependency-light (pydantic-only) island -- not model code -- so the manifest can
@@ -42,7 +30,7 @@ from qai_hub_models.configs.proto_helpers import (
 from qai_hub_models.models.templates.lm_schema import PrecisionSchema, Recipe
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
-from qai_hub_models.utils.device import DEFAULT_EXPORT_DEVICE, FormFactor
+from qai_hub_models.utils.device import DEFAULT_EXPORT_DEVICE
 from qai_hub_models.utils.path_helpers import (
     MODEL_IDS,
     MODELS_PACKAGE_NAME,
@@ -60,7 +48,6 @@ __all__ = [
     "MODEL_USE_CASE",
     "ExternalRepoConfig",
     "LMQuantizationDetails",
-    "NumericsAccuracyBenchmark",
     "PipCommand",
     "PipCommandMachine",
     "QAIHMModelManifest",
@@ -222,27 +209,6 @@ class PipCommand(BaseQAIHMConfig):
         return self
 
 
-class NumericsAccuracyBenchmark(BaseQAIHMConfig):
-    """Expected accuracy benchmark for a model on a specific dataset/metric."""
-
-    dataset_name: str
-    metric_name: str
-    value: float
-    unit: str
-    # Where this benchmark value came from (e.g., a URL to the paper or
-    # model card, or "AI Hub Models Reference Eval" for scorecard-derived values).
-    source: str
-
-    def to_proto(self) -> numerics_pb2.NumericsAccuracyBenchmark:
-        return numerics_pb2.NumericsAccuracyBenchmark(
-            dataset_name=self.dataset_name,
-            metric_name=self.metric_name,
-            value=self.value,
-            unit=self.unit,
-            source=self.source,
-        )
-
-
 TechnicalDetails = dict[str, str | int | float]
 
 
@@ -283,7 +249,11 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     The website-facing fields are optional at the schema level and enforced
     by ``check_fields`` only when this manifest describes a real model
     (``id`` set and present in ``MODEL_IDS``).
+
+    Unrecognized keys are ignored so older standalone recipes still load.
     """
+
+    model_config = ConfigDict(extra="ignore")
 
     # =============================================================================
     # Template/dataset dependencies
@@ -309,10 +279,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # Name of the model's folder within the repo.
     id: str | None = None
 
-    # Publish status. UNSET is only for external recipes — the CLI treats
-    # it as neither published nor unpublished and runs without prompting.
-    status: MODEL_STATUS = MODEL_STATUS.UNSET
-
     # A brief catchy headline explaining what the model does and why it may be interesting
     headline: str | None = None
 
@@ -328,49 +294,12 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # A list of applicable tags to add to the model
     tags: list[MODEL_TAG] = Field(default_factory=list)
 
-    # A list of real-world applicaitons for which this model could be used.
-    # This is free-from and almost anything reasonable here is fine.
-    applicable_scenarios: list[str] = Field(default_factory=list)
-
-    # A list of other similar models in the repo.
-    # Typically, any model that performs the same task is fine.
-    # If nothing fits, this can be left blank. Limit to 3 models.
-    related_models: list[str] = Field(default_factory=list)
-
-    # A list of device types for which this model could be useful.
-    # If unsure what to put here, default to `Phone` and `Tablet`.
-    form_factors: list[FormFactor] = Field(default_factory=list)
-
-    # Whether the model has a static image uploaded in S3. All published models must have this.
-    has_static_banner: bool = False
-
-    # Whether the model has an animated asset uploaded in S3. This is optional.
-    has_animated_banner: bool = False
-
-    # A list of datasets for which the model has pre-trained checkpoints
-    # available as options in `model.py`. Typically only has one entry.
-    dataset: list[str] = Field(default_factory=list)
-
-    # A list of a few technical details about the model.
-    #   Model checkpoint: The name of the downloaded model checkpoint file.
-    #   Input resolution: The size of the model's input. For example, `2048x1024`.
-    #   Number of parameters: The number of parameters in the model.
-    #   Model size: The file size of the downloaded model asset.
-    #   Number of output classes: The number of classes the model can classify or annotate.
-    technical_details: TechnicalDetails = Field(default_factory=dict)
-
     # Technical details specific to certain runtimes. Keyed by runtime; empty
     # for models with no runtime-specific details.
     runtime_technical_details: dict[TargetRuntime, TechnicalDetails] = {}
 
     # The license type of the original model repo.
     license_type: MODEL_LICENSE | None = None
-
-    # Device form factors for which we don't publish performance data.
-    private_perf_form_factors: list[FormFactor] | None = None
-
-    # Some models are made by company
-    model_maker_id: str | None = None
 
     # Link to the research paper where the model was first published. Usually an arxiv link.
     research_paper: str | None = None
@@ -384,24 +313,11 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # A link to the model's license. Most commonly found in the github repo it was cloned from.
     license: str | None = None
 
-    # Whether the model is compatible with the IMSDK Plugin for IOT devices
-    imsdk_supported: bool = False
-
     # If set, model assets shouldn't distributed.
     restrict_model_sharing: bool = False
 
-    # Expected accuracy benchmark. If set, scorecard will flag results that
-    # deviate from this value by more than the metric's metric_enablement_threshold.
-    numerics_benchmark: NumericsAccuracyBenchmark | None = None
-
-    # If status is private, this must have a reference to an issue with an explanation.
-    status_reason: str | None = None
-
     # It is a large language model (LLM) or not.
     model_type_llm: bool = False
-
-    # Add per device, download, app and if the model is available for purchase.
-    llm_details: LLMDetails | None = None
 
     # Which Qualcomm Voice AI SDK variant the model is compatible with.
     # Unset means the model has no Voice AI SDK integration; the "Deploying
@@ -547,164 +463,8 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # Instructions for installing system-level dependencies before pip install.
     readme_install_system_deps: str | None = None
 
-    # =============================================================================
-    # Field name sets for website info.yaml derivation
-    # =============================================================================
-
-    # Fields that belong in the website's info.yaml (subset of manifest fields)
-    _INFO_YAML_FIELDS: frozenset[str] = frozenset(
-        {
-            "name",
-            "id",
-            "status",
-            "headline",
-            "domain",
-            "description",
-            "use_case",
-            "tags",
-            "applicable_scenarios",
-            "related_models",
-            "form_factors",
-            "has_static_banner",
-            "has_animated_banner",
-            "dataset",
-            "technical_details",
-            "runtime_technical_details",
-            "license_type",
-            "private_perf_form_factors",
-            "model_maker_id",
-            "research_paper",
-            "research_paper_title",
-            "source_repo",
-            "license",
-            "imsdk_supported",
-            "restrict_model_sharing",
-            "numerics_benchmark",
-            "status_reason",
-            "model_type_llm",
-            "llm_details",
-            "voice_ai_sdk",
-        }
-    )
-
-    # =============================================================================
-    # Methods from QAIHMModelInfo
-    # =============================================================================
-
-    @staticmethod
-    def _technical_details_to_proto(
-        details: TechnicalDetails,
-    ) -> list[info_pb2.ModelInfo.TechnicalDetail]:
-        protos = []
-        for key, val in details.items():
-            td = info_pb2.ModelInfo.TechnicalDetail(key=key)
-            if isinstance(val, int):
-                td.int_value = val
-            elif isinstance(val, float):
-                td.float_value = val
-            else:
-                td.string_value = str(val)
-            protos.append(td)
-        return protos
-
-    def to_proto(self, aihm_version: str) -> info_pb2.ModelInfo:
-        assert self.is_full_model_manifest, "to_proto only valid for model manifests"
-        assert self.status is not None
-        assert self.domain is not None
-        assert self.use_case is not None
-        assert self.license_type is not None
-        technical_details = self._technical_details_to_proto(self.technical_details)
-
-        runtime_technical_details = [
-            info_pb2.ModelInfo.RuntimeTechnicalDetails(
-                runtime=runtime_to_proto(runtime),
-                technical_details=self._technical_details_to_proto(details),
-            )
-            for runtime, details in self.runtime_technical_details.items()
-        ]
-
-        llm_details = None
-        if self.llm_details is not None:
-            llm_details = info_pb2.ModelInfo.LLMDetails(
-                call_to_action=call_to_action_to_proto(self.llm_details.call_to_action),
-                genie_compatible=self.llm_details.genie_compatible,
-                geniex_llamacpp_compatible=self.llm_details.geniex_llamacpp_compatible,
-            )
-
-        numerics_benchmark = None
-        if self.numerics_benchmark is not None:
-            numerics_benchmark = self.numerics_benchmark.to_proto()
-
-        return info_pb2.ModelInfo(
-            aihm_version=aihm_version,
-            id=self.id,
-            name=self.name,
-            status=status_to_proto(self.status),
-            status_reason=self.status_reason,
-            headline=self.headline,
-            domain=domain_to_proto(self.domain),
-            description=self.description,
-            use_case=use_case_to_proto(self.use_case),
-            tags=[tag_to_proto(t) for t in self.tags],
-            applicable_scenarios=self.applicable_scenarios,
-            related_models=self.related_models,
-            form_factors=[form_factor_to_proto(ff) for ff in self.form_factors],
-            technical_details=technical_details,
-            runtime_technical_details=runtime_technical_details,
-            license_type=license_to_proto(self.license_type),
-            model_maker_id=self.model_maker_id,
-            dataset=self.dataset,
-            research_paper=self.research_paper,
-            research_paper_title=self.research_paper_title,
-            source_repo=self.source_repo,
-            license_url=self.license,
-            has_static_banner=self.has_static_banner,
-            has_animated_banner=self.has_animated_banner,
-            imsdk_supported=self.imsdk_supported,
-            restrict_model_sharing=self.restrict_model_sharing,
-            numerics_benchmark=numerics_benchmark,
-            model_type_llm=self.model_type_llm,
-            llm_details=llm_details,
-            private_perf_form_factors=[
-                form_factor_to_proto(ff)
-                for ff in (self.private_perf_form_factors or [])
-            ],
-            voice_ai_sdk=voice_ai_sdk_to_proto(self.voice_ai_sdk),
-        )
-
-    def can_promote_to_published(self) -> tuple[bool, str]:
-        """
-        Check whether this model meets all prerequisites for promotion to PUBLISHED.
-
-        Returns (True, "") if promotion is safe, or (False, reason) if not.
-        """
-        assert self.license_type is not None
-        assert self.id is not None
-        if self.license_type.is_non_commerical:
-            return (
-                False,
-                f"Models with license {self.license_type!s} cannot be published",
-            )
-
-        if not self.has_static_banner:
-            return False, "model has no static banner asset"
-
-        if not self.supports_at_least_1_runtime:
-            return False, "model does not support at least one export path"
-
-        must_have_assets = not self.restrict_model_sharing
-        if self.llm_details:
-            must_have_assets = must_have_assets and self.llm_details.call_to_action in {
-                LLM_CALL_TO_ACTION.DOWNLOAD,
-                LLM_CALL_TO_ACTION.DOWNLOAD_AND_VIEW_README,
-            }
-
-        if must_have_assets and not os.path.exists(
-            QAIHM_MODELS_ROOT / self.id / "release-assets.yaml"
-        ):
-            return False, "no release assets available"
-
-        return True, ""
+    # FP32 baseline accuracy benchmark for comparing device performance.
+    numerics_benchmark: NumericsAccuracyBenchmark | None = None
 
     def get_package_name(self) -> str:
         assert self.id is not None
@@ -749,17 +509,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         hf_metadata["tags"] = [tag.name.lower() for tag in self.tags] + ["android"]
         hf_metadata["pipeline_tag"] = self.get_hf_pipeline_tag()
         return hf_metadata
-
-    def get_model_details(self) -> str:
-        # Model details.
-        details = (
-            "- **Model Type:** "
-            + self.use_case.__str__().lower().capitalize()
-            + "\n- **Model Stats:**"
-        )
-        for name, val in self.technical_details.items():
-            details += f"\n  - {name}: {val}"
-        return details
 
     def check_geniex_runtime_technical_details(self) -> None:
         geniex_runtimes = (TargetRuntime.GENIEX_QAIRT, TargetRuntime.GENIEX_LLAMACPP)
@@ -826,20 +575,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     @property
     def is_gen_ai_model(self) -> bool:
         return MODEL_TAG.LLM in self.tags or MODEL_TAG.GENERATIVE_AI in self.tags
-
-    def to_website_info_yaml(self, path: Path) -> Path:
-        """Write an info.yaml subset for the website (excludes code-gen fields).
-
-        This derives the website-facing info.yaml from the manifest so the website
-        sees no schema change after the info.yaml → manifest.yaml migration.
-        """
-        non_info_fields = set(self.model_fields.keys()) - self._INFO_YAML_FIELDS
-        self.to_yaml(
-            path=path,
-            exclude=non_info_fields,
-            exclude_defaults=False,  # Website needs all fields even if default
-        )
-        return path
 
     # =============================================================================
     # Build/export methods
@@ -1098,7 +833,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         This method enforces only the checks that must hold for *any*
         recipe — in-tree or external. Website / scorecard / publication
         lint (headline style, banner reachability, canary-device
-        membership, ``status: published`` gating, arxiv URL style, etc.)
+        membership, publish-status gating, arxiv URL style, etc.)
         lives in ``test_manifest_yamls.py::_check_website_facing`` and
         runs per-model in CI.
 
@@ -1117,12 +852,10 @@ class QAIHMModelManifest(BaseQAIHMConfig):
                 field
                 for field in (
                     "name",
-                    "status",
                     "headline",
                     "domain",
                     "description",
                     "use_case",
-                    "technical_details",
                     "license_type",
                 )
                 if getattr(self, field) is None
@@ -1153,11 +886,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
                     f"License {self.license_type!s} does not permit redistributing "
                     f"model weights; set restrict_model_sharing: true in manifest.yaml."
                 )
-
-            if self.model_type_llm and not self.llm_details:
-                raise ValueError("llm_details must be set if model type is LLM")
-            if self.llm_details and not self.model_type_llm:
-                raise ValueError("Model type must be LLM if llm_details is set")
 
         if (
             self.python_version_greater_than_or_equal_to is None
@@ -1201,7 +929,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         # lm_quantization_details holds portable GenAI Lab recipes, which only exist
         # for LLM/VLM folders. Both LLMs and VLMs set model_type_llm=true (verified
         # on the VLM manifests), so gate on it: a non-LLM/VLM manifest can't carry a
-        # recipe section (mirrors the llm_details gating above).
+        # recipe section.
         if self.lm_quantization_details and not self.model_type_llm:
             raise ValueError(
                 "lm_quantization_details can only be set on LLM/VLM models "

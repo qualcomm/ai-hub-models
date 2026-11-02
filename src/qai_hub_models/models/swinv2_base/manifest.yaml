@@ -1,10 +1,3 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: SwinV2Base is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 disabled_paths:
   float:
@@ -14,42 +7,21 @@ disabled_paths:
     onnx:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-19.600 %) above threshold (10.0 %)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-- Auto
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: swinv2_base
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: SwinV2-Base
-related_models:
-- swin_tiny
-- swin_small
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/2111.09883
 research_paper_title: 'Swin Transformer V2: Scaling Up Capacity and Resolution'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/swin_transformer.py
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - backbone
 - bu-auto
-technical_details:
-  Input resolution: 256x256
-  Model checkpoint: Imagenet
-  Model size (float): 339 MB
-  Model size (w8a16): 90.2 MB
-  Number of parameters: 88.8M
 templates:
 - imagenet_classifier
 - swin

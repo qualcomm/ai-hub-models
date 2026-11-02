@@ -1,26 +1,12 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
 description: LeViT is a vision transformer model that can classify images from the Imagenet dataset.
 disabled_paths:
   w8a8_mixed_int16:
     qnn_dlc:
       scorecard_accuracy_failure: 'Device accuracy (0.2 %) deviates from benchmark (76.6 %) by -76.400 %, threshold: 10.0 %'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: levit
-imsdk_supported: true
 license: https://github.com/facebookresearch/LeViT?tab=Apache-2.0-1-ov-file
 license_type: apache-2.0
 name: LeViT
@@ -30,29 +16,15 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2104.01136
   unit: '%'
   value: 76.6
-private_perf_form_factors:
-- Auto
-related_models:
-- efficientvit_b2_cls
-- efficientvit_l2_cls
-- squeezenet1_1
-- densenet121
 research_paper: https://arxiv.org/abs/2104.01136
 research_paper_title: "LeViT: a Vision Transformer in ConvNet's Clothing for Faster Inference"
 source_repo: https://github.com/facebookresearch/LeViT
-status: published
 supported_precisions:
 - float
 - w8a8_mixed_int16
 - w8a16
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: LeViT-128S
-  Model size (float): 29.9 MB
-  Model size (w8a16): 8.83 MB
-  Number of parameters: 7.82M
 templates:
 - imagenet_classifier
 use_case: Image Classification

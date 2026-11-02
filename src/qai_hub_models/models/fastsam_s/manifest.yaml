@@ -1,14 +1,6 @@
-applicable_scenarios:
-- Camera
-- Photo Editing
 description: The Fast Segment Anything Model (FastSAM) is a novel, real-time CNN-based solution for the Segment Anything task. This task is designed to segment any object within an image based on various possible user interaction prompts. The model performs competitively despite significantly reduced computation, making it a practical choice for a variety of vision tasks.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Generate high quality segmentation mask on device.
 id: fastsam_s
 license: https://github.com/CASIA-LMC-Lab/FastSAM/blob/main/LICENSE
@@ -20,23 +12,14 @@ numerics_benchmark:
   source: https://github.com/CASIA-LMC-Lab/FastSAM
   unit: AR@1000
   value: 63.7
-related_models:
-- fastsam_x
 research_paper: https://arxiv.org/abs/2306.12156
 research_paper_title: Fast Segment Anything
 restrict_model_sharing: true
 source_repo: https://github.com/CASIA-LMC-Lab/FastSAM
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
 - w8a16
-technical_details:
-  Inference latency: RealTime
-  Input resolution: 640x640
-  Model checkpoint: fastsam-s.pt
-  Model size (float): 45.1 MB
-  Number of parameters: 11.8M
 templates:
 - fastsam
 use_case: Semantic Segmentation

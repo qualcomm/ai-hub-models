@@ -5,8 +5,11 @@
 """Report models missing design assets (static banner required for publishing).
 
 Scans:
-  1. All manifest.yaml files checked into the repo on the current branch.
-  2. All open PRs in the repo for manifest.yaml files with missing banners.
+  1. All internal-config.yaml files checked into the repo on the current branch.
+  2. All open PRs in the repo for internal-config.yaml files with missing banners.
+
+status, status_reason and has_static_banner all live in internal-config.yaml;
+name, use_case and source_repo come from the model's manifest.yaml.
 """
 
 from __future__ import annotations
@@ -27,6 +30,17 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
 
 MODELS_ROOT = Path(__file__).resolve().parents[1] / "models"
+SCORECARD_MODELS_ROOT = Path(__file__).resolve().parents[1] / "scorecard" / "models"
+CONFIG_NAME = "internal-config.yaml"
+
+
+def _local_manifest(model_id: str) -> dict:
+    path = MODELS_ROOT / model_id / "manifest.yaml"
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
 
 REPO = "qcom-ai-hub/ai-hub-models-internal"
 
@@ -61,21 +75,22 @@ def _blocked_by_banners(info: dict) -> bool:
 def scan_local_models() -> list[dict[str, str]]:
     """Return models where missing banners are the blocker."""
     missing: list[dict[str, str]] = []
-    for manifest_path in sorted(MODELS_ROOT.glob("*/manifest.yaml")):
-        model_id = manifest_path.parent.name
-        with open(manifest_path, encoding="utf-8") as f:
+    for config_path in sorted(SCORECARD_MODELS_ROOT.glob(f"*/{CONFIG_NAME}")):
+        model_id = config_path.parent.name
+        with open(config_path, encoding="utf-8") as f:
             info = yaml.safe_load(f)
         if info is None:
             continue
 
         if _blocked_by_banners(info):
+            manifest = _local_manifest(model_id)
             missing.append(
                 {
                     "model_id": model_id,
-                    "name": info.get("name", model_id),
+                    "name": manifest.get("name", model_id),
                     "status": info.get("status", "unknown"),
-                    "use_case": info.get("use_case", ""),
-                    "source_repo": info.get("source_repo", ""),
+                    "use_case": manifest.get("use_case", ""),
+                    "source_repo": manifest.get("source_repo", ""),
                 }
             )
     return missing
@@ -85,7 +100,7 @@ def scan_local_models() -> list[dict[str, str]]:
 # Open PR scan
 # -----------------------------------------------------------------------------
 def scan_open_prs() -> list[dict[str, str]]:
-    """Check open PRs for manifest.yaml files where banners are the blocker."""
+    """Check open PRs for internal-config.yaml files where banners are the blocker."""
     missing: list[dict[str, str]] = []
 
     try:
@@ -123,16 +138,16 @@ def scan_open_prs() -> list[dict[str, str]]:
         pr_number = pr.get("number")
         pr_title = pr.get("title", "")
 
-        # Filter for manifest.yaml files from the files list (no extra subprocess)
+        # Filter for scorecard configs from the files list (no extra subprocess)
         pr_files = pr.get("files") or []
-        manifest_yamls = [
+        config_yamls = [
             f.get("path", "")
             for f in pr_files
-            if f.get("path", "").endswith("manifest.yaml")
-            and "/models/" in f.get("path", "")
+            if f.get("path", "").endswith(CONFIG_NAME)
+            and "/scorecard/models/" in f.get("path", "")
         ]
 
-        if not manifest_yamls:
+        if not config_yamls:
             continue
 
         # Validate branch name before using in API call
@@ -141,9 +156,9 @@ def scan_open_prs() -> list[dict[str, str]]:
             logger.warning("Skipping PR %s: unsafe branch name %r", pr_number, branch)
             continue
 
-        for manifest_path in manifest_yamls:
-            # Extract model_id from path like src/qai_hub_models/models/<model_id>/manifest.yaml
-            parts = manifest_path.split("/")
+        for config_path in config_yamls:
+            # Path like src/qai_hub_models/scorecard/models/<model_id>/internal-config.yaml
+            parts = config_path.split("/")
             try:
                 models_idx = parts.index("models")
                 model_id = parts[models_idx + 1]
@@ -158,7 +173,7 @@ def scan_open_prs() -> list[dict[str, str]]:
                     [
                         "gh",
                         "api",
-                        f"repos/{REPO}/contents/{manifest_path}",
+                        f"repos/{REPO}/contents/{config_path}",
                         "-H",
                         "Accept: application/vnd.github.raw+json",
                         "--method",
@@ -181,7 +196,7 @@ def scan_open_prs() -> list[dict[str, str]]:
             raw = content_result.stdout
             if len(raw.encode()) > MAX_YAML_BYTES:
                 logger.warning(
-                    "Skipping oversized manifest.yaml for model in PR %s", pr_number
+                    "Skipping oversized %s for model in PR %s", CONFIG_NAME, pr_number
                 )
                 continue
             try:
@@ -194,13 +209,16 @@ def scan_open_prs() -> list[dict[str, str]]:
 
             if _blocked_by_banners(info):
                 seen_models.add(model_id)
+                # A brand-new model's manifest only exists on the PR branch, so
+                # these display fields fall back to empty for it.
+                manifest = _local_manifest(model_id)
                 missing.append(
                     {
                         "model_id": model_id,
-                        "name": info.get("name", model_id),
+                        "name": manifest.get("name", model_id),
                         "status": info.get("status", "unknown"),
-                        "use_case": info.get("use_case", ""),
-                        "source_repo": info.get("source_repo", ""),
+                        "use_case": manifest.get("use_case", ""),
+                        "source_repo": manifest.get("source_repo", ""),
                         "pr": f"#{pr_number}",
                         "pr_title": pr_title,
                     }

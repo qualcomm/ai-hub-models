@@ -39,9 +39,9 @@ from qai_hub_models.cli.validate import (
     _check_name_style,
     _check_no_self_referential_imports,
     _check_pip_commands,
+    _check_publish_status,
     _check_related_not_self,
     _check_requirements_txt,
-    _check_status_not_unset,
     _check_status_reason,
     _check_url_reachability,
     _check_website_fields_set,
@@ -60,6 +60,7 @@ from qai_hub_models.cli.validate import (
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.tensor_spec import TensorSpec
+from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 
@@ -67,6 +68,17 @@ from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 def _make_manifest(**kwargs: Any) -> QAIHMModelManifest:
     """Bare stand-in for QAIHMModelManifest; each test sets only the fields it uses."""
     return cast(QAIHMModelManifest, SimpleNamespace(**kwargs))
+
+
+def _make_info(manifest: Any = None, **internal_kwargs: Any) -> WebsiteModelInfo:
+    """Stand-in for WebsiteModelInfo, for the checks that read both files."""
+    return cast(
+        WebsiteModelInfo,
+        SimpleNamespace(
+            manifest=manifest if manifest is not None else _make_manifest(),
+            internal=SimpleNamespace(**internal_kwargs),
+        ),
+    )
 
 
 class TestFilesPresent:
@@ -175,35 +187,37 @@ class TestSelfReferentialImports:
         assert report.rows == []
 
 
-class TestStatusNotUnset:
-    def test_in_tree_unset_fails(
+class TestPublishStatus:
+    def test_in_tree_missing_config_fails(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: True)
+
+        def _missing(_: Path) -> MODEL_STATUS:
+            raise FileNotFoundError("no internal-config.yaml")
+
+        monkeypatch.setattr(validate_mod, "resolve_publish_status", _missing)
         report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.UNSET), report
-        )
+        _check_publish_status(tmp_path, report)
         assert report.rows[0].status is Status.FAIL
 
     def test_in_tree_pending_passes(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: True)
-        report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.PENDING), report
+        monkeypatch.setattr(
+            validate_mod, "resolve_publish_status", lambda _: MODEL_STATUS.PENDING
         )
+        report = Report()
+        _check_publish_status(tmp_path, report)
         assert report.rows[0].status is Status.PASS
 
-    def test_external_unset_is_silent(
+    def test_external_is_silent(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: False)
         report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.UNSET), report
-        )
+        _check_publish_status(tmp_path, report)
         assert report.rows == []
 
 
@@ -766,10 +780,6 @@ license: https://example.com/license
 source_repo: https://example.com/repo
 research_paper: https://arxiv.org/abs/1234.5678
 research_paper_title: A Paper
-form_factors:
-- Phone
-applicable_scenarios:
-- Inventory Management
 supported_precisions:
 - float
 """
@@ -1078,14 +1088,16 @@ class TestInternalChecks:
     def test_related_self_link_fails(self) -> None:
         report = Report()
         _check_related_not_self(
-            _make_manifest(id="my_model", related_models=["my_model"]), report
+            _make_info(_make_manifest(id="my_model"), related_models=["my_model"]),
+            report,
         )
         assert report.rows[0].status is Status.FAIL
 
     def test_related_clean_passes(self) -> None:
         report = Report()
         _check_related_not_self(
-            _make_manifest(id="my_model", related_models=["other"]), report
+            _make_info(_make_manifest(id="my_model"), related_models=["other"]),
+            report,
         )
         assert report.rows[0].status is Status.PASS
 
@@ -1112,7 +1124,7 @@ class TestInternalChecks:
     def test_status_reason_unpublished_missing_fails(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(status=MODEL_STATUS.UNPUBLISHED, status_reason=None),
+            _make_info(status=MODEL_STATUS.UNPUBLISHED, status_reason=None),
             report,
         )
         assert report.rows[0].status is Status.FAIL
@@ -1120,7 +1132,7 @@ class TestInternalChecks:
     def test_status_reason_published_present_fails(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(
+            _make_info(
                 status=MODEL_STATUS.PUBLISHED,
                 status_reason="tracked in #123",
             ),
@@ -1131,7 +1143,7 @@ class TestInternalChecks:
     def test_status_reason_unpublished_with_reason_passes(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(
+            _make_info(
                 status=MODEL_STATUS.UNPUBLISHED,
                 status_reason="tracked in #123",
             ),

@@ -1,22 +1,12 @@
-applicable_scenarios:
-- Virtual Real Estate Tours
-- Gaming
-- ARVR
 description: Real-ESRGAN is a machine learning model that upscales an image with minimal loss in quality. The implementation is a derivative of the Real-ESRGAN-x4plus architecture, a larger and more powerful version compared to the Real-ESRGAN-general-x4v3 architecture.
 domain: Computer Vision
 external_repos:
   esrgan:
     commit_sha: 73e9b634cf987f5996ac2dd33f4050922398a921
     repo_url: https://github.com/xinntao/ESRGAN.git
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Upscale images and remove image noise.
 id: real_esrgan_x4plus
-imsdk_supported: true
 license: https://github.com/xinntao/Real-ESRGAN/blob/master/LICENSE
 license_type: bsd-3-clause
 name: Real-ESRGAN-x4plus
@@ -26,22 +16,12 @@ numerics_benchmark:
   source: AI Hub Models Reference Eval
   unit: dB
   value: 26.6
-related_models:
-- esrgan
-- real_esrgan_general_x4v3
 research_paper: https://arxiv.org/abs/2107.10833
 research_paper_title: 'Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data'
 source_repo: https://github.com/xinntao/Real-ESRGAN
-status: published
 supported_precisions:
 - float
 - w8a8
-technical_details:
-  Input resolution: 128x128
-  Model checkpoint: RealESRGAN_x4plus
-  Model size (float): 63.9 MB
-  Model size (w8a8): 16.7 MB
-  Number of parameters: 16.7M
 templates:
 - super_resolution
 use_case: Super Resolution

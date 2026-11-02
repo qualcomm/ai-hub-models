@@ -1,25 +1,12 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Customer Support
 description: Llama 3 is a family of LLMs. The model is quantized to w4 (4-bit weights) and part of the model is quantized to w8 (8-bit weights) making it suitable for on-device deployment.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: llama_v3_2_1b_instruct
 is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/blob/main/LICENSE.txt
 license_type: llama3
-llm_details:
-  call_to_action: View Readme
-  genie_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -61,10 +48,6 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
-related_models:
-- llama_v3_8b_instruct
-- llama_v3_1_8b_instruct
-- llama_v3_2_3b_instruct
 requires_aot_prepare: true
 research_paper: https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/MODEL_CARD.md
 research_paper_title: 'LLaMA: Open and Efficient Foundation Language Models'
@@ -78,17 +61,12 @@ runtime_technical_details:
     Supported Output Modalities: text
 separate_quantize_script: true
 source_repo: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/
-status: published
 supported_precisions:
 - w4
 - w4a16
 tags:
 - llm
 - generative-ai
-technical_details:
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: English.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (4096 tokens).
 templates:
 - llama3
 - llm

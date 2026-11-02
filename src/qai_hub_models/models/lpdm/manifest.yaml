@@ -1,18 +1,6 @@
-applicable_scenarios:
-- Autonomous Vehicles
-- Parking Management
-- Traffic Monitoring
-- Security & Surveillance
-dataset:
-- car-plate-k6xij
 description: 'A YOLOv8-nano object detection model fine-tuned on the UAE licence-plate dataset (Roboflow car-plate-k6xij v26). The model detects and classifies 51 object classes: digits 0-9, letters A-Z, UAE emirate region identifiers and a plate bounding-box class for the full plate region.'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
-has_static_banner: true
 headline: YOLOv8-based detector for UAE licence plates — characters, digits, and emirate identifiers.
 id: lpdm
 license: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
@@ -26,27 +14,15 @@ numerics_benchmark:
   value: 26.0
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- yolov8_det
-- yolov11_det
 research_paper: https://docs.ultralytics.com/tasks/detect/
 research_paper_title: 'Ultralytics YOLOv8 Docs: Object Detection'
 restrict_model_sharing: true
 source_repo: https://github.com/3bdul1ah/License-Plates-Detector-Model
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  License Plate Classes: Digits 0-9, Letters A-Z, UAE emirate identifiers, plate
-  Model checkpoint: YOLOv8-N
-  Model size (float): 11.7 MB
-  Model size (w8a16): 3.46 MB
-  Number of classes: 51
-  Number of parameters: 3.04M
 templates:
 - ultralytics
 - yolo

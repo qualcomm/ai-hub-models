@@ -1,20 +1,8 @@
-applicable_scenarios:
-- Injury prevention training
-- Sports performance analysis
-- Posture recognition
-dataset:
-- cocobody
 datasets:
 - coco
 description: CenterNet-Pose is a machine learning model that detects human pose and returns a location and confidence for each of 17 joints.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Human pose estimation.
 id: centernet_pose
 license: https://github.com/xingyizhou/CenterNet/blob/master/LICENSE
@@ -26,19 +14,10 @@ numerics_benchmark:
   source: https://github.com/xingyizhou/CenterNet
   unit: mAP
   value: 58.9
-related_models:
-- hrnet_pose
-- litehrnet
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/1904.07850
 research_paper_title: Objects as Points
 source_repo: https://github.com/xingyizhou/CenterNet
-status: published
-technical_details:
-  Input resolution: 1 x 3 x 512 x 512
-  Model checkpoint: multi_pose_dla_3x.pth
-  Model size: 57.8 MB
-  Number of parameters: 20.6M
 templates:
 - centernet
 use_case: Pose Estimation

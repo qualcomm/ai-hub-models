@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Virtual Real Estate Tours
-- Gaming
-- ARVR
 description: NAFNET is designed for lightweight real-time upscaling of images.
 disabled_paths:
   w8a16:
@@ -10,34 +6,19 @@ disabled_paths:
     qnn_context_binary:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-108.100 dB) above threshold (10.0 dB)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Upscale images in real time using stereo technique.
 id: nafssr
-imsdk_supported: true
 license: https://github.com/megvii-research/NAFNet/blob/main/LICENSE
 license_type: mit
 name: NAFSSR
-related_models:
-- nafnet_denoise
-- nafnet_deblur
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2204.08714
 research_paper_title: 'NAFSSR: Stereo Image Super-Resolution Using NAFNet'
 source_repo: https://github.com/megvii-research/NAFNet.git
-status: published
 supported_precisions:
 - float
 - w8a16
-technical_details:
-  Input resolution: 128x128
-  Model checkpoint: NAFSSR-S_2x
-  Model size (float): 6.2 MB
-  Number of parameters: 1.54M
 templates:
 - nafnet
 use_case: Super Resolution

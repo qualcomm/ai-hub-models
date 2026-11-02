@@ -25,13 +25,13 @@ from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.models.templates.llm.perf_collection import update_perf_yaml
 from qai_hub_models.scorecard.device import DEFAULT_QDC_DEVICE, ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
+from qai_hub_models.scorecard.internal_config_yaml import model_perf_component_key
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import (
     NEVER_DROPPED,
     QAIHMModelReleaseAssets,
 )
-from qai_hub_models.scorecard.scorecard_config_yaml import model_perf_component_key
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
 # Genie runs on DEFAULT_QDC_DEVICE and nowhere else, so that one job decides
