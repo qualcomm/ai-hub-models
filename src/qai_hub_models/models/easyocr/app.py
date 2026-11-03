@@ -23,9 +23,10 @@ from easyocr.utils import (
 )
 from PIL import Image
 from qai_hub.client import DatasetEntries
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
+from qai_hub_models.models.easyocr.dataset import CocoTextCalibrationDataset
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.draw import draw_box_from_corners, draw_box_from_xyxy
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
@@ -442,8 +443,7 @@ class EasyOCRApp:
                 else 1
             )
             low_confience_high_contrast_cutout_frames = [
-                TRF.adjust_contrast(img, contrast).unsqueeze(0)
-                for img in low_confience_cutouts
+                TRF.adjust_contrast(img, contrast) for img in low_confience_cutouts
             ]
             high_contrast_pred_text_confidence = self.recognizer_inference(
                 low_confience_high_contrast_cutout_frames
@@ -691,7 +691,6 @@ class EasyOCRApp:
         num_samples = (num_samples // batch_size) * batch_size
         print(f"Loading {num_samples} calibration samples.")
         torch_dataset = sample_dataset(dataset, num_samples)
-        dataloader = DataLoader(torch_dataset, batch_size=batch_size)
 
         recognizer = collection_model.components["recognizer"]
         recognizer_spec = (input_specs or {}).get(
@@ -710,52 +709,46 @@ class EasyOCRApp:
             [] for _ in range(len(input_spec))
         ]
 
-        for sample_input, _ in dataloader:
-            NHWC_int_numpy_frames, _ = app_to_net_image_inputs(sample_input)
-            NHWC_int_numpy_GRAY_frames = [
-                cv2.cvtColor(x, cv2.COLOR_RGB2GRAY) for x in NHWC_int_numpy_frames
-            ]
-
-            detector_input_frames, scales, paddings = app_instance.detector_preprocess(
-                NHWC_int_numpy_frames
-            )
-
-            if component_name == "detector":
+        if component_name == "detector":
+            dataloader = DataLoader(torch_dataset, batch_size=batch_size)
+            for sample_input, _ in dataloader:
+                NHWC_int_numpy_frames, _ = app_to_net_image_inputs(sample_input)
+                detector_input_frames, _, _ = app_instance.detector_preprocess(
+                    NHWC_int_numpy_frames
+                )
                 inputs[0].append(detector_input_frames)
 
-            elif component_name == "recognizer":
-                # Run detector to obtain text boxes
-                with torch.no_grad():
-                    detector_output = detector(detector_input_frames)
-                horizontal_boxes_per_img, free_boxes_per_img = (
-                    app_instance.detector_postprocess(detector_output, scales, paddings)
+        elif component_name == "recognizer":
+            if not isinstance(dataset, CocoTextCalibrationDataset):
+                raise TypeError(
+                    "EasyOCR recognizer calibration requires COCO-Text annotations."
                 )
-
-                batch_cutouts = []
-                for img_gray, horizontal_boxes, free_boxes in zip(
-                    NHWC_int_numpy_GRAY_frames,
-                    horizontal_boxes_per_img,
-                    free_boxes_per_img,
-                    strict=False,
-                ):
-                    _, cutout_frames_list = app_instance.get_detector_output(
-                        img_gray, horizontal_boxes, free_boxes
-                    )
-                    batch_cutouts.extend(cutout_frames_list)
-
-                if batch_cutouts:
-                    sample_tensor = torch.cat(batch_cutouts)
-                    # Drop the last partial batch — calibration requires
-                    # fixed-size inputs matching the input spec.
-                    for batch in sample_tensor.split(batch_size, dim=0):
-                        if batch.shape[0] == batch_size:
-                            inputs[0].append(batch)
-
-            else:
-                raise ValueError(
-                    f"Unsupported component for calibration: {component_name}. "
-                    "Expected 'detector' or 'recognizer'."
+            indices = (
+                torch_dataset.indices
+                if isinstance(torch_dataset, Subset)
+                else range(len(dataset))
+            )
+            cutout_frames = []
+            for index in indices:
+                image_gray, word_polygons = dataset.get_recognizer_calibration_sample(
+                    int(index)
                 )
+                _, image_cutouts = app_instance.get_detector_output(
+                    image_gray, [], word_polygons
+                )
+                cutout_frames.extend(image_cutouts)
+
+            if cutout_frames:
+                sample_tensor = torch.cat(cutout_frames)
+                for batch in sample_tensor.split(batch_size, dim=0):
+                    if batch.shape[0] == batch_size:
+                        inputs[0].append(batch)
+
+        else:
+            raise ValueError(
+                f"Unsupported component for calibration: {component_name}. "
+                "Expected 'detector' or 'recognizer'."
+            )
 
         if not any(inputs):
             raise ValueError(
