@@ -20,6 +20,7 @@ from qai_hub_models.utils.devicefarm.backends.qdc.device_run import (
     bundle_path,
     log_path,
     render_command_file,
+    render_linux_script,
     render_windows_script,
     submit_device_run,
 )
@@ -39,15 +40,30 @@ def _bundle(tmp_path: Path) -> Path:
 def _windows_run(bundle: Path) -> DeviceRun:
     return DeviceRun(
         bundle_dir=bundle,
-        command=[bundle_path("run.py"), "--out", log_path()],
+        command=[bundle_path(True, "run.py"), "--out", log_path(True, "QDC_logs")],
         requirements_file="reqs.txt",
     )
 
 
-def test_bundle_path_and_log_path() -> None:
-    assert bundle_path("models/a/w.onnx") == "C:\\Temp\\TestContent\\models\\a\\w.onnx"
-    assert bundle_path("") == "C:\\Temp\\TestContent"
-    assert log_path() == "C:\\Temp\\QDC_Logs"
+def _linux_run(bundle: Path) -> DeviceRun:
+    return DeviceRun(
+        bundle_dir=bundle,
+        command=[bundle_path(False, "run.py"), "--out", log_path(False, "QDC_logs")],
+        image_tar="img.tar",
+        image_tag="img:latest",
+    )
+
+
+def test_bundle_path_and_log_path_per_os() -> None:
+    assert (
+        bundle_path(True, "models/a/w.onnx")
+        == "C:\\Temp\\TestContent\\models\\a\\w.onnx"
+    )
+    assert bundle_path(False, "models/a/w.onnx") == "/work/models/a/w.onnx"
+    assert bundle_path(True, "") == "C:\\Temp\\TestContent"
+    assert bundle_path(False, "") == "/work"
+    assert log_path(True, "QDC_logs") == "C:\\Temp\\QDC_Logs"
+    assert log_path(False, "QDC_logs") == "/out"
 
 
 def test_windows_script_has_no_unfilled_placeholders(tmp_path: Path) -> None:
@@ -79,7 +95,7 @@ def test_requirements_file_name_must_be_safe_for_cmd(tmp_path: Path) -> None:
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     with pytest.raises(ValueError, match="requirements_file"):
-        build_bundle(run, scratch)
+        build_bundle(run, True, "QDC_logs", scratch)
 
 
 def test_windows_script_verifies_every_download(tmp_path: Path) -> None:
@@ -126,25 +142,51 @@ def test_build_bundle_rejects_an_unsafe_requirement(tmp_path: Path) -> None:
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     with pytest.raises(ValueError, match=r"Requirement in reqs\.txt"):
-        build_bundle(_windows_run(bundle), scratch)
+        build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
 
 
-def test_build_bundle_contains_files_and_script(tmp_path: Path) -> None:
+def test_linux_script_has_no_unfilled_placeholders(tmp_path: Path) -> None:
+    script = render_linux_script(_linux_run(_bundle(tmp_path)), "QDC_logs")
+    assert not PLACEHOLDER.findall(script)
+    assert "/data/local/tmp/QDC_logs" in script
+    assert '"img:latest" python /work/run.py --out /out' in script
+    assert "libdmabufheap" in script
+
+
+def test_linux_script_quotes_arguments(tmp_path: Path) -> None:
+    run = DeviceRun(
+        bundle_dir=_bundle(tmp_path),
+        command=["run.py", "a b"],
+        image_tar="img.tar",
+        image_tag="img:latest",
+    )
+    assert "run.py 'a b'" in render_linux_script(run, "QDC_logs")
+
+
+def test_linux_run_requires_image(tmp_path: Path) -> None:
+    run = DeviceRun(bundle_dir=_bundle(tmp_path), command=["run.py"])
+    with pytest.raises(ValueError, match="image_tar"):
+        render_linux_script(run, "QDC_logs")
+
+
+@pytest.mark.parametrize("is_windows", [True, False])
+def test_build_bundle_contains_files_and_script(
+    tmp_path: Path, is_windows: bool
+) -> None:
     bundle = _bundle(tmp_path)
+    run = _windows_run(bundle) if is_windows else _linux_run(bundle)
     scratch = tmp_path / "scratch"
     scratch.mkdir()
 
-    entries, entry_script = build_bundle(_windows_run(bundle), scratch)
+    entries, entry_script = build_bundle(run, is_windows, "QDC_logs", scratch)
 
     arcnames = {arc.replace("\\", "/") for _, arc in entries}
-    assert {
-        "run.py",
-        "reqs.txt",
-        "models/a/w.onnx",
-        "run_windows.ps1",
-        COMMAND_FILE,
-    } <= arcnames
-    assert entry_script == "C:\\Temp\\TestContent\\run_windows.ps1"
+    assert {"run.py", "models/a/w.onnx"} <= arcnames
+    script_name = "run_windows.ps1" if is_windows else "run_linux_container.sh"
+    assert script_name in arcnames
+    assert (COMMAND_FILE in arcnames) == is_windows
+    assert entry_script.endswith(script_name)
+    assert entry_script.startswith("C:\\" if is_windows else "/bin/bash ")
 
 
 def test_command_file_rejects_an_empty_argument(tmp_path: Path) -> None:
@@ -157,7 +199,7 @@ def test_build_bundle_without_requirements(tmp_path: Path) -> None:
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     run = DeviceRun(bundle_dir=_bundle(tmp_path), command=["run.py"])
-    entries, _ = build_bundle(run, scratch)
+    entries, _ = build_bundle(run, True, "QDC_logs", scratch)
     assert "reqs.txt" in {Path(arc).name for _, arc in entries}
 
 
@@ -170,7 +212,7 @@ def test_build_bundle_rejects_a_missing_requirements_file(tmp_path: Path) -> Non
         requirements_file="nope.txt",
     )
     with pytest.raises(FileNotFoundError, match=r"nope\.txt"):
-        build_bundle(run, scratch)
+        build_bundle(run, True, "QDC_logs", scratch)
 
 
 @pytest.mark.parametrize("reserved", ["run_windows.ps1", "device_command.txt"])
@@ -182,7 +224,7 @@ def test_build_bundle_rejects_reserved_file_names(
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     with pytest.raises(ValueError, match=re.escape(reserved)):
-        build_bundle(_windows_run(bundle), scratch)
+        build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
 
 
 def test_build_bundle_allows_reserved_names_in_subfolders(tmp_path: Path) -> None:
@@ -190,7 +232,7 @@ def test_build_bundle_allows_reserved_names_in_subfolders(tmp_path: Path) -> Non
     (bundle / "models" / "run_windows.ps1").write_text("nested")
     scratch = tmp_path / "scratch"
     scratch.mkdir()
-    entries, _ = build_bundle(_windows_run(bundle), scratch)
+    entries, _ = build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
     assert any(arc.replace("\\", "/") == "models/run_windows.ps1" for _, arc in entries)
 
 
@@ -201,7 +243,7 @@ def test_requirements_reject_pip_option_lines(tmp_path: Path, line: str) -> None
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     with pytest.raises(ValueError, match="pip option"):
-        build_bundle(_windows_run(bundle), scratch)
+        build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
 
 
 def test_requirements_ignore_blank_comment_and_trailing_comment_lines(
@@ -213,7 +255,7 @@ def test_requirements_ignore_blank_comment_and_trailing_comment_lines(
     )
     scratch = tmp_path / "scratch"
     scratch.mkdir()
-    build_bundle(_windows_run(bundle), scratch)
+    build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
 
 
 def test_requirements_still_reject_unsafe_characters(tmp_path: Path) -> None:
@@ -222,43 +264,48 @@ def test_requirements_still_reject_unsafe_characters(tmp_path: Path) -> None:
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     with pytest.raises(ValueError, match=r"Requirement in reqs\.txt"):
-        build_bundle(_windows_run(bundle), scratch)
+        build_bundle(_windows_run(bundle), True, "QDC_logs", scratch)
 
 
 def test_build_bundle_rejects_missing_dir(tmp_path: Path) -> None:
     run = DeviceRun(bundle_dir=tmp_path / "missing", command=["run.py"])
     with pytest.raises(FileNotFoundError):
-        build_bundle(run, tmp_path)
+        build_bundle(run, True, "QDC_logs", tmp_path)
 
 
-def test_submit_device_run_submits_the_windows_bundle(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("attrs", "expect_ps1"),
+    [
+        (SimpleNamespace(is_windows_platform=True, is_iot_platform=False), True),
+        (SimpleNamespace(is_windows_platform=False, is_iot_platform=True), False),
+    ],
+)
+def test_submit_device_run_picks_script_by_os(
+    tmp_path: Path, attrs: SimpleNamespace, expect_ps1: bool
+) -> None:
+    bundle = _bundle(tmp_path)
+    run = _windows_run(bundle) if expect_ps1 else _linux_run(bundle)
     backend = mock.MagicMock()
     backend.submit_bundle.return_value = "123"
-    with mock.patch.object(
-        device_run,
-        "HubDevicePlatform",
-        return_value=SimpleNamespace(is_windows_platform=True),
+    with (
+        mock.patch.object(device_run, "HubDevicePlatform", return_value=attrs),
+        mock.patch.object(device_run, "device_logs_dir_name", return_value="QDC_logs"),
     ):
-        job_id = submit_device_run(
-            backend, "Some Device", _windows_run(_bundle(tmp_path)), "job", 900
-        )
+        job_id = submit_device_run(backend, "Some Device", run, "job", 900)
 
     assert job_id == "123"
     kwargs = backend.submit_bundle.call_args.kwargs
     assert kwargs["hub_device_name"] == "Some Device"
     assert kwargs["job_timeout"] == 900
-    assert kwargs["entry_script"].endswith("run_windows.ps1")
+    assert ("run_windows.ps1" in kwargs["entry_script"]) == expect_ps1
 
 
-def test_submit_device_run_rejects_non_windows_devices(tmp_path: Path) -> None:
+def test_submit_device_run_rejects_other_platforms(tmp_path: Path) -> None:
+    attrs = SimpleNamespace(is_windows_platform=False, is_iot_platform=False)
     with (
-        mock.patch.object(
-            device_run,
-            "HubDevicePlatform",
-            return_value=SimpleNamespace(is_windows_platform=False),
-        ),
+        mock.patch.object(device_run, "HubDevicePlatform", return_value=attrs),
         pytest.raises(NotImplementedError),
     ):
         submit_device_run(
-            mock.MagicMock(), "Phone", _windows_run(_bundle(tmp_path)), "job", 900
+            mock.MagicMock(), "Phone", _linux_run(_bundle(tmp_path)), "job", 900
         )
