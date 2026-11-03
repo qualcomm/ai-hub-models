@@ -23,6 +23,7 @@ from qai_hub_models.models.templates.llm.perf_collection import (
 from qai_hub_models.scorecard import ScorecardProfilePath
 from qai_hub_models.utils.aws import (
     QAIHM_PRIVATE_S3_BUCKET,
+    QAIHM_PUBLIC_S3_BUCKET,
     get_presigned_download_url,
     get_qaihm_s3,
 )
@@ -63,6 +64,7 @@ DEFAULT_CONTEXT_LENGTHS = [512, 1024, 4096]
 _MIN_RESULT_SCHEMA_VERSION = 3
 
 _N_GEN = 128
+QAIRT_SDK_S3_PREFIX = "qai-hub-models/qairt-sdk"
 
 # Each accuracy prompt runs as its own geniex-bench process: the timeout kills a
 # crashed/hung DSP run so the loop advances, the sleep lets the DSP release
@@ -323,6 +325,11 @@ class GenieXBenchAndroidArtifactHandler(GenieXBenchArtifactHandler):
 
         bench_url = _bench_url("android-arm64", "tar.gz", geniex_version)
         bundle_url = (qairt_bundle_urls or {}).get(next(iter(qairt_bundles or {}), ""))
+        sdk_url = (
+            get_geniex_qairt_sdk_url(qairt_version)
+            if plugin == "qairt" and qairt_version
+            else ""
+        )
         test_folder = os.path.join(dest_dir, "tests")
         os.makedirs(test_folder, exist_ok=True)
         for fn in os.listdir(pytest_dir):
@@ -337,7 +344,8 @@ class GenieXBenchAndroidArtifactHandler(GenieXBenchArtifactHandler):
                 content = self._apply_common_replacements(
                     content.replace("{ANDROID_BENCH_URL}", bench_url)
                     .replace("{N_GEN}", str(_N_GEN))
-                    .replace("{QAIRT_BUNDLE_URL}", bundle_url or ""),
+                    .replace("{QAIRT_BUNDLE_URL}", bundle_url or "")
+                    .replace("{QAIRT_SDK_URL}", sdk_url),
                     context_lengths,
                     run_perf,
                     eval_prompts,
@@ -857,6 +865,18 @@ def get_geniex_qairt_bundle_url(
         )
     bucket = get_qaihm_s3(QAIHM_PRIVATE_S3_BUCKET)[0]
     return get_presigned_download_url(bucket, asset.s3_key)
+
+
+def get_geniex_qairt_sdk_url(qairt_version: str) -> str:
+    """Mint a presigned S3 GET URL for a QAIRT SDK zip.
+
+    The device curls this instead of Software Center, the same way it pulls
+    the model bundle (see :func:`get_geniex_qairt_bundle_url`).
+    """
+    bucket = get_qaihm_s3(QAIHM_PUBLIC_S3_BUCKET)[0]
+    return get_presigned_download_url(
+        bucket, f"{QAIRT_SDK_S3_PREFIX}/v{qairt_version}.zip"
+    )
 
 
 def submit_geniex_bench(

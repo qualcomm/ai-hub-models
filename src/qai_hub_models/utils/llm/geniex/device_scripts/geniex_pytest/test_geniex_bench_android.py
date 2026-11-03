@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import shutil
 import subprocess
 import tarfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -74,6 +76,9 @@ DEVICE_QAIRT_ZIP = "/data/local/tmp/qairt.zip"
 # The SDK zip's top-level entry is qairt/<version>/, so extract into its parent.
 DEVICE_QAIRT_EXTRACT = "/data/local/tmp"
 DEVICE_QAIRT_ROOT = f"{DEVICE_QAIRT_EXTRACT}/qairt"
+# Presigned S3 GET URL for QAIRT_VERSION's SDK zip (empty when QAIRT_VERSION is).
+QAIRT_SDK_URL = "{QAIRT_SDK_URL}"
+DOWNLOAD_ATTEMPTS = 5
 
 
 def adb(cmd: str, *, check: bool = True) -> subprocess.CompletedProcess:
@@ -99,6 +104,54 @@ def adb(cmd: str, *, check: bool = True) -> subprocess.CompletedProcess:
     if check:
         assert rc == 0, f"adb command failed (exit {rc}): {cmd}"
     return result
+
+
+def _remote_size(url: str) -> int | None:
+    # Ranged GET, not HEAD: presigned S3 URLs reject HEAD.
+    out = adb(f"curl -sSL -i -r 0-0 --max-time 30 '{url}'", check=False).stdout
+    totals = re.findall(
+        r"^content-range:\s*bytes\s+\S+/(\d+)", out, re.IGNORECASE | re.MULTILINE
+    )
+    return int(totals[-1]) if totals else None
+
+
+def _device_file_size(path: str) -> int:
+    out = adb(f"wc -c < {path}", check=False).stdout.strip()
+    return int(out) if out.isdigit() else 0
+
+
+def download_zip_with_retry(url: str, dest: str, *, max_time: int) -> None:
+    """Download a zip on-device, resuming a short file and redoing a bad one.
+
+    The AWS devices' curl lacks -C, so resume is a ranged GET appended to the
+    partial file. A download is accepted when its size matches the server's
+    total and the zip's central directory is readable.
+    """
+    expected = _remote_size(url)
+    print(f"Expected size of {dest}: {expected}")
+    adb(f"rm -f {dest}")
+    size = 0
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        adb(
+            f"curl -sSL --fail --max-time {max_time} -r {size}- '{url}' >> {dest}",
+            check=False,
+        )
+        size = _device_file_size(dest)
+        if expected is None or size == expected:
+            valid = adb(f"unzip -l {dest} > /dev/null", check=False).returncode == 0
+        else:
+            valid = False
+        print(f"Download attempt {attempt}: size={size}, valid={valid}")
+        if valid:
+            return
+        if expected is None or size >= expected:
+            adb(f"rm -f {dest}")
+            size = 0
+        time.sleep(5 * attempt)
+    pytest.fail(
+        f"Download of {url} failed after {DOWNLOAD_ATTEMPTS} attempts "
+        f"(size={size}, expected={expected})"
+    )
 
 
 def _preflight_url(url: str) -> None:
@@ -145,6 +198,8 @@ def _preflight_network() -> None:
     _preflight_url(ANDROID_BENCH_URL)
     if QAIRT_BUNDLE_URL:
         _preflight_url(QAIRT_BUNDLE_URL)
+    if QAIRT_SDK_URL:
+        _preflight_url(QAIRT_SDK_URL)
 
 
 def stage_bundle() -> None:
@@ -188,6 +243,31 @@ def push_bundle() -> None:
     adb(f"cp {DEVICE_BUNDLE}/lib/llama_cpp/*.so {DEVICE_BUNDLE}/lib/")
 
 
+def _download_and_unzip(
+    url: str, zip_path: str, extract_dir: str, *, max_time: int
+) -> str:
+    """Download a zip on-device and extract it into a clean ``extract_dir``.
+
+    Returns the zip's first top-level directory. toybox unzip can exit nonzero
+    on a fully successful extract, so success is judged by that directory
+    existing, and the extract is retried once if it doesn't.
+    """
+    download_zip_with_retry(url, zip_path, max_time=max_time)
+    extracted = ""
+    for _ in range(2):
+        adb(f"rm -rf {extract_dir}")
+        adb(f"mkdir -p {extract_dir}")
+        adb(f"unzip -q {zip_path} -d {extract_dir}", check=False)
+        extracted = adb(
+            f"find {extract_dir} -mindepth 1 -maxdepth 1 -type d | head -n1"
+        ).stdout.strip()
+        if extracted:
+            break
+    adb(f"rm -f {zip_path}")
+    assert extracted, f"{zip_path} had no top-level directory after extract"
+    return extracted
+
+
 def _fetch_qairt_bundle_ondevice(bundle_name: str) -> str:
     """Curl+unzip the presigned qairt bundle directly on-device.
 
@@ -201,46 +281,18 @@ def _fetch_qairt_bundle_ondevice(bundle_name: str) -> str:
     (the bare model_id) to match what the matrix/eval model refs expect.
     Returns `bundle_name` unchanged, for the caller's convenience.
     """
-    adb(f"rm -rf {DEVICE_QAIRT_BUNDLES} /data/local/tmp/_qairt_bundle_dl")
-    adb(f"mkdir -p {DEVICE_QAIRT_BUNDLES} /data/local/tmp/_qairt_bundle_dl")
-    adb(
-        "curl -L --fail --max-time 1800 --retry 3 --retry-delay 5 "
-        f"--output /data/local/tmp/qairt_bundle.zip '{QAIRT_BUNDLE_URL}'"
+    adb(f"rm -rf {DEVICE_QAIRT_BUNDLES}")
+    adb(f"mkdir -p {DEVICE_QAIRT_BUNDLES}")
+    scratch = "/data/local/tmp/_qairt_bundle_dl"
+    extracted = _download_and_unzip(
+        QAIRT_BUNDLE_URL, "/data/local/tmp/qairt_bundle.zip", scratch, max_time=1800
     )
-    # Android's toybox unzip can return a nonzero warning exit even on a fully
-    # successful extract (see run_android.py's qairt.zip handling); don't
-    # trust the exit code, verify the extracted dir exists instead, retrying
-    # the extract once if it doesn't.
-    adb(
-        "unzip -q /data/local/tmp/qairt_bundle.zip -d /data/local/tmp/_qairt_bundle_dl",
-        check=False,
-    )
-    find = adb(
-        "find /data/local/tmp/_qairt_bundle_dl -mindepth 1 -maxdepth 1 -type d "
-        "| head -n1"
-    )
-    extracted = find.stdout.strip()
-    if not extracted:
-        adb("rm -rf /data/local/tmp/_qairt_bundle_dl")
-        adb("mkdir -p /data/local/tmp/_qairt_bundle_dl")
-        adb(
-            "unzip -q /data/local/tmp/qairt_bundle.zip "
-            "-d /data/local/tmp/_qairt_bundle_dl",
-            check=False,
-        )
-        find = adb(
-            "find /data/local/tmp/_qairt_bundle_dl -mindepth 1 -maxdepth 1 -type d "
-            "| head -n1"
-        )
-        extracted = find.stdout.strip()
-    adb("rm -f /data/local/tmp/qairt_bundle.zip")
-    assert extracted, "qairt bundle zip had no top-level directory"
     adb(f"mv '{extracted}' {DEVICE_QAIRT_BUNDLES}/{bundle_name}")
-    adb("rm -rf /data/local/tmp/_qairt_bundle_dl")
+    adb(f"rm -rf {scratch}")
     return bundle_name
 
 
-def fetch_qairt_sdk() -> str:
+def _fetch_qairt_sdk_ondevice() -> str:
     """Download QAIRT_VERSION's SDK on-device; return the --qairt-lib flag for it.
 
     Returns an empty string (no flag) when the bundled QAIRT should be used.
@@ -249,19 +301,13 @@ def fetch_qairt_sdk() -> str:
         return ""
     print(f"=== Using QAIRT {QAIRT_VERSION} ===")
     sdk = f"{DEVICE_QAIRT_ROOT}/{QAIRT_VERSION}"
-    url = (
-        "https://softwarecenter.qualcomm.com/api/download/software/sdks/"
-        f"Qualcomm_AI_Runtime_Community/All/{QAIRT_VERSION}/v{QAIRT_VERSION}.zip"
-    )
-    adb(
-        "curl -L -J --fail --max-time 3600 --retry 3 --retry-delay 5 "
-        f"--output {DEVICE_QAIRT_ZIP} {url}"
+    scratch = "/data/local/tmp/_qairt_sdk_dl"
+    extracted = _download_and_unzip(
+        QAIRT_SDK_URL, DEVICE_QAIRT_ZIP, scratch, max_time=3600
     )
     adb(f"rm -rf {DEVICE_QAIRT_ROOT}")
-    # toybox unzip can exit nonzero on a successful extract, so check=False and
-    # verify the extracted dir instead of trusting its exit code.
-    adb(f"unzip -q {DEVICE_QAIRT_ZIP} -d {DEVICE_QAIRT_EXTRACT}", check=False)
-    adb(f"rm -f {DEVICE_QAIRT_ZIP}", check=False)
+    adb(f"mv '{extracted}' {DEVICE_QAIRT_ROOT}")
+    adb(f"rm -rf {scratch}")
     adb(f"test -d {sdk}/lib")
     return f"--qairt-lib {sdk}"
 
@@ -412,7 +458,7 @@ def _run_eval(
 def test_scorecard() -> None:
     _preflight_network()
     push_bundle()
-    qairt_lib_flag = fetch_qairt_sdk()
+    qairt_lib_flag = _fetch_qairt_sdk_ondevice()
     # QDC reuses device cells across jobs; wipe stale cell JSONs from a prior
     # run so compute_metrics doesn't ingest another model/plugin's results.
     adb(f"rm -rf {DEVICE_RESULTS}", check=False)
