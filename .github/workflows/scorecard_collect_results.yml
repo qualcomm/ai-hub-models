@@ -629,12 +629,6 @@ jobs:
                 '[All Results + Hub Job YAML (zip)](${{ needs.aggregate_scorecard_results.outputs.results_url }})',
               ].join('\n')
             });
-            const reviewerResult = await github.request(`POST /repos/${owner}/${repo}/pulls/${result.data.number}/requested_reviewers`, {
-              owner: owner,
-              repo: repo,
-              pull_number: result.data.number,
-              team_reviewers: ['ai-hub-models-reviewers'],
-            })
             // Assign the PR to whoever triggered the run. Scheduled runs have
             // no human triggerer, so leave those unassigned.
             if (context.eventName !== 'schedule') {
