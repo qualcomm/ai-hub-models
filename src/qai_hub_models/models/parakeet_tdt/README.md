@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [Parakeet-TDT-0.6B-v3: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture](https://aihub.qualcomm.com/models/parakeet_tdt)
 
 Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using TDT architecture with a FastConformer encoder and 2-layer LSTM predictor, split into Encoder, Decoder, and Joint components for efficient on-device inference across English and 25 European languages.

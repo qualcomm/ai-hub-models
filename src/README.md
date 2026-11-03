@@ -278,6 +278,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [MobileNet-v3-Small](https://aihub.qualcomm.com/models/mobilenet_v3_small) | `qai_hub_models.models.mobilenet_v3_small` |
 | [MobileNet-v4](https://aihub.qualcomm.com/models/mobilenet_v4) | `qai_hub_models.models.mobilenet_v4` |
 | [NASNet](https://aihub.qualcomm.com/models/nasnet) | `qai_hub_models.models.nasnet` |
+| [NetVLAD](https://aihub.qualcomm.com/models/netvlad) | `qai_hub_models.models.netvlad` |
 | [RegNet](https://aihub.qualcomm.com/models/regnet) | `qai_hub_models.models.regnet` |
 | [RegNet-Y-800MF](https://aihub.qualcomm.com/models/regnet_y_800mf) | `qai_hub_models.models.regnet_y_800mf` |
 | [RepViT](https://aihub.qualcomm.com/models/repvit) | `qai_hub_models.models.repvit` |
@@ -408,6 +409,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [YoloV5-Face](https://aihub.qualcomm.com/models/yolov5_face) | `qai_hub_models.models.yolov5_face` |
 | | |
 | **Pose Estimation**
+| [AG-Pose](https://aihub.qualcomm.com/models/agpose) | `qai_hub_models.models.agpose` |
 | [CenterNet-Pose](https://aihub.qualcomm.com/models/centernet_pose) | `qai_hub_models.models.centernet_pose` |
 | [Facial-Landmark-Detection](https://aihub.qualcomm.com/models/facemap_3dmm) | `qai_hub_models.models.facemap_3dmm` |
 | [HRNetPose](https://aihub.qualcomm.com/models/hrnet_pose) | `qai_hub_models.models.hrnet_pose` |
@@ -484,6 +486,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [DeepSpeech2](https://aihub.qualcomm.com/models/deepspeech2) | `qai_hub_models.models.deepspeech2` |
 | [Distil-Whisper](https://aihub.qualcomm.com/models/distil_whisper) | `qai_hub_models.models.distil_whisper` |
 | [FunASR-Conformer-EN](https://aihub.qualcomm.com/models/funasr_conformer_en) | `qai_hub_models.models.funasr_conformer_en` |
+| [Parakeet-TDT-0.6B-v3](https://aihub.qualcomm.com/models/parakeet_tdt) | `qai_hub_models.models.parakeet_tdt` |
 | [Wav2Vec2-Conformer-Large-960h](https://aihub.qualcomm.com/models/wav2vec2_conformer) | `qai_hub_models.models.wav2vec2_conformer` |
 | [Whisper-Base](https://aihub.qualcomm.com/models/whisper_base) | `qai_hub_models.models.whisper_base` |
 | [Whisper-Large-V3-Turbo](https://aihub.qualcomm.com/models/whisper_large_v3_turbo) | `qai_hub_models.models.whisper_large_v3_turbo` |

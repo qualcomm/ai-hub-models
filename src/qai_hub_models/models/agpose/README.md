@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [AG-Pose: Category-level 6D object pose estimation](https://aihub.qualcomm.com/models/agpose)
 
 AG-Pose is a category-level 6D object pose estimation model that predicts rotation, translation, and size of objects from RGB-D input. It uses DINOv2-S (ViT-S/14) as the RGB backbone and PointNet++ for 3D point cloud processing, with an Instance-Adaptive Keypoint Detector (IAKD) and Geometric-Aware Feature Aggregator (GAFA) for robust pose estimation across 6 object categories.

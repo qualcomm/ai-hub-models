@@ -1,31 +1,28 @@
-name: AG-Pose
-id: agpose
-headline: Category-level 6D object pose estimation.
-domain: Computer Vision
 description: AG-Pose is a category-level 6D object pose estimation model that predicts rotation, translation, and size of objects from RGB-D input. It uses DINOv2-S (ViT-S/14) as the RGB backbone and PointNet++ for 3D point cloud processing, with an Instance-Adaptive Keypoint Detector (IAKD) and Geometric-Aware Feature Aggregator (GAFA) for robust pose estimation across 6 object categories.
-numerics_benchmark:
-  dataset_name: nocs_real275
-  metric_name: Mean Average Precision
-  value: 57
-  unit: mAP@5deg2cm
-  source: https://github.com/Leeiieeo/AG-Pose
-use_case: Pose Estimation
-tags: []
-license_type: mit
-research_paper: https://arxiv.org/abs/2403.19527
-research_paper_title: 'AG-Pose: Instance-Adaptive and Geometric-Aware Keypoint Learning for Category-Level 6D Object Pose Estimation'
-source_repo: https://github.com/Leeiieeo/AG-Pose
-license: https://github.com/Leeiieeo/AG-Pose/blob/main/LICENSE
-supported_precisions:
-- float
-has_on_target_demo: true
-is_collection_model: true
-external_repos:
-  ag_pose:
-    repo_url: https://github.com/Leeiieeo/AG-Pose.git
-    commit_sha: bfd97ff398d542bb6a55f584e7886c32c5e17368
-    patches_filename: model_patch.diff
 disabled_paths:
   float:
     tflite:
-      scorecard_failure: 'Failing jobs: jp0mlm39g'
+      scorecard_failure: 'Failing jobs: j57n492np'
+domain: Computer Vision
+external_repos:
+  ag_pose:
+    commit_sha: bfd97ff398d542bb6a55f584e7886c32c5e17368
+    patches_filename: model_patch.diff
+    repo_url: https://github.com/Leeiieeo/AG-Pose.git
+has_on_target_demo: true
+headline: Category-level 6D object pose estimation.
+id: agpose
+is_collection_model: true
+license: https://github.com/Leeiieeo/AG-Pose/blob/main/LICENSE
+license_type: mit
+name: AG-Pose
+numerics_benchmark:
+  dataset_name: nocs_real275
+  metric_name: Mean Average Precision
+  source: https://github.com/Leeiieeo/AG-Pose
+  unit: mAP@5deg2cm
+  value: 57.0
+research_paper: https://arxiv.org/abs/2403.19527
+research_paper_title: 'AG-Pose: Instance-Adaptive and Geometric-Aware Keypoint Learning for Category-Level 6D Object Pose Estimation'
+source_repo: https://github.com/Leeiieeo/AG-Pose
+use_case: Pose Estimation

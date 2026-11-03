@@ -278,6 +278,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [MobileNet-v3-Small](https://aihub.qualcomm.com/models/mobilenet_v3_small) | [qai_hub_models.models.mobilenet_v3_small](src/qai_hub_models/models/mobilenet_v3_small/README.md) |
 | [MobileNet-v4](https://aihub.qualcomm.com/models/mobilenet_v4) | [qai_hub_models.models.mobilenet_v4](src/qai_hub_models/models/mobilenet_v4/README.md) |
 | [NASNet](https://aihub.qualcomm.com/models/nasnet) | [qai_hub_models.models.nasnet](src/qai_hub_models/models/nasnet/README.md) |
+| [NetVLAD](https://aihub.qualcomm.com/models/netvlad) | [qai_hub_models.models.netvlad](src/qai_hub_models/models/netvlad/README.md) |
 | [RegNet](https://aihub.qualcomm.com/models/regnet) | [qai_hub_models.models.regnet](src/qai_hub_models/models/regnet/README.md) |
 | [RegNet-Y-800MF](https://aihub.qualcomm.com/models/regnet_y_800mf) | [qai_hub_models.models.regnet_y_800mf](src/qai_hub_models/models/regnet_y_800mf/README.md) |
 | [RepViT](https://aihub.qualcomm.com/models/repvit) | [qai_hub_models.models.repvit](src/qai_hub_models/models/repvit/README.md) |
@@ -408,6 +409,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [YoloV5-Face](https://aihub.qualcomm.com/models/yolov5_face) | [qai_hub_models.models.yolov5_face](src/qai_hub_models/models/yolov5_face/README.md) |
 | | |
 | **Pose Estimation**
+| [AG-Pose](https://aihub.qualcomm.com/models/agpose) | [qai_hub_models.models.agpose](src/qai_hub_models/models/agpose/README.md) |
 | [CenterNet-Pose](https://aihub.qualcomm.com/models/centernet_pose) | [qai_hub_models.models.centernet_pose](src/qai_hub_models/models/centernet_pose/README.md) |
 | [Facial-Landmark-Detection](https://aihub.qualcomm.com/models/facemap_3dmm) | [qai_hub_models.models.facemap_3dmm](src/qai_hub_models/models/facemap_3dmm/README.md) |
 | [HRNetPose](https://aihub.qualcomm.com/models/hrnet_pose) | [qai_hub_models.models.hrnet_pose](src/qai_hub_models/models/hrnet_pose/README.md) |
@@ -484,6 +486,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [DeepSpeech2](https://aihub.qualcomm.com/models/deepspeech2) | [qai_hub_models.models.deepspeech2](src/qai_hub_models/models/deepspeech2/README.md) |
 | [Distil-Whisper](https://aihub.qualcomm.com/models/distil_whisper) | [qai_hub_models.models.distil_whisper](src/qai_hub_models/models/distil_whisper/README.md) |
 | [FunASR-Conformer-EN](https://aihub.qualcomm.com/models/funasr_conformer_en) | [qai_hub_models.models.funasr_conformer_en](src/qai_hub_models/models/funasr_conformer_en/README.md) |
+| [Parakeet-TDT-0.6B-v3](https://aihub.qualcomm.com/models/parakeet_tdt) | [qai_hub_models.models.parakeet_tdt](src/qai_hub_models/models/parakeet_tdt/README.md) |
 | [Wav2Vec2-Conformer-Large-960h](https://aihub.qualcomm.com/models/wav2vec2_conformer) | [qai_hub_models.models.wav2vec2_conformer](src/qai_hub_models/models/wav2vec2_conformer/README.md) |
 | [Whisper-Base](https://aihub.qualcomm.com/models/whisper_base) | [qai_hub_models.models.whisper_base](src/qai_hub_models/models/whisper_base/README.md) |
 | [Whisper-Large-V3-Turbo](https://aihub.qualcomm.com/models/whisper_large_v3_turbo) | [qai_hub_models.models.whisper_large_v3_turbo](src/qai_hub_models/models/whisper_large_v3_turbo/README.md) |
