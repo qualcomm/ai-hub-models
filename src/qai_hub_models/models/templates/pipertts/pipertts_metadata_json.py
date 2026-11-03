@@ -12,6 +12,7 @@ and asset locations.
 
 from __future__ import annotations
 
+import functools
 import os
 
 from qai_hub_models.configs.model_metadata import ModelMetadata
@@ -42,6 +43,7 @@ def create_tts_metadata(
     normalizer_bin_name: str,
     metadata: ModelMetadata,
     sample_rate: int,
+    name_suffix: str = "",
 ) -> TTSMetadata:
     """
     Generate ``TTSMetadata`` for a PiperTTS model.
@@ -58,6 +60,8 @@ def create_tts_metadata(
         ``ModelMetadata`` instance containing model files and tool versions.
     sample_rate
         Audio sample rate in Hz.
+    name_suffix
+        Suffix appended to the generated metadata ``name`` (e.g., "-amy").
 
     Returns
     -------
@@ -91,6 +95,7 @@ def create_tts_metadata(
         assets=assets,
         is_model_quantized=True,
         sample_rate=sample_rate,
+        name_suffix=name_suffix,
     )
 
 
@@ -106,6 +111,7 @@ def write_pipertts_supplementary_files(
     output_dir: str | os.PathLike,
     metadata: ModelMetadata,
     sample_rate: int,
+    name_suffix: str = "",
 ) -> None:
     """
     Write supplementary files for PiperTTS models.
@@ -120,12 +126,16 @@ def write_pipertts_supplementary_files(
         Model metadata object to update with supplementary file info
     sample_rate
         Audio sample rate in Hz
+    name_suffix
+        Suffix appended to the generated metadata ``name``
     """
     write_tts_supplementary_files(
         language=language,
         output_dir=output_dir,
         metadata=metadata,
-        create_metadata_fn=create_tts_metadata,
+        create_metadata_fn=functools.partial(
+            create_tts_metadata, name_suffix=name_suffix
+        ),
         sample_rate=sample_rate,
         skip_tokenizer_languages=SKIP_TOKENIZER_LANGUAGES,
         metadata_description="PiperTTS metadata JSON",

@@ -18,3 +18,7 @@ class PiperTTS_EN_AMY(PiperTTS):
     @classmethod
     def get_voice_id(cls) -> str:
         return "amy"
+
+    @classmethod
+    def get_metadata_name_suffix(cls) -> str:
+        return "-amy"

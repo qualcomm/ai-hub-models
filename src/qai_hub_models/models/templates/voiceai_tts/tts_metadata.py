@@ -129,6 +129,7 @@ class TTSMetadata(BaseQAIHMConfig):
         assets: BaseQAIHMConfig,
         sample_rate: int,
         is_model_quantized: bool = False,
+        name_suffix: str = "",
     ) -> Self:
         lang_code = LANG_CODE_MAP[language].lower()
         lang_name = language.value.capitalize()
@@ -151,7 +152,7 @@ class TTSMetadata(BaseQAIHMConfig):
         ]
 
         return cls(
-            name=f"{model_type}-tts-{lang_code}",
+            name=f"{model_type}-tts-{lang_code}{name_suffix}",
             display_name=f"{display_model_name} {lang_name}",
             description=f"{display_model_name} text-to-speech model for {lang_name}",
             model_type=model_type,
