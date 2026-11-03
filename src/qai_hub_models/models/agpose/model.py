@@ -306,6 +306,7 @@ class AGPoseBackbone(BaseModel):
         if target_runtime in (
             TargetRuntime.QNN_CONTEXT_BINARY,
             TargetRuntime.QNN_DLC,
+            TargetRuntime.TFLITE,
         ):
             opts += " --truncate_64bit_io --truncate_64bit_tensors"
 

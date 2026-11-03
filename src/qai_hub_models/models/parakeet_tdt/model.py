@@ -279,6 +279,23 @@ class ParakeetDecoder(BaseModel):
     def component_precision(self) -> Precision:
         return Precision.w8a8_mixed_fp16
 
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision = Precision.float,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = "",
+    ) -> str:
+        if (
+            target_runtime == TargetRuntime.TFLITE
+            and "--truncate_64bit_tensors" not in other_compile_options
+        ):
+            other_compile_options += " --truncate_64bit_tensors"
+        return super().get_hub_compile_options(
+            target_runtime, precision, other_compile_options, device, context_graph_name
+        )
+
     @staticmethod
     def get_hub_litemp_percentage(precision: Precision) -> float:
         """Return the Lite-MP FP16 override percentage.
