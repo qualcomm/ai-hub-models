@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from qai_hub import JobType
 from utils import (
     DISPLAY_SEPARATOR,
+    JOB_STATUS_SUCCESS,
     create_results_table,
     filter_known_failures,
     find_passing_known_failures,
@@ -41,6 +42,56 @@ def _infra_failure_row(model_name: str, info: dict) -> list:
         info["original_job_url"],
         info["dev_job_url"],
     ]
+
+
+def _compile_status_row(model_name: str, info: dict) -> list:
+    return [
+        model_name,
+        info.get("prod_job_url", "N/A"),
+        info.get("dev_job_url", "N/A"),
+        info.get("dev_status", "SUBMISSION_FAILED" if info.get("error") else "N/A"),
+    ]
+
+
+def get_tfl_converter_jobs(*result_sets: dict) -> dict:
+    tfl_converter_jobs = {}
+    for result_set in result_sets:
+        for model_name, info in result_set.items():
+            if "_TFL_CONVERTER" in model_name:
+                tfl_converter_jobs.setdefault(model_name, info)
+    return tfl_converter_jobs
+
+
+def print_tfl_converter_results(tfl_converter_jobs: dict) -> str:
+    passed_count = sum(
+        1
+        for info in tfl_converter_jobs.values()
+        if info.get("dev_status") == JOB_STATUS_SUCCESS
+    )
+    total_count = len(tfl_converter_jobs)
+    summary_line = f"TFL Converter = {passed_count} / {total_count}"
+
+    log_and_print(f"\n{DISPLAY_SEPARATOR}", logger)
+    log_and_print(summary_line, logger)
+    log_and_print(DISPLAY_SEPARATOR, logger)
+
+    failing_jobs = {
+        model_name: info
+        for model_name, info in tfl_converter_jobs.items()
+        if info.get("dev_status") != JOB_STATUS_SUCCESS
+    }
+    if failing_jobs:
+        table = create_results_table(
+            failing_jobs,
+            ["Model", "Prod Job URL", "Dev Job URL", "Dev Status"],
+            _compile_status_row,
+        )
+        log_and_print("\nTFL CONVERTER FAILING JOBS", logger)
+        log_and_print(DISPLAY_SEPARATOR, logger)
+        for line in str(table).split("\n"):
+            log_and_print(line, logger)
+
+    return summary_line
 
 
 def print_summary(
@@ -180,6 +231,15 @@ def main() -> int:
             args.results_dir / f"passed-dev-and-prod__{job_yaml_tag}.yaml",
             return_empty_on_not_found=True,
         )
+        other_changes = load_yaml_safe(
+            args.results_dir / f"other-status-changes__{job_yaml_tag}.yaml",
+            return_empty_on_not_found=True,
+        )
+        submission_failures = load_yaml_safe(
+            args.results_dir
+            / f"dev-compile-jobs-submission-failures__{job_yaml_tag}.yaml",
+            return_empty_on_not_found=True,
+        )
 
         dev_client = load_client(args.dev_profile)
         regressions, known = filter_known_failures(
@@ -212,9 +272,24 @@ def main() -> int:
             infra_failures,
             job_yaml_tag,
         )
+        tfl_converter_summary_line = print_tfl_converter_results(
+            get_tfl_converter_jobs(
+                regressions,
+                progressions,
+                failures,
+                passed,
+                known,
+                passing_known,
+                infra_failures,
+                other_changes,
+                submission_failures,
+            )
+        )
 
         summary_path = args.results_dir / f"compile-summary__{job_yaml_tag}.txt"
-        summary_path.write_text(str(summary_table) + "\n")
+        summary_path.write_text(
+            str(summary_table) + f"\n{tfl_converter_summary_line}\n"
+        )
         log_and_print(f"Saved summary table: {summary_path}", logger)
 
         exit_code = 0
