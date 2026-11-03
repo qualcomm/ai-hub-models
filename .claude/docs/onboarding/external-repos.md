@@ -4,8 +4,8 @@ How to load model code from a GitHub repository into a recipe.
 
 Upstream code (backbones, custom layers, tokenizers) is declared in
 `manifest.yaml` and shallow-cloned into
-`<model_folder>/external_repos/<repo_name>/` at import time. This replaces the
-legacy `SourceAsRoot` utility and pip-installed forks.
+`<model_folder>/external_repos/<repo_name>/` at import time. This replaces
+pip-installed forks.
 
 ## Manifest
 
@@ -57,10 +57,3 @@ the real upstream module. Extract `state_dict` inside `from_pretrained` and
 discard the rest. When a pickle references classes by their upstream-relative
 name (yolov6/v7-style), `repo_in_sys_path` from
 `qai_hub_models.utils.asset_loaders` can help.
-
-## SourceAsRoot (legacy)
-
-`SourceAsRoot` still exists in the codebase for old recipes, but it is
-**legacy — do not use it for new recipes**. It clones the repo and mutates the
-Python environment to make the clone importable, which is fragile and hides
-what was changed. Use `external_repos:` instead.

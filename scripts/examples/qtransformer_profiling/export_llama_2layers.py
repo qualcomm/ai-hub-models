@@ -13,7 +13,7 @@ from transformers.cache_utils import Cache
 from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaForCausalLM
 
-from qai_hub_models.utils.asset_loaders import SourceAsRoot
+from .external_repos.efficient_transformers.QEfficient import QEFFAutoModelForCausalLM
 
 # We build a tiny random Llama with vocab_size=13 and save it
 # to a temporary directory that both loaders can read.
@@ -80,9 +80,9 @@ def save_model_to_temp_dir(model: LlamaForCausalLM, tmp_dir: Path) -> None:
 
 
 def truncate_model_layers_qeff(
-    model: "QEFFAutoModelForCausalLM",  # noqa: F821
+    model: "QEFFAutoModelForCausalLM",
     num_keep: int,
-) -> "QEFFAutoModelForCausalLM":  # noqa: F821
+) -> "QEFFAutoModelForCausalLM":
     """
     For QEfficient wrapper, truncate the wrapped HF model and update
     the wrapper's bookkeeping (num_layers) accordingly.
@@ -279,7 +279,7 @@ class QEffPrefillLlama(torch.nn.Module):
         the length of input_ids.
     """
 
-    def __init__(self, qeff: "QEFFAutoModelForCausalLM") -> None:  # noqa: F821
+    def __init__(self, qeff: "QEFFAutoModelForCausalLM") -> None:
         super().__init__()
         if not hasattr(qeff, "model"):
             raise RuntimeError("QEff wrapper must expose `.model`")
@@ -632,42 +632,31 @@ def export_seq_len(model: QEffPrefillLlama, seq_len: int) -> None:
 
 
 def main() -> None:
-    patch_path = str(Path(__file__).parent / "repo_patch.diff")
+    print("Building tiny random Llama (vocab_size=13) ...")
+    cfg = build_tiny_llama_config(VOCAB_SIZE)
+    tiny = init_random_llama_model(cfg)
 
-    with SourceAsRoot(
-        "https://github.com/quic/efficient-transformers",
-        "3dfb84010578f40df005e10099d9e71ef4087b44",
-        "qtransformer_profiling",
-        1,
-        source_repo_patches=[patch_path],
-    ):
-        from QEfficient import QEFFAutoModelForCausalLM
+    print("Saving tiny model to a temporary directory ...")
+    with tempfile.TemporaryDirectory(prefix="tiny-llama-13vocab-") as tmp:
+        save_model_to_temp_dir(tiny, Path(tmp))
 
-        print("Building tiny random Llama (vocab_size=13) ...")
-        cfg = build_tiny_llama_config(VOCAB_SIZE)
-        tiny = init_random_llama_model(cfg)
+        print("Loading QEfficient model from temp dir (CPU only) ...")
+        qeff_full = QEFFAutoModelForCausalLM.from_pretrained(
+            str(tmp),
+            torch_dtype=torch.float32,
+            device_map=None,
+        )
+    print("Truncating QEfficient model to first", NUM_LAYERS_KEEP, "layers")
+    qeff = truncate_model_layers_qeff(qeff_full, NUM_LAYERS_KEEP)
 
-        print("Saving tiny model to a temporary directory ...")
-        with tempfile.TemporaryDirectory(prefix="tiny-llama-13vocab-") as tmp:
-            save_model_to_temp_dir(tiny, Path(tmp))
+    print("Wrapping QEff model with QEffPrefillLlama ...")
+    wrapper = QEffPrefillLlama(qeff).to("cpu")
+    wrapper.eval()
 
-            print("Loading QEfficient model from temp dir (CPU only) ...")
-            qeff_full = QEFFAutoModelForCausalLM.from_pretrained(
-                str(tmp),
-                torch_dtype=torch.float32,
-                device_map=None,
-            )
-        print("Truncating QEfficient model to first", NUM_LAYERS_KEEP, "layers")
-        qeff = truncate_model_layers_qeff(qeff_full, NUM_LAYERS_KEEP)
-
-        print("Wrapping QEff model with QEffPrefillLlama ...")
-        wrapper = QEffPrefillLlama(qeff).to("cpu")
-        wrapper.eval()
-
-        # Export for seq_len=1 and seq_len=128. All input creation and
-        # validation are handled inside export_seq_len.
-        export_seq_len(wrapper, 1)
-        export_seq_len(wrapper, 128)
+    # Export for seq_len=1 and seq_len=128. All input creation and
+    # validation are handled inside export_seq_len.
+    export_seq_len(wrapper, 1)
+    export_seq_len(wrapper, 128)
 
 
 if __name__ == "__main__":

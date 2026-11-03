@@ -5,17 +5,14 @@
 
 from __future__ import annotations
 
-import fileinput
 import json
 import logging
 import os
-import platform
 import re
 import shutil
 import sys
 import tarfile
 import tempfile
-import threading
 import time
 import zipfile
 from collections.abc import Callable, Generator, Iterable
@@ -25,7 +22,6 @@ from functools import partial
 from pathlib import Path
 from types import ModuleType
 from typing import Any
-from unittest.mock import MagicMock
 from zipfile import ZipFile
 
 import gdown
@@ -53,7 +49,6 @@ ASSET_BASES_DEFAULT_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "asset_bases.yaml"
 )
 EXECUTING_IN_CI_ENVIRONMENT = IsOnCIEnvvar.get()
-SOURCE_AS_ROOT_LOCK = threading.Lock()
 
 PathLike = os.PathLike | str
 VersionType = str | int
@@ -255,74 +250,6 @@ def query_yes_no(
             print("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def maybe_clone_git_repo(
-    git_file_path: str,
-    commit_hash: str,
-    model_name: str,
-    model_version: VersionType,
-    patches: list[str] | None = None,
-    ask_to_clone: bool = not EXECUTING_IN_CI_ENVIRONMENT,
-) -> Path:
-    """Clone (or pull) a repository, save it to disk in a standard location,
-    and return the absolute path to the cloned location. Patches can be applied
-    by providing a list of paths to diff files.
-    """
-    # http://blah.come/author/name.git -> name, author
-    repo_name = os.path.basename(git_file_path).split(".")[0]
-    repo_author = os.path.basename(os.path.dirname(git_file_path))
-    local_path = ASSET_CONFIG.get_local_store_model_path(
-        model_name, model_version, f"{repo_author}_{repo_name}_git"
-    )
-    os.makedirs(os.path.dirname(local_path), exist_ok=True)
-
-    if not os.path.exists(os.path.join(local_path, ".git")):
-        # Clone repo
-        should_clone = (
-            True
-            if not ask_to_clone
-            else query_yes_no(
-                f"{model_name} requires repository {git_file_path} . Ok to clone?",
-            )
-        )
-        if should_clone:
-            print(f"Cloning {git_file_path} to {local_path}...")
-
-            try:
-                from git import (  # noqa:  TID251 Import is wrapped in try / catch as requested by precommit rules.
-                    Repo,
-                )
-            except ImportError as e:
-                if e.msg.startswith("Failed to initialize: Bad git executable."):
-                    raise ImportError(
-                        f"Git is not installed or can't be found on your system. Git is required to load {model_name}.\n"
-                        "Follow these instructions to install git: https://github.com/git-guides/install-git\n"
-                        "After Git is installed on your system, please try again."
-                    ) from None
-
-            repo = Repo.clone_from(git_file_path, local_path)
-            repo.git.checkout(commit_hash)
-            for patch_path in patches or []:
-                git_cmd = ["git", "apply"]
-                if platform.system() == "Windows":
-                    # We pass ignore-space-change,
-                    # which is used when finding patch content in files.
-                    # Windows has trouble understanding non-windows EOL markers.
-                    #
-                    # There are more specific flags available that only change how
-                    # git looks at line endings, but they are not available in all
-                    # versions of git on windows.
-                    git_cmd.append("--ignore-space-change")
-                git_cmd.append(patch_path)
-                repo.git.execute(git_cmd)
-            print("Done")
-        else:
-            raise ValueError(
-                f"Unable to load {model_name} without its required repository."
-            )
-
-    return local_path
-
-
 def wipe_sys_modules(module: ModuleType) -> None:
     """
     Wipe all modules from sys.modules whose names start with the given module name.
@@ -422,114 +349,6 @@ def load_path(file: PathType, tmpdir: tempfile.TemporaryDirectory | str) -> str 
 def get_hub_datasets_path() -> Path:
     """Get the path where cached hub data for evaluation can be stored."""
     return Path(LOCAL_STORE_DEFAULT_PATH) / "hub_datasets"
-
-
-@contextmanager
-def SourceAsRoot(
-    source_repo_url: str,
-    source_repo_commit_hash: str,
-    source_repo_name: str,
-    source_repo_version: int | str,
-    source_repo_patches: list[str] | None = None,
-    keep_sys_modules: bool = True,
-    ask_to_clone: bool = not EXECUTING_IN_CI_ENVIRONMENT,
-    # These modules are imported but unused during model loading.
-    # They are mocked so they can be imported without requiring us to install them.
-    imported_but_unused_modules: list[str] | None = None,
-    source_root_subdir: str | None = None,
-) -> Generator[str, None, None]:
-    """
-    Context manager that runs code with:
-     * the source repository added to the system path,
-     * cwd set to the source repo's root directory.
-
-    Only one of this class should be active per Python session.
-    """
-    repository_path = str(
-        maybe_clone_git_repo(
-            source_repo_url,
-            source_repo_commit_hash,
-            source_repo_name,
-            source_repo_version,
-            patches=source_repo_patches,
-            ask_to_clone=ask_to_clone,
-        )
-    )
-    if source_root_subdir:
-        repository_path = os.path.join(repository_path, source_root_subdir)
-    SOURCE_AS_ROOT_LOCK.acquire()
-    original_path = list(sys.path)
-    original_modules = dict(sys.modules)
-    cwd = os.getcwd()
-    try:
-        # These modules are imported but unused during use.
-        # They are mocked so they can be imported without error
-        # without requiring us to install them.
-        for module_name in imported_but_unused_modules or []:
-            if module_name not in sys.modules:
-                sys.modules[module_name] = MagicMock()
-
-        # If repo path already in sys.path from previous load,
-        # delete it and put it first
-        if repository_path in sys.path:
-            sys.path.remove(repository_path)
-        # Patch path for this load only, since the model source
-        # code references modules via a global scope.
-        # Insert with highest priority (see #7666)
-        sys.path.insert(0, repository_path)
-        os.chdir(repository_path)
-        yield repository_path
-    finally:
-        # Be careful editing these lines (failure means partial clean-up)
-        os.chdir(cwd)
-        sys.path = original_path
-        if not keep_sys_modules:
-            # When you call something like `import models`, it loads the `models` module
-            # into sys.modules so all future `import models` point to that module.
-            #
-            # We want all imports done within the sub-repo to be either deleted from
-            # sys.modules or restored to the previous module if one was overwritten.
-            for name, module in list(sys.modules.items()):
-                if (getattr(module, "__file__", "") or "").startswith(
-                    repository_path
-                ) or name in (imported_but_unused_modules or []):
-                    if name in original_modules:
-                        sys.modules[name] = original_modules[name]
-                    else:
-                        del sys.modules[name]
-        SOURCE_AS_ROOT_LOCK.release()
-
-
-def find_replace_in_repo(
-    repo_path: str, filepaths: str | list[str], find_str: str, replace_str: str
-) -> None:
-    """
-    When loading models from external repos, sometimes small modifications
-    need to be made to the repo code to get it working in the zoo env.
-
-    This does a simple find + replace within a single file.
-
-    Parameters
-    ----------
-    repo_path
-        Local filepath to the repo of interest.
-    filepaths
-        Filepath within the repo to the file to change.
-    find_str
-        The string that needs to be replaced.
-    replace_str
-        The string with which to replace all instances of `find_str`.
-    """
-    if isinstance(filepaths, str):
-        filepaths = [filepaths]
-    for filepath in filepaths:
-        with fileinput.FileInput(
-            Path(repo_path) / filepath,
-            inplace=True,
-            backup=".bak",
-        ) as file:
-            for line in file:
-                print(line.replace(find_str, replace_str), end="")
 
 
 class QAIHM_WEB_ASSET(Enum):

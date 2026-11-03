@@ -227,7 +227,7 @@ This skill does NOT restate:
   required fields, license consistency, mixed-precision rules,
   external-repo SHA form, python-version reasons). Those are in
   `onboard`.
-- CollectionModel / SourceAsRoot / quantization / evaluator wiring —
+- CollectionModel / quantization / evaluator wiring —
   all in `onboard` and its linked sub-guides.
 - `qai-hub-models validate` report card categories — `onboard`
   §Authoring correctness.

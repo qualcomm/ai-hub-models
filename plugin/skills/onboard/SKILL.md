@@ -51,7 +51,7 @@ At the end, announce what you inferred (license, task, precisions, sibling refer
 
 1. **Modify PyTorch to get the model onto device.** Architecture changes are fine if they preserve numerics.
 2. **CPU-only in torch.** No `.cuda(`. Grep siblings for GPU-stripping tricks.
-3. **Upstream code always goes through `external_repos:`.** Not pip install, not `SourceAsRoot`, not inlined into `model.py`.
+3. **Upstream code always goes through `external_repos:`.** Not pip install, not inlined into `model.py`.
 4. **Never `sys.modules` / monkey-patch torch to unpickle a checkpoint.** With `external_repos:` on the import path, whole-object pickles resolve against the real upstream module. Extract `state_dict` inside `from_pretrained` and discard the rest. If you're writing `sys.modules['models'] = ...` or patching `SGD.__setstate__`, stop. When a pickle references classes by their upstream-relative name (yolov6/v7-style), `repo_in_sys_path` from `qai_hub_models.utils.asset_loaders` can help — see "Weights" below.
 5. **Merge pre/postprocessing into the model** where possible — simpler on-device story.
 6. **Follow existing I/O conventions** for the task family.
@@ -59,7 +59,7 @@ At the end, announce what you inferred (license, task, precisions, sibling refer
 
 ## External Repos
 
-Upstream code (backbones, custom layers, tokenizers) is declared in `manifest.yaml` and shallow-cloned into `<model_folder>/external_repos/<repo_name>/` at import time. Replaces `SourceAsRoot` and pip-installed forks.
+Upstream code (backbones, custom layers, tokenizers) is declared in `manifest.yaml` and shallow-cloned into `<model_folder>/external_repos/<repo_name>/` at import time. Replaces pip-installed forks.
 
 ### Manifest
 
@@ -105,7 +105,7 @@ Fix broken upstream (broken imports, GPU-only code paths, hard-coded absolute pa
 
 Generate the diff by hand-editing the cloned repo, then `git diff > <repo>_patches.diff` — a standard git diff with one `diff --git a/… b/…` block per file changed. Applied once at fetch time, so subsequent imports see the patched code.
 
-Always prefer patches over runtime `find_replace_in_repo` (legacy runtime helper). Patches are declarative, reviewable in the PR diff, and applied once instead of every import.
+Patches are declarative, reviewable in the PR diff, and applied once instead of every import.
 
 ### Weights
 
@@ -273,7 +273,6 @@ Browse before writing preprocessing from scratch. The fastest way to find the ri
 - **`asset_loaders.py`** — asset fetching:
   - `CachedWebModelAsset` — download + cache weights from URLs.
   - `load_image()` — load a PIL image from URL or local path.
-  - `SourceAsRoot` — **legacy — do not use for new recipes.** Making an upstream GitHub repo importable now goes through `external_repos:`.
 - **`display.py`, `draw.py`** — demo output:
   - `display_or_save_image()` — show in GUI/notebook or save to disk (used in every `demo.py`).
   - `draw_box_from_xyxy()`, `draw_points()`, `create_color_map()` — overlays for detection / pose / segmentation.

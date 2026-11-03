@@ -137,8 +137,6 @@ When your model depends on external code (e.g., from a GitHub repo or third-part
 
 3. **External repos** - For upstream code that is not installable from PyPI, declare it under `external_repos:` in `manifest.yaml`. The repo is shallow-cloned (pinned to a commit) into `<model_folder>/external_repos/<repo_name>/` at import time, and an optional patch file can be applied. See `.claude/docs/onboarding/external-repos.md` for the schema and import conventions.
 
-`SourceAsRoot` is legacy — do not use it for new recipes. It clones the repo and mutates the Python environment to make the clone importable, which is fragile and hides what changed. Existing recipes that use it may continue to do so.
-
 For pretrained weights:
 
 1. **Library weights** - Many libraries provide pretrained options

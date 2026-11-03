@@ -141,25 +141,26 @@ def _generate_external_repos_init(
     return file_path
 
 
-def _generate_template_external_repos(environment: Environment) -> list[str]:
-    """Generate __init__.py for each templates/*/manifest.yaml that declares external_repos."""
-    templates_dir = QAIHM_MODELS_ROOT / "templates"
-    if not templates_dir.exists():
+def _generate_external_repos_for_subfolders(
+    environment: Environment, root: Path
+) -> list[str]:
+    """Generate __init__.py for each <root>/*/manifest.yaml that declares external_repos."""
+    if not root.exists():
         return []
 
     template = environment.get_template("external_repos_init_template.j2")
     generated = []
-    for template_folder in sorted(templates_dir.iterdir()):
-        manifest_path = template_folder / "manifest.yaml"
+    for folder in sorted(root.iterdir()):
+        manifest_path = folder / "manifest.yaml"
         if not manifest_path.exists():
             continue
         manifest = QAIHMModelManifest.from_yaml(manifest_path)
         if not manifest.external_repos:
             continue
-        external_repos_dir = template_folder / "external_repos"
+        external_repos_dir = folder / "external_repos"
         os.makedirs(external_repos_dir, exist_ok=True)
         file_contents = template.render(
-            template_name=template_folder.name,
+            template_name=folder.name,
             header=HEADER,
         )
         file_path = external_repos_dir / "__init__.py"
@@ -167,6 +168,18 @@ def _generate_template_external_repos(environment: Environment) -> list[str]:
             f.write(file_contents)
         generated.append(str(file_path))
     return generated
+
+
+def _generate_template_external_repos(environment: Environment) -> list[str]:
+    return _generate_external_repos_for_subfolders(
+        environment, QAIHM_MODELS_ROOT / "templates"
+    )
+
+
+def _generate_example_external_repos(environment: Environment) -> list[str]:
+    return _generate_external_repos_for_subfolders(
+        environment, QAIHM_REPO_ROOT / "scripts" / "examples"
+    )
 
 
 def generate_code_for_model(model_name: str) -> list[str]:
@@ -291,9 +304,10 @@ def main() -> None:
     models = args.models if args.models else MODEL_IDS
     modified_files = []
 
-    # Generate template external repos __init__.py files
+    # Generate template and scripts/examples external repos __init__.py files
     if args.all:
         modified_files.extend(_generate_template_external_repos(environment))
+        modified_files.extend(_generate_example_external_repos(environment))
 
     for model in models:
         try:

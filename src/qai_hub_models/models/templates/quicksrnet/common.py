@@ -5,7 +5,9 @@
 
 import torch
 
-from qai_hub_models.utils.aimet.repo import aimet_zoo_as_root
+from qai_hub_models.models.templates.quicksrnet.external_repos.aimet_zoo.aimet_zoo_torch.quicksrnet.model.models import (
+    QuickSRNetBase,
+)
 
 
 def _load_quicksrnet_source_model(
@@ -14,14 +16,9 @@ def _load_quicksrnet_source_model(
     num_intermediate_layers: int,
     use_ito_connection: bool,
 ) -> torch.nn.Module:
-    # Load QuickSRNet model from the source repository using the given weights.
-    # Returns <source repository>.utils.super_resolution.models.QuickSRNetBase
-    with aimet_zoo_as_root():
-        from aimet_zoo_torch.quicksrnet.model.models import QuickSRNetBase
-
-        return QuickSRNetBase(
-            scaling_factor=scaling_factor,
-            num_channels=num_channels,
-            num_intermediate_layers=num_intermediate_layers,
-            use_ito_connection=use_ito_connection,
-        )
+    return QuickSRNetBase(
+        scaling_factor=scaling_factor,
+        num_channels=num_channels,
+        num_intermediate_layers=num_intermediate_layers,
+        use_ito_connection=use_ito_connection,
+    )

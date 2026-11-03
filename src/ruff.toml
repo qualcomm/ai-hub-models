@@ -15,7 +15,7 @@ extend = "../ruff.toml"
 [lint.flake8-tidy-imports.banned-api]
 "numba".msg = "Do not directly import from numba, as it is an optional dependency. Safely import from qai_hub_models.extern.numba instead."
 "xtcocotools".msg = "xtcocotools is no longer maintained, and should be avoided. A minimal version of it is provided at qai_hub_models.extern.xtcocotools."
-"git".msg = "Git requires git to be installed. All git imports outside of the scripts/ folder must be surrounded by a try/catch ImportError statement, which should point the user to https://github.com/git-guides/install-git. After surrounding the import with a try/catch statement, you may ignore this warning with '#noqa: TID251'. See maybe_clone_git_repo in utils/asset_loaders for an example."
+"git".msg = "Git requires git to be installed. All git imports outside of the scripts/ folder must be surrounded by a try/catch ImportError statement, which should point the user to https://github.com/git-guides/install-git. After surrounding the import with a try/catch statement, you may ignore this warning with '#noqa: TID251'. See utils/external_repo.py for an example."
 "qai_hub_models.models.common".msg = "Do not import from qai_hub_models.models.common. Import from qai_hub_models directly instead."
 "qai_hub_models.common".msg = "Do not import from qai_hub_models.common. Import from qai_hub_models directly instead."
 
