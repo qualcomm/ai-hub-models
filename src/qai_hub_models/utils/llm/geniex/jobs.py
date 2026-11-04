@@ -26,6 +26,7 @@ from qai_hub_models.utils.aws import (
     QAIHM_PUBLIC_S3_BUCKET,
     get_presigned_download_url,
     get_qaihm_s3,
+    s3_file_exists,
 )
 from qai_hub_models.utils.devicefarm.devicefarm import (
     FAILED_JOB_LOG_TIMEOUT,
@@ -498,11 +499,17 @@ class GenieXBenchWindowsArtifactHandler(GenieXBenchArtifactHandler):
 
         with open(ps1_src, encoding="utf-8") as f:
             script = f.read()
+        sdk_url = (
+            get_geniex_qairt_sdk_url(qairt_version)
+            if plugin == "qairt" and qairt_version
+            else ""
+        )
         script = self._apply_common_replacements(
             script.replace(
                 "{WINDOWS_BENCH_URL}",
                 _bench_url("windows-arm64", "zip", geniex_version),
             )
+            .replace("{QAIRT_SDK_URL}", sdk_url)
             .replace("{CHIPSET}", chipset)
             .replace("{MODELS}", "\n".join(matrix_rows))
             .replace(
@@ -867,16 +874,52 @@ def get_geniex_qairt_bundle_url(
     return get_presigned_download_url(bucket, asset.s3_key)
 
 
+def get_qairt_sdk_software_center_url(qairt_version: str) -> str:
+    """Build the Software Center download URL for a QAIRT SDK zip.
+
+    Parameters
+    ----------
+    qairt_version
+        Full SDK version, e.g. "2.50.0.260828".
+
+    Returns
+    -------
+    url : str
+        The public Software Center URL for that version's SDK zip.
+    """
+    return (
+        "https://softwarecenter.qualcomm.com/api/download/software/sdks/"
+        f"Qualcomm_AI_Runtime_Community/All/{qairt_version}/v{qairt_version}.zip"
+    )
+
+
 def get_geniex_qairt_sdk_url(qairt_version: str) -> str:
     """Mint a presigned S3 GET URL for a QAIRT SDK zip.
 
     The device curls this instead of Software Center, the same way it pulls
-    the model bundle (see :func:`get_geniex_qairt_bundle_url`).
+    the model bundle (see :func:`get_geniex_qairt_bundle_url`). Software
+    Center cut short several 2.5GB transfers; only versions mirrored to S3
+    can be served from it, so an unmirrored one falls back to Software Center.
+
+    Parameters
+    ----------
+    qairt_version
+        Full SDK version, e.g. "2.50.0.260828".
+
+    Returns
+    -------
+    url : str
+        A presigned S3 URL, or the Software Center URL if S3 has no such zip.
     """
+    key = f"{QAIRT_SDK_S3_PREFIX}/v{qairt_version}.zip"
     bucket = get_qaihm_s3(QAIHM_PUBLIC_S3_BUCKET)[0]
-    return get_presigned_download_url(
-        bucket, f"{QAIRT_SDK_S3_PREFIX}/v{qairt_version}.zip"
-    )
+    if not s3_file_exists(bucket, key):
+        print(
+            f"No QAIRT SDK at s3://{QAIHM_PUBLIC_S3_BUCKET}/{key}; "
+            "falling back to Software Center."
+        )
+        return get_qairt_sdk_software_center_url(qairt_version)
+    return get_presigned_download_url(bucket, key)
 
 
 def submit_geniex_bench(

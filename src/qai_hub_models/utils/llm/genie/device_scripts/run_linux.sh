@@ -38,7 +38,7 @@ echo "Pinging google.com before QAIRT SDK download..."
 ping -c 1 google.com && echo "Pre-download ping: SUCCESS" || echo "Pre-download ping: FAILED"
 
 curl -L -J --output /data/local/tmp/qairt.zip \
-  https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/{QAIRT_VERSION}/v{QAIRT_VERSION}.zip
+  "{QAIRT_SDK_URL}"
 
 echo "=== Post-download connectivity check ==="
 echo "Pinging google.com after QAIRT SDK download..."

@@ -80,7 +80,7 @@ if ($prePing) { Write-Host "Pre-download ping: SUCCESS" } else { Write-Host "Pre
 # Always re-download (the stale SDK was removed above) so a partial extract
 # from a previous job can't silently corrupt this run.
 $qairtHome = "C:\Temp\TestContent\qairt\{QAIRT_VERSION}"
-$source = "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/{QAIRT_VERSION}/v{QAIRT_VERSION}.zip"
+$source = "{QAIRT_SDK_URL}"
 $output = "C:\Temp\TestContent\qairt.zip"
 (New-Object System.Net.WebClient).DownloadFile($source, $output)
 

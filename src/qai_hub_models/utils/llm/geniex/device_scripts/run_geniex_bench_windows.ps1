@@ -67,10 +67,58 @@ function Invoke-GenieXBenchRetry {
     return $false
 }
 
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# A 1-byte ranged GET works for presigned S3 URLs, where HEAD is rejected.
+function Get-RemoteSize {
+    param([Parameter(Mandatory = $true)][string]$Url)
+    $hdr = (& curl.exe -sSL -D - -o NUL -r 0-0 --max-time 30 $Url 2>$null) -join "`n"
+    $m = [regex]::Matches($hdr, '(?im)^content-range:\s*bytes\s+\S+/(\d+)')
+    if ($m.Count -gt 0) { return [int64]$m[$m.Count - 1].Groups[1].Value }
+    return $null
+}
+
+function Test-ZipReadable {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    try {
+        [System.IO.Compression.ZipFile]::OpenRead($Path).Dispose()
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+# Resumes a short file with curl -C -; accepts a download only when its size
+# matches the server's total and the zip's central directory is readable.
+function Save-ZipWithRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Dest,
+        [int]$MaxTime = 3600
+    )
+    $expected = Get-RemoteSize -Url $Url
+    Write-Host "Expected size of ${Dest}: $expected"
+    Remove-Item $Dest -Force -ErrorAction SilentlyContinue
+    $attempts = 5
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        $resume = if (Test-Path $Dest) { @("-C", "-") } else { @() }
+        & curl.exe -sSL --fail --max-time $MaxTime @resume -o $Dest $Url 2>$null
+        $rc = $LASTEXITCODE
+        $size = if (Test-Path $Dest) { (Get-Item $Dest).Length } else { 0 }
+        $valid = (($null -eq $expected) -or ($size -eq $expected)) -and (Test-Path $Dest) -and (Test-ZipReadable -Path $Dest)
+        Write-Host "Download attempt ${attempt}: curl rc=$rc, size=$size, valid=$valid"
+        if ($valid) { return }
+        if (($null -eq $expected) -or ($size -ge $expected)) {
+            Remove-Item $Dest -Force -ErrorAction SilentlyContinue
+        }
+        Start-Sleep -Seconds (5 * $attempt)
+    }
+    throw "Download of $Url failed after $attempts attempts (expected size $expected)"
+}
+
 $ZIP = "$TC\geniex-bench.zip"
 $URL = "{WINDOWS_BENCH_URL}"
-& curl.exe -fSL --retry 3 --retry-delay 5 -o $ZIP $URL
-if ($LASTEXITCODE -ne 0) { throw "geniex-bench download failed: $LASTEXITCODE" }
+Save-ZipWithRetry -Url $URL -Dest $ZIP -MaxTime 1800
 Expand-Archive -Path $ZIP -DestinationPath $TC -Force
 Remove-Item $ZIP
 
@@ -92,9 +140,8 @@ if ($PLUGIN -eq "qairt" -and $QAIRT_VERSION) {
     $QZIP = "$TC\qairt.zip"
     # The SDK zip's top-level entry is qairt\<version>\; extract into its parent ($TC).
     $QROOT = "$TC\qairt"
-    $QURL = "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/$QAIRT_VERSION/v$QAIRT_VERSION.zip"
-    & curl.exe -fSL --retry 3 --retry-delay 5 -o $QZIP $QURL
-    if ($LASTEXITCODE -ne 0) { throw "QAIRT SDK download failed: $LASTEXITCODE" }
+    $QURL = "{QAIRT_SDK_URL}"
+    Save-ZipWithRetry -Url $QURL -Dest $QZIP -MaxTime 3600
     Remove-Item -Recurse -Force $QROOT -ErrorAction SilentlyContinue
     Expand-Archive -Path $QZIP -DestinationPath $TC -Force
     Remove-Item $QZIP

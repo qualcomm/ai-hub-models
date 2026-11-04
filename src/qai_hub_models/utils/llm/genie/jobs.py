@@ -65,6 +65,7 @@ from qai_hub_models.utils.llm.eval_io import (
     save_eval_metadata_json,
     save_eval_results_json,
 )
+from qai_hub_models.utils.llm.geniex.jobs import get_geniex_qairt_sdk_url
 
 # Perf/job diagnostics go through logging, not print: nightly runs pytest under
 # xdist, where worker stdout is dropped even with --capture=no. INFO is set
@@ -218,6 +219,7 @@ class GenieAndroidArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("<<HEXAGON_VERSION>>", hexagon_version)
                 .replace("<<QAIRT_VERSION>>", qairt_version)
+                .replace("<<QAIRT_SDK_URL>>", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("<<NUM_TRIALS>>", str(num_trials))
                 .replace("<<DEVICE_LOGS_DIR>>", device_logs_dir)
                 .replace("<<GENIE_BUNDLE_URL>>", genie_bundle_url or "")
@@ -350,6 +352,7 @@ class GenieLinuxArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("{HEXAGON_VERSION}", hexagon_version)
                 .replace("{QAIRT_VERSION}", qairt_version)
+                .replace("{QAIRT_SDK_URL}", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("{NUM_TRIALS}", str(num_trials))
                 .replace("{DEVICE_LOGS_DIR}", device_logs_dir)
             )
@@ -401,6 +404,7 @@ class GenieWindowsArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("{HEXAGON_VERSION}", hexagon_version)
                 .replace("{QAIRT_VERSION}", qairt_version)
+                .replace("{QAIRT_SDK_URL}", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("{NUM_TRIALS}", str(num_trials))
                 .replace("{DEVICE_LOGS_DIR}", device_logs_dir)
             )
