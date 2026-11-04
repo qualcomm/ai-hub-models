@@ -53,7 +53,7 @@ jobs:
       name: Release to ${{ inputs.target == 'prod' && 'PyPI' || 'test PyPI' }}
       needs: [approve]
       if: ${{ !cancelled() && (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
 
       steps:
       - name: Verify running on a tag
@@ -67,8 +67,6 @@ jobs:
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup
-        with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
 
       - name: Build wheels
         run: |

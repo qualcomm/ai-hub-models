@@ -102,7 +102,7 @@ env:
 jobs:
   scrape-questions:
     name: Scrape Slack + GitHub Questions
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
     outputs:
@@ -261,7 +261,7 @@ jobs:
     name: Post Reminder to Slack
     needs: [scrape-questions, draft-and-post]
     if: ${{ needs.draft-and-post.result == 'success' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       actions: read
       contents: read
@@ -324,7 +324,7 @@ jobs:
     # Explicitly check each job to avoid triggering on infrastructure cleanup
     # failures (e.g., runner post-job hook Docker permission errors).
     if: ${{ !cancelled() && (needs.scrape-questions.result == 'failure' || needs.draft-and-post.result == 'failure' || needs.post-to-slack.result == 'failure') }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: slackapi/slack-github-action@v4
         name: Notify Slack — failure (test mode → #tungsten-debug)

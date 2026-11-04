@@ -49,3 +49,7 @@ start_group "Ubuntu install: uv"
         log_info "uv up to date."
     fi
 end_group
+
+start_group "Ubuntu install: python 3.10-3.12"
+    uv python install 3.10 3.11 3.12
+end_group

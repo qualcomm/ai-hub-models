@@ -8,7 +8,7 @@ on:
 jobs:
     select-llm-models:
         name: Select Weekend LLM Models
-        runs-on: [tetra-ubuntu-2204, self-hosted]
+        runs-on: aihub-models-ubuntu-2404-ec2
         outputs:
           # The base models plus this weekend's LLM group tokens.
           models: ${{ steps.pick.outputs.models }}
@@ -21,7 +21,6 @@ jobs:
           - name: CI Setup
             uses: ./.github/actions/ci-setup
             with:
-              sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
               venv-path: ${{ env.VENV_PATH }}
 
           - name: Select models

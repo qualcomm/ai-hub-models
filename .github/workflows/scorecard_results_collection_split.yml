@@ -40,7 +40,7 @@ env:
 jobs:
   split_models:
     name: Split Models
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       export_matrix: ${{ steps.split.outputs.export_matrix }}
       accuracy_matrix: ${{ steps.split.outputs.accuracy_matrix }}
@@ -50,7 +50,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download Post-Flaky-Job-Retry Artifacts
@@ -133,14 +132,13 @@ jobs:
     name: Combine Split Artifacts
     needs: [split_models, start_export_jobs, start_accuracy_jobs]
     if: ${{ !cancelled() && needs.split_models.result == 'success' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: actions/checkout@v7
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       # --- Export Artifacts ---

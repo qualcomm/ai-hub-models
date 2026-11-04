@@ -97,7 +97,7 @@ env:
 jobs:
   split_models:
     name: Split Models
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       cpu_matrix: ${{ steps.split.outputs.cpu_matrix }}
       gpu_matrix: ${{ steps.split.outputs.gpu_matrix }}
@@ -114,7 +114,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
 
@@ -212,7 +211,7 @@ jobs:
     name: Combine Split Artifacts
     needs: [split_models, start_cpu_jobs, start_gpu_jobs]
     if: ${{ !cancelled() && needs.split_models.result == 'success' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: actions/checkout@v7
 
@@ -224,7 +223,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
 

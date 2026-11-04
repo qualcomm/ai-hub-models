@@ -92,7 +92,7 @@ on:
 jobs:
     sync_public_website:
         name: ${{ inputs.create_pr && 'Release - Public Website Import and Create PR' || 'Test Public Website Import' }}
-        runs-on: [tetra-ubuntu-2204, self-hosted]
+        runs-on: "aihub-models-ubuntu-2404-ec2"
         outputs:
           website_pr_url: ${{ steps.create-public-website-pr.outputs.result }}
 
@@ -124,8 +124,6 @@ jobs:
               path: ai-hub-models-internal
 
           - id: install_platform_deps
-            env:
-              SUDO_PASSWORD: "${{ secrets.TETRASERVICE_PASSWORD }}"
             working-directory: ai-hub-models-internal
             run: bash scripts/ci/install-platform-deps.sh
 

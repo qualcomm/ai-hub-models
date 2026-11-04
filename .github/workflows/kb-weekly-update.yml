@@ -34,7 +34,7 @@ env:
 jobs:
     collect-kb-data:
       name: Collect Tetracode Issues
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
       permissions:
         contents: read
       env:
@@ -148,7 +148,7 @@ jobs:
     open-kb-pr:
       name: Open KB Update PR
       needs: [kb-weekly-update]
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
       permissions:
         contents: write
       outputs:
@@ -196,7 +196,7 @@ jobs:
       name: Notify Czar of KB Update PR
       needs: [kb-weekly-update, open-kb-pr]
       if: ${{ !cancelled() }}
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
       steps:
         - name: Send Slack Notification
           uses: slackapi/slack-github-action@v4

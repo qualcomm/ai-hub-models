@@ -21,7 +21,7 @@ concurrency:
 jobs:
   # Job names can't read files, so read the version here to show it in the check name.
   python_version:
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       version: ${{ steps.read.outputs.version }}
     steps:
@@ -48,7 +48,7 @@ jobs:
   check-jira-title:
     if: github.event_name == 'pull_request' && !endsWith(github.event.pull_request.user.login, '[bot]')
     name: Check JIRA in PR Title
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: actions/checkout@v7
         with:

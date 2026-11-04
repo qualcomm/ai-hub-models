@@ -3,11 +3,6 @@ name: CI Setup
 description: Install platform deps, setup Python + venv, and optionally configure AWS and Hub credentials
 
 inputs:
-  sudo-password:
-    description: SUDO password for install-platform-deps.sh (empty to skip platform deps installation)
-    required: false
-    default: ""
-
   python-version:
     description: "Python version to install, or USE_EXISTING_INSTALL to skip setup and use the system python. Defaults to .github/python-version"
     required: false
@@ -62,10 +57,8 @@ runs:
   using: composite
   steps:
     - id: install_platform_deps
-      if: ${{ inputs.sudo-password != '' }}
+      if: ${{ contains(runner.name, 'aihub-models') }}
       shell: bash
-      env:
-        SUDO_PASSWORD: ${{ inputs.sudo-password }}
       run: |
         bash scripts/ci/install-platform-deps.sh
 

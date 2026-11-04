@@ -86,7 +86,7 @@ defaults:
 jobs:
   check_gpu_node:
     name: "Check GPU Node Availability"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       use_kube: ${{ inputs.force_kube && 'true' || steps.check.outputs.use_kube }}
     steps:

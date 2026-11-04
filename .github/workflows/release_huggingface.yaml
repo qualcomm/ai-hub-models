@@ -35,7 +35,7 @@ jobs:
       name: Release HuggingFace Model Cards
       needs: [approve]
       if: ${{ !cancelled() && (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
       env:
         QAIHM_CI: "true"
         PYTHONUNBUFFERED: 1
@@ -55,8 +55,6 @@ jobs:
 
       - name: CI Setup
         uses: ./.github/actions/ci-setup
-        with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
 
       - name: Set Commit Message
         shell: bash

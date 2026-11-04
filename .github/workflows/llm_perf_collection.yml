@@ -121,7 +121,7 @@ defaults:
 jobs:
   prepare_matrix:
     name: "Split Devices By QDC Pool"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       matrix_include: ${{ steps.split.outputs.matrix_include }}
     steps:
@@ -140,7 +140,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.prepare_matrix.outputs.matrix_include) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 2880
     permissions:
       contents: read
@@ -339,7 +339,7 @@ jobs:
     name: "Consolidate Perf Updates → PR"
     needs: collect_llm_perf
     if: ${{ !cancelled() && inputs.create_pr }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 60
     permissions:
       contents: write

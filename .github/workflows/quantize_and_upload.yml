@@ -53,7 +53,7 @@ defaults:
 jobs:
   check_gpu_node:
     name: "Check GPU Node Availability"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       use_kube: ${{ steps.check.outputs.use_kube }}
     steps:
@@ -62,7 +62,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       # Before the GPU pod is claimed: a typo in model_id used to surface only

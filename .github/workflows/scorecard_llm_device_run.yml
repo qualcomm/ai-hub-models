@@ -62,7 +62,7 @@ env:
 jobs:
   determine_llm_models:
     name: Determine LLM Models
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       models: ${{ steps.find.outputs.models }}
       llm_split_matrix: ${{ steps.find.outputs.llm_split_matrix }}
@@ -83,7 +83,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download Flaky-Job Artifacts
@@ -116,7 +115,7 @@ jobs:
       s3_prefix: ${{ inputs.s3_prefix }}
       models: ${{ matrix.split.models }}
       split_name: ${{ matrix.split.split_name }}
-      runs_on: '["tetra-ubuntu-2204", "self-hosted"]'
+      runs_on: '["aihub-models-ubuntu-2404-ec2"]'
       build_and_test_target: test_llm_export_scripts
       expect_post_flaky_artifact: false
 
@@ -129,7 +128,7 @@ jobs:
     outputs:
       fresh_asset_models: ${{ steps.check.outputs.fresh_asset_models }}
       missing_splits: ${{ steps.check.outputs.missing_splits }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       actions: write
@@ -139,7 +138,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download per-split release assets
