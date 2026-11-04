@@ -67,7 +67,7 @@ HF_REPO_NAME = "Qwen/Qwen3-VL-4B-Instruct"
 HF_REPO_URL = f"https://huggingface.co/{HF_REPO_NAME}"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 40
+MIN_MEMORY_RECOMMENDED = 120
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16

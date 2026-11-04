@@ -67,7 +67,7 @@ SLIDING_WINDOW = 512  # SWA KV window size
 HF_REPO_NAME = "google/gemma-4-E4B-it"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 32
+MIN_MEMORY_RECOMMENDED = 120
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16

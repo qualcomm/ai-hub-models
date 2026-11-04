@@ -65,7 +65,7 @@ HEAD_DIM = 128
 HF_REPO_NAME = "Qwen/Qwen3-4B"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 40
+MIN_MEMORY_RECOMMENDED = 120
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16

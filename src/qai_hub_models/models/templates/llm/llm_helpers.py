@@ -193,7 +193,8 @@ def create_genie_config(
     kv_dim = getattr(
         llm_config, "head_dim", llm_config.hidden_size // llm_config.num_attention_heads
     )
-    rope_dim = kv_dim // 2
+    partial_rotary_factor = getattr(llm_config, "partial_rotary_factor", None) or 1.0
+    rope_dim = int(kv_dim * partial_rotary_factor) // 2
 
     sampler = {
         "version": 1,
@@ -285,6 +286,27 @@ def create_genie_config(
                     "original-max-position-embeddings": rope_scaling[
                         "original_max_position_embeddings"
                     ],
+                },
+            }
+            del qnn_htp["pos-id-dim"]
+            del qnn_htp["rope-theta"]
+        elif rope_scaling is not None and "longrope" in (
+            rope_scaling.get("rope_type"),
+            rope_scaling.get("type"),
+        ):
+            # Plain RoPE would drop longrope's cos/sin attention factor
+            # (~1.19 for Phi-4), which Genie only applies from this block.
+            original_max = llm_config.original_max_position_embeddings
+            inner["engine"]["model"]["positional-encoding"] = {
+                "type": embedding_type,
+                "rope-dim": rope_dim,
+                "rope-theta": int(get_rope_theta(llm_config)),
+                "rope-scaling": {
+                    "rope-type": "longrope",
+                    "factor": llm_config.max_position_embeddings / original_max,
+                    "original-max-position-embeddings": original_max,
+                    "long-factor": list(rope_scaling["long_factor"]),
+                    "short-factor": list(rope_scaling["short_factor"]),
                 },
             }
             del qnn_htp["pos-id-dim"]

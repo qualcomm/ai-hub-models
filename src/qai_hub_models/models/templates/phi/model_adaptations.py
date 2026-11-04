@@ -67,7 +67,8 @@ def apply_rotary_pos_emb(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Applies Rotary Position Embedding to the query and key tensors.
-    This is the exact implementation from Phi-3.5.
+    This is the exact implementation from Phi-3.5, which Phi-4 shares: both are
+    `Phi3ForCausalLM` upstream, so these adaptations serve the whole Phi family.
     """
     cos = cos.unsqueeze(unsqueeze_dim)
     sin = sin.unsqueeze(unsqueeze_dim)
@@ -112,8 +113,8 @@ class Phi35SHAAttention(Phi3Attention):
     @property
     def num_key_value_heads_(self) -> int:
         if hasattr(self, "num_key_value_heads"):
-            return self.num_key_value_heads
-        return self.config.num_key_value_heads
+            return cast(int, self.num_key_value_heads)
+        return cast(int, self.config.num_key_value_heads)
 
     def prepare_conv(self) -> None:
         if not hasattr(self, "forward_no_conv"):
@@ -267,7 +268,9 @@ class Phi35SHAAttention(Phi3Attention):
         hidden_states: torch.Tensor,
         attention_mask: torch.Tensor | None = None,
         position_ids: torch.LongTensor | None = None,
-        past_key_value: SHADynamicCacheNewValueOnly | None = None,
+        past_key_value: SHADynamicCacheNewValueOnly | None = None,  # transformers<4.55
+        past_key_values: SHADynamicCacheNewValueOnly
+        | None = None,  # transformers>=4.55
         output_attentions: bool = False,
         use_cache: bool = False,
         cache_position: torch.LongTensor | None = None,
@@ -278,6 +281,8 @@ class Phi35SHAAttention(Phi3Attention):
             torch.Tensor, list[torch.Tensor] | None, SHADynamicCacheNewValueOnly | None
         ]
     ):
+        if past_key_values is not None and past_key_value is None:
+            past_key_value = past_key_values
         bsz, q_len, _ = hidden_states.size()
 
         if TORCH_SUPPORTS_DYNAMIC_SHAPE:
@@ -415,11 +420,39 @@ class Phi35SHAAttention(Phi3Attention):
 
 class QCPhi3MLP(Phi3MLP):
     def prepare_conv(self) -> None:
-        # TODO (https://github.com/qcom-ai-hub/tetracode/issues/17113)
-        # Temporarily commented out due to AISW-148745.
-        # self.up_proj = ConvInplaceLinear(cast(nn.Linear, self.up_proj))  # type: ignore[has-type, unused-ignore]
+        gate_up_proj = cast(nn.Linear, self.gate_up_proj)  # type: ignore[has-type, unused-ignore]
+        intermediate_size = gate_up_proj.out_features // 2
+        has_bias = gate_up_proj.bias is not None
+
+        gate_proj = nn.Linear(
+            gate_up_proj.in_features,
+            intermediate_size,
+            bias=has_bias,
+            dtype=gate_up_proj.weight.dtype,
+            device=gate_up_proj.weight.device,
+        )
+        up_proj = nn.Linear(
+            gate_up_proj.in_features,
+            intermediate_size,
+            bias=has_bias,
+            dtype=gate_up_proj.weight.dtype,
+            device=gate_up_proj.weight.device,
+        )
+        gate_proj.weight.data.copy_(gate_up_proj.weight[:intermediate_size, :])
+        up_proj.weight.data.copy_(gate_up_proj.weight[intermediate_size:, :])
+        if has_bias:
+            gate_proj.bias.data.copy_(gate_up_proj.bias[:intermediate_size])  # type: ignore[union-attr, unused-ignore]
+            up_proj.bias.data.copy_(gate_up_proj.bias[intermediate_size:])  # type: ignore[union-attr, unused-ignore]
+        del self.gate_up_proj
+
+        self.gate_proj = ConvInplaceLinear(gate_proj)
+        self.up_proj = ConvInplaceLinear(up_proj)
         self.down_proj = ConvInplaceLinear(cast(nn.Linear, self.down_proj))  # type: ignore[has-type, unused-ignore]
-        # self.gate_proj = ConvInplaceLinear(cast(nn.Linear, self.gate_proj))  # type: ignore[has-type, unused-ignore]
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:  # type: ignore[override, unused-ignore]
+        gate = self.gate_proj(hidden_states)  # type: ignore[operator, unused-ignore]
+        up_states = self.up_proj(hidden_states)  # type: ignore[operator, unused-ignore]
+        return self.down_proj(up_states * self.activation_fn(gate))  # type: ignore[operator, unused-ignore]
 
 
 class QCPhi3ForCausalLM(Phi3ForCausalLM):

@@ -432,6 +432,26 @@ class ModelMetadata(BaseQAIHMConfig):
         )
 
 
+# TODO (https://github.com/qcom-ai-hub/tetracode/issues/21114)
+# We only need this because we can't reliably probe the name change
+# from Workbench. If this is added, we can remove this.
+def _runtime_sanitized(name: str) -> str:
+    """Replicate common on-device name sanitization (context binaries)"""
+    return name.replace("/", "_").replace(".", "_")
+
+
+def _lookup_spec(
+    name: str, available: dict[str, TensorSpec]
+) -> tuple[str, TensorSpec] | None:
+    """Resolve name against compiled metadata, allowing for sanitization."""
+    if name in available:
+        return name, available[name]
+    sanitized = _runtime_sanitized(name)
+    if sanitized in available:
+        return sanitized, available[sanitized]
+    return None
+
+
 def merge_input_metadata(
     model_file_metadata: ModelFileMetadata,
     input_spec: InputSpec,
@@ -471,18 +491,17 @@ def merge_input_metadata(
         return
 
     for input_name, spec in input_spec.items():
-        # Find matching input in model_file_metadata
-        if input_name not in model_file_metadata.inputs:
+        found = _lookup_spec(input_name, model_file_metadata.inputs)
+        if found is None:
             raise ValueError(
                 f"Input '{input_name}' from get_input_spec() not found in compiled "
                 f"model metadata. Available inputs: {list(model_file_metadata.inputs.keys())}"
             )
+        _, target_spec = found
 
         # Skip if not a TensorSpec (plain tuple has no metadata to merge)
         if not isinstance(spec, TensorSpec):
             continue
-
-        target_spec = model_file_metadata.inputs[input_name]
 
         # Copy metadata fields if present
         if spec.io_type is not None:
@@ -526,13 +545,13 @@ def merge_output_metadata(
         return
 
     for output_name, spec in output_spec.items():
-        if output_name not in model_file_metadata.outputs:
+        found = _lookup_spec(output_name, model_file_metadata.outputs)
+        if found is None:
             raise ValueError(
                 f"Output '{output_name}' from get_output_spec() not found in compiled "
                 f"model metadata. Available outputs: {list(model_file_metadata.outputs.keys())}"
             )
-
-        target_spec = model_file_metadata.outputs[output_name]
+        _, target_spec = found
 
         if spec.io_type is not None:
             target_spec.io_type = spec.io_type
