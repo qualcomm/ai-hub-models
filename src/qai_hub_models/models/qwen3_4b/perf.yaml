@@ -16,43 +16,43 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1283.264993
+    prefill_tokens_per_second: 1257.39209
     time_to_first_token_range_milliseconds:
-      max: 797.9645714285714
-      min: 99.74557142857142
-    tokens_per_second: 15.616265
+      max: 814.384
+      min: 101.798
+    tokens_per_second: 14.915543
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1162.901621
+    prefill_tokens_per_second: 1149.340508
     time_to_first_token_range_milliseconds:
-      max: 1761.1119999999999
-      min: 110.06949999999999
-    tokens_per_second: 14.782604
+      max: 1781.8914285714284
+      min: 111.36821428571427
+    tokens_per_second: 14.501563
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1162.718269
+    prefill_tokens_per_second: 1156.480453
     time_to_first_token_range_milliseconds:
-      max: 2642.084571428571
-      min: 110.08685714285713
-    tokens_per_second: 14.930251
+      max: 2656.3354285714286
+      min: 110.68064285714286
+    tokens_per_second: 14.944748
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 967.966851
+    prefill_tokens_per_second: 958.162245
     time_to_first_token_range_milliseconds:
-      max: 4231.549866666666
-      min: 132.23593333333332
-    tokens_per_second: 12.209501
+      max: 4274.850133333333
+      min: 133.58906666666667
+    tokens_per_second: 11.921632
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1326.929058
+    prefill_tokens_per_second: 1378.622024
     time_to_first_token_range_milliseconds:
-      max: 385.8533333333333
-      min: 96.46333333333332
-    tokens_per_second: 15.673148
+      max: 371.3853333333333
+      min: 92.84633333333332
+    tokens_per_second: 16.628171
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Dragonwing IQ-9075 EVK
@@ -70,56 +70,99 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1353.842434
+    prefill_tokens_per_second: 1285.843239
     time_to_first_token_range_milliseconds:
-      max: 756.3657142857143
-      min: 94.54571428571428
-    tokens_per_second: 16.20333
+      max: 796.3645714285714
+      min: 99.54557142857142
+    tokens_per_second: 14.310787
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1187.218847
+    prefill_tokens_per_second: 1116.943066
     time_to_first_token_range_milliseconds:
-      max: 1725.04
-      min: 107.815
-    tokens_per_second: 15.127649
+      max: 1833.5759999999998
+      min: 114.59849999999999
+    tokens_per_second: 13.141446
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1186.59073
+    prefill_tokens_per_second: 1134.816447
     time_to_first_token_range_milliseconds:
-      max: 2588.9297142857145
-      min: 107.87207142857143
-    tokens_per_second: 14.991865
+      max: 2707.045714285714
+      min: 112.79357142857141
+    tokens_per_second: 13.269561
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 958.692583
+    prefill_tokens_per_second: 927.538472
     time_to_first_token_range_milliseconds:
-      max: 4272.485333333333
-      min: 133.51516666666666
-    tokens_per_second: 12.103489
+      max: 4415.989333333333
+      min: 137.99966666666666
+    tokens_per_second: 11.24364
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1483.352841
+    prefill_tokens_per_second: 1431.313715
     time_to_first_token_range_milliseconds:
-      max: 345.164
-      min: 86.291
-    tokens_per_second: 18.549448
+      max: 357.71333333333337
+      min: 89.42833333333334
+    tokens_per_second: 16.787764
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Dragonwing IQ-X7181
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 314.8614501953125
+    prefill_tokens_per_second: 309.31024169921875
     time_to_first_token_range_milliseconds:
-      max: 3659.424
-      min: 114.357
-    tokens_per_second: 6.053488731384277
+      max: 3724.448
+      min: 116.389
+    tokens_per_second: 12.90106201171875
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIE
+- component: Qwen3-4B
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1255.635294
+    time_to_first_token_range_milliseconds:
+      max: 815.5234285714284
+      min: 101.94042857142855
+    tokens_per_second: 19.514379
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1114.003874
+    time_to_first_token_range_milliseconds:
+      max: 1838.4137142857144
+      min: 114.90085714285715
+    tokens_per_second: 17.514938
+  - context_length: 3072
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1104.939672
+    time_to_first_token_range_milliseconds:
+      max: 2780.2422857142856
+      min: 115.84342857142856
+    tokens_per_second: 17.148688
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 928.151188
+    time_to_first_token_range_milliseconds:
+      max: 4413.074133333333
+      min: 137.90856666666664
+    tokens_per_second: 12.870347
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1348.494532
+    time_to_first_token_range_milliseconds:
+      max: 379.68266666666665
+      min: 94.92066666666666
+    tokens_per_second: 20.720574
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.10.0
+    qairt: '2.50'
 - component: Qwen3-4B
   device: Dragonwing Q-8750
   llm_metrics:
@@ -137,43 +180,43 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1754.884199
+    prefill_tokens_per_second: 1717.972562
     time_to_first_token_range_milliseconds:
-      max: 583.5142857142856
-      min: 72.9392857142857
-    tokens_per_second: 22.27587
+      max: 596.0514285714285
+      min: 74.50642857142856
+    tokens_per_second: 20.524876
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1531.311125
+    prefill_tokens_per_second: 1521.302479
     time_to_first_token_range_milliseconds:
-      max: 1337.416
-      min: 83.5885
-    tokens_per_second: 20.700786
+      max: 1346.2148571428572
+      min: 84.13842857142858
+    tokens_per_second: 19.077223
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1512.089544
+    prefill_tokens_per_second: 1514.008379
     time_to_first_token_range_milliseconds:
-      max: 2031.6257142857141
-      min: 84.65107142857143
-    tokens_per_second: 20.515618
+      max: 2029.0508571428572
+      min: 84.54378571428572
+    tokens_per_second: 19.078602
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1263.363191
+    prefill_tokens_per_second: 1269.957179
     time_to_first_token_range_milliseconds:
-      max: 3242.139733333333
-      min: 101.31686666666666
-    tokens_per_second: 17.535443
+      max: 3225.3056
+      min: 100.7908
+    tokens_per_second: 16.439521
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2101.62219
+    prefill_tokens_per_second: 2046.537408
     time_to_first_token_range_milliseconds:
-      max: 243.62133333333333
-      min: 60.90533333333333
-    tokens_per_second: 23.395323
+      max: 250.17866666666663
+      min: 62.54466666666666
+    tokens_per_second: 21.519784
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Samsung Galaxy S25
@@ -192,43 +235,43 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1754.884199
+    prefill_tokens_per_second: 1717.972562
     time_to_first_token_range_milliseconds:
-      max: 583.5142857142856
-      min: 72.9392857142857
-    tokens_per_second: 22.27587
+      max: 596.0514285714285
+      min: 74.50642857142856
+    tokens_per_second: 20.524876
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1531.311125
+    prefill_tokens_per_second: 1521.302479
     time_to_first_token_range_milliseconds:
-      max: 1337.416
-      min: 83.5885
-    tokens_per_second: 20.700786
+      max: 1346.2148571428572
+      min: 84.13842857142858
+    tokens_per_second: 19.077223
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1512.089544
+    prefill_tokens_per_second: 1514.008379
     time_to_first_token_range_milliseconds:
-      max: 2031.6257142857141
-      min: 84.65107142857143
-    tokens_per_second: 20.515618
+      max: 2029.0508571428572
+      min: 84.54378571428572
+    tokens_per_second: 19.078602
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1263.363191
+    prefill_tokens_per_second: 1269.957179
     time_to_first_token_range_milliseconds:
-      max: 3242.139733333333
-      min: 101.31686666666666
-    tokens_per_second: 17.535443
+      max: 3225.3056
+      min: 100.7908
+    tokens_per_second: 16.439521
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2101.62219
+    prefill_tokens_per_second: 2046.537408
     time_to_first_token_range_milliseconds:
-      max: 243.62133333333333
-      min: 60.90533333333333
-    tokens_per_second: 23.395323
+      max: 250.17866666666663
+      min: 62.54466666666666
+    tokens_per_second: 21.519784
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Samsung Galaxy S26
@@ -247,56 +290,99 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1768.625841
+    prefill_tokens_per_second: 1739.147313
     time_to_first_token_range_milliseconds:
-      max: 578.9805714285714
-      min: 72.37257142857142
-    tokens_per_second: 21.843417
+      max: 588.7942857142857
+      min: 73.59928571428571
+    tokens_per_second: 23.282303
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1613.402767
+    prefill_tokens_per_second: 1636.014224
     time_to_first_token_range_milliseconds:
-      max: 1269.366857142857
-      min: 79.33542857142857
-    tokens_per_second: 18.232037
+      max: 1251.8228571428572
+      min: 78.23892857142857
+    tokens_per_second: 22.28465
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1621.808987
+    prefill_tokens_per_second: 1591.789493
     time_to_first_token_range_milliseconds:
-      max: 1894.181142857143
-      min: 78.92421428571429
-    tokens_per_second: 18.65766
+      max: 1929.9034285714285
+      min: 80.41264285714286
+    tokens_per_second: 22.028699
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1366.008931
+    prefill_tokens_per_second: 1371.551031
     time_to_first_token_range_milliseconds:
-      max: 2998.5162666666665
-      min: 93.70363333333333
-    tokens_per_second: 15.191903
+      max: 2986.4
+      min: 93.325
+    tokens_per_second: 15.942672
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1884.283408
+    prefill_tokens_per_second: 2015.80094
     time_to_first_token_range_milliseconds:
-      max: 271.7213333333333
-      min: 67.93033333333332
-    tokens_per_second: 23.062236
+      max: 253.99333333333334
+      min: 63.498333333333335
+    tokens_per_second: 24.011113
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Snapdragon X Elite CRD
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 314.8614501953125
+    prefill_tokens_per_second: 309.31024169921875
     time_to_first_token_range_milliseconds:
-      max: 3659.424
-      min: 114.357
-    tokens_per_second: 6.053488731384277
+      max: 3724.448
+      min: 116.389
+    tokens_per_second: 12.90106201171875
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIE
+- component: Qwen3-4B
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1255.635294
+    time_to_first_token_range_milliseconds:
+      max: 815.5234285714284
+      min: 101.94042857142855
+    tokens_per_second: 19.514379
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1114.003874
+    time_to_first_token_range_milliseconds:
+      max: 1838.4137142857144
+      min: 114.90085714285715
+    tokens_per_second: 17.514938
+  - context_length: 3072
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1104.939672
+    time_to_first_token_range_milliseconds:
+      max: 2780.2422857142856
+      min: 115.84342857142856
+    tokens_per_second: 17.148688
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 928.151188
+    time_to_first_token_range_milliseconds:
+      max: 4413.074133333333
+      min: 137.90856666666664
+    tokens_per_second: 12.870347
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1348.494532
+    time_to_first_token_range_milliseconds:
+      max: 379.68266666666665
+      min: 94.92066666666666
+    tokens_per_second: 20.720574
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.10.0
+    qairt: '2.50'
 - component: Qwen3-4B
   device: Snapdragon X2 Elite CRD
   llm_metrics:
@@ -313,43 +399,43 @@ performance_metrics:
   llm_metrics:
   - context_length: 1024
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2421.608532
+    prefill_tokens_per_second: 2500.767535
     time_to_first_token_range_milliseconds:
-      max: 422.85942857142857
-      min: 52.85742857142857
-    tokens_per_second: 35.531128
+      max: 409.4742857142857
+      min: 51.184285714285714
+    tokens_per_second: 35.640152
   - context_length: 2048
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2162.373495
+    prefill_tokens_per_second: 2205.560178
     time_to_first_token_range_milliseconds:
-      max: 947.1074285714286
-      min: 59.19421428571429
-    tokens_per_second: 33.199506
+      max: 928.5622857142856
+      min: 58.03514285714285
+    tokens_per_second: 33.00913
   - context_length: 3072
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2236.178929
+    prefill_tokens_per_second: 2213.662945
     time_to_first_token_range_milliseconds:
-      max: 1373.772
-      min: 57.2405
-    tokens_per_second: 33.095143
+      max: 1387.7451428571428
+      min: 57.822714285714284
+    tokens_per_second: 32.911644
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 1815.523864
+    prefill_tokens_per_second: 1863.486963
     time_to_first_token_range_milliseconds:
-      max: 2256.0981333333334
-      min: 70.50306666666667
-    tokens_per_second: 26.50868
+      max: 2198.0298666666663
+      min: 68.68843333333332
+    tokens_per_second: 26.266701
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 2602.366527
+    prefill_tokens_per_second: 2690.130583
     time_to_first_token_range_milliseconds:
-      max: 196.74399999999997
-      min: 49.18599999999999
-    tokens_per_second: 36.977067
+      max: 190.32533333333333
+      min: 47.58133333333333
+    tokens_per_second: 36.841392
   precision: PRECISION_W4A16
   runtime: RUNTIME_GENIEX_QAIRT
   tool_versions:
-    geniex: v0.9.1
+    geniex: v0.10.0
     qairt: '2.50'
 - component: Qwen3-4B
   device: Arduino VENTUNO Q

@@ -49,7 +49,7 @@ MODEL_ID = __name__.split(".")[-2]
 # v3 static (pre-dynamo); v4 dynamic-shape (dynamo); v5 untied embedding/lm_head.
 # v6 re-migrates encodings so split-boundary residual adds keep their calibrated
 # encodings (the HTP linker needs them to match across parts).
-MODEL_ASSET_VERSION = 6
+MODEL_ASSET_VERSION = 7
 
 # Model architecture constants (from Qwen3-4B)
 NUM_LAYERS = 36
