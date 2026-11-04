@@ -78,8 +78,8 @@ def test_part_quantsim_loads_encodings(
 @pytest.mark.parametrize(
     ("checkpoint", "task", "expected_metric", "num_samples"),
     [
-        ("DEFAULT_W4A16", "wikitext", 10.39, 0),
-        ("DEFAULT_W4A16", "mmlu", 0.690, 1000),
+        ("DEFAULT_W4A16", "wikitext", 9.92, 0),
+        ("DEFAULT_W4A16", "mmlu", 0.689, 1000),
         ("DEFAULT_UNQUANTIZED", "wikitext", 9.39, 0),
         ("DEFAULT_UNQUANTIZED", "tiny_mmlu", 0.74, 0),
     ],

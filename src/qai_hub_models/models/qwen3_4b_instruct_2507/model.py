@@ -41,7 +41,7 @@ MODEL_ID = __name__.split(".")[-2]
 # the encodings with the #3561 Cast-see-through fix so every residual-add split
 # boundary (36/36) carries an encoding — without it the cut tensors were dropped
 # and the two adjacent shards diverged at HTP link.
-MODEL_ASSET_VERSION = 4
+MODEL_ASSET_VERSION = 5
 
 # Model architecture constants (from Qwen3-4B-Instruct-2507)
 NUM_LAYERS = 36
