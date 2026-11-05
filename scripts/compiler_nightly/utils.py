@@ -42,6 +42,8 @@ DISPLAY_SEPARATOR = "=" * 80
 # Model name parsing constants
 DEVICE_PATTERNS = ("cs_", "samsung_")
 
+_LOG_AND_PRINT_STATE = {"uses_logger_console": False}
+
 
 def get_date_str() -> str:
     return datetime.now().strftime("%m-%d-%Y")
@@ -144,6 +146,8 @@ def setup_logging(log_file: Path, verbose: bool = False) -> None:
     console_handler.setLevel(logging.INFO if verbose else logging.ERROR)
     console_handler.setFormatter(formatter)
 
+    root_logger = logging.getLogger()
+    _LOG_AND_PRINT_STATE["uses_logger_console"] = verbose and not root_logger.handlers
     logging.basicConfig(
         level=logging.DEBUG,
         handlers=[console_handler, file_handler],
@@ -152,7 +156,11 @@ def setup_logging(log_file: Path, verbose: bool = False) -> None:
 
 def log_and_print(message: str, logger: logging.Logger) -> None:
     logger.info(message)
-    print(message)
+    if not (
+        _LOG_AND_PRINT_STATE["uses_logger_console"]
+        and logger.isEnabledFor(logging.INFO)
+    ):
+        print(message)
 
 
 def get_aihw_compiler_nightly_project() -> str | None:

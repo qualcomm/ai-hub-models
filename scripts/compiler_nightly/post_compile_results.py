@@ -23,6 +23,7 @@ from utils import (
     load_yaml_safe,
     log_and_print,
     rerun_regressions,
+    save_results_csv,
     save_yaml_results,
     setup_script_logging,
     validate_tag,
@@ -49,8 +50,47 @@ def _compile_status_row(model_name: str, info: dict) -> list:
         model_name,
         info.get("prod_job_url", "N/A"),
         info.get("dev_job_url", "N/A"),
-        info.get("dev_status", "SUBMISSION_FAILED" if info.get("error") else "N/A"),
+        _dev_status(info),
     ]
+
+
+def _dev_status(info: dict) -> str:
+    return info.get("dev_status", "SUBMISSION_FAILED" if info.get("error") else "N/A")
+
+
+def _format_status_counts(status_counts: dict[str, int]) -> str:
+    ordered_statuses = ["FAILED", "SUBMISSION_FAILED"]
+    parts = [
+        f"{status}: {status_counts[status]}"
+        for status in ordered_statuses
+        if status in status_counts
+    ]
+    parts.extend(
+        f"{status}: {count}"
+        for status, count in sorted(status_counts.items())
+        if status not in ordered_statuses
+    )
+    return ", ".join(parts)
+
+
+def _print_tfl_converter_failure_bullets(failing_jobs: dict) -> None:
+    log_and_print("\nTFL CONVERTER FAILING JOBS", logger)
+    log_and_print(DISPLAY_SEPARATOR, logger)
+    for model_name, info in failing_jobs.items():
+        status = _dev_status(info)
+        log_and_print(f"- {model_name}", logger)
+        if status == "SUBMISSION_FAILED":
+            log_and_print(
+                f"  - Prod Job URL: {info.get('prod_job_url', 'N/A')}", logger
+            )
+            log_and_print(f"  - Submission Failure: {info.get('error', 'N/A')}", logger)
+        else:
+            log_and_print(
+                f"  - Prod Job URL: {info.get('prod_job_url', 'N/A')}", logger
+            )
+            log_and_print(
+                f"  - Failed Dev Job URL: {info.get('dev_job_url', 'N/A')}", logger
+            )
 
 
 def get_tfl_converter_jobs(*result_sets: dict) -> dict:
@@ -62,7 +102,9 @@ def get_tfl_converter_jobs(*result_sets: dict) -> dict:
     return tfl_converter_jobs
 
 
-def print_tfl_converter_results(tfl_converter_jobs: dict) -> str:
+def print_tfl_converter_results(
+    tfl_converter_jobs: dict, results_dir: Path, job_yaml_tag: str
+) -> str:
     passed_count = sum(
         1
         for info in tfl_converter_jobs.values()
@@ -81,15 +123,25 @@ def print_tfl_converter_results(tfl_converter_jobs: dict) -> str:
         if info.get("dev_status") != JOB_STATUS_SUCCESS
     }
     if failing_jobs:
-        table = create_results_table(
+        status_counts: dict[str, int] = {}
+        for info in failing_jobs.values():
+            status = _dev_status(info)
+            status_counts[status] = status_counts.get(status, 0) + 1
+        status_summary = _format_status_counts(status_counts)
+        failures_summary_line = (
+            f"TFL Converter failures = {len(failing_jobs)} ({status_summary})."
+        )
+        failures_path = results_dir / f"tfl-converter-failures__{job_yaml_tag}.csv"
+        save_results_csv(
             failing_jobs,
+            failures_path,
             ["Model", "Prod Job URL", "Dev Job URL", "Dev Status"],
             _compile_status_row,
         )
-        log_and_print("\nTFL CONVERTER FAILING JOBS", logger)
-        log_and_print(DISPLAY_SEPARATOR, logger)
-        for line in str(table).split("\n"):
-            log_and_print(line, logger)
+        log_and_print(failures_summary_line, logger)
+        log_and_print(f"TFL Converter failure details: {failures_path}", logger)
+        _print_tfl_converter_failure_bullets(failing_jobs)
+        return f"{summary_line}\n{failures_summary_line}"
 
     return summary_line
 
@@ -283,7 +335,9 @@ def main() -> int:
                 infra_failures,
                 other_changes,
                 submission_failures,
-            )
+            ),
+            args.results_dir,
+            job_yaml_tag,
         )
 
         summary_path = args.results_dir / f"compile-summary__{job_yaml_tag}.txt"
