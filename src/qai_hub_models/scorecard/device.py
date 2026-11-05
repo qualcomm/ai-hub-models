@@ -499,10 +499,9 @@ class ScorecardDevice(HubDeviceAttributes):
             and path.runtime.inference_engine in inference_engines_to_test
         ]
 
-        # If running "all" devices, only run qnn_ep and tfl_converter on 6490 and
-        # the default device. Any explicitly set device will also run.
+        # If running "all" devices, only run tfl_converter on 6490 and the
+        # default device. Any explicitly set device will also run.
         restricted_paths = [
-            ScorecardProfilePath.QNN_DLC_VIA_QNN_EP,
             ScorecardProfilePath.TFL_CONVERTER,
         ]
         if (

@@ -55,7 +55,10 @@ def _nullify_perf_columns(df: pd.DataFrame) -> None:
 
 
 def _convert_runtime_name(runtime: str) -> str:
-    return ScorecardProfilePath(runtime).spreadsheet_name
+    try:
+        return ScorecardProfilePath(runtime).spreadsheet_name
+    except ValueError:
+        return runtime  # retired path from an older scorecard
 
 
 def prepare_raw_data(scorecard_path: Path, accuracy_path: Path | None) -> pd.DataFrame:

@@ -122,7 +122,10 @@ def create_numerics_struct(
                 if pd.isna(device_accuracy):
                     continue
                 precision = Precision.parse(row.precision)
-                runtime = ScorecardProfilePath(row.runtime)
+                try:
+                    runtime = ScorecardProfilePath(row.runtime)
+                except ValueError:
+                    continue  # retired path from an older scorecard
                 if not runtime.is_published:
                     continue
                 if precision not in metric_data_dict:

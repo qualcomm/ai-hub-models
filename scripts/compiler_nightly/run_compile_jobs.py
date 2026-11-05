@@ -46,24 +46,10 @@ def filter_scorecard_by_runtime(scorecard: dict, runtimes: list[str]) -> dict:
     filtered = {}
     for model_name, job_spec in scorecard.items():
         compile_options = job_spec.get("compile_options", "")
-
-        for runtime in runtimes:
-            if runtime == "qnn_dlc_via_ep":
-                matches = (
-                    "--target_runtime qnn_dlc" in compile_options
-                    and "--use_qnn_onnx_ep_converter" in compile_options
-                )
-            elif runtime == "qnn_dlc":
-                matches = (
-                    "--target_runtime qnn_dlc" in compile_options
-                    and "--use_qnn_onnx_ep_converter" not in compile_options
-                )
-            else:
-                matches = f"--target_runtime {runtime}" in compile_options
-
-            if matches:
-                filtered[model_name] = job_spec
-                break
+        if any(
+            f"--target_runtime {runtime}" in compile_options for runtime in runtimes
+        ):
+            filtered[model_name] = job_spec
 
     logger.info(
         f"Filtered: {len(filtered)}/{len(scorecard)} jobs match runtime(s): {runtimes}"

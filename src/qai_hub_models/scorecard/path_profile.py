@@ -46,7 +46,6 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
     TFLITE = "tflite"
     TFL_CONVERTER = "tfl_converter"
     QNN_DLC = "qnn_dlc"
-    QNN_DLC_VIA_QNN_EP = "qnn_dlc_via_qnn_ep"
     QNN_CONTEXT_BINARY = "qnn_context_binary"
     ONNX = "onnx"
     PRECOMPILED_QNN_ONNX = "precompiled_qnn_onnx"
@@ -195,7 +194,7 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         Resolution order based on what is in the EnabledPathsEnvvar:
         1. "default" keyword: enables default paths whose runtime is in the
            model's supported runtimes.
-        2. Explicit path name (e.g. qnn_dlc_via_qnn_ep): enables the path
+        2. Explicit path name (e.g. qnn_dlc_gpu): enables the path
            if the model supports any runtime with the same inference engine.
         3. Engine prefix (e.g. "qnn"): enables default paths whose runtime
            is in the model's supported runtimes. Non-default paths are not
@@ -237,7 +236,7 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
             return True
 
         # 2. Explicit path name: use inference engine match (looser) so that
-        #    e.g. requesting "qnn_dlc_via_qnn_ep" works for a model that only
+        #    e.g. requesting "qnn_dlc_gpu" works for a model that only
         #    lists qnn_context_binary (same QNN engine). However, if the
         #    engine itself is excluded (e.g. QNN timed out), no QNN path runs.
         if self.value in valid_test_runtimes:
@@ -247,8 +246,8 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         # 3. Engine prefix: exact runtime match against supported runtimes.
         # Restricted to default_paths() to match the `enabled` property, which
         # gates the same rule. Without this, a prefix like 'qnn' selects
-        # unpublished paths (qnn_dlc_via_qnn_ep, qnn_dlc_gpu) that `enabled`
-        # reports as off, and callers keyed on `enabled` blow up.
+        # unpublished paths (qnn_dlc_gpu) that `enabled` reports as off, and
+        # callers keyed on `enabled` blow up.
         return (
             self in ScorecardProfilePath.default_paths()
             and self.runtime.inference_engine.value in valid_test_runtimes
@@ -286,7 +285,6 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         if (
             self == ScorecardProfilePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
             or self == ScorecardProfilePath.QNN_DLC_GPU
-            or self == ScorecardProfilePath.QNN_DLC_VIA_QNN_EP
         ):
             return TargetRuntime.QNN_DLC
         if self == ScorecardProfilePath.GENIE:
@@ -318,8 +316,6 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
             or self == ScorecardProfilePath.QNN_DLC_GPU
         ):
             return ScorecardCompilePath.QNN_DLC
-        if self == ScorecardProfilePath.QNN_DLC_VIA_QNN_EP:
-            return ScorecardCompilePath.QNN_DLC_VIA_QNN_EP
         if self == ScorecardProfilePath.GENIE:
             return ScorecardCompilePath.GENIE
         if self == ScorecardProfilePath.GENIEX_QAIRT:

@@ -26,7 +26,6 @@ class ScorecardCompilePath(Enum):
     TFLITE = "tflite"
     TFL_CONVERTER = "tfl_converter"
     QNN_DLC = "qnn_dlc"
-    QNN_DLC_VIA_QNN_EP = "qnn_dlc_via_qnn_ep"
     QNN_CONTEXT_BINARY = "qnn_context_binary"
     ONNX = "onnx"
     PRECOMPILED_QNN_ONNX = "precompiled_qnn_onnx"
@@ -95,10 +94,7 @@ class ScorecardCompilePath(Enum):
             return TargetRuntime.PRECOMPILED_QNN_ONNX
         if self == ScorecardCompilePath.QNN_CONTEXT_BINARY:
             return TargetRuntime.QNN_CONTEXT_BINARY
-        if (
-            self == ScorecardCompilePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardCompilePath.QNN_DLC_VIA_QNN_EP
-        ):
+        if self == ScorecardCompilePath.QNN_DLC:
             return TargetRuntime.QNN_DLC
         if self == ScorecardCompilePath.GENIE:
             return TargetRuntime.GENIE
@@ -193,9 +189,6 @@ class ScorecardCompilePath(Enum):
         out += self._get_qairt_version_option(
             include_default=include_default_qaihm_qnn_version
         )
-
-        if self == ScorecardCompilePath.QNN_DLC_VIA_QNN_EP:
-            out = out + " --use_qnn_onnx_ep_converter"
 
         if self == ScorecardCompilePath.TFL_CONVERTER:
             out = out + " --use_tfl_converter"
