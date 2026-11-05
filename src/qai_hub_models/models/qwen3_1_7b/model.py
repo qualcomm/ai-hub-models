@@ -34,7 +34,13 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.lm_driver.generator import HubCompatibleGenerator
 from qai_hub_models.models.templates.qwen3.model import (
     Qwen3PartBase,
@@ -113,7 +119,15 @@ class Qwen3_1_7B_PreSplit(Qwen3PreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Qwen3_1_7B_QuantizablePreSplit(Qwen3QuantizablePreSplitBase[Qwen3_1_7B_PreSplit]):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_1_7B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Qwen3QuantizablePreSplitBase[Qwen3_1_7B_PreSplit],
+):
     """Quantizable PreSplit for Qwen3-1.7B."""
 
     FPModel = Qwen3_1_7B_PreSplit
@@ -137,7 +151,9 @@ class Qwen3_1_7B_QuantizablePreSplit(Qwen3QuantizablePreSplitBase[Qwen3_1_7B_Pre
     int8_param_names = INT8_PARAM_NAMES
 
 
-class Qwen3_1_7B_PartBase(Qwen3PartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Qwen3_1_7B_PartBase(QuantizeFullTypeW8A16PartMixin, Qwen3PartBase):
     """Unified Part base for Qwen3-1.7B."""
 
     num_splits = NUM_SPLITS
@@ -198,7 +214,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Qwen3_1_7B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Qwen3_1_7B_Collection(Qwen3PreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_1_7B_Collection(CollectionCompileO0Mixin, Qwen3PreSplitCollectionBase):
     """Unified Collection with 4 Parts for Qwen3-1.7B."""
 
     hf_repo_name = HF_REPO_NAME

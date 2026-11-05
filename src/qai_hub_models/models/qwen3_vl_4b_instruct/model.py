@@ -18,6 +18,9 @@ from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
 from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
     SplitForwardMixin,  # noqa: F401
 )
 from qai_hub_models.models.templates.qwen3_vl.model import (
@@ -125,8 +128,14 @@ class Qwen3_VL_4B_PreSplit(Qwen3VLPreSplitBase):
     _hf_repo_name = HF_REPO_NAME
 
 
-class Qwen3_VL_4B_QuantizablePreSplit(
-    Qwen3VLQuantizablePreSplitBase[Qwen3_VL_4B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_VL_4B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Qwen3VLQuantizablePreSplitBase[Qwen3_VL_4B_PreSplit],
 ):
     """Quantizable PreSplit for Qwen3-VL-4B."""
 
@@ -226,7 +235,9 @@ class QuantizedSplitModelWrapper(  # type: ignore[misc]
     default_num_visual_tokens = DEFAULT_NUM_VISUAL_TOKENS
 
 
-class Qwen3_VL_4B_Collection(Qwen3VLCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_VL_4B_Collection(CollectionCompileO0Mixin, Qwen3VLCollectionBase):
     """Collection model for Qwen3-VL-4B deployment.
 
     Combines 4 text parts + 1 vision encoder for full VLM deployment.

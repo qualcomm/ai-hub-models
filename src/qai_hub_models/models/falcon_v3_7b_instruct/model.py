@@ -24,7 +24,13 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.lm_driver.generator import (
     HubCompatibleGenerator,
 )
@@ -91,7 +97,15 @@ class Falcon3_7B_PreSplit(LlamaPreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Falcon3_7B_QuantizablePreSplit(LlamaQuantizablePreSplitBase[Falcon3_7B_PreSplit]):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Falcon3_7B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    LlamaQuantizablePreSplitBase[Falcon3_7B_PreSplit],
+):
     """Quantizable PreSplit for Falcon 3 7B."""
 
     FPModel = Falcon3_7B_PreSplit
@@ -108,7 +122,9 @@ class Falcon3_7B_QuantizablePreSplit(LlamaQuantizablePreSplitBase[Falcon3_7B_Pre
     default_precision = DEFAULT_PRECISION
 
 
-class Falcon3_7B_PartBase(LlamaPartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Falcon3_7B_PartBase(QuantizeFullTypeW8A16PartMixin, LlamaPartBase):
     """Unified Part base for Falcon 3 7B."""
 
     num_splits = NUM_SPLITS
@@ -175,7 +191,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Falcon3_7B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Falcon3_7B_Collection(LlamaPreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Falcon3_7B_Collection(CollectionCompileO0Mixin, LlamaPreSplitCollectionBase):
     """Unified Collection with 5 Parts for Falcon 3 7B."""
 
     hf_repo_name = HF_REPO_NAME

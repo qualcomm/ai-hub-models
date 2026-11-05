@@ -2202,9 +2202,9 @@ class Gemma4PartBase(DynamicSplitPartBase):
         other_compile_options: str = "",
         device: Device | None = None,
     ) -> str:
-        """Gemma4 compile options, without the base's ``--quantize_full_type``.
+        """Gemma4 compile options, without ``--quantize_full_type``/``--quantize_io``.
 
-        That flag routes the job through the qairt-quantizer, which the v73 HTP
+        Those flags route the job through the qairt-quantizer, which the v73 HTP
         rejects for Gemma4 (garbage decoder output + link exit 14). The scales
         already live in each split's baked AIMET encodings, so we skip the
         ``DynamicSplitPartBase`` override and call the grandparent directly.

@@ -62,11 +62,14 @@ from qai_hub_models.models.templates.llm.llm_helpers import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_CONTEXT_LENGTH,
     DEFAULT_SEQUENCE_LENGTH,
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
     DynamicPreSplitOnnxMixin,
     DynamicQuantizablePreSplitMixin,
     LLMCollectionBase,
     LLMDynamic_AIMETOnnx,
     LLMPartBase,
+    QuantizeFullTypeW8A16Mixin,
     SingleSlotCacheMixin,
     get_onnx_model,
     get_tokenizer,
@@ -312,7 +315,13 @@ class Qwen2_5_VL_7B_PreSplit(
 # ---------------------------------------------------------------------------
 
 
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
 class Qwen2_5_VL_7B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
     DynamicQuantizablePreSplitMixin["Qwen2_5_VL_7B_PreSplit"],
     Qwen2VLDynamic_AIMETOnnx,
 ):
@@ -1173,7 +1182,9 @@ class Qwen2_5_VL_7B_Part5_Of_5(Qwen2_5_VL_7B_PartBase):
 # ---------------------------------------------------------------------------
 # Collection Class
 # ---------------------------------------------------------------------------
-class Qwen2_5_VL_7B_Collection(LLMCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
     """
     Unified Collection with 5 text Parts + 1 Vision Encoder for Qwen2.5-VL-7B.
 

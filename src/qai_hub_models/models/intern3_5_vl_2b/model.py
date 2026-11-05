@@ -25,6 +25,9 @@ from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
 from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
     SplitForwardMixin,  # noqa: F401
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
@@ -122,8 +125,14 @@ class Intern3_5_VL_2B_PreSplit(Intern3_5VLPreSplitBase):
     _hf_repo_name = HF_REPO_NAME
 
 
-class Intern3_5_VL_2B_QuantizablePreSplit(
-    Intern3_5VLQuantizablePreSplitBase[Intern3_5_VL_2B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Intern3_5_VL_2B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Intern3_5VLQuantizablePreSplitBase[Intern3_5_VL_2B_PreSplit],
 ):
     """Quantizable PreSplit for InternVL3.5-2B."""
 
@@ -217,7 +226,9 @@ class QuantizedSplitModelWrapper(  # type: ignore[misc]
     default_num_visual_tokens = DEFAULT_NUM_VISUAL_TOKENS
 
 
-class Intern3_5_VL_2B_Collection(Intern3_5VLCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Intern3_5_VL_2B_Collection(CollectionCompileO0Mixin, Intern3_5VLCollectionBase):
     """Collection model for InternVL3.5-2B deployment.
 
     Combines 4 text parts + 1 vision encoder for full VLM deployment.

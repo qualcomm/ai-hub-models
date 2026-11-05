@@ -1420,6 +1420,30 @@ class LLMPartBase:
         }
 
 
+class QuantizeFullTypeW8A16PartMixin:
+    """
+    Opt-in: add ``--quantize_full_type w8a16`` to a Part's graph compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22269
+    """
+
+    def get_graph_hub_compile_options(
+        self,
+        graph_name: str,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+    ) -> str:
+        return super().get_graph_hub_compile_options(  # type: ignore[misc]
+            graph_name,
+            target_runtime,
+            precision,
+            other_compile_options + " --quantize_full_type w8a16",
+            device,
+        )
+
+
 class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchModel):
     """
     Unified Part base for dynamic-shape (dynamo) split LLMs.
@@ -1752,7 +1776,7 @@ class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchMode
             graph_name,
             target_runtime,
             precision,
-            other_compile_options + " --quantize_full_type w8a16 --quantize_io",
+            other_compile_options + " --quantize_io",
             device,
         )
 
@@ -1775,8 +1799,12 @@ class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchMode
         )
 
 
-class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
-    """Collection base shared by every LLM / VLM; sets LLM-wide compile options."""
+class CollectionCompileO0Mixin:
+    """
+    Opt-in: add ``-O0`` to every component graph's compile options in a collection.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22094
+    """
 
     def get_component_graph_hub_compile_options(
         self,
@@ -1787,7 +1815,7 @@ class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
         other_compile_options: str = "",
         device: Device | None = None,
     ) -> str:
-        return super().get_component_graph_hub_compile_options(
+        return super().get_component_graph_hub_compile_options(  # type: ignore[misc]
             component_name,
             graph_name,
             target_runtime,
@@ -1795,6 +1823,10 @@ class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
             other_compile_options + " -O0",
             device,
         )
+
+
+class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
+    """Collection base shared by every LLM / VLM."""
 
 
 class DynamicSplitCollectionBase(LLMCollectionBase):
@@ -2514,6 +2546,54 @@ class LLMInstantiationType(Enum):
 
     PROMPT_PROCESSOR = "prompt"
     TOKEN_GENERATOR = "token"
+
+
+class CompileO0Mixin:
+    """
+    Opt-in: add ``-O0`` to ``LLM_AIMETOnnx`` compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22094
+    """
+
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        return super().get_hub_compile_options(  # type: ignore[misc]
+            target_runtime,
+            precision,
+            other_compile_options + " -O0",
+            device,
+            context_graph_name,
+        )
+
+
+class QuantizeFullTypeW8A16Mixin:
+    """
+    Opt-in: add ``--quantize_full_type w8a16`` to ``LLM_AIMETOnnx`` compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22269
+    """
+
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        return super().get_hub_compile_options(  # type: ignore[misc]
+            target_runtime,
+            precision,
+            other_compile_options + " --quantize_full_type w8a16",
+            device,
+            context_graph_name,
+        )
 
 
 LLM_AIMETOnnxT = TypeVar("LLM_AIMETOnnxT", bound="LLM_AIMETOnnx")
@@ -3263,7 +3343,7 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
         if precision not in {Precision.w4a16, Precision.w4}:
             raise RuntimeError("Only w4a16 and w4 precisions are supported")
 
-        other_compile_options += " --quantize_full_type w8a16 --quantize_io -O0"
+        other_compile_options += " --quantize_io"
         return super().get_hub_compile_options(
             target_runtime, precision, other_compile_options, device, context_graph_name
         )

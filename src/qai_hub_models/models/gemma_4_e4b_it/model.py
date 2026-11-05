@@ -28,7 +28,12 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    SplitForwardMixin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +131,14 @@ class Gemma4_E4B_PreSplit(Gemma4PreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Gemma4_E4B_QuantizablePreSplit(
-    Gemma4QuantizablePreSplitBase[Gemma4_E4B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Gemma4_E4B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Gemma4QuantizablePreSplitBase[Gemma4_E4B_PreSplit],
 ):
     """Quantizable PreSplit for Gemma4-E4B."""
 
@@ -220,7 +231,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Gemma4_E4B_PreSplit):  # type: igno
         return _SPLIT_PART_CLASSES
 
 
-class Gemma4_E4B_Collection(Gemma4PreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Gemma4_E4B_Collection(CollectionCompileO0Mixin, Gemma4PreSplitCollectionBase):
     """Collection with 4 Parts for Gemma4-E4B (L0-23, L24-32, L33-41, lm_head)."""
 
     hf_repo_name = HF_REPO_NAME
