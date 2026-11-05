@@ -65,6 +65,8 @@ jobs:
         uses: ./.github/actions/ci-setup
         with:
           venv-path: ${{ env.VENV_PATH }}
+          hub-deployments: prod
+          hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
 
       - name: Download Scorecard Artifacts
         uses: actions/download-artifact@v8

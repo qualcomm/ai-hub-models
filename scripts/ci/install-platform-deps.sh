@@ -36,7 +36,7 @@ end_group
 
 start_group "Ubuntu Install: install/upgrade packages"
     install_aws_cli
-    run_as_root apt-get install -y gh python3-opencv cmake libportaudio2 ffmpeg libegl-dev
+    run_as_root apt-get install -y gh python3-opencv cmake libportaudio2 ffmpeg libegl-dev build-essential
 end_group
 
 start_group "Ubuntu install: uv"
