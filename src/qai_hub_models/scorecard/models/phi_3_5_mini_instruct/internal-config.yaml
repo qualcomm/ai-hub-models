@@ -13,9 +13,7 @@ status: published
 technical_details:
   Context lengths: 512, 1024, 2048, 3072, 4096
   Input sequence length for Prompt Processor: '128'
-  Measurement details: The model was benchmarked using a short prompt only. Since the model asset supports multiple context lengths, the short prompt may have triggered lower context lengths. The upper bound of the TTFT is approximated based on the performance of the model with the short prompt, and the assumption that TTFT scales linearly with the context length.
   Minimum QAIRT SDK: 2.43.1
   Number of parameters: 3.8B
   Quantization Type: w4a16 + w8a16 (few layers)
   Response Rate: Rate of response generation after the first response token.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (4096 tokens).
