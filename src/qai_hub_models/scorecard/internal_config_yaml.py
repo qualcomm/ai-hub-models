@@ -107,7 +107,7 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
     # If set, skips all code generation for this model.
     skip_export: bool = False
 
-    # If set, disables generating `evaluate.py` (tests are still generated).
+    # If set, omits the evaluate/accuracy tests from the generated test file.
     skip_evaluate: bool = False
 
     # Overrides the scorecard acceptance threshold. E.g., set this to 15 to

@@ -17,9 +17,8 @@ You need a dataset and evaluator. Check if existing ones fit your task (browse `
    - `get_calibration_dataset_cls(self) -> type[BaseDataset]`
    - `get_evaluator(self) -> BaseEvaluator` (return an instance)
 2. Add supported precisions to `manifest.yaml` (e.g., `w8a8`, `w8a16`)
-3. Re-run codegen for in-tree recipes so the generated `evaluate.py` picks up the new precisions: `python qai_hub_models/scripts/run_codegen.py -m <model_id>`
-4. Run evaluation at both float and quantized precision
-5. Verify accuracy drop is acceptable
+3. Run evaluation at both float and quantized precision
+4. Verify accuracy drop is acceptable
 
 ## Verifying Accuracy
 

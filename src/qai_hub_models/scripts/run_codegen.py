@@ -14,7 +14,6 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
@@ -36,36 +35,6 @@ def _is_auto_generated(path: Path) -> bool:
     with open(path) as f:
         head = f.read(2048)
     return HEADER in head
-
-
-def _extract_runtime_and_precision_options(
-    manifest: QAIHMModelManifest,
-    manifest_dict: dict | None = None,
-) -> dict[str, Any]:
-    manifest_dict = manifest_dict or {}
-
-    # All runtime + precision pairs that are supported for this model.
-    def _supported_runtimes(precision: Precision) -> list[str]:
-        rts = [r for r in TargetRuntime if manifest.is_supported(precision, r)]
-        # Demote legacy GENIE so GENIEX_QAIRT wins the CLI default; remove when GENIE is gone (tetracode#20247).
-        rts.sort(key=lambda r: 1 if r == TargetRuntime.GENIE else 0)
-        return [r.name for r in rts]
-
-    supported_precision_runtimes: dict[str, list[str]] = {
-        str(precision): _supported_runtimes(precision)
-        for precision in manifest.supported_precisions
-    }
-    supported_precision_runtimes = {
-        p: rs for p, rs in supported_precision_runtimes.items() if rs
-    }  # drop empty precision entries
-
-    manifest_dict["default_runtime"] = manifest.default_runtime.name
-    manifest_dict["supported_precision_runtimes"] = supported_precision_runtimes
-    manifest_dict["default_aihub_job_precision"] = str(manifest.default_precision)
-    manifest_dict["can_use_quantize_job"] = manifest.can_use_quantize_job
-    manifest_dict["supports_quantization"] = manifest.supports_quantization
-
-    return manifest_dict
 
 
 def _generate_unit_tests(
@@ -101,25 +70,6 @@ def _generate_conftest(
     with open(conftest_path, "w") as f:
         f.write(file_contents)
     return str(conftest_path)
-
-
-def _generate_evaluate(
-    environment: Environment,
-    model_name: str,
-    model_status: str,
-    manifest: dict[str, Any],
-    evaluate_path: Path,
-) -> str:
-    template = environment.get_template("evaluate_template.j2")
-    file_contents = template.render(
-        manifest,
-        model_name=model_name,
-        model_status=model_status,
-        header=HEADER,
-    )
-    with open(evaluate_path, "w") as f:
-        f.write(file_contents)
-    return str(evaluate_path)
 
 
 def _generate_external_repos_init(
@@ -195,7 +145,6 @@ def generate_code_for_model(model_name: str) -> list[str]:
         loader=FileSystemLoader(Path(__file__).parent / "templates/"),
         keep_trailing_newline=True,
     )
-    model_status = scorecard_config.status.value
     generated_files: list[str] = []
     # Generate or clean up external repo files
     external_repos_dir = model_dir / "external_repos"
@@ -207,9 +156,7 @@ def generate_code_for_model(model_name: str) -> list[str]:
         shutil.rmtree(external_repos_dir)
 
     manifest_dict = manifest.model_dump()
-    _extract_runtime_and_precision_options(manifest, manifest_dict)
-
-    manifest_dict["has_external_repos"] = bool(manifest.external_repos)
+    manifest_dict["can_use_quantize_job"] = manifest.can_use_quantize_job
     manifest_dict["is_llm"] = scorecard_config.is_llm
     manifest_dict["standalone_components"] = scorecard_config.standalone_components
 
@@ -255,20 +202,6 @@ def generate_code_for_model(model_name: str) -> list[str]:
             )
         elif conftest_path.exists() and _is_auto_generated(conftest_path):
             os.remove(conftest_path)
-
-    evaluate_path = model_dir / "evaluate.py"
-    if not manifest.is_precompiled and not scorecard_config.skip_evaluate:
-        generated_files.append(
-            _generate_evaluate(
-                environment,
-                model_name,
-                model_status,
-                manifest_dict,
-                evaluate_path,
-            )
-        )
-    elif evaluate_path.exists() and _is_auto_generated(evaluate_path):
-        os.remove(evaluate_path)
 
     zoo_root = QAIHM_MODELS_ROOT
     return [os.path.join(zoo_root, gen_file) for gen_file in generated_files]

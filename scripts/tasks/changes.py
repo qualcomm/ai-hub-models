@@ -549,11 +549,6 @@ class ValidateQuantizeInputsTask(Task):
             )
             ok = False
 
-        if not (model_dir / "evaluate.py").is_file():
-            print(
-                f"::warning::{model_id} has no evaluate.py, so the checkpoint will "
-                "carry no accuracy numbers."
-            )
         return ok
 
 

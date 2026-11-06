@@ -13,8 +13,8 @@ from its ``manifest.yaml``:
 Both files are safe to blow away and regenerate — they contain no
 hand-written content. The command is the external-user-facing subset
 of the internal ``run_codegen.py`` script (which additionally generates
-``evaluate.py``, ``conftest.py``, and
-``test_generated.py`` — none of which ship with a standalone recipe).
+``conftest.py`` and ``test_generated.py`` — none of which ship with a
+standalone recipe).
 
 The target is a folder path (``my_model``) or an installed model id
 (``yolov8_det``). Both must contain a ``manifest.yaml`` at the root.
