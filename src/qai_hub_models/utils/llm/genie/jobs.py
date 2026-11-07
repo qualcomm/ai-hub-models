@@ -1171,7 +1171,7 @@ def collect_llm_perf_job(
         finally:
             shutil.rmtree(bundle_path, ignore_errors=True)
 
-    if not skip_perf_update and tps is not None and ttft is not None:
+    if not skip_perf_update and tps is not None:
         # Genie runs a single measurement, reported at the largest exported length.
         update_perf_yaml(
             model_id,
@@ -1179,8 +1179,7 @@ def collect_llm_perf_job(
             precision,
             max(context_lengths),
             tps,
-            ttft,
-            prefill_tps,
+            prefill_tps=prefill_tps,
         )
 
     if eval_results:

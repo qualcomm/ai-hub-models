@@ -102,16 +102,6 @@ def test_perf_yaml() -> None:
                                     assert ctx.tokens_per_second is not None, (
                                         "For LLM models, tokens per second must be provided"
                                     )
-                                    assert (
-                                        ctx.time_to_first_token_range_milliseconds
-                                        is not None
-                                    ), (
-                                        "For LLM models, time to first token must be provided"
-                                    )
-                                    assert (
-                                        ctx.time_to_first_token_range_milliseconds.max
-                                        >= ctx.time_to_first_token_range_milliseconds.min
-                                    ), "Time to first token max must be >= min"
 
     except Exception as err:
         raise AssertionError(

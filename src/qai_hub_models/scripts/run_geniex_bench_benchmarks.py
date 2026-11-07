@@ -82,10 +82,6 @@ ALL_GENIEX_DEVICES = (
 LLAMACPP_DEVICE_ALIASES = ("cpu", "gpu", "npu")
 LLAMACPP_CONTEXT_LENGTHS = [512, 4096]
 
-# Prompt length the TTFT range's lower bound refers to: one QAIRT prefill chunk.
-# Unrelated to the bench's generation-token count, which happens to also be 128.
-_TTFT_BASELINE_PROMPT_TOKENS = 128
-
 # Queued (not running) jobs allowed per device type: enough that a freed phone
 # picks up the next job immediately, small enough that nothing waits for hours.
 DEFAULT_MAX_WAITING = 2
@@ -567,12 +563,6 @@ def _rows_from_metrics(
                 if plugin == "qairt"
                 else ScorecardProfilePath.GENIEX_LLAMACPP
             )
-            assert m.prompt_tokens > 0, (
-                f"prompt_tokens must be > 0 for TTFT range scaling, "
-                f"got {m.prompt_tokens}"
-            )
-            ttft_min = m.ttft_ms * (_TTFT_BASELINE_PROMPT_TOKENS / m.prompt_tokens)
-            ttft_max = m.ttft_ms * (m.context_length / m.prompt_tokens)
             # report.c writes qairt_version unconditionally on every cell
             # regardless of --plugin, so it's only meaningful for qairt-plugin
             # cells -- an llama_cpp cell's qairt_version reflects whatever
@@ -591,9 +581,7 @@ def _rows_from_metrics(
                 precision=precision,
                 context_length=m.context_length,
                 tps=m.decode_tps,
-                ttft_ms=ttft_min,
                 prefill_tps=m.prefill_tps,
-                ttft_max_ms=ttft_max,
                 profile_path=profile_path,
                 desired_compute_unit=m.device_alias,
                 tool_versions=tool_versions,

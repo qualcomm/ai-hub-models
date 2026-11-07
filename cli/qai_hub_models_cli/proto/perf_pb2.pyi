@@ -160,7 +160,6 @@ class ModelPerf(google.protobuf.message.Message):
 
         CONTEXT_LENGTH_FIELD_NUMBER: builtins.int
         TOKENS_PER_SECOND_FIELD_NUMBER: builtins.int
-        TIME_TO_FIRST_TOKEN_RANGE_MILLISECONDS_FIELD_NUMBER: builtins.int
         PREFILL_TOKENS_PER_SECOND_FIELD_NUMBER: builtins.int
         DESIRED_COMPUTE_UNIT_FIELD_NUMBER: builtins.int
         context_length: builtins.int
@@ -173,23 +172,17 @@ class ModelPerf(google.protobuf.message.Message):
         "cpu"). Unset on releases before 0.56.0; if unset, assume "npu". Set by
         runtimes that report per-compute-unit metrics (e.g. geniex_llamacpp).
         """
-        @property
-        def time_to_first_token_range_milliseconds(self) -> shared.range_pb2.DoubleRange: ...
         def __init__(
             self,
             *,
             context_length: builtins.int = ...,
             tokens_per_second: builtins.float = ...,
-            time_to_first_token_range_milliseconds: shared.range_pb2.DoubleRange | None = ...,
             prefill_tokens_per_second: builtins.float | None = ...,
             desired_compute_unit: builtins.str = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing.Literal["_prefill_tokens_per_second", b"_prefill_tokens_per_second", "_time_to_first_token_range_milliseconds", b"_time_to_first_token_range_milliseconds", "prefill_tokens_per_second", b"prefill_tokens_per_second", "time_to_first_token_range_milliseconds", b"time_to_first_token_range_milliseconds"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["_prefill_tokens_per_second", b"_prefill_tokens_per_second", "_time_to_first_token_range_milliseconds", b"_time_to_first_token_range_milliseconds", "context_length", b"context_length", "desired_compute_unit", b"desired_compute_unit", "prefill_tokens_per_second", b"prefill_tokens_per_second", "time_to_first_token_range_milliseconds", b"time_to_first_token_range_milliseconds", "tokens_per_second", b"tokens_per_second"]) -> None: ...
-        @typing.overload
+        def HasField(self, field_name: typing.Literal["_prefill_tokens_per_second", b"_prefill_tokens_per_second", "prefill_tokens_per_second", b"prefill_tokens_per_second"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_prefill_tokens_per_second", b"_prefill_tokens_per_second", "context_length", b"context_length", "desired_compute_unit", b"desired_compute_unit", "prefill_tokens_per_second", b"prefill_tokens_per_second", "tokens_per_second", b"tokens_per_second"]) -> None: ...
         def WhichOneof(self, oneof_group: typing.Literal["_prefill_tokens_per_second", b"_prefill_tokens_per_second"]) -> typing.Literal["prefill_tokens_per_second"] | None: ...
-        @typing.overload
-        def WhichOneof(self, oneof_group: typing.Literal["_time_to_first_token_range_milliseconds", b"_time_to_first_token_range_milliseconds"]) -> typing.Literal["time_to_first_token_range_milliseconds"] | None: ...
 
     AIHM_VERSION_FIELD_NUMBER: builtins.int
     MODEL_ID_FIELD_NUMBER: builtins.int

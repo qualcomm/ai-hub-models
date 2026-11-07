@@ -37,9 +37,6 @@ Generating LLM metrics for AI Hub Website
         Device details: SoC: SM8750 OS: 15
 
             llm_metrics:
-                time_to_first_token_range:
-                min: 85931.5
-                max: 2749808.0
                 tokens_per_second: 25.77723
 
     You can copy paste this as is in new section created in perf.yaml for given device.
@@ -72,64 +69,25 @@ def _get_processed_kpis(profile: dict) -> tuple[int, float, float | None]:
     return ttft["value"], tps["value"], prefill["value"]
 
 
-def _get_time_to_first_token_range(
-    prompt_processor_time: list[int], input_seq_length: int, max_context_length: int
-) -> tuple[float, float]:
-    """
-    Compute Time To First Token(TTFT):
-        If Prompt size is < input seq length of Prompt size.
-    """
-    # NOTE: if # of tokens in prompt are more than input_seq_length of Prompt Processor (PP),
-    # PP runs multiple times to cover full input prompt.
-    # <# of times PP runs> = (<# of tokens in input prompt> / <input seq length of PP ) + 1
-    #
-    # TODO: This can be extended to support prompts > input seuence length with the following:
-    # min_prompt_processor_time = sum(prompt_processor_time) / len(prompt_processor_time) / <# of times PP runs>
-    # This requires one to use tokenizer for model being used to correctly identify # of tokens
-    # Hence, we are not supporting this as of today. Please use shorter prompt for profiling.
-    min_prompt_processor_time = sum(prompt_processor_time) / len(prompt_processor_time)
-    max_prompt_processor_time = (
-        max_context_length / input_seq_length
-    ) * min_prompt_processor_time
-
-    return (min_prompt_processor_time, max_prompt_processor_time)
-
-
 def _get_avg_tokens_per_second(token_generator_tps: list[float]) -> float:
     return sum(token_generator_tps) / len(token_generator_tps)
 
 
 def _get_llm_metrics(
-    prompt_processor_time: list[int],
     token_generator_tps: list[float],
-    input_seq_length: int,
-    max_context_length: int,
     prefill_tps: list[float] | None = None,
     verbose: bool = False,
 ) -> str:
-    """
-    Collects and aggregates LLM metrics
-
-        For Prompt Processor, average out time take to response first token and find range for minimum input seq length to max sequence length
-        For Token Generator, average out Token per seconds from Genie KPIs
-    """
-    # Aggregate Time to First Token and TPS
-    time_to_first_token_range = _get_time_to_first_token_range(
-        prompt_processor_time, input_seq_length, max_context_length
-    )
+    """Average Genie's token generation and prompt processing rates."""
     avg_tps = _get_avg_tokens_per_second(token_generator_tps)
     prefill_line = ""
     if prefill_tps:
         avg_prefill_tps = sum(prefill_tps) / len(prefill_tps)
         prefill_line = f"\n        prefill_tokens_per_second: {avg_prefill_tps:.5f}"
 
-    # Write TTFT and TPS in AI Hub Models Perf yaml format
     return f"""
     genie:
         context_length: <context_length>
-        time_to_first_token_range_milliseconds:
-          min: {time_to_first_token_range[0]}
-          max: {time_to_first_token_range[1]}
         tokens_per_second: {avg_tps:.5f}{prefill_line}
 """
 
@@ -308,18 +266,6 @@ def main() -> None:
         help="If set, keeps copied on-device bundled as is. Otherwise, cleans up directory after profiling.",
     )
     parser.add_argument(
-        "--prompt-processor-input-seq-length",
-        type=int,
-        default=128,
-        help="Input sequence length of Prompt Processor. Check input sequence length of your model by opening Compile or Profile job of Prompt processor's 1st split on AI Hub Workbench.",
-    )
-    parser.add_argument(
-        "--max-context-length",
-        type=int,
-        default=4096,
-        help="Provide context length specified during model export. For default values, check AI Hub model details section for given model.",
-    )
-    parser.add_argument(
         "--num-iterations",
         type=int,
         default=10,
@@ -354,8 +300,6 @@ def main() -> None:
     bundle_path = args.bundle_path
     device_bundle_path = args.device_bundle_path
     adb_port = args.adb_port
-    input_seq_length = args.prompt_processor_input_seq_length
-    max_context_length = args.max_context_length
     num_iterations = args.num_iterations
     prompt = args.prompt
     prompt_file = os.path.abspath(args.prompt_file) if args.prompt_file else None
@@ -376,8 +320,6 @@ def main() -> None:
         else:
             print(f"Device bundle path: {device_bundle_path}")
             print(f"ADB port: {adb_port}")
-        print(f"Input sequence length: {input_seq_length}")
-        print(f"Max context length: {max_context_length}")
         print(f"Number of iterations: {num_iterations}")
         if args.prompt_file:
             print(f"Prompt file: {prompt_file}")
@@ -445,16 +387,9 @@ def main() -> None:
             ret = _run_model_on_android_device(
                 device, working_dir, prompt=prompt, prompt_file=prompt_file, **extra
             )
-        prompt_processor_time, token_generator_tps, prefill_tps = ret
+        _, token_generator_tps, prefill_tps = ret
 
-        # Aggregate LLM metrics
-        llm_metric = _get_llm_metrics(
-            prompt_processor_time,
-            token_generator_tps,
-            input_seq_length,
-            max_context_length,
-            prefill_tps=prefill_tps,
-        )
+        llm_metric = _get_llm_metrics(token_generator_tps, prefill_tps=prefill_tps)
 
         print("\n---------------- LLM Metrics ----------------")
         print(f"Device details: SoC: {device_soc} OS: {device_os}")

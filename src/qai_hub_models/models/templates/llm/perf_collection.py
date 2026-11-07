@@ -9,7 +9,7 @@ Provides:
 - LLMPerfConfig: env-var driven configuration dataclass
 - get_llm_perf_parametrization: generates (precision, device) pytest params
 - resolve_llm_eval_device: picks the single device on-device accuracy runs on
-- update_perf_yaml: writes TPS/TTFT metrics into a model's perf.yaml
+- update_perf_yaml: writes TPS metrics into a model's perf.yaml
 
 The compile/QDC test logic lives in templates/llm/test.py (run_llm_perf_test).
 """
@@ -289,18 +289,13 @@ def update_perf_yaml(
     precision: Precision,
     context_length: int,
     tps: float,
-    ttft_ms: float,
     prefill_tps: float | None = None,
     profile_path: ScorecardProfilePath = ScorecardProfilePath.GENIE,
-    ttft_max_ms: float | None = None,
     desired_compute_unit: str = "npu",
     tool_versions: ToolVersions | None = None,
 ) -> None:
     """Upsert one LLM metric into the model's perf.yaml.
 
-    ttft_max_ms: written to time_to_first_token_range.max. Callers scale it off
-    their measured prompt length; when omitted, ttft_ms * (context_length / 128)
-    is applied here as a fallback.
     desired_compute_unit: written to the entry; "npu" by default.
     tool_versions: written to the (device, profile_path) entry's tool_versions
     field, if given. Shared by every context length under that entry.
@@ -317,10 +312,8 @@ def update_perf_yaml(
             precision=str(precision),
             context_length=context_length,
             tps=tps,
-            ttft_ms=ttft_ms,
             prefill_tps=prefill_tps,
             profile_path=profile_path.value,
-            ttft_max_ms=ttft_max_ms,
             desired_compute_unit=desired_compute_unit,
             tool_versions=tool_versions.model_dump(mode="json", exclude_none=True)
             if tool_versions
@@ -335,10 +328,8 @@ def update_perf_yaml(
             precision,
             context_length,
             tps,
-            ttft_ms,
             prefill_tps,
             profile_path,
-            ttft_max_ms,
             desired_compute_unit,
             tool_versions,
         )
@@ -350,10 +341,8 @@ def _update_perf_yaml_locked(
     precision: Precision,
     context_length: int,
     tps: float,
-    ttft_ms: float,
     prefill_tps: float | None = None,
     profile_path: ScorecardProfilePath = ScorecardProfilePath.GENIE,
-    ttft_max_ms: float | None = None,
     desired_compute_unit: str = "npu",
     tool_versions: ToolVersions | None = None,
 ) -> None:
@@ -394,16 +383,9 @@ def _update_perf_yaml_locked(
     if tool_versions is not None:
         perf_details.tool_versions = tool_versions
 
-    if ttft_max_ms is None:
-        # Legacy genie scaling; remove when GENIE retires.
-        ttft_max_ms = ttft_ms * (context_length / 128)
     llm_metric = QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
         context_length=context_length,
         tokens_per_second=tps,
-        time_to_first_token_range_milliseconds=QAIHMModelPerf.PerformanceDetails.TimeToFirstTokenRangeMilliseconds(
-            min=ttft_ms,
-            max=ttft_max_ms,
-        ),
         prefill_tokens_per_second=prefill_tps,
         desired_compute_unit=desired_compute_unit,
     )

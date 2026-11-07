@@ -196,7 +196,7 @@ This option is ideal if you need to customize the model beyond the default confi
         - device: Device name
         - chipset: Chipset name
         - runtime: Target runtime
-        For LLMs: context_length, tokens_per_second, time_to_first_token
+        For LLMs: context_length, tokens_per_second
         For others: inference_time, peak_memory, compute_unit
     is_llm : bool
         Whether model is a large language model (affects table columns).
@@ -205,15 +205,15 @@ This option is ideal if you need to customize the model beyond the default confi
 ## Performance Summary
 {% if perf_rows %}
 {% if is_llm %}
-| Model | Runtime | Precision | Chipset | Context Length | Response Rate (tokens per second) | Time To First Token (range, seconds)
-|---|---|---|---|---|---|---
+| Model | Runtime | Precision | Chipset | Context Length | Response Rate (tokens per second)
+|---|---|---|---|---|---
 {% else %}
 | Model | Runtime | Precision | Chipset | Inference Time (ms) | Peak Memory Range (MB) | Primary Compute Unit
 |---|---|---|---|---|---|---
 {% endif %}
 {% for row in perf_rows %}
 {% if is_llm %}
-| {{ row.component }} | {{ row.runtime }} | {{ row.precision }} | {{ row.chipset }} | {{ row.context_length }} | {{ row.tokens_per_second }} | {{ row.time_to_first_token }}
+| {{ row.component }} | {{ row.runtime }} | {{ row.precision }} | {{ row.chipset }} | {{ row.context_length }} | {{ row.tokens_per_second }}
 {%- else %}
 | {{ row.component }} | {{ row.runtime }} | {{ row.precision }} | {{ row.chipset }} | {{ row.inference_time }} | {{ row.peak_memory }} | {{ row.compute_unit }}
 {%- endif %}{{ '\n' if not loop.last else '' }}

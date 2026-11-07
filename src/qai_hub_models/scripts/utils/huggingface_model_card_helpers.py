@@ -189,12 +189,9 @@ def get_performance_table_rows(
                     # mid-generation at this context length); not a
                     # measurement worth publishing.
                     continue
-                assert ctx.time_to_first_token_range_milliseconds
-                ttft = ctx.time_to_first_token_range_milliseconds
                 row = base_row.copy()
                 row["context_length"] = ctx.context_length
                 row["tokens_per_second"] = str(ctx.tokens_per_second)
-                row["time_to_first_token"] = f"{ttft.min / 1000} - {ttft.max / 1000}"
                 row["compute_unit"] = ctx.desired_compute_unit
                 rows.append(row)
         else:

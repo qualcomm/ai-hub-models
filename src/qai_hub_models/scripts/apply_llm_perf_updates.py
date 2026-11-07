@@ -130,9 +130,7 @@ def apply_updates(updates: list[dict]) -> int:
             precision=Precision.parse(u["precision"]),
             context_length=u["context_length"],
             tps=u["tps"],
-            ttft_ms=u["ttft_ms"],
             prefill_tps=u["prefill_tps"],
-            ttft_max_ms=u["ttft_max_ms"],
             profile_path=ScorecardProfilePath(u["profile_path"]),
             desired_compute_unit=u["desired_compute_unit"],
             tool_versions=ToolVersions(**u["tool_versions"])

@@ -53,18 +53,11 @@ class QAIHMModelPerf(BaseQAIHMConfig):
     """Schema for perf.yaml files."""
 
     class PerformanceDetails(BaseQAIHMConfig):
-        class TimeToFirstTokenRangeMilliseconds(BaseQAIHMConfig):
-            min: float
-            max: float
-
         class LLMMetricsPerContextLength(BaseQAIHMConfig):
             """LLM performance metrics for a specific context length."""
 
             context_length: int
             tokens_per_second: float
-            time_to_first_token_range_milliseconds: (
-                QAIHMModelPerf.PerformanceDetails.TimeToFirstTokenRangeMilliseconds
-            )
             prefill_tokens_per_second: float | None = None
 
             # Compute unit these metrics are intended to run on ("npu", "gpu",
@@ -151,12 +144,6 @@ class QAIHMModelPerf(BaseQAIHMConfig):
                     QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
                         context_length=m.context_length,
                         tokens_per_second=m.tokens_per_second,
-                        time_to_first_token_range_milliseconds=(
-                            QAIHMModelPerf.PerformanceDetails.TimeToFirstTokenRangeMilliseconds(
-                                min=m.time_to_first_token_range_milliseconds.min,
-                                max=m.time_to_first_token_range_milliseconds.max,
-                            )
-                        ),
                         prefill_tokens_per_second=(
                             m.prefill_tokens_per_second
                             if m.HasField("prefill_tokens_per_second")
@@ -514,24 +501,15 @@ class QAIHMModelPerf(BaseQAIHMConfig):
                     layer_counts=layer_counts,
                 )
 
-            llm_metrics = []
-            if details.llm_metrics:
-                for lm in details.llm_metrics:
-                    ttft = None
-                    if lm.time_to_first_token_range_milliseconds:
-                        ttft = range_pb2.DoubleRange(
-                            min=lm.time_to_first_token_range_milliseconds.min,
-                            max=lm.time_to_first_token_range_milliseconds.max,
-                        )
-                    llm_metrics.append(
-                        perf_pb2.ModelPerf.LLMPerfMetrics(
-                            context_length=lm.context_length,
-                            tokens_per_second=lm.tokens_per_second,
-                            time_to_first_token_range_milliseconds=ttft,
-                            prefill_tokens_per_second=lm.prefill_tokens_per_second,
-                            desired_compute_unit=lm.desired_compute_unit,
-                        )
-                    )
+            llm_metrics = [
+                perf_pb2.ModelPerf.LLMPerfMetrics(
+                    context_length=lm.context_length,
+                    tokens_per_second=lm.tokens_per_second,
+                    prefill_tokens_per_second=lm.prefill_tokens_per_second,
+                    desired_compute_unit=lm.desired_compute_unit,
+                )
+                for lm in details.llm_metrics or []
+            ]
 
             component_precision = (
                 self.precisions[precision].components[component].precision

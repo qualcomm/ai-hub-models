@@ -80,7 +80,8 @@ message ModelPerf {
 
     double tokens_per_second = 2;
 
-    optional DoubleRange time_to_first_token_range_milliseconds = 3;
+    reserved 3;
+    reserved "time_to_first_token_range_milliseconds";
 
     optional double prefill_tokens_per_second = 4;
 
