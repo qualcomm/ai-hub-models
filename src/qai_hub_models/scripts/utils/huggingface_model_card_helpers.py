@@ -18,6 +18,7 @@ from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
@@ -188,12 +189,9 @@ def get_performance_table_rows(
                     # mid-generation at this context length); not a
                     # measurement worth publishing.
                     continue
-                assert ctx.time_to_first_token_range_milliseconds
-                ttft = ctx.time_to_first_token_range_milliseconds
                 row = base_row.copy()
                 row["context_length"] = ctx.context_length
                 row["tokens_per_second"] = str(ctx.tokens_per_second)
-                row["time_to_first_token"] = f"{ttft.min / 1000} - {ttft.max / 1000}"
                 row["compute_unit"] = ctx.desired_compute_unit
                 rows.append(row)
         else:
@@ -313,9 +311,11 @@ def generate_hf_model_card(
         download_links = get_download_links_rows(manifest.id, qaihm_version)
 
     # Determine if we should show purchase statement
+    assert manifest.id is not None
+    internal_config = QAIHMModelInternalConfig.from_model(manifest.id)
     show_purchase_statement = (
-        manifest.llm_details is not None
-        and manifest.llm_details.call_to_action
+        internal_config.llm_details is not None
+        and internal_config.llm_details.call_to_action
         == LLM_CALL_TO_ACTION.CONTACT_FOR_PURCHASE
     )
 
@@ -326,7 +326,7 @@ def generate_hf_model_card(
             "hugging_face_metadata": string_stream.getvalue(),
             # Model info
             "use_case": str(manifest.use_case).lower().capitalize(),
-            "technical_details": manifest.technical_details,
+            "technical_details": internal_config.technical_details,
             "restrict_model_sharing": manifest.restrict_model_sharing,
             # Assets
             "static_image": ASSET_CONFIG.get_web_asset_url(

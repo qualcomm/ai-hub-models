@@ -170,7 +170,7 @@ For in-tree recipes (Qualcomm-catalog-bound), `onboard-internal` (`plugin/skills
 Onboarding sub-guides (loaded only when needed):
 - `.claude/docs/onboarding/datasets-and-evaluators.md` — writing new datasets and evaluators
 - `.claude/docs/onboarding/quantization.md` — adding quantized precision support
-- `.claude/docs/onboarding/source-as-root.md` — loading model code from GitHub repos
+- `.claude/docs/onboarding/external-repos.md` — loading model code from GitHub repos
 - `.claude/docs/on-device-debugging.md` — rank errors, memory failures, resolution search
 - `.claude/docs/collection-models.md` — splitting iterative/recurrent models
 

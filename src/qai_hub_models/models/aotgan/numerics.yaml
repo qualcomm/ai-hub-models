@@ -2,15 +2,20 @@ metrics:
 - dataset_link: https://github.com/IIGROUP/MM-CelebA-HQ-Dataset
   dataset_name: celeb_ahq
   dataset_split_description: validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 0.95
-        qnn_dlc:
-          partial_metric: 0.95
-        tflite:
-          partial_metric: 0.946
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 0.946
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 0.95
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 0.95
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of the perceived quality difference between two images.
   metric_enablement_threshold: 0.1
   metric_name: Structural Similarity

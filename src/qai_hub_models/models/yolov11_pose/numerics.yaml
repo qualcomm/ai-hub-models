@@ -2,20 +2,28 @@ metrics:
 - dataset_link: https://cocodataset.org/
   dataset_name: coco_keypoints
   dataset_split_description: val2017 split - images with at least one person keypoint annotation
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 49.4
-        qnn_dlc:
-          partial_metric: 49.4
-        tflite:
-          partial_metric: 49.4
-      w8a16:
-        onnx:
-          partial_metric: 49.2
-        qnn_dlc:
-          partial_metric: 48.7
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 49.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 49.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 49.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 48.7
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 49.2
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Mean Average Precision (across predicted classes).
   metric_enablement_threshold: 10.0
   metric_name: Mean Average Precision

@@ -290,7 +290,7 @@ class ScorecardJobYaml(ScorecardYamlFile[str], Generic[ScorecardJobTypeVar]):
         | MultiGraphComponentGroup[JobTypeVar],
         test_params: ScExportTestParams,
     ) -> None:
-        """From the output of a step in export.py, populate this cache."""
+        """From the output of an export pipeline step, populate this cache."""
         if export_output is None:
             raise ValueError("Export output is missing.")
 
@@ -363,7 +363,7 @@ class ScorecardJobYaml(ScorecardYamlFile[str], Generic[ScorecardJobTypeVar]):
         | MultiGraphComponentGroup[JobTypeVar]
         | None
     ):
-        """Load the output of a step in export.py that would have generated this cache."""
+        """Load the output of an export pipeline step that would have generated this cache."""
         all_jobs = self.get_all_jobs(
             test_params,
             wait_for_job,

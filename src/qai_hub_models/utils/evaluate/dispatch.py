@@ -25,13 +25,13 @@ def select_evaluate_pipeline(source_dir: Path) -> Callable[..., Any]:
     """
     model_cls = resolve_model_cls(source_dir)
     if issubclass(model_cls, CollectionModel):
-        from .collection_pipeline import evaluate_model
+        from .collection_pipeline import evaluate_model as evaluate_collection_model
 
-        pipeline_fn: Callable[..., Any] = evaluate_model
+        pipeline_fn: Callable[..., Any] = evaluate_collection_model
     else:
-        from .pipeline import evaluate_model
+        from .pipeline import evaluate_model as evaluate_single_model
 
-        pipeline_fn = evaluate_model
+        pipeline_fn = evaluate_single_model
 
     bound = partial(pipeline_fn, source_dir=source_dir)
     sig = inspect.signature(pipeline_fn)

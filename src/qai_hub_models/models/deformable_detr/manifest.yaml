@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- detection-datasets/coco
 description: Deformable DETR is a machine learning model that can detect objects (trained on COCO dataset).
 disabled_paths:
   float:
@@ -19,40 +13,20 @@ disabled_paths:
     qnn_dlc:
       scorecard_failure: 'Failing jobs: jp0o0129p'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Transformer based object detector with ResNet-50 backbone.
 id: deformable_detr
 license: https://github.com/facebookresearch/detr/blob/main/LICENSE
 license_type: apache-2.0
 name: DeformableDETR
-private_perf_form_factors:
-- Auto
-related_models:
-- detr_resnet101
-- detr_resnet101_dc5
-- detr_resnet50
-- detr_resnet50_dc5
 research_paper: https://arxiv.org/abs/2010.04159
 research_paper_title: 'Deformable DETR: Deformable Transformers for End-to-End Object Detection'
 source_repo: https://github.com/fundamentalvision/Deformable-DETR
-status: pending
-status_reason: No successful runtimes in scorecard (this field was auto-populated by the scorecard run)
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 480x480
-  Model checkpoint: deformable-detr
-  Model size: 160 MB
-  Number of parameters: 40M
 templates:
 - detr
 use_case: Object Detection

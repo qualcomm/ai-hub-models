@@ -13,10 +13,10 @@ import ruamel.yaml
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.artifacts import RUNTIME_STAGE_JOB_SUBMISSION
 from qai_hub_models.scorecard.envvars import SpecialModelSetting
-from qai_hub_models.scorecard.scorecard_config_yaml import (
-    QAIHMModelScorecardConfig,
+from qai_hub_models.scorecard.internal_config_yaml import (
+    QAIHMModelInternalConfig,
 )
-from qai_hub_models.scorecard.scorecard_config_yaml import (
+from qai_hub_models.scorecard.internal_config_yaml import (
     TestRunnerSplit as _TestRunnerSplit,
 )
 from qai_hub_models.scripts.split_torch_models import (
@@ -278,7 +278,7 @@ def test_llm_split_chunks_when_exceeds_cap(monkeypatch: pytest.MonkeyPatch) -> N
 
     monkeypatch.setattr(QAIHMModelManifest, "from_model", staticmethod(_from_model))
     monkeypatch.setattr(
-        QAIHMModelScorecardConfig, "from_model", staticmethod(_from_model)
+        QAIHMModelInternalConfig, "from_model", staticmethod(_from_model)
     )
     monkeypatch.setattr(
         "qai_hub_models.scripts.split_torch_models.validate_and_split_enabled_models",
@@ -337,7 +337,7 @@ def test_llm_chunking_preserves_aot_first_within_chunk(
 
     monkeypatch.setattr(QAIHMModelManifest, "from_model", staticmethod(_from_model))
     monkeypatch.setattr(
-        QAIHMModelScorecardConfig, "from_model", staticmethod(_from_model)
+        QAIHMModelInternalConfig, "from_model", staticmethod(_from_model)
     )
     monkeypatch.setattr(
         "qai_hub_models.scripts.split_torch_models.validate_and_split_enabled_models",
@@ -373,7 +373,7 @@ def test_small_custom_split_not_chunked() -> None:
     pi05_models = {
         m
         for m in PYTORCH_RECIPE_MODEL_IDS
-        if QAIHMModelScorecardConfig.from_model(m).test_split is _TestRunnerSplit.PI0_5
+        if QAIHMModelInternalConfig.from_model(m).test_split is _TestRunnerSplit.PI0_5
     }
     if not pi05_models:
         pytest.skip("No PI0_5 models available to exercise this case.")
@@ -395,7 +395,7 @@ def test_exclude_test_splits_empty_torch_emits_no_torch_split() -> None:
     llm_models = {
         m
         for m in PYTORCH_RECIPE_MODEL_IDS
-        if QAIHMModelScorecardConfig.from_model(m).test_split is _TestRunnerSplit.LLM
+        if QAIHMModelInternalConfig.from_model(m).test_split is _TestRunnerSplit.LLM
     }
     if not llm_models:
         pytest.skip("No LLM models available to exercise this edge case.")

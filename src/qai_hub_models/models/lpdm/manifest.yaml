@@ -1,54 +1,29 @@
-name: License-Plates-Detector-Model
-id: lpdm
-status: pending
-headline: YOLOv8-based detector for UAE licence plates — characters, digits, and emirate identifiers.
+description: 'A YOLOv8-nano object detection model fine-tuned on the UAE licence-plate dataset (Roboflow car-plate-k6xij v26). The model detects and classifies 51 object classes: digits 0-9, letters A-Z, UAE emirate region identifiers and a plate bounding-box class for the full plate region.'
 domain: Computer Vision
-description: "A YOLOv8-nano object detection model fine-tuned on the UAE licence-plate dataset (Roboflow car-plate-k6xij v26). The model detects and classifies 51 object classes: digits 0-9, letters A-Z, UAE emirate region identifiers and a plate bounding-box class for the full plate region."
-use_case: Object Detection
-tags:
-- real-time
-applicable_scenarios:
-- Autonomous Vehicles
-- Parking Management
-- Traffic Monitoring
-- Security & Surveillance
-related_models:
-- yolov8_det
-- yolov11_det
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
-has_animated_banner: false
-dataset:
-- car-plate-k6xij
-technical_details:
-  Model checkpoint: YOLOv8-N
-  Input resolution: 640x640
-  Number of classes: 51
-  License Plate Classes: Digits 0-9, Letters A-Z, UAE emirate identifiers, plate
-  Number of parameters: 3.04M
-  Model size (float): 11.7 MB
-  Model size (w8a16): 3.46 MB
-license_type: agpl-3.0
-research_paper: https://docs.ultralytics.com/tasks/detect/
-research_paper_title: 'Ultralytics YOLOv8 Docs: Object Detection'
-source_repo: https://github.com/3bdul1ah/License-Plates-Detector-Model
+has_on_target_demo: true
+headline: YOLOv8-based detector for UAE licence plates — characters, digits, and emirate identifiers.
+id: lpdm
 license: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
-restrict_model_sharing: true
+license_type: agpl-3.0
+name: License-Plates-Detector-Model
 numerics_benchmark:
   dataset_name: roboflow_car_plate
   metric_name: Plate String Accuracy
-  value: 26.0
-  unit: '%'
   source: AI Hub Models Reference Eval
+  unit: '%'
+  value: 26.0
+outputs_to_skip_validation:
+  '2': Boxes with low confidence disagree on class index between torch and on-device
+research_paper: https://docs.ultralytics.com/tasks/detect/
+research_paper_title: 'Ultralytics YOLOv8 Docs: Object Detection'
+restrict_model_sharing: true
+source_repo: https://github.com/3bdul1ah/License-Plates-Detector-Model
 supported_precisions:
 - float
 - w8a16
+tags:
+- real-time
 templates:
 - ultralytics
 - yolo
-has_on_target_demo: true
-outputs_to_skip_validation:
-  '2': Boxes with low confidence disagree on class index between torch and on-device
+use_case: Object Detection

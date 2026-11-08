@@ -1,0 +1,164 @@
+name: Quantize LLMs/VLMs and Upload Checkpoint to AWS
+
+# Self-contained: the GPU runner selection, the pod setup and the quantize
+# pipeline all live here rather than in gpu_pod_lifecycle.yml, whose 29-input
+# workflow_call signature is shared by five other callers.
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_id:
+        description: 'Model folder name, e.g. qwen3_0_6b.'
+        required: true
+        type: string
+
+      precision:
+        description: Quantization precision, e.g. w4a16. Must have a recipe under lm_quantization_details in the model's manifest.yaml.
+        required: false
+        default: w4a16
+        type: string
+
+      unquantized_checkpoint:
+        description: 'DEFAULT_UNQUANTIZED uses the public pretrained weights. Anything else must be a directory that already exists on the runner.'
+        required: false
+        default: DEFAULT_UNQUANTIZED
+        type: string
+
+      quantize_args:
+        description: 'Extra quantize.py args, e.g. --context-length. Usually empty.'
+        required: false
+        default: ''
+        type: string
+
+      evaluate:
+        description: Evaluate the checkpoint against the unquantized weights.
+        required: false
+        default: true
+        type: boolean
+
+      eval_metric:
+        description: 'Evaluation task passed to qai-hub-models evaluate --task, e.g. wikitext, mmlu, mmmlu_fr, mmmu. Anything except wikitext is capped at 1000 samples.'
+        required: false
+        default: wikitext
+        type: string
+
+env:
+  VENV_PATH: build/ci-envs/qaihm-build
+  QAIHM_CI: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check_gpu_node:
+    name: "Check GPU Node Availability"
+    runs-on: aihub-models-ubuntu-2404-ec2
+    outputs:
+      use_kube: ${{ steps.check.outputs.use_kube }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          venv-path: ${{ env.VENV_PATH }}
+
+      # Before the GPU pod is claimed: a typo in model_id used to surface only
+      # once `qai-hub-models install` rejected it, minutes into a GPU job.
+      - name: Validate quantize inputs
+        env:
+          QAIHM_QUANTIZE_MODEL_ID: ${{ inputs.model_id }}
+          QAIHM_QUANTIZE_PRECISION: ${{ inputs.precision }}
+        run: python3 scripts/build_and_test.py validate_quantize_inputs
+
+      - id: check
+        uses: ./.github/actions/check-gpu-node
+        with:
+          pat-token: ${{ secrets.KUBE_GH_TOKEN }}
+
+  quantize_and_upload:
+    name: "Quantize & Upload Encoding Assets"
+    needs: check_gpu_node
+    if: ${{ !cancelled() && needs.check_gpu_node.result == 'success' }}
+    runs-on: ${{ needs.check_gpu_node.outputs.use_kube == 'true' && fromJson('["mlops-ci-gpu-xlarge"]') || fromJson('{"group":"GPU"}') }}
+    container: ${{ needs.check_gpu_node.outputs.use_kube == 'false' && fromJson('{"image":"docker-registry.qualcomm.com/library/nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04","options":"--gpus all -v /local:/local"}') || null }}
+    timeout-minutes: 2880
+    permissions:
+      id-token: write # Required for OIDC auth to AWS
+      packages: read
+      contents: read
+    env:
+      HF_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+      CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      # Passed through the environment rather than interpolated into a run:
+      # block, so their contents are never parsed as shell.
+      QAIHM_QUANTIZE_MODEL_ID: ${{ inputs.model_id }}
+      QAIHM_QUANTIZE_PRECISION: ${{ inputs.precision }}
+      QAIHM_QUANTIZE_UNQUANTIZED_CHECKPOINT: ${{ inputs.unquantized_checkpoint }}
+      QAIHM_QUANTIZE_ARGS: ${{ inputs.quantize_args }}
+      QAIHM_QUANTIZE_EVAL_TASK: ${{ inputs.eval_metric }}
+      QAIHM_QUANTIZE_EVALUATE: ${{ inputs.evaluate }}
+      # Job-level so the ownership-restore step at the end can read them too.
+      DOCKER_USER_ID: 4552456
+      DOCKER_GROUP_ID: 200
+    steps:
+    - name: Setup user and environment (GPU node only)
+      if: ${{ needs.check_gpu_node.outputs.use_kube == 'false' }}
+      run: |
+        groupadd -g $DOCKER_GROUP_ID qaihm_bot_group || true
+        useradd -m -u $DOCKER_USER_ID -g $DOCKER_GROUP_ID -d /home/qaihm_bot -s /bin/bash qaihm_bot || true
+        echo "HOME=/local/mnt2/workspace2/qaihm_bot" >> $GITHUB_ENV
+        echo "TMPDIR=/local/mnt2/workspace2/qaihm_bot/tmp" >> $GITHUB_ENV
+        echo "CUDA_VISIBLE_DEVICES=7" >> $GITHUB_ENV
+        echo "QAIHM_QUANTIZE_CHECKPOINT_DIR=/local/mnt2/workspace2/qaihm_bot/upload-encoding-assets/calibrated-checkpoint" >> $GITHUB_ENV
+        mkdir -p /local/mnt2/workspace2/qaihm_bot/tmp /local/mnt2/workspace2/qaihm_bot/upload-encoding-assets
+        chown $DOCKER_USER_ID:$DOCKER_GROUP_ID /local/mnt2/workspace2/qaihm_bot/tmp /local/mnt2/workspace2/qaihm_bot/upload-encoding-assets
+
+    - name: Setup environment (mlops-ci-gpu-xlarge only)
+      if: ${{ needs.check_gpu_node.outputs.use_kube == 'true' }}
+      run: |
+        # /scratch is the 256 GB volume; the root overlay fills first.
+        mkdir -p /scratch/qaihm/tmp /scratch/qaihm/.cache/huggingface /scratch/qaihm/upload-encoding-assets
+        echo "HOME=/scratch/qaihm" >> $GITHUB_ENV
+        echo "TMPDIR=/scratch/qaihm/tmp" >> $GITHUB_ENV
+        echo "HF_HOME=/scratch/qaihm/.cache/huggingface" >> $GITHUB_ENV
+        echo "QAIHM_STORE_ROOT=/scratch/qaihm" >> $GITHUB_ENV
+        # The checkpoint holds tens of GB and the zip is written beside it.
+        echo "QAIHM_QUANTIZE_CHECKPOINT_DIR=/scratch/qaihm/upload-encoding-assets/calibrated-checkpoint" >> $GITHUB_ENV
+
+    - name: Install git
+      run: |
+        if ! command -v git &>/dev/null; then
+          SUDO=""
+          [ "$(id -u)" -eq 0 ] || SUDO="sudo"
+          $SUDO apt-get update -qq
+          $SUDO apt-get install -y -qq git
+        fi
+
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+
+    - name: Install system dependencies
+      env:
+        # GPU LLM path is pinned to 3.12, as in gpu_pod_lifecycle.yml.
+        QAIHM_POD_PYTHON_VERSION: '3.12'
+      run: bash src/qai_hub_models/scripts/kube/setup_pod.sh
+
+    - name: CI Setup
+      uses: ./.github/actions/ci-setup
+      with:
+        python-version: USE_EXISTING_INSTALL
+        venv-path: ${{ env.VENV_PATH }}
+        aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
+
+    - name: Quantize, Evaluate and Upload
+      run: python3 scripts/build_and_test.py --venv="${{ env.VENV_PATH }}" quantize_and_upload --only
+
+    - name: Restore workspace ownership (GPU node only)
+      # The container ran as root; hand the workspace back to the
+      # unprivileged runner user so the next host-side job can unlink files.
+      if: ${{ always() && needs.check_gpu_node.outputs.use_kube == 'false' }}
+      run: |
+        chown -R $DOCKER_USER_ID:$DOCKER_GROUP_ID "$GITHUB_WORKSPACE" || true

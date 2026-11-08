@@ -7,13 +7,23 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from qai_hub_models_cli.proto import numerics_pb2
 from qai_hub_models_cli.proto.shared import range_pb2, tool_versions_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    read_proto_yaml,
+    write_proto_yaml,
+)
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.proto_helpers import precision_to_proto, runtime_to_proto
+from qai_hub_models.configs.proto_helpers import (
+    precision_from_proto,
+    precision_to_proto,
+    runtime_from_proto,
+    runtime_to_proto,
+)
 from qai_hub_models.scorecard import ScorecardProfilePath
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
@@ -94,6 +104,80 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                 Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
             ],
         ] = Field(default_factory=dict)
+
+        @classmethod
+        def from_proto(
+            cls, proto: numerics_pb2.ModelNumerics.NumericsMetric
+        ) -> QAIHMModelNumerics.MetricDetails:
+            # Insert in (device, precision, path) name order, the order the old
+            # name-keyed YAML loaded in, so the release proto's order is unchanged.
+            results = sorted(
+                (
+                    (
+                        ScorecardDevice.parse(dm.device),
+                        precision_from_proto(dm.precision),
+                        ScorecardProfilePath.from_runtime(
+                            runtime_from_proto(dm.runtime)
+                        ),
+                        dm,
+                    )
+                    for dm in proto.device_metrics
+                ),
+                key=lambda r: (str(r[0]), str(r[1]), str(r[2])),
+            )
+            device_metric: dict[
+                ScorecardDevice,
+                dict[
+                    Precision,
+                    dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails],
+                ],
+            ] = {}
+            for device, precision, path, dm in results:
+                device_metric.setdefault(device, {}).setdefault(precision, {})[path] = (
+                    QAIHMModelNumerics.DeviceDetails(
+                        partial_metric=dm.partial_metric,
+                        compute_unit=(
+                            dm.compute_unit if dm.HasField("compute_unit") else None
+                        ),
+                    )
+                )
+
+            return cls(
+                dataset_name=proto.dataset_name,
+                dataset_link=proto.dataset_link,
+                dataset_split_description=proto.dataset_split_description,
+                metric_name=proto.metric_name,
+                metric_description=proto.metric_description,
+                metric_unit=proto.metric_unit,
+                metric_range=QAIHMModelNumerics.Range(
+                    min=(
+                        proto.metric_range.min
+                        if proto.metric_range.HasField("min")
+                        else None
+                    ),
+                    max=(
+                        proto.metric_range.max
+                        if proto.metric_range.HasField("max")
+                        else None
+                    ),
+                ),
+                higher_is_better=(
+                    proto.higher_is_better
+                    if proto.HasField("higher_is_better")
+                    else True
+                ),
+                metric_enablement_threshold=(
+                    proto.metric_enablement_threshold
+                    if proto.HasField("metric_enablement_threshold")
+                    else None
+                ),
+                benchmark_value=(
+                    proto.benchmark_value if proto.HasField("benchmark_value") else None
+                ),
+                num_partial_samples=proto.num_partial_samples,
+                partial_torch_metric=proto.partial_torch_metric,
+                device_metric=device_metric,
+            )
 
     metrics: list[MetricDetails] = Field(default_factory=list)
 
@@ -194,6 +278,52 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
             model_id=model_id,
             metrics=metrics,
         )
+
+    @classmethod
+    def from_proto(cls, proto: numerics_pb2.ModelNumerics) -> QAIHMModelNumerics:
+        """Build the in-memory representation from a ``ModelNumerics`` proto."""
+        return cls(metrics=[cls.MetricDetails.from_proto(m) for m in proto.metrics])
+
+    @classmethod
+    def from_yaml(
+        cls, path: str | os.PathLike, create_empty_if_no_file: bool = False
+    ) -> QAIHMModelNumerics:
+        """Read a numerics.yaml, which is the YAML form of a ``ModelNumerics`` proto."""
+        if create_empty_if_no_file and (
+            not os.path.exists(path) or os.path.getsize(path) == 0
+        ):
+            return cls()
+        return cls.from_proto(read_proto_yaml(path, numerics_pb2.ModelNumerics))
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """
+        Write this numerics to ``path`` as the YAML form of a ``ModelNumerics`` proto.
+
+        If there are no metrics, any existing file at ``path`` is deleted instead.
+
+        Parameters
+        ----------
+        path
+            Where to write the file.
+        **kwargs
+            Unused. Accepted so the signature matches ``BaseQAIHMConfig.to_yaml``.
+
+        Returns
+        -------
+        written : bool
+            True if the file was written.
+        """
+        path = Path(path)
+        if self.is_empty():
+            path.unlink(missing_ok=True)
+            return False
+        proto = self.to_proto("", "")
+        for metric in proto.metrics:
+            metric.device_metrics.sort(
+                key=lambda d: (d.device, d.precision, d.runtime, d.compute_unit)
+            )
+        write_proto_yaml(proto, path)
+        return True
 
     @classmethod
     def from_model(

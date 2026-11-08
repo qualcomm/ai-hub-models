@@ -27,7 +27,13 @@ from qai_hub_models.models.templates.llm.common import LLMIOType
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_CONTEXT_LENGTHS as GLOBAL_DEFAULT_EXPORT_CONTEXT_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.llm.native_kv_generator import (
     HubCompatibleNativeKVGenerator,
 )
@@ -141,7 +147,13 @@ class Llama3_2_3B_SSD_PreSplit(LlamaPreSplitBase):
         append_ssd_forecast_embeddings(self.model, self._ssd_forecast_ckpt())
 
 
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
 class Llama3_2_3B_SSD_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
     LLMDynamic_SSD_AIMETOnnx,
     LlamaQuantizablePreSplitBase[Llama3_2_3B_SSD_PreSplit],
 ):
@@ -170,7 +182,9 @@ class Llama3_2_3B_SSD_QuantizablePreSplit(  # type: ignore[misc]
         return _native_kv_output_spec(self.num_layers)
 
 
-class Llama3_2_3B_SSD_PartBase(LlamaPartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Llama3_2_3B_SSD_PartBase(QuantizeFullTypeW8A16PartMixin, LlamaPartBase):
     """Unified Part base for Llama 3.2 3B SSD."""
 
     num_splits = NUM_SPLITS
@@ -246,7 +260,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Llama3_2_3B_SSD_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Llama3_2_3B_SSD_Collection(LlamaPreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Llama3_2_3B_SSD_Collection(CollectionCompileO0Mixin, LlamaPreSplitCollectionBase):
     """Unified Collection with 4 Parts for Llama 3.2 3B SSD."""
 
     hf_repo_name = HF_REPO_NAME

@@ -3,15 +3,20 @@ metrics:
   dataset_link: https://semantic-kitti.org/
   dataset_name: semantic_kitti
   dataset_split_description: 'sequence #08 of 22'
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 55.5
-        qnn_dlc:
-          partial_metric: 55.5
-        tflite:
-          partial_metric: 55.5
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 55.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 55.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 55.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Overlap of predicted and expected segmentation divided by the union size.
   metric_enablement_threshold: 10.0
   metric_name: Mean Intersection Over Union

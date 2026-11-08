@@ -1,0 +1,30 @@
+applicable_scenarios:
+- Coding
+- Coding assist
+has_static_banner: true
+llm_details:
+  call_to_action: Contact Us
+model_maker_id: ibm-watsonx
+skip_export: true
+skip_hub_tests_and_scorecard: true
+skip_scorecard: true
+status: published
+technical_details:
+  Context length: '4096'
+  Information about the model parts: Prompt Processor and Token Generator are split into 5 parts each. Each corresponding Prompt Processor and Token Generator part share weights.
+  Input sequence length for Prompt Processor: '128'
+  Minimum QNN SDK version required: '2.3'
+  Num of key-value heads: '8'
+  Precision: w4a16 + w8a16 (few layers)
+  Prompt processor input (other parts): 128 tokens + KVCache initialized with pad token
+  Prompt processor input (part1): 128 tokens
+  Prompt processor output (other parts): 128 output tokens + KVCache for token generator
+  Prompt processor output (part1): Embeddings output
+  Response Rate: Rate of response generation after the first response token.
+  Supported natural languages: English
+  Supported programming languages: The Granite code foundation models support 116 programming languages including Python, Javascript, Java, C++, Go, and Rust.
+  Token generator input (other parts): 1 input token + past KVCache
+  Token generator input (part1): 1 token
+  Token generator output (other parts): 1 output token + KVCache for next iteration
+  Token generator output (part1): Embeddings output
+  Use: Initiate conversation with prompt-processor and then token generator for subsequent iterations.

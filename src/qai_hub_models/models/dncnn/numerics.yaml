@@ -2,22 +2,32 @@ metrics:
 - dataset_link: https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/
   dataset_name: bsd300_denoising
   dataset_split_description: test split (100 grayscale images with Gaussian noise sigma=25)
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 27.5
-        qnn_dlc:
-          partial_metric: 27.5
-        tflite:
-          partial_metric: 27.5
-      w8a8:
-        onnx:
-          partial_metric: 27.6
-        qnn_dlc:
-          partial_metric: 27.5
-        tflite:
-          partial_metric: 27.6
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 27.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 27.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 27.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 27.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 27.5
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 27.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of how similar the denoised image is to the clean original.
   metric_enablement_threshold: 10.0
   metric_name: Peak Signal-to-Noise Ratio (PSNR)

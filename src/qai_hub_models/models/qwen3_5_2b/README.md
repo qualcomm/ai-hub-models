@@ -20,9 +20,6 @@ qai-hub-models info Qwen3.5-2B
 # Print performance and accuracy metrics
 qai-hub-models perf Qwen3.5-2B
 qai-hub-models numerics Qwen3.5-2B
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch Qwen3.5-2B --runtime geniex_llamacpp --precision q4_0
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

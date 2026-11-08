@@ -34,9 +34,6 @@ def _llm_details() -> QAIHMModelPerf.PerformanceDetails:
             QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
                 context_length=4096,
                 tokens_per_second=9.74,
-                time_to_first_token_range_milliseconds=QAIHMModelPerf.PerformanceDetails.TimeToFirstTokenRangeMilliseconds(
-                    min=220.4, max=7053.5
-                ),
                 prefill_tokens_per_second=580.7,
                 desired_compute_unit="npu",
             )

@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Open-Vocabulary Detection
-- Zero-Shot Object Detection
-- Factory Automation
 description: OWL-V2 (Open-World Localization with Vision Transformers) is an open-vocabulary object detector that uses a CLIP-based ViT-B/16 backbone. Given an image and one or more free-form text queries, the model predicts bounding boxes and confidence scores for each query.
 disabled_paths:
   mixed:
@@ -10,11 +6,7 @@ disabled_paths:
     qnn_context_binary:
       scorecard_failure: 'Failing jobs: jp1nx2w7g'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
 has_on_target_demo: true
-has_static_banner: true
 headline: Open-Vocabulary Object Detection with Vision Transformers.
 id: owlv2
 is_collection_model: true
@@ -27,25 +19,15 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2306.09683
   unit: mAP
   value: 54.3
-related_models:
-- yolov8_det
-- yolov11_det
-- owl_vit
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2306.09683
 research_paper_title: Scaling Open-Vocabulary Object Detection
 source_repo: https://github.com/google-research/scenic/tree/main/scenic/projects/owl_vit
-status: published
 supported_precisions:
 - float
 - mixed
 tags:
 - foundation
-technical_details:
-  Input image resolution: 960x960
-  Model checkpoint: google/owlv2-base-patch16-ensemble
-  Model size (float): 620 MB
-  Number of parameters: 155M
 templates:
 - owl
 use_case: Object Detection

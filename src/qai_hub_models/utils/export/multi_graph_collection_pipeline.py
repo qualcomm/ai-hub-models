@@ -9,7 +9,7 @@ one context binary per component.
 
 Quantization for these models lives in a separate ``quantize.py`` script;
 precision flows in from the caller (typically resolved from the checkpoint by
-the model's ``export.py`` shim).
+``qai-hub-models export``).
 """
 
 from __future__ import annotations

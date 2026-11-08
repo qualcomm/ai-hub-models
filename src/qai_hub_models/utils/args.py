@@ -548,7 +548,7 @@ def get_on_device_demo_parser(
         default=None,
         help="If mode==on-device, uses this model Hub model ID."
         " Provide comma separated model-ids if multiple models are required for demo."
-        " Run export.py to get on-device demo command with models exported for you.",
+        " Run `qai-hub-models export` to get on-device demo command with models exported for you.",
     )
 
     _add_device_args(parser, default_device=default_device)

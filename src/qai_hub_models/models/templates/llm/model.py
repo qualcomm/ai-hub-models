@@ -18,7 +18,6 @@ except (ImportError, ModuleNotFoundError):
 # isort: on
 
 import atexit
-import contextlib
 import functools
 import gc
 import glob
@@ -88,6 +87,7 @@ from qai_hub_models import (
     SampleInputsType,
     TargetRuntime,
 )
+from qai_hub_models.datasets.device_eval import is_prompt_task
 from qai_hub_models.models.templates.llm.common import (
     TORCH_DYNAMIC_SHAPE_BELOW_VERSION,
     TORCH_DYNAMIC_SHAPE_MIN_VERSION,
@@ -97,7 +97,6 @@ from qai_hub_models.models.templates.llm.common import (
     is_kv_value_name,
     is_native_kv,
 )
-from qai_hub_models.models.templates.llm.grace_tasks import PROMPT_TASKS
 from qai_hub_models.models.templates.llm.llm_helpers import (
     create_genie_config,
     save_htp_config_for_genie_bundle,
@@ -107,7 +106,7 @@ from qai_hub_models.models.templates.llm.sha_dynamic_kvcache import (
     SHADynamicCacheNewValueOnly,
 )
 from qai_hub_models.models.templates.llm.split_onnx_utils.utils import split_onnx
-from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
+from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, CachedWebModelAsset
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.base_multi_graph_collection_model import (
     MultiGraphWorkbenchModelCollection,
@@ -116,6 +115,7 @@ from qai_hub_models.utils.base_multi_graph_model import (
     MultiGraphWorkbenchModel,
 )
 from qai_hub_models.utils.checkpoint import CheckpointType
+from qai_hub_models.utils.envvars import CheckpointEnvvar
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 from qai_hub_models.utils.onnx.helpers import (
     ONNXBundle,
@@ -123,6 +123,7 @@ from qai_hub_models.utils.onnx.helpers import (
     mock_torch_onnx_inference,
     safe_torch_onnx_export,
 )
+from qai_hub_models.utils.private_asset_loaders import CachedPrivateAsset
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 from qai_hub_models.utils.system_info import has_recommended_memory
 
@@ -531,7 +532,7 @@ def _get_evaluator(
         return KLDivEvaluator(context_length, device, tokenizer, verbose=True)
     if "mmmu" in task:
         return MMMUEvaluator(context_length, device, tokenizer)
-    if task in PROMPT_TASKS:
+    if is_prompt_task(task):
         if "output_dir" not in task_kwargs:
             raise ValueError(
                 f"Task '{task}' requires 'output_dir' to be passed via "
@@ -687,13 +688,9 @@ class DynamicPreSplitOnnxMixin:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.onnx_splits: dict[int, ONNXBundle] = {}
+        # TemporaryDirectory removes itself when collected. No __del__ here:
+        # torch.export's AttrProxy copies share this __dict__ and would run it mid-export.
         self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
-
-    def __del__(self) -> None:
-        """Ensure temp directory is cleaned up on deletion."""
-        if hasattr(self, "_temp_dir") and self._temp_dir is not None:
-            with contextlib.suppress(Exception):
-                self._temp_dir.cleanup()
 
     def convert_to_onnx_and_split(self, part_id: int = 1) -> ONNXBundle:
         """Convert to ONNX and split into parts. Results are cached.
@@ -893,8 +890,26 @@ class DynamicQuantizablePreSplitMixin(
     def fetch_default_checkpoint(cls, precision: Precision) -> str:
         """Download and extract the DEFAULT asset zip for *precision*.
 
+        QAIHM_TEST_CHECKPOINT redirects this to a zip in the private bucket, so a
+        quantization can be evaluated before it is published.
+
         Returns the local path to the extracted checkpoint directory.
         """
+        private_key = CheckpointEnvvar.get()
+        if private_key:
+            return str(
+                CachedPrivateAsset(
+                    private_key,
+                    # Distinct version segment: fetch() short-circuits on an
+                    # extracted dir, so sharing one would serve public weights.
+                    ASSET_CONFIG.get_local_store_model_path(
+                        cls.model_id,
+                        f"{cls.model_asset_version}-private",
+                        Path(private_key).name,
+                    ),
+                ).fetch(extract=True)
+            )
+
         precision_checkpoint = cls.default_checkpoint[precision]
         return str(
             CachedWebModelAsset.from_asset_store(
@@ -1405,6 +1420,30 @@ class LLMPartBase:
         }
 
 
+class QuantizeFullTypeW8A16PartMixin:
+    """
+    Opt-in: add ``--quantize_full_type w8a16`` to a Part's graph compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22269
+    """
+
+    def get_graph_hub_compile_options(
+        self,
+        graph_name: str,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+    ) -> str:
+        return super().get_graph_hub_compile_options(  # type: ignore[misc]
+            graph_name,
+            target_runtime,
+            precision,
+            other_compile_options + " --quantize_full_type w8a16",
+            device,
+        )
+
+
 class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchModel):
     """
     Unified Part base for dynamic-shape (dynamo) split LLMs.
@@ -1737,7 +1776,7 @@ class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchMode
             graph_name,
             target_runtime,
             precision,
-            other_compile_options + " --quantize_full_type w8a16 --quantize_io",
+            other_compile_options + " --quantize_io",
             device,
         )
 
@@ -1760,7 +1799,37 @@ class DynamicSplitPartBase(LLMPartBase, torch.nn.Module, MultiGraphWorkbenchMode
         )
 
 
-class DynamicSplitCollectionBase(MultiGraphWorkbenchModelCollection):
+class CollectionCompileO0Mixin:
+    """
+    Opt-in: add ``-O0`` to every component graph's compile options in a collection.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22094
+    """
+
+    def get_component_graph_hub_compile_options(
+        self,
+        component_name: str,
+        graph_name: str,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+    ) -> str:
+        return super().get_component_graph_hub_compile_options(  # type: ignore[misc]
+            component_name,
+            graph_name,
+            target_runtime,
+            precision,
+            other_compile_options + " -O0",
+            device,
+        )
+
+
+class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
+    """Collection base shared by every LLM / VLM."""
+
+
+class DynamicSplitCollectionBase(LLMCollectionBase):
     """
     Unified Collection base with N Parts for a dynamic-shape split LLM.
 
@@ -2477,6 +2546,54 @@ class LLMInstantiationType(Enum):
 
     PROMPT_PROCESSOR = "prompt"
     TOKEN_GENERATOR = "token"
+
+
+class CompileO0Mixin:
+    """
+    Opt-in: add ``-O0`` to ``LLM_AIMETOnnx`` compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22094
+    """
+
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        return super().get_hub_compile_options(  # type: ignore[misc]
+            target_runtime,
+            precision,
+            other_compile_options + " -O0",
+            device,
+            context_graph_name,
+        )
+
+
+class QuantizeFullTypeW8A16Mixin:
+    """
+    Opt-in: add ``--quantize_full_type w8a16`` to ``LLM_AIMETOnnx`` compile options.
+
+    To be removed gradually; see https://github.com/qcom-ai-hub/tetracode/issues/22269
+    """
+
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        return super().get_hub_compile_options(  # type: ignore[misc]
+            target_runtime,
+            precision,
+            other_compile_options + " --quantize_full_type w8a16",
+            device,
+            context_graph_name,
+        )
 
 
 LLM_AIMETOnnxT = TypeVar("LLM_AIMETOnnxT", bound="LLM_AIMETOnnx")
@@ -3226,7 +3343,7 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
         if precision not in {Precision.w4a16, Precision.w4}:
             raise RuntimeError("Only w4a16 and w4 precisions are supported")
 
-        other_compile_options += " --quantize_full_type w8a16 --quantize_io"
+        other_compile_options += " --quantize_io"
         return super().get_hub_compile_options(
             target_runtime, precision, other_compile_options, device, context_graph_name
         )
@@ -3413,8 +3530,17 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
         def make_io_metadata(
             specs: dict[str, Any], encodings: dict[str, Any]
         ) -> dict[str, TensorSpec]:
-            uses_lists = Version(encodings["version"]) >= Version("1.0.0")
-            if uses_lists:
+            if "encodings" in encodings:
+                # 2.0.0: y_scale / y_zero_point, with the zero point already negated.
+                all_encodings = {
+                    v["name"]: {
+                        "scale": np.atleast_1d(v["y_scale"]).tolist(),
+                        "offset": (-np.atleast_1d(v.get("y_zero_point", 0))).tolist(),
+                    }
+                    for v in encodings["encodings"]
+                    if "y_scale" in v
+                }
+            elif Version(encodings["version"]) >= Version("1.0.0"):
                 all_encodings = {
                     v["name"]: v for v in encodings["activation_encodings"]
                 }

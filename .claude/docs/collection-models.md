@@ -17,7 +17,7 @@ Common cases:
 
 A `CollectionModel` ties together multiple `BaseModel` subclasses. Each component is independently traceable, compilable, and profilable. Look at existing collection models in the repo (e.g., `whisper_tiny`, `stable_diffusion_v1_5`) for the registration pattern using `@CollectionModel.add_component`.
 
-Set `is_collection_model: true` in `manifest.yaml`. This changes how codegen generates `export.py` — each component gets its own compile/profile job.
+Set `is_collection_model: true` in `manifest.yaml`. This changes how export runs — each component gets its own compile/profile job.
 
 The app layer orchestrates the components — typically the encoder runs once, then the decoder runs in a loop. The iteration count is controlled by application code, not baked into the traced graph.
 

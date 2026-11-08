@@ -24,7 +24,13 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.lm_driver.generator import (
     HubCompatibleGenerator,
 )
@@ -84,8 +90,14 @@ class Llama3_2_3B_PreSplit(LlamaPreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Llama3_2_3B_QuantizablePreSplit(
-    LlamaQuantizablePreSplitBase[Llama3_2_3B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Llama3_2_3B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    LlamaQuantizablePreSplitBase[Llama3_2_3B_PreSplit],
 ):
     """Quantizable PreSplit for Llama 3.2 3B."""
 
@@ -103,7 +115,9 @@ class Llama3_2_3B_QuantizablePreSplit(
     default_precision = DEFAULT_PRECISION
 
 
-class Llama3_2_3B_PartBase(LlamaPartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Llama3_2_3B_PartBase(QuantizeFullTypeW8A16PartMixin, LlamaPartBase):
     """Unified Part base for Llama 3.2 3B."""
 
     num_splits = NUM_SPLITS
@@ -156,7 +170,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Llama3_2_3B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Llama3_2_3B_Collection(LlamaPreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Llama3_2_3B_Collection(CollectionCompileO0Mixin, LlamaPreSplitCollectionBase):
     """Unified Collection with 3 Parts for Llama 3.2 3B."""
 
     hf_repo_name = HF_REPO_NAME

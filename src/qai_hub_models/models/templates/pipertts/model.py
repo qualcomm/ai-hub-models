@@ -441,6 +441,10 @@ class PiperTTS(WorkbenchModelCollection):
         )
 
     @classmethod
+    def get_metadata_name_suffix(cls) -> str:
+        return ""
+
+    @classmethod
     def from_pretrained(cls) -> Self:
         model_g = get_model(cls.get_voice_id())
         return cls(
@@ -457,5 +461,9 @@ class PiperTTS(WorkbenchModelCollection):
         cls, output_dir: str | os.PathLike, metadata: ModelMetadata
     ) -> None:
         write_pipertts_supplementary_files(
-            cls.get_language(), output_dir, metadata, SAMPLE_RATE
+            cls.get_language(),
+            output_dir,
+            metadata,
+            SAMPLE_RATE,
+            cls.get_metadata_name_suffix(),
         )

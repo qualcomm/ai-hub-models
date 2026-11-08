@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [Detectron2-Panoptic-Segmentation: Panoptic segmentation combining instance and semantic predictions on COCO](https://aihub.qualcomm.com/models/detectron2_panoptic_seg)
 
 Detectron2-Panoptic-Segmentation is a machine learning model that performs panoptic segmentation (trained on COCO dataset), combining instance and semantic segmentation.
@@ -25,7 +22,7 @@ qai-hub-models perf Detectron2-Panoptic-Segmentation
 qai-hub-models numerics Detectron2-Panoptic-Segmentation
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch Detectron2-Panoptic-Segmentation --runtime qnn_dlc --precision float
+qai-hub-models fetch Detectron2-Panoptic-Segmentation --runtime tflite --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

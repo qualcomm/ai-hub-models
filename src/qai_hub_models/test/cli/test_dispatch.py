@@ -69,14 +69,17 @@ def test_dispatch_export_prompts_for_unpublished_model() -> None:
             "qai_hub_models.cli.dispatch.build_export_parser_for",
             return_value=fake_parser,
         ),
-        patch("qai_hub_models.cli.dispatch.resolve_manifest") as mock_manifest,
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_publish_status",
+            return_value=MODEL_STATUS.UNPUBLISHED,
+        ),
+        patch("qai_hub_models.cli.dispatch.resolve_manifest"),
         patch(
             "qai_hub_models.cli.dispatch.check_unpublished_model_warning",
             return_value=False,
         ) as mock_check,
         patch("qai_hub_models.cli.dispatch.select_pipeline") as mock_select,
     ):
-        mock_manifest.return_value.status = MODEL_STATUS.UNPUBLISHED
         fake_parser.parse_args = Mock(return_value=fake_parsed)
 
         run_model_script("sam", "export", [])
@@ -99,14 +102,17 @@ def test_dispatch_export_prompts_for_pending_model() -> None:
             "qai_hub_models.cli.dispatch.build_export_parser_for",
             return_value=fake_parser,
         ),
-        patch("qai_hub_models.cli.dispatch.resolve_manifest") as mock_manifest,
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_publish_status",
+            return_value=MODEL_STATUS.PENDING,
+        ),
+        patch("qai_hub_models.cli.dispatch.resolve_manifest"),
         patch(
             "qai_hub_models.cli.dispatch.check_unpublished_model_warning",
             return_value=False,
         ) as mock_check,
         patch("qai_hub_models.cli.dispatch.select_pipeline") as mock_select,
     ):
-        mock_manifest.return_value.status = MODEL_STATUS.PENDING
         fake_parser.parse_args = Mock(return_value=fake_parsed)
 
         run_model_script("mobile_facenet", "export", [])
@@ -115,8 +121,8 @@ def test_dispatch_export_prompts_for_pending_model() -> None:
         mock_select.assert_not_called()
 
 
-def test_dispatch_export_does_not_prompt_for_unset_status() -> None:
-    """``status: unset`` means external, where the catalog warning does not apply."""
+def test_dispatch_export_does_not_prompt_for_external_recipe() -> None:
+    """External recipes have no status, and the catalog warning does not apply."""
     fake_parser = argparse.ArgumentParser()
     fake_parsed = argparse.Namespace()
 
@@ -129,14 +135,17 @@ def test_dispatch_export_does_not_prompt_for_unset_status() -> None:
             "qai_hub_models.cli.dispatch.build_export_parser_for",
             return_value=fake_parser,
         ),
-        patch("qai_hub_models.cli.dispatch.resolve_manifest") as mock_manifest,
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_publish_status",
+            return_value=None,
+        ),
+        patch("qai_hub_models.cli.dispatch.resolve_manifest"),
         patch(
             "qai_hub_models.cli.dispatch.check_unpublished_model_warning",
             return_value=False,
         ) as mock_check,
         patch("qai_hub_models.cli.dispatch.select_pipeline") as mock_select,
     ):
-        mock_manifest.return_value.status = MODEL_STATUS.UNSET
         fake_parser.parse_args = Mock(return_value=fake_parsed)
 
         run_model_script("external_recipe", "export", [])
@@ -159,13 +168,16 @@ def test_dispatch_export_skips_prompt_for_published_model() -> None:
             "qai_hub_models.cli.dispatch.build_export_parser_for",
             return_value=fake_parser,
         ),
-        patch("qai_hub_models.cli.dispatch.resolve_manifest") as mock_manifest,
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_publish_status",
+            return_value=MODEL_STATUS.PUBLISHED,
+        ),
+        patch("qai_hub_models.cli.dispatch.resolve_manifest"),
         patch(
             "qai_hub_models.cli.dispatch.check_unpublished_model_warning",
         ) as mock_check,
         patch("qai_hub_models.cli.dispatch.select_pipeline") as mock_select,
     ):
-        mock_manifest.return_value.status = MODEL_STATUS.PUBLISHED
         fake_parser.parse_args = Mock(return_value=fake_parsed)
 
         run_model_script("resnet50", "export", [])
@@ -207,6 +219,8 @@ def test_dispatch_evaluate_prompts_for_unpublished_model() -> None:
     """Evaluate for `status: unpublished` recipe prompts and exits early on decline."""
     fake_parser = argparse.ArgumentParser()
     fake_parsed = argparse.Namespace()
+    fake_manifest = Mock()
+    fake_manifest.model_type_llm = False
 
     with (
         patch(
@@ -217,15 +231,20 @@ def test_dispatch_evaluate_prompts_for_unpublished_model() -> None:
             "qai_hub_models.cli.dispatch.build_evaluate_parser_for",
             return_value=fake_parser,
         ),
-        patch("qai_hub_models.cli.dispatch.resolve_manifest") as mock_manifest,
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_publish_status",
+            return_value=MODEL_STATUS.UNPUBLISHED,
+        ),
+        patch(
+            "qai_hub_models.cli.dispatch.resolve_manifest",
+            return_value=fake_manifest,
+        ),
         patch(
             "qai_hub_models.cli.dispatch.check_unpublished_model_warning",
             return_value=False,
         ) as mock_check,
         patch("qai_hub_models.cli.dispatch.select_evaluate_pipeline") as mock_select,
     ):
-        mock_manifest.return_value.status = MODEL_STATUS.UNPUBLISHED
-        mock_manifest.return_value.model_type_llm = False
         fake_parser.parse_args = Mock(return_value=fake_parsed)
 
         run_model_script("sam", "evaluate", [])
@@ -308,7 +327,6 @@ class TestDisabledPathHandling:
         )
         manifest.default_device = None
         manifest.separate_quantize_script = False
-        manifest.status = MODEL_STATUS.UNSET
         return manifest
 
     def _build(self, manifest: Mock) -> Mock:

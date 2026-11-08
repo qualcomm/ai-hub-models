@@ -62,7 +62,7 @@ def demo(
 
     model = demo_model_from_cli_args(model_cls, model_id, args)
     # OnDeviceModel is underspecified to meet the type requirements of the following
-    app = MobileVITApp(model)  # type: ignore[arg-type]
+    app = MobileVITApp(model)
     print("Model Loaded")
 
     image = load_image(args.image)

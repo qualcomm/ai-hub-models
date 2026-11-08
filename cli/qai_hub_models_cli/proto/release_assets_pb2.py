@@ -21,7 +21,7 @@ from qai_hub_models_cli.proto.shared import runtime_pb2 as shared_dot_runtime__p
 from qai_hub_models_cli.proto.shared import tool_versions_pb2 as shared_dot_tool__versions__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14release_assets.proto\x12\x05qaihm\x1a\x16shared/precision.proto\x1a\x14shared/runtime.proto\x1a\x1ashared/tool_versions.proto\"\xaf\x02\n\x12ModelReleaseAssets\x12\x14\n\x0c\x61ihm_version\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x02 \x01(\t\x12\x36\n\x06\x61ssets\x18\x03 \x03(\x0b\x32&.qaihm.ModelReleaseAssets.AssetDetails\x1a\xb8\x01\n\x0c\x41ssetDetails\x12#\n\tprecision\x18\x01 \x01(\x0e\x32\x10.qaihm.Precision\x12\x1f\n\x07runtime\x18\x02 \x01(\x0e\x32\x0e.qaihm.Runtime\x12\x14\n\x07\x63hipset\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x0c\x64ownload_url\x18\x04 \x01(\t\x12*\n\rtool_versions\x18\x05 \x01(\x0b\x32\x13.qaihm.ToolVersionsB\n\n\x08_chipsetb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14release_assets.proto\x12\x05qaihm\x1a\x16shared/precision.proto\x1a\x14shared/runtime.proto\x1a\x1ashared/tool_versions.proto\"\xcf\x02\n\x12ModelReleaseAssets\x12\x14\n\x0c\x61ihm_version\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x02 \x01(\t\x12\x36\n\x06\x61ssets\x18\x03 \x03(\x0b\x32&.qaihm.ModelReleaseAssets.AssetDetails\x1a\xd8\x01\n\x0c\x41ssetDetails\x12#\n\tprecision\x18\x01 \x01(\x0e\x32\x10.qaihm.Precision\x12\x1f\n\x07runtime\x18\x02 \x01(\x0e\x32\x0e.qaihm.Runtime\x12\x14\n\x07\x63hipset\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x14\n\x0c\x64ownload_url\x18\x04 \x01(\t\x12*\n\rtool_versions\x18\x05 \x01(\x0b\x32\x13.qaihm.ToolVersions\x12\x13\n\x06s3_key\x18\x06 \x01(\tH\x01\x88\x01\x01\x42\n\n\x08_chipsetB\t\n\x07_s3_keyb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -29,7 +29,7 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'release_assets_pb2', _globa
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _globals['_MODELRELEASEASSETS']._serialized_start=106
-  _globals['_MODELRELEASEASSETS']._serialized_end=409
+  _globals['_MODELRELEASEASSETS']._serialized_end=441
   _globals['_MODELRELEASEASSETS_ASSETDETAILS']._serialized_start=225
-  _globals['_MODELRELEASEASSETS_ASSETDETAILS']._serialized_end=409
+  _globals['_MODELRELEASEASSETS_ASSETDETAILS']._serialized_end=441
 # @@protoc_insertion_point(module_scope)

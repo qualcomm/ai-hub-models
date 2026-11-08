@@ -1,20 +1,8 @@
-applicable_scenarios:
-- Automotive
-- Autonomous Driving
-- Camera
-dataset:
-- cityscapes
 description: FFNet-78S is a "fuss-free network" that segments street scene images with per-pixel classes like road, sidewalk, and pedestrian. Trained on the Cityscapes dataset.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Semantic segmentation for automotive street scenes.
 id: ffnet_78s
-imsdk_supported: true
 license: https://github.com/Qualcomm-AI-research/FFNet/blob/master/LICENSE
 license_type: bsd-3-clause
 name: FFNet-78S
@@ -24,24 +12,12 @@ numerics_benchmark:
   source: https://github.com/Qualcomm-AI-research/FFNet
   unit: mIOU
   value: 81.3
-related_models:
-- ffnet_40s
-- ffnet_54s
-- unet_segmentation
 research_paper: https://arxiv.org/abs/2206.08236
 research_paper_title: Simple and Efficient Architectures for Semantic Segmentation
 source_repo: https://github.com/Qualcomm-AI-research/FFNet
-status: published
 supported_precisions:
 - float
 - w8a8
-technical_details:
-  Input resolution: 2048x1024
-  Model checkpoint: ffnet78S_dBBB_cityscapes_state_dict_quarts
-  Model size (float): 105 MB
-  Model size (w8a8): 26.7 MB
-  Number of output classes: '19'
-  Number of parameters: 27.5M
 templates:
 - cityscapes_segmentation
 use_case: Semantic Segmentation

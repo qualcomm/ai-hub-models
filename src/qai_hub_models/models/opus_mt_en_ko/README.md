@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [OpusMT-En-Ko: OpusMT English to Korean neural machine translation model based on MarianMT transformer architecture](https://aihub.qualcomm.com/models/opus_mt_en_ko)
 
 OpusMT English to Korean translation model is a state-of-the-art neural machine translation system designed for translating English text into Korean. This model is based on the Marian transformer architecture and has been optimized for edge inference by splitting into encoder and decoder components with modified attention mechanisms. It exhibits robust performance for real-world translation tasks, making it highly reliable for practical applications. The model supports input sequences up to 256 tokens and can generate Korean translations with high accuracy.

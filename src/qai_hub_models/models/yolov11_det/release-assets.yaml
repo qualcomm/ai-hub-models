@@ -1,40 +1,39 @@
-precisions:
-  float:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-float.zip
-        tool_versions:
-          onnx_runtime: 1.27.1
-          qairt: 2.50.0.260828221209
-      qnn_dlc:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-qnn_dlc-float.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-      tflite:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-tflite-float.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-  w8a16:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-w8a16.zip
-        tool_versions:
-          onnx_runtime: 1.27.1
-          qairt: 2.50.0.260828221209
-      qnn_dlc:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-qnn_dlc-w8a16.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-  w8a8:
-    universal_assets:
-      tflite:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-tflite-w8a8.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-  w8a8_mixed_int16:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-w8a8_mixed_int16.zip
-        tool_versions:
-          onnx_runtime: 1.27.1
-          qairt: 2.50.0.260828221209
+assets:
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-tflite-float.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-qnn_dlc-float.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-float.zip
+  tool_versions:
+    onnx_runtime: 1.27.1
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_TFLITE
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-tflite-w8a8.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-qnn_dlc-w8a16.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-w8a16.zip
+  tool_versions:
+    onnx_runtime: 1.27.1
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A8_MIXED_INT16
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/36222820549/yolov11_det-onnx-w8a8_mixed_int16.zip
+  tool_versions:
+    onnx_runtime: 1.27.1
+    qairt: 2.50.0.260828221209

@@ -7,7 +7,7 @@ Shared LLM performance collection test.
 
 Replaces the per-model test_llm_perf tests so the whole LLM fleet runs in
 one venv with one pytest invocation. The per-model copies were import-heavy
-(each pulled the model's source-repo pins through model.py / export.py),
+(each pulled the model's source-repo pins through model.py),
 which is why CollectLLMPerfTask used to spin up a fresh venv per model.
 This file only needs qaihm + qai_hub + qualcomm_device_cloud_sdk +
 transformers (tokenizer) — no AIMET, no source-repo deps.

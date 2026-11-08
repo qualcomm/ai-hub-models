@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- kitti
 datasets:
 - kitti
 description: 3D Deep Box is a machine learning model that predicts 3D bounding boxes and classes of objects in an image.
@@ -14,41 +8,20 @@ external_repos:
     commit_sha: 40ba3b60fd550ff33d5c1b307212dad80149e525
     patches_filename: boundingbox_3d_patches.diff
     repo_url: https://github.com/skhadem/3D-BoundingBox.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
-has_static_banner: true
 headline: Real-time 3D object detection.
 id: deepbox
-imsdk_supported: true
 is_collection_model: true
 license: https://github.com/skhadem/3D-BoundingBox/blob/master/LICENSE
 license_type: apache-2.0
 models:
 - yolov3
 name: 3D-Deep-BOX
-related_models:
-- yolov3
 research_paper: https://arxiv.org/abs/1612.00496
 research_paper_title: 3D Bounding Box Estimation Using Deep Learning and Geometry
 source_repo: https://github.com/skhadem/3D-BoundingBox/
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
-technical_details:
-  2D detector: COCO-pretrained YOLOv3 (paper uses KITTI-trained MS-CNN)
-  Accuracy (2D AP E/M/H): ~73/59/45 (COCO YOLOv3) vs 92.98/89.04/77.17 (paper MS-CNN). Gap is due to the 2D detector only; VGG 3D head weights are identical to the paper.
-  Input resolution(VGG): 224x224
-  Input resolution(YOLO): 416x416
-  Model checkpoint: YOLOv3
-  Model size (vgg_3d_detection) (float): 176 MB
-  Model size (yolo_2d_detection) (float): 236 MB
-  Number of parameters (vgg_3d_detection): 46.1M
-  Number of parameters (yolo_2d_detection): 61.9M
 use_case: Object Detection

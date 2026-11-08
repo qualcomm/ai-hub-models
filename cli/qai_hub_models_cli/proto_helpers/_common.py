@@ -7,8 +7,9 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 
+from google.protobuf import json_format
 from google.protobuf.message import Message
 from packaging.version import Version
 
@@ -44,6 +45,63 @@ def write_proto(path: Path, msg: Message) -> None:
     """Serialize a protobuf message to disk."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(msg.SerializeToString())
+
+
+def _sorted_keys(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _sorted_keys(value[k]) for k in sorted(value)}
+    if isinstance(value, list):
+        return [_sorted_keys(v) for v in value]
+    return value
+
+
+def proto_to_dict(msg: Message) -> dict[str, Any]:
+    """Convert a protobuf message to a plain dict using proto field names, with sorted keys."""
+    data = json_format.MessageToDict(msg, preserving_proto_field_name=True)
+    return _sorted_keys(data)
+
+
+def proto_from_dict(data: dict[str, Any] | None, proto_type: type[_M]) -> _M:
+    """Build a protobuf message from a dict produced by ``proto_to_dict``."""
+    msg = proto_type()
+    json_format.ParseDict(data or {}, msg)
+    return msg
+
+
+def read_proto_json(path: str | os.PathLike, proto_type: type[_M]) -> _M:
+    """Read a JSON file written by ``write_proto_json`` into a protobuf message."""
+    with open(path) as f:
+        content = f.read()
+    return json_format.Parse(content, proto_type())
+
+
+def write_proto_json(msg: Message, path: str | os.PathLike) -> None:
+    """Write a protobuf message to a JSON file (proto field names, sorted keys)."""
+    json = json_format.MessageToJson(msg, preserving_proto_field_name=True)
+    with open(path, "w") as f:
+        f.write(json)
+
+
+# ruamel.yaml is not a dependency of the CLI package; so we import it only when these functions are called.
+def read_proto_yaml(path: str | os.PathLike, proto_type: type[_M]) -> _M:
+    """Read a YAML file written by ``write_proto_yaml`` into a protobuf message."""
+    import ruamel.yaml
+
+    with open(path) as f:
+        data = ruamel.yaml.YAML(typ="safe", pure=True).load(f)
+    return proto_from_dict(data, proto_type)
+
+
+def write_proto_yaml(msg: Message, path: str | os.PathLike) -> None:
+    """Write a protobuf message to a YAML file (proto field names, sorted keys)."""
+    import ruamel.yaml
+
+    yaml = ruamel.yaml.YAML()
+    # Don't wrap long values (e.g. S3 keys); wrapping leaves trailing whitespace.
+    yaml.width = 4096
+    proto_dict = proto_to_dict(msg)
+    with open(path, "w") as f:
+        yaml.dump(proto_dict, f)
 
 
 def fetch_proto(url: str, cache_path: Path, proto_type: type[_M]) -> _M:

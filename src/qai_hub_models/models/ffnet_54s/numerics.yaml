@@ -3,22 +3,32 @@ metrics:
   dataset_link: https://www.cityscapes-dataset.com/
   dataset_name: cityscapes
   dataset_split_description: validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 78.1
-        qnn_dlc:
-          partial_metric: 78.1
-        tflite:
-          partial_metric: 78.1
-      w8a8:
-        onnx:
-          partial_metric: 77.9
-        qnn_dlc:
-          partial_metric: 77.9
-        tflite:
-          partial_metric: 78.0
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 78.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 78.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 78.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 78.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 77.9
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 77.9
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Overlap of predicted and expected segmentation divided by the union size.
   metric_enablement_threshold: 10.0
   metric_name: Mean Intersection Over Union

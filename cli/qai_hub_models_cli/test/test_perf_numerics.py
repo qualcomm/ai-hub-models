@@ -16,7 +16,7 @@ from qai_hub_models_cli.proto.platform_pb2 import (
     PlatformInfo,
 )
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
-from qai_hub_models_cli.proto.shared.range_pb2 import DoubleRange, IntRange
+from qai_hub_models_cli.proto.shared.range_pb2 import IntRange
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto.shared.tool_versions_pb2 import ToolVersions
 from qai_hub_models_cli.proto_helpers.numerics import (
@@ -101,16 +101,10 @@ def _llm_perf() -> ModelPerf:
                     ModelPerf.LLMPerfMetrics(
                         context_length=4096,
                         tokens_per_second=20.5,
-                        time_to_first_token_range_milliseconds=DoubleRange(
-                            min=100, max=150
-                        ),
                     ),
                     ModelPerf.LLMPerfMetrics(
                         context_length=4096,
                         tokens_per_second=8.0,
-                        time_to_first_token_range_milliseconds=DoubleRange(
-                            min=200, max=300
-                        ),
                         desired_compute_unit="cpu",
                     ),
                 ],

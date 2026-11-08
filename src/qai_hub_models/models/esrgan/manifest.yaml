@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Virtual Real Estate Tours
-- Gaming
-- ARVR
 description: ESRGAN is a machine learning model that upscales an image with minimal loss in quality.
 disabled_paths:
   w8a16:
@@ -14,15 +10,9 @@ external_repos:
   esrgan:
     commit_sha: 73e9b634cf987f5996ac2dd33f4050922398a921
     repo_url: https://github.com/xinntao/ESRGAN.git
-form_factors:
-- Phone
-- Tablet
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Upscale images and remove image noise.
 id: esrgan
-imsdk_supported: true
 license: https://github.com/xinntao/ESRGAN/blob/master/LICENSE
 license_type: apache-2.0
 name: ESRGAN
@@ -32,21 +22,12 @@ numerics_benchmark:
   source: ESRGAN source repo
   unit: dB
   value: 27.85
-related_models:
-- real_esrgan_general_x4v3
-- real_esrgan_x4plus
 research_paper: https://arxiv.org/abs/1809.00219
 research_paper_title: 'ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks'
 source_repo: https://github.com/xinntao/ESRGAN/
-status: published
 supported_precisions:
 - float
 - w8a16
-technical_details:
-  Input resolution: 128x128
-  Model checkpoint: ESRGAN_x4
-  Model size (float): 63.9 MB
-  Number of parameters: 16.7M
 templates:
 - super_resolution
 use_case: Super Resolution

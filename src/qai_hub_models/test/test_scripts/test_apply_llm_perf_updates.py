@@ -34,9 +34,7 @@ def _metric(device_name: str, path: ScorecardProfilePath) -> dict:
         "precision": "w4a16",
         "context_length": 4096,
         "tps": 12.5,
-        "ttft_ms": 100.0,
         "prefill_tps": 900.0,
-        "ttft_max_ms": 3200.0,
         "profile_path": path.value,
         "desired_compute_unit": "npu",
     }

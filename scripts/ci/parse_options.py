@@ -14,6 +14,9 @@ vars.
 scorecard.yml is at GitHub's 10-input limit for workflow_dispatch, so new
 scorecard knobs are added here rather than as new workflow inputs. Adding one is
 a single ``_OPTIONS`` entry.
+
+``checkpoint`` additionally requires ``--models`` (or MODELS) to name exactly one
+model, since one checkpoint cannot be correct for a whole scorecard split.
 """
 
 from __future__ import annotations
@@ -49,12 +52,80 @@ def _genie_scope(key: str, val: str) -> str:
     return val
 
 
+def _checkpoint(key: str, val: str) -> str:
+    if not val:
+        return val
+    if "://" in val:
+        raise ValueError(
+            f"{key} must be a bare key in the private bucket, not a URL; strip the "
+            f"s3://<bucket>/ prefix. Got {val!r}"
+        )
+    if val.startswith("/") or "\\" in val or ".." in val.split("/"):
+        raise ValueError(f"{key} must be a relative key without '..'; got {val!r}")
+    if not val.endswith(".zip"):
+        raise ValueError(
+            f"{key} must name a .zip produced by quantize_and_upload; got {val!r}"
+        )
+    return val
+
+
 # option name -> (envvar emitted by --emit-env, value when the option is unset, normalizer)
 _OPTIONS: dict[str, tuple[str, str, Callable[[str, str], str]]] = {
     "qairt_version": ("QAIHM_TEST_QAIRT_VERSION", "qaihm_default", _qairt_version),
     "geniex_version": ("QAIHM_TEST_GENIEX_VERSION", "", _geniex_version),
     "genie_scope": ("QAIHM_TEST_GENIE_SCOPE", "", _genie_scope),
+    "checkpoint": ("QAIHM_TEST_CHECKPOINT", "", _checkpoint),
+    # Device-eval dataset for LLM accuracy; empty means grace2.
+    "eval_dataset": ("QAIHM_TEST_EVAL_DATASET", "", lambda key, val: val),
 }
+
+# Values of SpecialModelSetting (scorecard/envvars.py). Duplicated rather than
+# imported: scripts/ci is stdlib-only so it can run without the qaihm venv.
+_SPECIAL_MODEL_SETTINGS = frozenset(
+    {
+        "all",
+        "pytorch",
+        "pytorch_no_llm",
+        "static",
+        "bench",
+        "llm_week1",
+        "llm_week2",
+        "llm_downloadable",
+    }
+)
+
+
+def validate_single_model(checkpoint: str, models: str | None) -> None:
+    """Reject a checkpoint override that is not scoped to exactly one model.
+
+    One checkpoint can only be correct for one model. Aimed at a multi-model run
+    every other model would silently load these weights and report plausible but
+    wrong numbers, so this fails instead.
+
+    Parameters
+    ----------
+    checkpoint
+        The resolved checkpoint option; "" when unset.
+    models
+        The scorecard `models` input, as passed to QAIHM_TEST_MODELS. None when
+        the caller has no models input to check against -- scorecard.yml's LLM
+        run reads its model list from environment.env after this step, so it
+        passes nothing and the scoping is enforced by the job that does have it.
+
+    Raises
+    ------
+    ValueError
+        If checkpoint is set and models is given but is not one model id.
+    """
+    if not checkpoint or models is None:
+        return
+    models = models.strip()
+    named = [m.strip() for m in models.split(",") if m.strip()]
+    if len(named) != 1 or named[0].lower() in _SPECIAL_MODEL_SETTINGS:
+        raise ValueError(
+            f"checkpoint={checkpoint} applies to one model, so models must name "
+            f"exactly one model id; got {models!r}. Pass models=<model_id>."
+        )
 
 
 def parse(raw: str) -> dict[str, str]:
@@ -98,6 +169,13 @@ def _write_kv_file(path: str, pairs: list[tuple[str, str]]) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raw", default=os.environ.get("RAW", ""))
+    ap.add_argument(
+        "--models",
+        # None, not "": a caller with no models input to offer must not be read
+        # as a caller whose models input is empty.
+        default=os.environ.get("MODELS"),
+        help="The scorecard `models` input, checked against the checkpoint option.",
+    )
     ap.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT"))
     ap.add_argument("--github-env", default=os.environ.get("GITHUB_ENV"))
     ap.add_argument(
@@ -109,6 +187,7 @@ def main() -> int:
 
     try:
         options = parse(args.raw)
+        validate_single_model(options["checkpoint"], args.models)
         print("Parsed: " + " ".join(f"{k}={v!r}" for k, v in options.items()))
         if args.github_output:
             _write_kv_file(args.github_output, list(options.items()))

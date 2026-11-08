@@ -2,25 +2,36 @@ metrics:
 - dataset_link: https://docs.ultralytics.com/datasets/obb/dota128/
   dataset_name: dota128
   dataset_split_description: training subset (128 samples)
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 74.1
-        qnn_dlc:
-          partial_metric: 74.2
-        tflite:
-          partial_metric: 74.2
-      w8a16:
-        onnx:
-          partial_metric: 74.4
-        qnn_dlc:
-          partial_metric: 74.4
-      w8a8:
-        onnx:
-          partial_metric: 64.9
-        qnn_dlc:
-          partial_metric: 65.6
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 74.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 74.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 74.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 65.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 64.9
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 74.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 74.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Mean Average Precision averaged over IOU thresholds 0.5 to 0.95 in 0.05 increments.
   metric_enablement_threshold: 10.0
   metric_name: Mean Average Precision

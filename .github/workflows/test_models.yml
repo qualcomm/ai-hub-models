@@ -20,7 +20,7 @@ on:
         type: string
 
       options:
-        description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7"). geniex_version is unused here; see scripts/ci/parse_options.py.'
+        description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7,checkpoint=<private-bucket key>"; checkpoint needs models to name one model). geniex_version is unused here; see scripts/ci/parse_options.py.'
         type: string
         default: ''
 
@@ -55,9 +55,10 @@ on:
         default: ''
 
       python_version:
-        description: Python version to install and test with; also used for artifact naming
+        description: Python version to install and test with. Defaults to .github/python-version
         type: string
-        default: '3.10'
+        required: false
+        default: ''
 
       disable_override_workbench_job_timeout:
         description: Disable shorter workbench job timeout used for QAIHM PRs.
@@ -65,11 +66,11 @@ on:
         type: boolean
 
       runs_on:
-        description: JSON array of runner tags (e.g. '["tetra-ubuntu-2204", "self-hosted"]')
+        description: JSON array of runner tags (e.g. '["aihub-models-ubuntu-2404-ec2"]')
         type: string
 
       is_gpu_node:
-        description: Whether the job is targeting a -gpulv self-hosted GPU node (vs. a kube ephemeral pod or tetra CPU runner).
+        description: Whether the job is targeting a -gpulv self-hosted GPU node (vs. a kube ephemeral pod or CPU runner).
         type: boolean
         default: false
 
@@ -87,7 +88,6 @@ on:
 env:
   # Versions MUST be quoted, otherwise they will be interpreted as a floats
   # (and version like 3.10 can be interpreted as 3.1).
-  PYTHON_VERSION: ${{ inputs.python_version }}
   PYTHONUNBUFFERED: 1
   QAIHM_CI: 1
   VENV_PATH: build/ci-envs/qaihm-build
@@ -99,7 +99,7 @@ defaults:
 
 jobs:
   exec_scorecard:
-    runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["tetra-ubuntu-2204", "self-hosted"]') }}
+    runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["aihub-models-ubuntu-2404-ec2"]') }}
     # On -gpulv nodes, containerize to match run_gpu_tests so writes don't
     # leave host-side files the next job can't unlink.
     container: ${{ inputs.is_gpu_node && fromJson('{"image":"docker-registry.qualcomm.com/library/nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04","options":"--gpus all -v /local:/local"}') || null }}
@@ -126,7 +126,7 @@ jobs:
 
     steps:
       - name: Setup container environment (Kube/GPU node only)
-        if: ${{ !contains(runner.name, 'tetra') }}
+        if: ${{ !contains(runner.name, 'aihub-models') }}
         run: |
           # GPU node container: create qaihm_bot user, pin to GPU 7, and
           # persist HOME/TMPDIR on /local to match run_gpu_tests on the
@@ -145,7 +145,7 @@ jobs:
           fi
 
       - name: Install git (Kube/container only)
-        if: ${{ !contains(runner.name, 'tetra') }}
+        if: ${{ !contains(runner.name, 'aihub-models') }}
         run: |
           if ! command -v git &>/dev/null; then
             if [ "$(id -u)" -eq 0 ]; then
@@ -161,12 +161,17 @@ jobs:
 
       - uses: actions/checkout@v7
 
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
+
       - name: Mark workspace as a safe git directory
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install system dependencies (Kube/container only)
-        if: ${{ !contains(runner.name, 'tetra') }}
+        if: ${{ !contains(runner.name, 'aihub-models') }}
         env:
           QAIHM_POD_PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
         run: bash src/qai_hub_models/scripts/kube/setup_pod.sh
@@ -180,14 +185,15 @@ jobs:
       - name: Parse options
         env:
           RAW: ${{ inputs.options }}
+          # Lets the checkpoint option reject a run covering more than one model.
+          MODELS: ${{ inputs.models }}
         run: python3 scripts/ci/parse_options.py --emit-env
 
       - name: CI Setup
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ contains(inputs.runs_on, 'self-hosted') && secrets.TETRASERVICE_PASSWORD || '' }}
-          python-version: ${{ contains(runner.name, 'tetra') && env.PYTHON_VERSION || 'USE_EXISTING_INSTALL' }}
+          python-version: ${{ contains(runner.name, 'aihub-models') && env.PYTHON_VERSION || 'USE_EXISTING_INSTALL' }}
           venv-path: ${{ env.VENV_PATH }}
           aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }},prod
@@ -212,6 +218,7 @@ jobs:
           echo "QAIHM_TEST_PATHS=${{ env.QAIHM_TEST_PATHS }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_PRECISIONS=${{ env.QAIHM_TEST_PRECISIONS }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_QAIRT_VERSION=${{ env.QAIHM_TEST_QAIRT_VERSION }}" >> $ENVIRONMENT_FILE
+          echo "QAIHM_TEST_CHECKPOINT=${{ env.QAIHM_TEST_CHECKPOINT }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_IGNORE_KNOWN_FAILURES=${{ env.QAIHM_TEST_IGNORE_KNOWN_FAILURES }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_IGNORE_DEVICE_JOB_CACHE=${{ inputs.ignore_job_cache }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_SCOPE=${{ inputs.test_scope }}" >> $ENVIRONMENT_FILE
@@ -365,7 +372,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ (inputs.test_scope == 'unit' || inputs.test_scope == 'unit_and_compile') && format('test-results-models-py{0}{1}', inputs.python_version, inputs.split_name != '' && format('-{0}', inputs.split_name) || '') || format('test-results-scorecard-models{0}', inputs.split_name != '' && format('-{0}', inputs.split_name) || '') }}
+          name: ${{ (inputs.test_scope == 'unit' || inputs.test_scope == 'unit_and_compile') && format('test-results-models-py{0}{1}', env.PYTHON_VERSION, inputs.split_name != '' && format('-{0}', inputs.split_name) || '') || format('test-results-scorecard-models{0}', inputs.split_name != '' && format('-{0}', inputs.split_name) || '') }}
           path: build/combined-test-results
           if-no-files-found: ignore
 
@@ -384,7 +391,7 @@ jobs:
         if: ${{ always() && steps.dump_env.outcome == 'success' && inputs.test_scope != 'unit' }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.test_scope == 'unit_and_compile' && format('Test Cached Artifact (Flaky-Job-IDs, {0}, py{1}{2})', github.run_id, inputs.python_version, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') || format('Scorecard Cached Artifact (Flaky-Job-IDs, {0}{1})', github.run_id, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') }}
+          name: ${{ inputs.test_scope == 'unit_and_compile' && format('Test Cached Artifact (Flaky-Job-IDs, {0}, py{1}{2})', github.run_id, env.PYTHON_VERSION, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') || format('Scorecard Cached Artifact (Flaky-Job-IDs, {0}{1})', github.run_id, inputs.split_name != '' && format(', {0}', inputs.split_name) || '') }}
           path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
 
       - name: Restore workspace ownership (GPU node only)

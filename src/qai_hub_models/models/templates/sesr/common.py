@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import torch
 
-from qai_hub_models.utils.aimet.repo import aimet_zoo_as_root
+from qai_hub_models.models.templates.sesr.external_repos.aimet_zoo.aimet_zoo_torch.common.super_resolution.models import (
+    SESRRelease,
+)
 
 # SESR original repo is here: https://github.com/ARM-software/sesr
 # But this is all written in TF and Keras. Torch version is in AIMET Zoo
@@ -16,13 +18,8 @@ from qai_hub_models.utils.aimet.repo import aimet_zoo_as_root
 def _load_sesr_source_model(
     scaling_factor: int, num_channels: int, num_lblocks: int
 ) -> torch.nn.Module:
-    # Load SESR model from the source repository using the given weights.
-    # Returns <source repository>.utils.super_resolution.models.SESRRelease
-    with aimet_zoo_as_root():
-        from aimet_zoo_torch.common.super_resolution.models import SESRRelease
-
-        return SESRRelease(
-            scaling_factor=scaling_factor,
-            num_channels=num_channels,
-            num_lblocks=num_lblocks,
-        )
+    return SESRRelease(
+        scaling_factor=scaling_factor,
+        num_channels=num_channels,
+        num_lblocks=num_lblocks,
+    )

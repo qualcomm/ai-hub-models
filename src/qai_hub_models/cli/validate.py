@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from packaging.requirements import InvalidRequirement, Requirement
@@ -44,16 +44,25 @@ from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.device import CANARY_DEVICES
 from qai_hub_models.utils.export.context import (
     import_recipe_module,
+    is_in_tree_recipe,
     resolve_manifest,
     resolve_model_app_cls,
     resolve_model_cls,
+    resolve_publish_status,
     resolve_recipe_dir,
 )
 from qai_hub_models.utils.input_spec import InputSpec, make_torch_inputs
 from qai_hub_models.utils.metrics import VALID_METRIC_PAIRS
-from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT, QAIHM_PACKAGE_ROOT
+from qai_hub_models.utils.path_helpers import (
+    MODEL_IDS,
+    QAIHM_MODELS_ROOT,
+    QAIHM_PACKAGE_ROOT,
+)
 from qai_hub_models.utils.url_check import head_check_urls
 from qai_hub_models.utils.validation import perform_runtime_model_validation
+
+if TYPE_CHECKING:
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 
 
 class Status(Enum):
@@ -113,11 +122,7 @@ OPTIONAL_INIT_EXPORTS = ("App",)
 
 
 def _is_in_tree(source_dir: Path) -> bool:
-    try:
-        source_dir.resolve().relative_to(QAIHM_MODELS_ROOT.resolve())
-    except ValueError:
-        return False
-    return True
+    return is_in_tree_recipe(source_dir)
 
 
 # =========================================================================
@@ -377,7 +382,7 @@ def _check_manifest(source_dir: Path, report: Report) -> QAIHMModelManifest | No
         report.add(Result("manifest.yaml validates", "Manifest", Status.FAIL, str(exc)))
 
     _check_id_matches_folder(source_dir, raw_manifest, report)
-    _check_status_not_unset(source_dir, raw_manifest, report)
+    _check_publish_status(source_dir, report)
     _check_external_repo_shas(raw_manifest, report)
     return raw_manifest
 
@@ -403,32 +408,29 @@ def _check_id_matches_folder(
         report.add(Result("id matches folder name", "Manifest", Status.PASS))
 
 
-def _check_status_not_unset(
-    source_dir: Path, manifest: QAIHMModelManifest, report: Report
-) -> None:
+def _check_publish_status(source_dir: Path, report: Report) -> None:
     if not _is_in_tree(source_dir):
         return
-    if manifest.status is MODEL_STATUS.UNSET:
+    try:
+        status = resolve_publish_status(source_dir)
+    except Exception as exc:
         report.add(
             Result(
                 "status set (in-tree recipe)",
                 "Manifest",
                 Status.FAIL,
                 (
-                    "in-tree recipes must set `status:` to one of published, "
+                    f"{exc.__class__.__name__}: {exc}. In-tree recipes must set "
+                    "`status:` in internal-config.yaml to one of published, "
                     "pending, or unpublished."
                 ),
             )
         )
-    else:
-        report.add(
-            Result(
-                "status set (in-tree recipe)",
-                "Manifest",
-                Status.PASS,
-                manifest.status.value,
-            )
-        )
+        return
+    assert status is not None
+    report.add(
+        Result("status set (in-tree recipe)", "Manifest", Status.PASS, status.value)
+    )
 
 
 def _check_external_repo_shas(manifest: QAIHMModelManifest, report: Report) -> None:
@@ -494,13 +496,38 @@ def _iter_requirements(text: str) -> list[tuple[int, str]]:
     return out
 
 
-def _check_requirements_txt(source_dir: Path, report: Report) -> None:
+def _recipe_opts_out_of_global_requirements(
+    manifest: QAIHMModelManifest | None,
+) -> bool:
+    """Whether the recipe opts out of global_requirements.txt version pins.
+
+    Set via ``global_requirements_incompatible: true`` in the model's
+    ``internal-config.yaml``. Standalone recipes (no in-tree model folder)
+    cannot set it.
+    """
+    if manifest is None or manifest.id is None or manifest.id not in MODEL_IDS:
+        # External recipes do not need to match the global requirement list.
+        return True
+
+    from qai_hub_models.scorecard.internal_config_yaml import (
+        QAIHMModelInternalConfig,
+    )
+
+    return QAIHMModelInternalConfig.from_model(
+        manifest.id
+    ).global_requirements_incompatible
+
+
+def _check_requirements_txt(
+    source_dir: Path,
+    report: Report,
+    skip_global_conflicts: bool = False,
+) -> None:
     req_path = source_dir / "requirements.txt"
     if not req_path.exists():
         return
-    base, constraint_label = _constraint_pins(source_dir)
     unpinned: list[str] = []
-    conflicts: list[str] = []
+    pinned_reqs: list[Requirement] = []
     parse_errors: list[str] = []
     for lineno, spec in _iter_requirements(req_path.read_text()):
         try:
@@ -511,15 +538,7 @@ def _check_requirements_txt(source_dir: Path, report: Report) -> None:
         if not str(req.specifier):
             unpinned.append(f"line {lineno}: `{req.name}` has no version specifier")
             continue
-        base_spec = base.get(req.name.lower())
-        if base_spec is None:
-            continue
-        merged = SpecifierSet(f"{base_spec},{req.specifier}")
-        if not _specifier_is_satisfiable(merged):
-            conflicts.append(
-                f"{req.name}: recipe wants {req.specifier}, "
-                f"{constraint_label} wants {base_spec}"
-            )
+        pinned_reqs.append(req)
 
     if parse_errors:
         report.add(
@@ -547,19 +566,14 @@ def _check_requirements_txt(source_dir: Path, report: Report) -> None:
             Result("requirements.txt entries pinned", "Requirements", Status.PASS)
         )
 
-    if conflicts:
-        report.add(
-            Result(
-                "requirements.txt vs. base package",
-                "Requirements",
-                Status.FAIL,
-                "; ".join(conflicts),
-            )
-        )
-    else:
-        report.add(
-            Result("requirements.txt vs. base package", "Requirements", Status.PASS)
-        )
+    _report_pin_conflicts(
+        report,
+        source_dir,
+        "requirements.txt",
+        "recipe",
+        pinned_reqs,
+        skip_global_conflicts,
+    )
 
 
 def _specifier_is_satisfiable(spec: SpecifierSet) -> bool:
@@ -581,8 +595,8 @@ def _specifier_is_satisfiable(spec: SpecifierSet) -> bool:
     return True
 
 
-def _extract_pip_command_pkgs(cmd: str) -> list[str]:
-    """Return package names installed by a ``pip install ...`` command.
+def _extract_pip_command_reqs(cmd: str) -> list[Requirement]:
+    """Return ``Requirement`` objects installed by a ``pip install ...`` command.
 
     Skips ``-e`` / ``-r`` / ``--find-links`` / VCS URLs — those can't be
     matched against base pins by name alone.
@@ -590,7 +604,7 @@ def _extract_pip_command_pkgs(cmd: str) -> list[str]:
     tokens = cmd.split()
     if len(tokens) < 3 or tokens[0] != "pip" or tokens[1] != "install":
         return []
-    names: list[str] = []
+    reqs: list[Requirement] = []
     i = 2
     while i < len(tokens):
         tok = tokens[i]
@@ -605,69 +619,94 @@ def _extract_pip_command_pkgs(cmd: str) -> list[str]:
         except InvalidRequirement:
             i += 1
             continue
-        names.append(req.name)
+        reqs.append(req)
         i += 1
-    return names
+    return reqs
 
 
-def _constraint_pins(source_dir: Path) -> tuple[dict[str, SpecifierSet], str]:
-    """Pins a recipe must not contradict, and the label naming where they came from.
+def _extract_pip_command_pkgs(cmd: str) -> list[str]:
+    """Return package names installed by a ``pip install ...`` command.
 
-    In-tree recipes answer to global_requirements.txt, whose contract is that one
-    environment serves every model in the package. Standalone recipes ship their own
-    environment, so only the base package's install requirements bind them.
+    Skips ``-e`` / ``-r`` / ``--find-links`` / VCS URLs — those can't be
+    matched against base pins by name alone.
     """
+    return [req.name for req in _extract_pip_command_reqs(cmd)]
+
+
+def _constraint_sources(
+    source_dir: Path,
+) -> list[tuple[str, dict[str, SpecifierSet], bool]]:
+    """Pin sets a recipe must not contradict, as ``(label, pins, opt_out_skippable)``.
+
+    The base package's install requirements bind every recipe. In-tree recipes
+    additionally answer to global_requirements.txt, whose contract is that one
+    environment serves every model in the package; only that check can be skipped.
+    """
+    sources = [("base package", _load_requirement_pins(_BASE_REQUIREMENTS_PATH), False)]
     if _is_in_tree(source_dir):
-        return (
-            _load_requirement_pins(_GLOBAL_REQUIREMENTS_PATH),
-            "global_requirements.txt",
+        sources.append(
+            (
+                "global_requirements.txt",
+                _load_requirement_pins(_GLOBAL_REQUIREMENTS_PATH),
+                True,
+            )
         )
-    return _load_requirement_pins(_BASE_REQUIREMENTS_PATH), "base package"
+    return sources
+
+
+def _report_pin_conflicts(
+    report: Report,
+    source_dir: Path,
+    subject: str,
+    wanter: str,
+    reqs: list[Requirement],
+    skip_global_conflicts: bool,
+) -> None:
+    """Add one ``<subject> vs. <label>`` row per constraint source."""
+    for label, pins, skippable in _constraint_sources(source_dir):
+        conflicts = [
+            f"{req.name}: {wanter} wants {req.specifier}, {label} wants {pins[key]}"
+            for req in reqs
+            if (key := req.name.lower()) in pins
+            and req.specifier
+            and not _specifier_is_satisfiable(pins[key] & req.specifier)
+        ]
+        name = f"{subject} vs. {label}"
+        if conflicts and skippable and skip_global_conflicts:
+            report.add(
+                Result(
+                    name,
+                    "Requirements",
+                    Status.SKIP,
+                    "recipe opts out via global_requirements_incompatible: true",
+                )
+            )
+        elif conflicts:
+            report.add(Result(name, "Requirements", Status.FAIL, "; ".join(conflicts)))
+        else:
+            report.add(Result(name, "Requirements", Status.PASS))
 
 
 def _check_pip_commands(
-    source_dir: Path, manifest: QAIHMModelManifest, report: Report
+    source_dir: Path,
+    manifest: QAIHMModelManifest,
+    report: Report,
+    skip_global_conflicts: bool = False,
 ) -> None:
     commands = list(manifest.pre_pip_install_commands) + list(
         manifest.post_pip_install_commands
     )
     if not commands:
         return
-    base, constraint_label = _constraint_pins(source_dir)
-    conflicts: list[str] = []
-    for cmd in commands:
-        for name in _extract_pip_command_pkgs(cmd.command):
-            base_spec = base.get(name.lower())
-            if base_spec is None:
-                continue
-            # Command-line pin extraction is heuristic — flag as WARN not FAIL.
-            try:
-                token = next(t for t in cmd.command.split() if t.startswith(name))
-                req = Requirement(token)
-                if req.specifier and not _specifier_is_satisfiable(
-                    SpecifierSet(f"{base_spec},{req.specifier}")
-                ):
-                    conflicts.append(
-                        f"{name}: manifest command wants {req.specifier}, "
-                        f"{constraint_label} wants {base_spec}"
-                    )
-            except (InvalidRequirement, StopIteration):
-                continue
-    if conflicts:
-        report.add(
-            Result(
-                "manifest pip commands vs. base package",
-                "Requirements",
-                Status.FAIL,
-                "; ".join(conflicts),
-            )
-        )
-    else:
-        report.add(
-            Result(
-                "manifest pip commands vs. base package", "Requirements", Status.PASS
-            )
-        )
+    reqs = [r for cmd in commands for r in _extract_pip_command_reqs(cmd.command)]
+    _report_pin_conflicts(
+        report,
+        source_dir,
+        "manifest pip commands",
+        "manifest command",
+        reqs,
+        skip_global_conflicts,
+    )
 
 
 # =========================================================================
@@ -1393,10 +1432,11 @@ def _check_headline_period(manifest: QAIHMModelManifest, report: Report) -> None
     _add(report, "headline ends with period", Status.PASS)
 
 
-def _check_related_not_self(manifest: QAIHMModelManifest, report: Report) -> None:
+def _check_related_not_self(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
     if manifest.id is None:
         return
-    for r_model in manifest.related_models:
+    for r_model in info.internal.related_models:
         if r_model == manifest.id:
             _add(
                 report,
@@ -1423,8 +1463,9 @@ def _check_arxiv_abs(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "arxiv link is /abs/", Status.PASS)
 
 
-def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is MODEL_STATUS.UNPUBLISHED and not manifest.status_reason:
+def _check_status_reason(info: WebsiteModelInfo, report: Report) -> None:
+    internal = info.internal
+    if internal.status is MODEL_STATUS.UNPUBLISHED and not internal.status_reason:
         _add(
             report,
             "status_reason coupled with status",
@@ -1432,7 +1473,7 @@ def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
             "unpublished models must set status_reason with an issue link.",
         )
         return
-    if manifest.status is MODEL_STATUS.PUBLISHED and manifest.status_reason:
+    if internal.status is MODEL_STATUS.PUBLISHED and internal.status_reason:
         _add(
             report,
             "status_reason coupled with status",
@@ -1443,10 +1484,10 @@ def _check_status_reason(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "status_reason coupled with status", Status.PASS)
 
 
-def _check_can_publish(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is not MODEL_STATUS.PUBLISHED:
+def _check_can_publish(info: WebsiteModelInfo, report: Report) -> None:
+    if info.internal.status is not MODEL_STATUS.PUBLISHED:
         return
-    can_publish, reason = manifest.can_promote_to_published()
+    can_publish, reason = info.can_promote_to_published()
     if not can_publish:
         _add(
             report,
@@ -1458,8 +1499,9 @@ def _check_can_publish(manifest: QAIHMModelManifest, report: Report) -> None:
     _add(report, "can be promoted to published", Status.PASS)
 
 
-def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.status is not MODEL_STATUS.PUBLISHED or manifest.id is None:
+def _check_published_artifacts(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
+    if info.internal.status is not MODEL_STATUS.PUBLISHED or manifest.id is None:
         return
     pkg_path = manifest.get_package_path()
     problems: list[str] = []
@@ -1469,7 +1511,7 @@ def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> 
         problems.append("perf.yaml missing (published models need one)")
     if not manifest.supports_at_least_1_runtime:
         problems.append("no runtime supported")
-    if not manifest.has_static_banner:
+    if not info.internal.has_static_banner:
         problems.append("has_static_banner is false")
     if problems:
         _add(
@@ -1482,13 +1524,11 @@ def _check_published_artifacts(manifest: QAIHMModelManifest, report: Report) -> 
     _add(report, "published artifacts present", Status.PASS)
 
 
-def _check_numerics_benchmark(manifest: QAIHMModelManifest, report: Report) -> None:
-    if manifest.numerics_benchmark is None:
+def _check_numerics_benchmark(info: WebsiteModelInfo, report: Report) -> None:
+    benchmark = info.manifest.numerics_benchmark
+    if benchmark is None:
         return
-    pair = (
-        manifest.numerics_benchmark.metric_name,
-        manifest.numerics_benchmark.unit,
-    )
+    pair = (benchmark.metric_name, benchmark.unit)
     if pair not in VALID_METRIC_PAIRS:
         _add(
             report,
@@ -1512,14 +1552,12 @@ def _check_default_device_canary(manifest: QAIHMModelManifest, report: Report) -
     _add(report, "default_device in CANARY_DEVICES", Status.PASS)
 
 
-def _check_llm_call_to_action(manifest: QAIHMModelManifest, report: Report) -> None:
-    if (
-        manifest.id is None
-        or not manifest.model_type_llm
-        or manifest.llm_details is None
-    ):
+def _check_llm_call_to_action(info: WebsiteModelInfo, report: Report) -> None:
+    manifest = info.manifest
+    llm_details = info.internal.llm_details
+    if manifest.id is None or not manifest.model_type_llm or llm_details is None:
         return
-    cta = manifest.llm_details.call_to_action
+    cta = llm_details.call_to_action
     download_ctas = {
         LLM_CALL_TO_ACTION.DOWNLOAD,
         LLM_CALL_TO_ACTION.DOWNLOAD_AND_VIEW_README,
@@ -1564,12 +1602,13 @@ def _check_qaihm_repo_path(manifest: QAIHMModelManifest, report: Report) -> None
 
 
 def _collect_web_asset_urls(
-    manifest: QAIHMModelManifest,
+    info: WebsiteModelInfo,
 ) -> list[tuple[str, str, str]]:
+    manifest = info.manifest
     if manifest.id is None:
         return []
     urls: list[tuple[str, str, str]] = []
-    if manifest.has_static_banner:
+    if info.internal.has_static_banner:
         urls.append(
             (
                 "static banner",
@@ -1577,7 +1616,7 @@ def _collect_web_asset_urls(
                 "static banner unreachable",
             )
         )
-    if manifest.has_animated_banner:
+    if info.internal.has_animated_banner:
         urls.append(
             (
                 "animated banner",
@@ -1591,11 +1630,11 @@ def _collect_web_asset_urls(
 
 
 def _check_web_asset_urls(
-    manifest: QAIHMModelManifest,
+    info: WebsiteModelInfo,
     report: Report,
     skip_url_checks: bool = False,
 ) -> None:
-    triples = _collect_web_asset_urls(manifest)
+    triples = _collect_web_asset_urls(info)
     if not triples:
         return
     if skip_url_checks:
@@ -1632,19 +1671,25 @@ def _run_internal_checks(
             "skipped: manifest failed to load.",
         )
         return
+    # The internal package is dev-only, so import it here rather than at module
+    # scope: --internal is unreachable without it.
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
+
+    info = WebsiteModelInfo.from_manifest(manifest)
+
     _check_website_fields_set(manifest, report)
     _check_name_style(manifest, report)
     _check_headline_period(manifest, report)
-    _check_related_not_self(manifest, report)
+    _check_related_not_self(info, report)
     _check_arxiv_abs(manifest, report)
-    _check_status_reason(manifest, report)
-    _check_can_publish(manifest, report)
-    _check_published_artifacts(manifest, report)
-    _check_numerics_benchmark(manifest, report)
+    _check_status_reason(info, report)
+    _check_can_publish(info, report)
+    _check_published_artifacts(info, report)
+    _check_numerics_benchmark(info, report)
     _check_default_device_canary(manifest, report)
-    _check_llm_call_to_action(manifest, report)
+    _check_llm_call_to_action(info, report)
     _check_qaihm_repo_path(manifest, report)
-    _check_web_asset_urls(manifest, report, skip_url_checks=skip_url_checks)
+    _check_web_asset_urls(info, report, skip_url_checks=skip_url_checks)
 
 
 # =========================================================================
@@ -1675,9 +1720,10 @@ def _run_all_checks(
     _check_no_self_referential_imports(source_dir, report)
     manifest = _check_manifest(source_dir, report)
     if manifest is not None:
+        skip_global_conflicts = _recipe_opts_out_of_global_requirements(manifest)
         _check_external_repos_init(source_dir, manifest, report)
-        _check_requirements_txt(source_dir, report)
-        _check_pip_commands(source_dir, manifest, report)
+        _check_requirements_txt(source_dir, report, skip_global_conflicts)
+        _check_pip_commands(source_dir, manifest, report, skip_global_conflicts)
 
     if not install_ok:
         _skip_downstream_on_install_failure(report)
@@ -1744,7 +1790,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="qai-hub-models validate",
         description=(
             "Run the local recipe report card: folder shape, manifest, "
-            "requirements.txt vs. base package, model imports, torch forward "
+            "requirements.txt vs. base/global pins, model imports, torch forward "
             "pass, App instantiation, URL reachability. No workbench calls. "
             "Exit 0 iff every check passes (WARNs do not fail)."
         ),

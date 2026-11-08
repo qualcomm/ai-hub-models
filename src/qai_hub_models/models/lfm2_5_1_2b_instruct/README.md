@@ -20,9 +20,6 @@ qai-hub-models info LFM2.5-1.2B-Instruct
 # Print performance and accuracy metrics
 qai-hub-models perf LFM2.5-1.2B-Instruct
 qai-hub-models numerics LFM2.5-1.2B-Instruct
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch LFM2.5-1.2B-Instruct --runtime geniex_llamacpp --precision q4_0
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

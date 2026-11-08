@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
+import mecab_ko
+from g2pkk.g2pkk import G2p
 from typing_extensions import Self
 
 from qai_hub_models import Precision
@@ -20,6 +22,26 @@ from qai_hub_models.models.templates.melotts.model import (
 )
 
 MODEL_ID = __name__.split(".")[-2]
+
+
+class _MeCabKo:
+    def __init__(self) -> None:
+        self._tagger = mecab_ko.Tagger()
+
+    def pos(self, sentence: str) -> list[tuple[str, str]]:
+        tokens = []
+        node = self._tagger.parseToNode(sentence)
+        while node:
+            if node.surface:
+                tokens.append((node.surface, node.feature.split(",")[0]))
+            node = node.next
+        return tokens
+
+
+# g2pkk loads `mecab` (python-mecab-ko, no wheels past cp312) and pip-installs it at
+# runtime if missing. Serve its tagger from mecab-ko instead, which bundles libmecab.
+G2p.check_mecab = lambda self: None
+G2p.get_mecab = lambda self: _MeCabKo()
 
 
 class Encoder_KO(Encoder):

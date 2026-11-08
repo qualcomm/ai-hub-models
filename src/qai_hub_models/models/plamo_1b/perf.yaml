@@ -1,17 +1,12 @@
-precisions:
-  w4a16:
-    components:
-      PLaMo-1B:
-        performance_metrics:
-          Dragonwing Q-8750:
-            qnn_context_binary:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                time_to_first_token_range_milliseconds:
-                  max: 1006.336
-                  min: 31.448
-                tokens_per_second: 68.21
+performance_metrics:
+- component: PLaMo-1B
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    tokens_per_second: 68.21
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-for-galaxy
 - qualcomm-qcs8750

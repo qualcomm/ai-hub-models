@@ -51,6 +51,20 @@ from qai_hub_models.models.templates.llm.grader.report import (
 GRADER_SEED = 42
 
 
+def _sidecar_metric_name(responses_json: str) -> str:
+    """The metric recorded next to a device eval file (``X.json`` -> ``X.meta.json``).
+
+    Read from the sidecar rather than the dataset registry: this CLI runs in the
+    grader venv, which installs qai_hub_models without its dependencies.
+    """
+    meta_path = Path(responses_json).with_suffix(".meta.json")
+    if meta_path.exists():
+        name = json.loads(meta_path.read_text()).get("metric_name")
+        if name:
+            return name
+    return GRACE_METRIC_NAME
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Grade LLM responses from a JSON file on a 0-10 rubric.",
@@ -114,6 +128,13 @@ def main() -> None:
         "--verbose",
         action="store_true",
         help="Print the per-item score and the grader's rationale.",
+    )
+    parser.add_argument(
+        "--metric-name",
+        type=str,
+        default=None,
+        help="Label the score is filed under. Defaults to the metric_name in the "
+        f"responses file's .meta.json sidecar, else {GRACE_METRIC_NAME}.",
     )
     args = parser.parse_args()
 
@@ -222,7 +243,7 @@ def main() -> None:
         out = build_summary(
             items,
             summary,
-            metric_name=GRACE_METRIC_NAME,
+            metric_name=args.metric_name or _sidecar_metric_name(args.responses_json),
             grader_model=args.model,
             input_file=str(args.responses_json),
         )

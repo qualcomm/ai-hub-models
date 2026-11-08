@@ -28,7 +28,6 @@ jobs:
   weekly:
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       is_gpu_weekly: true
       models: ${{ inputs.models || 'all' }}
       deployment: ${{ inputs.deployment || 'prod' }}
@@ -38,7 +37,7 @@ jobs:
     if: ${{ failure() && github.event_name == 'schedule' }}
     name: Notify Failure
     needs: weekly
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       issues: write

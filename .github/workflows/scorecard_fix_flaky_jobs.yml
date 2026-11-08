@@ -70,7 +70,7 @@ env:
 jobs:
   fix_flaky_profile_jobs:
     name: Fix Flaky Jobs for ${{ inputs.action_id == '' && inputs.latest_results_branch || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, inputs.action_id) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 1200 # 20 hours, this waits for the scorecard jobs to finish.
 
     env:
@@ -132,8 +132,6 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}
           hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}

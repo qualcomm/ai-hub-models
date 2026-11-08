@@ -1,40 +1,19 @@
-applicable_scenarios:
-- Image Search
-- Content Moderation
-- Zero-Shot Classification
-dataset:
-- imagenet
 description: SigLIP2 (Sigmoid Loss for Language-Image Pre-training 2) is a vision-language model from Google that computes cosine-similarity scores between images and text prompts. It can be used for zero-shot image classification, image search, and content moderation without any task-specific fine-tuning.
 disabled_paths: {}
 domain: Multimodal
-form_factors:
-- Phone
-- Tablet
 has_on_target_demo: true
-has_static_banner: true
 headline: Zero-shot image-text similarity and classification using SigLIP2.
 id: siglip2
 is_collection_model: true
 license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 license_type: apache-2.0
 name: SigLIP2
-related_models:
-- openai_clip
 research_paper: https://arxiv.org/abs/2502.14786
 research_paper_title: 'SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features'
 source_repo: https://huggingface.co/google/siglip2-base-patch16-224
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - foundation
-technical_details:
-  Image input resolution: 224x224
-  Model checkpoint: google/siglip2-base-patch16-224
-  Model size (image_encoder) (float): 352 MB
-  Model size (image_encoder) (w8a16): 92.8 MB
-  Model size (text_encoder) (float): 1.05 GB
-  Model size (text_encoder) (w8a16): 461 MB
-  Text sequence length: '64'
 use_case: Image Classification

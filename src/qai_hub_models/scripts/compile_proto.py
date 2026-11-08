@@ -13,6 +13,8 @@ from importlib.metadata import version as _pkg_version
 
 from qai_hub_models.utils.path_helpers import QAIHM_REPO_ROOT
 
+# grpcio-tools 1.62.3 bundles protoc 25.1. Keep it in sync with PROTOC_VERSION in
+# .github/workflows/release_website.yml.
 EXPECTED_GRPCIO_TOOLS_VERSION = "1.62.3"
 EXPECTED_MYPY_PROTOBUF_VERSION = "3.6.0"
 

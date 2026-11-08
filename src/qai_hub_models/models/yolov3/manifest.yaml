@@ -1,20 +1,8 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
 description: YoloV3 is a machine learning model that predicts bounding boxes and classes of objects in an image.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolov3
-imsdk_supported: true
 license: https://github.com/ultralytics/yolov3/blob/v8/LICENSE
 license_type: agpl-3.0
 name: Yolo-v3
@@ -26,29 +14,16 @@ numerics_benchmark:
   value: 31.1
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-private_perf_form_factors:
-- Auto
-related_models:
-- yolov6
-- yolov8_det
-- yolov11_det
 research_paper: https://arxiv.org/abs/1804.02767
 research_paper_title: 'YOLOv3: An Incremental Improvement'
 restrict_model_sharing: true
 source_repo: https://github.com/ultralytics/yolov3/tree/v8
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 416p (416x416)
-  Model checkpoint: YoloV3 Tiny
-  Model size (float): 43.9 MB
-  Model size (w8a16): 16.9 MB
-  Number of parameters: 11.5M
 templates:
 - ultralytics
 - yolo

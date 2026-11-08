@@ -42,7 +42,6 @@ on:
         default: dev
 
 env:
-  PYTHON_VERSION: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
   VENV_PATH: build/ci-envs/qaihm-build
   # Hub env/profile to compile against: 'dev' on schedule, bespoke sandbox on manual dispatch.
   HUB_ENV: ${{ inputs.hub_env || 'dev' }}
@@ -53,7 +52,7 @@ env:
 jobs:
   wait_workbench_deployment:
     name: "Wait For Workbench to Finish Deploying"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 180
     steps:
       - name: Checkout code
@@ -62,7 +61,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}
@@ -77,7 +75,7 @@ jobs:
   submit_compile_jobs:
     name: "Submit Compile Jobs"
     needs: wait_workbench_deployment
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       id-token: write
@@ -92,7 +90,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: prod,${{ env.HUB_ENV }}
@@ -167,7 +164,7 @@ jobs:
   submit_link_jobs:
     name: "Submit Link Jobs"
     needs: submit_compile_jobs
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: ["aihub-models-ubuntu-2404-ec2", "Linux", "X64", "self-hosted"]
     permissions:
       contents: read
       id-token: write
@@ -185,7 +182,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: prod,${{ env.HUB_ENV }}
@@ -225,7 +221,7 @@ jobs:
   collect_link_results:
     name: "Collect Link Results"
     needs: submit_link_jobs
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       id-token: write
@@ -243,7 +239,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}
@@ -303,7 +298,7 @@ jobs:
   collect_compile_results:
     name: "Collect Compile Results"
     needs: submit_compile_jobs
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       id-token: write
@@ -321,7 +316,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           bnt-venv-install-cmd: install_compiler_nightly
           hub-deployments: ${{ env.HUB_ENV }}
@@ -373,7 +367,7 @@ jobs:
     name: "Notify Slack (#ai-hub-compiler)"
     needs: [submit_compile_jobs, submit_link_jobs, collect_link_results, collect_compile_results]
     if: ${{ failure() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.hub_env || 'dev') != 'dev')) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - name: Download compile results
         if: always()

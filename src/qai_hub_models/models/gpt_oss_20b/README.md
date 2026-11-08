@@ -20,9 +20,6 @@ qai-hub-models info GPT-OSS-20B
 # Print performance and accuracy metrics
 qai-hub-models perf GPT-OSS-20B
 qai-hub-models numerics GPT-OSS-20B
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch GPT-OSS-20B --runtime geniex_llamacpp --precision mxfp4
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

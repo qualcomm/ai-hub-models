@@ -196,38 +196,12 @@ def filter_scorecard_by_runtime_name(
     if not runtime_filter:
         return scorecard
 
-    runtime_lower = runtime_filter.lower()
-    runtime_upper = runtime_filter.upper()
-
-    # Special handling for qnn_dlc to exclude qnn_dlc_via_ep
-    if runtime_lower == "qnn_dlc":
-        filtered = {
-            model_name: job_id
-            for model_name, job_id in scorecard.items()
-            if (
-                f"_{runtime_upper}-" in model_name
-                or model_name.endswith(f"_{runtime_upper}")
-            )
-            and "_qnn_dlc_via_" not in model_name.lower()
-        }
-    elif runtime_lower == "qnn_dlc_via_ep":
-        filtered = {
-            model_name: job_id
-            for model_name, job_id in scorecard.items()
-            if (
-                "_QNN_DLC_VIA_QNN_EP-" in model_name
-                or model_name.endswith("_QNN_DLC_VIA_QNN_EP")
-            )
-        }
-    else:
-        # Generic match for other runtimes (tflite, onnx, etc.)
-        # Match _RUNTIME- or _RUNTIME at end
-        filtered = {
-            model_name: job_id
-            for model_name, job_id in scorecard.items()
-            if f"_{runtime_upper}-" in model_name
-            or model_name.endswith(f"_{runtime_upper}")
-        }
+    runtime = runtime_filter.upper()
+    filtered = {
+        model_name: job_id
+        for model_name, job_id in scorecard.items()
+        if f"_{runtime}-" in model_name or model_name.endswith(f"_{runtime}")
+    }
 
     logger.info(
         f"Filtered scorecard by runtime name '{runtime_filter}': "

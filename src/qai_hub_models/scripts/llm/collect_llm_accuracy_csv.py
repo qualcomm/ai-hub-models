@@ -9,7 +9,7 @@ accuracy.csv row per file. The resolved manifest baseline is also written back
 into each grade file as ``reference_score_pct``, for the CI summary to render.
 
 To add an FP32 baseline for an LLM model, add a ``numerics_benchmark`` block to the
-model's ``info.yaml``.
+model's ``manifest.yaml``.
 """
 
 from __future__ import annotations
@@ -21,13 +21,14 @@ import os
 from pathlib import Path
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.models.templates.llm.grace_tasks import GRACE_DOC_URL
-from qai_hub_models.models.templates.llm.grader.grace import GRACE_TASK_NAME
+from qai_hub_models.datasets.device_eval import (
+    DEFAULT_DEVICE_EVAL_DATASET,
+    get_device_eval_dataset,
+)
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.utils.testing_async_utils import write_accuracy
 from qai_hub_models.utils.base_dataset import DatasetMetadata
-from qai_hub_models.utils.metrics import GRACE_GRADE
 
 GRADE_SUFFIX = "_grade.json"
 META_SUFFIX = ".meta.json"
@@ -38,41 +39,34 @@ def _meta_path_for(grade_path: str) -> str:
     return grade_path[: -len(GRADE_SUFFIX)] + META_SUFFIX
 
 
-def _grace_metric_name(dataset_name: str) -> str:
-    """The label a Grace dataset's score is reported under (``grace2`` -> ``Grace2``)."""
-    return dataset_name.replace("grace", "Grace", 1)
-
-
-# Ensure Grace dataset and metric are coupled
-assert GRACE_GRADE.name == _grace_metric_name(GRACE_TASK_NAME), (
-    f"Grace dataset/metric mismatch: dataset {GRACE_TASK_NAME!r} vs {GRACE_GRADE.name} metric"
-)
+def _metric_name(dataset_name: str) -> str:
+    return get_device_eval_dataset(dataset_name).metric_metadata().name
 
 
 def _reference_grade(model_id: str, dataset_name: str) -> float | None:
-    """FP baseline grade from the manifest's numerics_benchmark, if comparable.
+    """FP baseline grade from manifest.yaml's numerics_benchmark, if comparable.
 
-    The baseline must have been measured on the same Grace version as this run: a
-    Grace1 number beside a Grace2 device score is two different metrics, not a
-    float-vs-device delta.
+    The baseline must have been measured on the same dataset and metric as this
+    run: a Grace1 number beside a Grace2 device score is two different metrics,
+    not a float-vs-device delta.
     """
     try:
-        manifest = QAIHMModelManifest.from_model(model_id)
+        sc = QAIHMModelInternalConfig.from_model(model_id)
     except Exception as e:
-        print(f"  Could not load manifest.yaml for {model_id}: {e}")
+        print(f"  Could not load internal-config.yaml for {model_id}: {e}")
         return None
-    benchmark = manifest.numerics_benchmark
+    benchmark = sc.manifest.numerics_benchmark
     if benchmark is None:
         return None
     if (
         benchmark.dataset_name == dataset_name
-        and benchmark.metric_name == _grace_metric_name(dataset_name)
+        and benchmark.metric_name == _metric_name(dataset_name)
         and benchmark.unit == "%"
     ):
         return benchmark.value
     print(
         f"  {model_id}: manifest baseline is {benchmark.metric_name} on "
-        f"{benchmark.dataset_name}, not {_grace_metric_name(dataset_name)} on "
+        f"{benchmark.dataset_name}, not {_metric_name(dataset_name)} on "
         f"{dataset_name}; leaving the float reference empty."
     )
     return None
@@ -103,8 +97,8 @@ def collect(directory: str) -> int:
         model_id = meta["model_id"]
         chipset = meta["chipset"]
         precision = meta["precision"]
-        dataset_name = meta.get("dataset_name", GRACE_TASK_NAME)
-        assert dataset_name.startswith("grace")
+        dataset_name = meta.get("dataset_name", DEFAULT_DEVICE_EVAL_DATASET)
+        dataset = get_device_eval_dataset(dataset_name)
         # The sidecar records the scorecard runtime; older/genie sidecars omit
         # it and fall back to GENIE.
         path_value = meta.get("path")
@@ -134,9 +128,9 @@ def collect(directory: str) -> int:
             device_accuracy=float(score_pct),
             dataset_name=dataset_name,
             dataset_metadata=DatasetMetadata(
-                link=GRACE_DOC_URL, split_description="on-device prompt eval set"
+                link=dataset.doc_url(), split_description="on-device prompt eval set"
             ),
-            metric_metadata=GRACE_GRADE,
+            metric_metadata=dataset.metric_metadata(),
             num_samples=grade.get("num_items"),
         )
         rows_written += 1

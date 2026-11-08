@@ -5,6 +5,7 @@
 # ---------------------------------------------------------------------
 import argparse
 import logging
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -25,6 +26,18 @@ from utils import (
 
 logger = logging.getLogger(__name__)
 
+TFL_CONVERTER_OPTION = "--use_tfl_converter"
+TFL_CONVERTER_PRECISIONS = {
+    "float",
+    "mixed_with_float",
+    "w8a8",
+    "w8a16",
+    "mixed",
+    "w8a8_mixed_int16",
+    "w8a16_mixed_int16",
+    "w8a16_mixed_fp16",
+}
+
 
 def filter_scorecard_by_runtime(scorecard: dict, runtimes: list[str]) -> dict:
     if not runtimes:
@@ -33,24 +46,10 @@ def filter_scorecard_by_runtime(scorecard: dict, runtimes: list[str]) -> dict:
     filtered = {}
     for model_name, job_spec in scorecard.items():
         compile_options = job_spec.get("compile_options", "")
-
-        for runtime in runtimes:
-            if runtime == "qnn_dlc_via_ep":
-                matches = (
-                    "--target_runtime qnn_dlc" in compile_options
-                    and "--use_qnn_onnx_ep_converter" in compile_options
-                )
-            elif runtime == "qnn_dlc":
-                matches = (
-                    "--target_runtime qnn_dlc" in compile_options
-                    and "--use_qnn_onnx_ep_converter" not in compile_options
-                )
-            else:
-                matches = f"--target_runtime {runtime}" in compile_options
-
-            if matches:
-                filtered[model_name] = job_spec
-                break
+        if any(
+            f"--target_runtime {runtime}" in compile_options for runtime in runtimes
+        ):
+            filtered[model_name] = job_spec
 
     logger.info(
         f"Filtered: {len(filtered)}/{len(scorecard)} jobs match runtime(s): {runtimes}"
@@ -76,6 +75,59 @@ def filter_scorecard_by_device(scorecard: dict, devices: list[str]) -> dict:
 
 def format_input_specs(input_specs: dict) -> dict:
     return {name: (tuple(spec[0]), spec[1]) for name, spec in input_specs.items()}
+
+
+def _get_qnn_compile_path(model_name: str) -> str | None:
+    if "_QNN_DLC_VIA_QNN_EP" in model_name:
+        return "QNN_DLC_VIA_QNN_EP"
+    if "_QNN_DLC" in model_name:
+        return "QNN_DLC"
+    return None
+
+
+def _get_precision(model_name: str, compile_path: str) -> str:
+    model_and_precision = model_name.split(f"_{compile_path}", 1)[0]
+    if match := re.search(
+        r"_(w\d+a\d+(?:_mixed_(?:int16|fp16))?|mixed(?:_with_float)?)$",
+        model_and_precision,
+    ):
+        return match.group(1)
+    return "float"
+
+
+def _make_tfl_converter_scorecard(scorecard: dict) -> dict:
+    tfl_converter_scorecard = {}
+    for model_name, job_spec in scorecard.items():
+        compile_path = _get_qnn_compile_path(model_name)
+        if compile_path is None:
+            continue
+
+        if _get_precision(model_name, compile_path) not in TFL_CONVERTER_PRECISIONS:
+            continue
+
+        compile_options = job_spec.get("compile_options", "")
+        if "--target_runtime qnn_dlc" not in compile_options:
+            continue
+
+        converter_name = model_name.replace(f"_{compile_path}", "_TFL_CONVERTER", 1)
+        if converter_name in scorecard or converter_name in tfl_converter_scorecard:
+            continue
+
+        converter_options = compile_options.replace(
+            "--target_runtime qnn_dlc", "--target_runtime tflite", 1
+        ).replace("--use_qnn_onnx_ep_converter", "")
+        converter_options = merge_job_options(converter_options, TFL_CONVERTER_OPTION)
+
+        tfl_converter_scorecard[converter_name] = {
+            **job_spec,
+            "compile_options": converter_options,
+        }
+
+    return tfl_converter_scorecard
+
+
+def add_tfl_converter_jobs(scorecard: dict) -> dict:
+    return {**scorecard, **_make_tfl_converter_scorecard(scorecard)}
 
 
 def submit_single_compile_job(
@@ -118,6 +170,7 @@ def submit_single_compile_job(
             "prod_job_status": job_spec["prod_job_status"],
             "dev_job": job.job_id,
             "dev_job_url": job.url,
+            "compile_options": compile_options,
         }
         return model_name, result, None
     except Exception as e:
@@ -251,6 +304,7 @@ def main() -> int:
         dev_client = load_client(args.dev_profile)
         scorecard = load_yaml_safe(args.config)
         log_and_print(f"Loaded {len(scorecard)} jobs from {args.config}", logger)
+        scorecard = add_tfl_converter_jobs(scorecard)
         scorecard = filter_scorecard_by_runtime(scorecard, args.runtime)
         scorecard = filter_scorecard_by_device(scorecard, args.device)
         log_and_print(f"Launching {len(scorecard)} compile jobs", logger)

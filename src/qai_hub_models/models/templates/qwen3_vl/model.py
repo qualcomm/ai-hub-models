@@ -61,6 +61,7 @@ from qai_hub_models.models.templates.llm.model import (
     DEFAULT_SEQUENCE_LENGTH,
     DynamicPreSplitOnnxMixin,
     DynamicQuantizablePreSplitMixin,
+    LLMCollectionBase,
     LLMDynamic_AIMETOnnx,
     LLMPartBase,
     SingleSlotCacheMixin,
@@ -94,9 +95,6 @@ from qai_hub_models.models.templates.vlm.model import (
 )
 from qai_hub_models.models.templates.vlm.processor_factory import VLMProcessorLike
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.base_multi_graph_collection_model import (
-    MultiGraphWorkbenchModelCollection,
-)
 from qai_hub_models.utils.base_multi_graph_model import (
     MultiGraphWorkbenchModel,
 )
@@ -2109,7 +2107,7 @@ def _embed_chat_template(
         json.dump(tok_cfg, f, indent=2, ensure_ascii=False)
 
 
-class Qwen3VLCollectionBase(MultiGraphWorkbenchModelCollection):
+class Qwen3VLCollectionBase(LLMCollectionBase):
     """Collection base for Qwen3-VL deployment.
 
     Combines N text parts + 1 vision encoder for full VLM deployment.

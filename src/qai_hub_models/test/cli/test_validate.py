@@ -39,16 +39,19 @@ from qai_hub_models.cli.validate import (
     _check_multi_graph_sample_inputs,
     _check_name_style,
     _check_no_self_referential_imports,
+    _check_pip_commands,
+    _check_publish_status,
     _check_related_not_self,
     _check_requirements_txt,
-    _check_status_not_unset,
     _check_status_reason,
     _check_url_reachability,
     _check_website_fields_set,
     _collect_manifest_urls,
     _extract_pip_command_pkgs,
+    _extract_pip_command_reqs,
     _extract_shape,
     _iter_requirements,
+    _recipe_opts_out_of_global_requirements,
     _render_json,
     _render_text,
     _run_all_checks,
@@ -58,6 +61,7 @@ from qai_hub_models.cli.validate import (
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.tensor_spec import TensorSpec
+from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 
@@ -65,6 +69,17 @@ from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 def _make_manifest(**kwargs: Any) -> QAIHMModelManifest:
     """Bare stand-in for QAIHMModelManifest; each test sets only the fields it uses."""
     return cast(QAIHMModelManifest, SimpleNamespace(**kwargs))
+
+
+def _make_info(manifest: Any = None, **internal_kwargs: Any) -> WebsiteModelInfo:
+    """Stand-in for WebsiteModelInfo, for the checks that read both files."""
+    return cast(
+        WebsiteModelInfo,
+        SimpleNamespace(
+            manifest=manifest if manifest is not None else _make_manifest(),
+            internal=SimpleNamespace(**internal_kwargs),
+        ),
+    )
 
 
 class TestFilesPresent:
@@ -173,35 +188,37 @@ class TestSelfReferentialImports:
         assert report.rows == []
 
 
-class TestStatusNotUnset:
-    def test_in_tree_unset_fails(
+class TestPublishStatus:
+    def test_in_tree_missing_config_fails(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: True)
+
+        def _missing(_: Path) -> MODEL_STATUS:
+            raise FileNotFoundError("no internal-config.yaml")
+
+        monkeypatch.setattr(validate_mod, "resolve_publish_status", _missing)
         report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.UNSET), report
-        )
+        _check_publish_status(tmp_path, report)
         assert report.rows[0].status is Status.FAIL
 
     def test_in_tree_pending_passes(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: True)
-        report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.PENDING), report
+        monkeypatch.setattr(
+            validate_mod, "resolve_publish_status", lambda _: MODEL_STATUS.PENDING
         )
+        report = Report()
+        _check_publish_status(tmp_path, report)
         assert report.rows[0].status is Status.PASS
 
-    def test_external_unset_is_silent(
+    def test_external_is_silent(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _: False)
         report = Report()
-        _check_status_not_unset(
-            tmp_path, _make_manifest(status=MODEL_STATUS.UNSET), report
-        )
+        _check_publish_status(tmp_path, report)
         assert report.rows == []
 
 
@@ -345,11 +362,9 @@ class TestRequirementsTxt:
         validate_mod._load_requirement_pins.cache_clear()
         report = Report()
         _check_requirements_txt(tmp_path, report)
-        row = next(
-            r for r in report.rows if r.name == "requirements.txt vs. base package"
-        )
-        assert row.status is Status.FAIL
-        assert "global_requirements.txt" in row.detail
+        statuses = {r.name: r.status for r in report.rows}
+        assert statuses["requirements.txt vs. base package"] is Status.PASS
+        assert statuses["requirements.txt vs. global_requirements.txt"] is Status.FAIL
 
     def test_compatible_pin_passes(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -364,6 +379,66 @@ class TestRequirementsTxt:
         _check_requirements_txt(tmp_path, report)
         statuses = {r.name: r.status for r in report.rows}
         assert statuses["requirements.txt vs. base package"] is Status.PASS
+
+    def _in_tree_statuses(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        recipe_line: str,
+        base_line: str,
+        global_line: str,
+    ) -> dict[str, Status]:
+        (tmp_path / "requirements.txt").write_text(recipe_line)
+        base = tmp_path / "base.txt"
+        base.write_text(base_line)
+        globals_ = tmp_path / "global.txt"
+        globals_.write_text(global_line)
+        monkeypatch.setattr(validate_mod, "_BASE_REQUIREMENTS_PATH", base)
+        monkeypatch.setattr(validate_mod, "_GLOBAL_REQUIREMENTS_PATH", globals_)
+        monkeypatch.setattr(validate_mod, "_is_in_tree", lambda source_dir: True)
+        validate_mod._load_requirement_pins.cache_clear()
+        report = Report()
+        _check_requirements_txt(tmp_path, report, skip_global_conflicts=True)
+        return {r.name: r.status for r in report.rows}
+
+    def test_global_conflict_skipped_when_opted_out(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        statuses = self._in_tree_statuses(
+            tmp_path,
+            monkeypatch,
+            "transformers==5.7.0\n",
+            "torch>=2.4,<=2.11.0\n",
+            "transformers==4.56.2\n",
+        )
+        assert statuses["requirements.txt vs. base package"] is Status.PASS
+        assert statuses["requirements.txt vs. global_requirements.txt"] is Status.SKIP
+
+    def test_base_conflict_still_fails_when_opted_out(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        statuses = self._in_tree_statuses(
+            tmp_path,
+            monkeypatch,
+            "torch==2.99\n",
+            "torch>=2.4,<=2.11.0\n",
+            "torch>=2.4,<=2.11.0\n",
+        )
+        assert statuses["requirements.txt vs. base package"] is Status.FAIL
+        assert statuses["requirements.txt vs. global_requirements.txt"] is Status.SKIP
+
+
+class TestRecipeOptsOut:
+    def test_none_manifest_skips_global(self) -> None:
+        assert _recipe_opts_out_of_global_requirements(None) is True
+
+    def test_external_model_skips_global(self) -> None:
+        manifest = _make_manifest(id="__model_that_does_not_exist__")
+        assert _recipe_opts_out_of_global_requirements(manifest) is True
+
+    def test_in_tree_opt_out_is_detected(self) -> None:
+        manifest = _make_manifest(id="gemma_4_e4b_it")
+        assert _recipe_opts_out_of_global_requirements(manifest) is True
 
 
 class TestRequirementsHelpers:
@@ -385,6 +460,65 @@ class TestRequirementsHelpers:
     def test_extract_pip_command_pkgs_skips_editable_and_vcs(self) -> None:
         assert _extract_pip_command_pkgs("pip install -e ./src") == []
         assert _extract_pip_command_pkgs("pip install git+https://x/y.git") == []
+
+    def test_extract_pip_command_reqs(self) -> None:
+        reqs = _extract_pip_command_reqs(
+            "pip install foo==1.0 bar>=2 -e ./src --extra-index-url https://pypi.org git+https://x/y.git"
+        )
+        assert [r.name for r in reqs] == ["foo", "bar"]
+        assert [str(r.specifier) for r in reqs] == ["==1.0", ">=2"]
+
+
+class TestCheckPipCommands:
+    PINS = {
+        "torch": SpecifierSet(">=2.4,<=2.11.0"),
+        "torchvision": SpecifierSet(">=0.19,<=0.26.0"),
+        "onnx": SpecifierSet("==1.18.0"),
+        "onnxruntime": SpecifierSet("==1.22.1"),
+    }
+
+    def _run(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *commands: str
+    ) -> Report:
+        monkeypatch.setattr(
+            validate_mod, "_load_requirement_pins", lambda path: self.PINS
+        )
+        manifest = _make_manifest(
+            pre_pip_install_commands=[SimpleNamespace(command=c) for c in commands],
+            post_pip_install_commands=[],
+        )
+        report = Report()
+        _check_pip_commands(tmp_path, manifest, report)
+        return report
+
+    def test_no_commands_is_noop(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        assert not self._run(tmp_path, monkeypatch).rows
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "pip install torchvision==0.24.0 torch==2.9.0",
+            "pip install torch==2.9.0 torchvision==0.24.0",
+            "pip install onnxruntime==1.22.1 onnx==1.18.0",
+            "pip install onnx==1.18.0 onnxruntime==1.22.1",
+            "pip install other-package==1.0.0 torch",
+        ],
+    )
+    def test_compatible_commands_pass(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str
+    ) -> None:
+        (row,) = self._run(tmp_path, monkeypatch, command).rows
+        assert row.status is Status.PASS
+
+    def test_detects_real_conflict(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (row,) = self._run(tmp_path, monkeypatch, "pip install torch==1.12.0").rows
+        assert row.status is Status.FAIL
+        assert "torch" in row.detail
+        assert "1.12.0" in row.detail
 
 
 class TestExtractShape:
@@ -647,10 +781,6 @@ license: https://example.com/license
 source_repo: https://example.com/repo
 research_paper: https://arxiv.org/abs/1234.5678
 research_paper_title: A Paper
-form_factors:
-- Phone
-applicable_scenarios:
-- Inventory Management
 supported_precisions:
 - float
 """
@@ -959,14 +1089,16 @@ class TestInternalChecks:
     def test_related_self_link_fails(self) -> None:
         report = Report()
         _check_related_not_self(
-            _make_manifest(id="my_model", related_models=["my_model"]), report
+            _make_info(_make_manifest(id="my_model"), related_models=["my_model"]),
+            report,
         )
         assert report.rows[0].status is Status.FAIL
 
     def test_related_clean_passes(self) -> None:
         report = Report()
         _check_related_not_self(
-            _make_manifest(id="my_model", related_models=["other"]), report
+            _make_info(_make_manifest(id="my_model"), related_models=["other"]),
+            report,
         )
         assert report.rows[0].status is Status.PASS
 
@@ -993,7 +1125,7 @@ class TestInternalChecks:
     def test_status_reason_unpublished_missing_fails(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(status=MODEL_STATUS.UNPUBLISHED, status_reason=None),
+            _make_info(status=MODEL_STATUS.UNPUBLISHED, status_reason=None),
             report,
         )
         assert report.rows[0].status is Status.FAIL
@@ -1001,7 +1133,7 @@ class TestInternalChecks:
     def test_status_reason_published_present_fails(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(
+            _make_info(
                 status=MODEL_STATUS.PUBLISHED,
                 status_reason="tracked in #123",
             ),
@@ -1012,7 +1144,7 @@ class TestInternalChecks:
     def test_status_reason_unpublished_with_reason_passes(self) -> None:
         report = Report()
         _check_status_reason(
-            _make_manifest(
+            _make_info(
                 status=MODEL_STATUS.UNPUBLISHED,
                 status_reason="tracked in #123",
             ),
@@ -1068,8 +1200,6 @@ applicable_scenarios:
 - Inventory Management
 supported_precisions:
 - float
-has_static_banner: true
-has_animated_banner: true
 """
 
 
@@ -1189,13 +1319,12 @@ class TestSkipUrlChecks:
             source_repo="https://example.invalid/repo",
             research_paper=None,
             external_repos=None,
-            has_static_banner=True,
-            has_animated_banner=True,
         )
+        info = _make_info(manifest, has_static_banner=True, has_animated_banner=True)
         monkeypatch.setattr(validate_mod, "head_check_urls", _forbid_url_checks)
         report = Report()
         _check_url_reachability(manifest, report, skip_url_checks=True)
-        validate_mod._check_web_asset_urls(manifest, report, skip_url_checks=True)
+        validate_mod._check_web_asset_urls(info, report, skip_url_checks=True)
         assert not report.failed
 
         text = _render_text(report)
@@ -1224,9 +1353,8 @@ class TestSkipUrlChecks:
             research_paper=None,
             external_repos=None,
             id="skip_url_recipe",
-            has_static_banner=False,
-            has_animated_banner=False,
         )
+        info = _make_info(manifest, has_static_banner=False, has_animated_banner=False)
         calls: list[list[tuple[str, str]]] = []
 
         def _spy(pairs: list[tuple[str, str]]) -> list[str]:
@@ -1236,7 +1364,7 @@ class TestSkipUrlChecks:
         monkeypatch.setattr(validate_mod, "head_check_urls", _spy)
         report = Report()
         _check_url_reachability(manifest, report, skip_url_checks=True)
-        validate_mod._check_web_asset_urls(manifest, report, skip_url_checks=True)
+        validate_mod._check_web_asset_urls(info, report, skip_url_checks=True)
         assert calls == []
         assert report.rows == [
             Result(
@@ -1331,9 +1459,27 @@ class TestSkipUrlChecks:
         monkeypatch.setattr(validate_mod, "head_check_urls", _spy)
         monkeypatch.setattr(validate_mod, "install_model", _install)
         monkeypatch.setattr(validate_mod, "_is_in_tree", lambda _path: True)
+        monkeypatch.setattr(
+            validate_mod, "resolve_publish_status", lambda _p: MODEL_STATUS.PENDING
+        )
         monkeypatch.setattr(validate_mod, "_check_init_exports", _count("init"))
         monkeypatch.setattr(validate_mod, "_check_model_code", _count("model"))
         monkeypatch.setattr(validate_mod, "_check_pytest", _count("pytest"))
+        monkeypatch.setattr(
+            WebsiteModelInfo,
+            "from_manifest",
+            classmethod(
+                lambda _cls, m: _make_info(
+                    m,
+                    related_models=[],
+                    status=MODEL_STATUS.PENDING,
+                    status_reason=None,
+                    llm_details=None,
+                    has_static_banner=True,
+                    has_animated_banner=True,
+                )
+            ),
+        )
 
         report = Report()
         manifest = _run_all_checks(

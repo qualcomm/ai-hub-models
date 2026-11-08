@@ -64,7 +64,7 @@ on:
           default: ''
 
         runs_on:
-          description: JSON array of runner tags (e.g. '["tetra-ubuntu-2204", "self-hosted"]')
+          description: JSON array of runner tags (e.g. '["aihub-models-ubuntu-2404-ec2"]')
           type: string
 
         build_and_test_target:
@@ -94,7 +94,7 @@ env:
 jobs:
   test_export_scripts:
     name: Test Export Scripts and Upload ZIP Files${{ inputs.split_name != '' && format(' ({0})', inputs.split_name) || '' }} (using jobs from ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{inputs.action_id}})
-    runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["tetra-ubuntu-2204", "self-hosted"]') }}
+    runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["aihub-models-ubuntu-2404-ec2"]') }}
     timeout-minutes: 1440 # 24 hours
     env:
       QAIHM_TEST_ARTIFACTS_DIR: ${{ inputs.action_id == '' && 'src/qai_hub_models/scorecard/intermediates' || format('build/scorecard-yamls/{0}', inputs.action_id) }}
@@ -144,8 +144,6 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
           aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}

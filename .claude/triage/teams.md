@@ -42,7 +42,7 @@ Use this to determine where to route nightly failure issues.
 - **Sub-areas:**
   - **CLI tooling** — CLI-related issues
   - **Metadata pipeline** (`configs/model_metadata.py`, `utils/input_spec.py`) — merge_input_metadata, merge_output_metadata, TensorSpec
-  - **Export infrastructure** (`scripts/templates/export_template.j2`, `models/*/export.py`) — codegen, compile_model, link_model, profile_model
+  - **Export infrastructure** (`utils/export/`) — codegen, compile_model, link_model, profile_model
   - **Test infrastructure** (`utils/testing_export_eval.py`, `scorecard/execution_helpers.py`) — compile_via_export, link_via_export, export_test_e2e
   - **Scorecard/CI** (`scorecard/`, `scripts/build_and_test.py`) — job collection, results spreadsheet, manifest.yaml updates
   - **Model dependencies** (each model's `requirements.txt`) — wheel availability, Python version compatibility

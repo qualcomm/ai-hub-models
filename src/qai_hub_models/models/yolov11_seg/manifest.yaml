@@ -1,17 +1,6 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
 description: Ultralytics YOLOv11 is a machine learning model that predicts bounding boxes, segmentation masks and classes of objects in an image.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object segmentation optimized for mobile and edge by Ultralytics.
 id: yolov11_seg
 license: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
@@ -25,29 +14,15 @@ numerics_benchmark:
   value: 32.0
 outputs_to_skip_validation:
   '3': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- unet_segmentation
-- fastsam_x
-- mediapipe_selfie
-- yolov8_seg
-- ddrnet23_slim
 research_paper: https://docs.ultralytics.com/tasks/segment/
 research_paper_title: 'Ultralytics YOLOv11 Docs: Instance Segmentation'
 restrict_model_sharing: true
 source_repo: https://github.com/ultralytics/ultralytics/tree/main/ultralytics/models/yolo/segment
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: YOLO11N-Seg
-  Model size (float): 11.1 MB
-  Model size (w8a16): 11.4 MB
-  Number of output classes: '80'
-  Number of parameters: 2.89M
 templates:
 - ultralytics
 - yolo

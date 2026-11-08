@@ -3,20 +3,24 @@ metrics:
   dataset_link: https://www.image-net.org/
   dataset_name: imagenet_colorization
   dataset_split_description: validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 38.5
-        qnn_dlc:
-          partial_metric: 38.5
-        tflite:
-          partial_metric: 38.5
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 38.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 38.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 38.5
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of how varied the colors are in the image.
   metric_enablement_threshold: 10.0
   metric_name: Colorfulness
   metric_range:
     min: 0.0
-  metric_unit: ''
   num_partial_samples: 500
   partial_torch_metric: 38.3

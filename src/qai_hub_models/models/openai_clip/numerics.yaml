@@ -2,15 +2,20 @@ metrics:
 - dataset_link: https://cocodataset.org/
   dataset_name: coco_captions
   dataset_split_description: val2017 split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 58.6
-        qnn_dlc:
-          partial_metric: 58.6
-        tflite:
-          partial_metric: 58.6
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 58.6
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 58.6
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 58.6
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Fraction of queries where the correct result is ranked first (text-to-image direction).
   metric_enablement_threshold: 10.0
   metric_name: Recall@1

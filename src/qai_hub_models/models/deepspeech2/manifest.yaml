@@ -1,10 +1,3 @@
-applicable_scenarios:
-- Voice Assistants
-- Transcription Services
-- Accessibility
-- Voice Commands
-dataset:
-- libri_speech_test_clean
 description: DeepSpeech2 is an end-to-end automatic speech recognition (ASR) model. It uses convolutional layers for feature extraction followed by bidirectional recurrent layers and CTC for sequence-to-sequence learning.
 disabled_paths:
   float:
@@ -13,13 +6,7 @@ disabled_paths:
     qnn_dlc:
       scorecard_failure: 'Failing jobs: jgnz8worg'
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: End-to-end speech recognition model using CNN and bidirectional RNN layers with CTC loss.
 id: deepspeech2
 license: https://github.com/SeanNaren/deepspeech.pytorch/blob/master/LICENCE
@@ -27,17 +14,10 @@ license_type: apache-2.0
 name: DeepSpeech2
 pre_pip_install_commands:
 - pip install git+https://github.com/SeanNaren/deepspeech.pytorch.git@709df90 git+https://github.com/romesco/hydra-lightning/#subdirectory=hydra-configs-pytorch-lightning --no-deps
-related_models:
-- whisper_tiny
 research_paper: https://arxiv.org/abs/1512.02595
 research_paper_title: 'Deep Speech 2: End-to-End Speech Recognition in English and Mandarin'
 source_repo: https://github.com/SeanNaren/deepspeech.pytorch
-status: published
 tags:
 - foundation
 - real-time
-technical_details:
-  Input resolution: Spectrogram (800 frames x 161 features)
-  Model size: 330.48MB
-  Number of parameters: 94.6M
 use_case: Speech Recognition

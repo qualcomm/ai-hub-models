@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 
 from qai_hub_models._version import __version__
-from qai_hub_models.utils.asset_loaders import load_yaml
 
 MODELS_PACKAGE_NAME = "models"
 QAIHM_PACKAGE_NAME = "qai_hub_models"
@@ -32,21 +31,16 @@ def _get_qaihm_models_root(package_root: Path = QAIHM_PACKAGE_ROOT) -> Path:
 
 QAIHM_MODELS_ROOT = _get_qaihm_models_root()
 
+# Holds each in-tree model's internal-config.yaml, including its publish status.
+SCORECARD_MODELS_ROOT = QAIHM_PACKAGE_ROOT / "scorecard" / "models"
 
-def _get_all_models(
-    public_only: bool = False, models_root: Path = QAIHM_MODELS_ROOT
-) -> list[str]:
+
+def _get_all_models(models_root: Path = QAIHM_MODELS_ROOT) -> list[str]:
     all_models: list[str] = []
     for subdir in models_root.iterdir():
         if not subdir.is_dir():
             continue
-        # Heuristic to see if this is a model we should generate export.py for.
         if (subdir / "manifest.yaml").exists():
-            if (
-                public_only
-                and load_yaml(subdir / "manifest.yaml").get("status") != "published"
-            ):
-                continue
             all_models.append(subdir.name)
     return all_models
 

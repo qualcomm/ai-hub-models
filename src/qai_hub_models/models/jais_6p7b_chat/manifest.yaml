@@ -2,25 +2,12 @@ additional_readme_section: |
   ## Getting Started
 
   This model is available for purchase. Please [contact us](mailto:ai-hub-support@qti.qualcomm.com) to learn more about licensing options.
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Customer Support
 description: JAIS 6.7B is a bilingual large language model (LLM) for both Arabic and English developed by Inception, a G42 company in partnership with MBZUAI and Cerebras. This is a 6.7 billion parameter LLM, trained on a dataset containing 141 billion Arabic tokens and 339 billion English/code tokens. The model is based on transformer-based decoder-only (GPT-3) architecture and uses SwiGLU non-linearity. It implements ALiBi position embeddings, enabling the model to extrapolate to long sequence lengths, providing improved context handling and model precision. The JAIS family of models is a comprehensive series of bilingual English-Arabic LLMs. These models are optimized to excel in Arabic while having strong English capabilities.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: jais_6p7b_chat
 is_precompiled: true
 license_type: commercial
-llm_details:
-  call_to_action: Contact Us
-  devices: {}
-model_maker_id: g42
 model_type_llm: true
 name: JAIS-6p7b-Chat
 research_paper: https://arxiv.org/abs/2308.16149
@@ -28,20 +15,9 @@ research_paper_title: 'Jais and Jais-chat: Arabic-Centric Foundation and Instruc
 restrict_model_sharing: true
 skip_example_usage: true
 source_repo: https://huggingface.co/inceptionai/jais-family-6p7b
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - generative-ai
-technical_details:
-  Input sequence length for Prompt Processor: '128'
-  Max context length: '2048'
-  Minimum QNN SDK version required: 2.27.7
-  Number of parameters: 6.7B
-  Precision: w4a16 + w8a16 (a few layers)
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: Arabic (MSA) and English.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length (2048 tokens).
-  Use: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 use_case: Text Generation

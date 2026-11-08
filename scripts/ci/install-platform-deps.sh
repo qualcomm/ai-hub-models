@@ -36,7 +36,7 @@ end_group
 
 start_group "Ubuntu Install: install/upgrade packages"
     install_aws_cli
-    run_as_root apt-get install -y gh python3-opencv cmake libportaudio2 ffmpeg libegl-dev
+    run_as_root apt-get install -y gh python3-opencv cmake libportaudio2 ffmpeg libegl-dev build-essential
 end_group
 
 start_group "Ubuntu install: uv"
@@ -48,4 +48,8 @@ start_group "Ubuntu install: uv"
     else
         log_info "uv up to date."
     fi
+end_group
+
+start_group "Ubuntu install: python 3.10-3.12"
+    uv python install 3.10 3.11 3.12
 end_group

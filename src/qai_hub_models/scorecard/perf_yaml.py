@@ -10,13 +10,23 @@ import os
 from collections.abc import Callable
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from qai_hub_models_cli.proto import perf_pb2
 from qai_hub_models_cli.proto.shared import range_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    read_proto_yaml,
+    write_proto_yaml,
+)
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.proto_helpers import precision_to_proto, runtime_to_proto
+from qai_hub_models.configs.proto_helpers import (
+    precision_from_proto,
+    precision_to_proto,
+    runtime_from_proto,
+    runtime_to_proto,
+)
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.scorecard import ScorecardDevice, ScorecardProfilePath
 from qai_hub_models.scorecard.device import compute_peer_chipsets
@@ -43,18 +53,11 @@ class QAIHMModelPerf(BaseQAIHMConfig):
     """Schema for perf.yaml files."""
 
     class PerformanceDetails(BaseQAIHMConfig):
-        class TimeToFirstTokenRangeMilliseconds(BaseQAIHMConfig):
-            min: float
-            max: float
-
         class LLMMetricsPerContextLength(BaseQAIHMConfig):
             """LLM performance metrics for a specific context length."""
 
             context_length: int
             tokens_per_second: float
-            time_to_first_token_range_milliseconds: (
-                QAIHMModelPerf.PerformanceDetails.TimeToFirstTokenRangeMilliseconds
-            )
             prefill_tokens_per_second: float | None = None
 
             # Compute unit these metrics are intended to run on ("npu", "gpu",
@@ -103,6 +106,54 @@ class QAIHMModelPerf(BaseQAIHMConfig):
                 if compute_unit_for_most_layers == self.gpu:
                     return "GPU"
                 return "CPU"
+
+        @classmethod
+        def from_proto(
+            cls, proto: perf_pb2.ModelPerf.PerformanceDetails
+        ) -> QAIHMModelPerf.PerformanceDetails:
+            details = cls(
+                tool_versions=ToolVersions.from_proto(proto.tool_versions),
+            )
+            if proto.HasField("profile_job"):
+                details.job_id = proto.profile_job.id or None
+                details.job_status = proto.profile_job.status or None
+            if proto.HasField("metrics"):
+                metrics = proto.metrics
+                details.inference_time_milliseconds = (
+                    metrics.inference_time_milliseconds
+                )
+                details.primary_compute_unit = metrics.primary_compute_unit or None
+                if metrics.HasField("estimated_peak_memory_range_mb"):
+                    details.estimated_peak_memory_range_mb = (
+                        QAIHMModelPerf.PerformanceDetails.PeakMemoryRangeMB(
+                            min=metrics.estimated_peak_memory_range_mb.min,
+                            max=metrics.estimated_peak_memory_range_mb.max,
+                        )
+                    )
+                if metrics.HasField("layer_counts"):
+                    details.layer_counts = (
+                        QAIHMModelPerf.PerformanceDetails.LayerCounts(
+                            total=metrics.layer_counts.total,
+                            npu=metrics.layer_counts.npu,
+                            gpu=metrics.layer_counts.gpu,
+                            cpu=metrics.layer_counts.cpu,
+                        )
+                    )
+            if proto.llm_metrics:
+                details.llm_metrics = [
+                    QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
+                        context_length=m.context_length,
+                        tokens_per_second=m.tokens_per_second,
+                        prefill_tokens_per_second=(
+                            m.prefill_tokens_per_second
+                            if m.HasField("prefill_tokens_per_second")
+                            else None
+                        ),
+                        desired_compute_unit=m.desired_compute_unit,
+                    )
+                    for m in proto.llm_metrics
+                ]
+            return details
 
         # Only set for non-LLMs.
         job_id: str | None = None
@@ -421,9 +472,9 @@ class QAIHMModelPerf(BaseQAIHMConfig):
             if str(device) in similar_devices:
                 return
             profile_job = None
-            if details.job_id is not None:
+            if details.job_id is not None or details.job_status is not None:
                 profile_job = perf_pb2.ModelPerf.ProfileJob(
-                    id=details.job_id,
+                    id=details.job_id or "",
                     status=details.job_status or "",
                 )
 
@@ -450,25 +501,19 @@ class QAIHMModelPerf(BaseQAIHMConfig):
                     layer_counts=layer_counts,
                 )
 
-            llm_metrics = []
-            if details.llm_metrics:
-                for lm in details.llm_metrics:
-                    ttft = None
-                    if lm.time_to_first_token_range_milliseconds:
-                        ttft = range_pb2.DoubleRange(
-                            min=lm.time_to_first_token_range_milliseconds.min,
-                            max=lm.time_to_first_token_range_milliseconds.max,
-                        )
-                    llm_metrics.append(
-                        perf_pb2.ModelPerf.LLMPerfMetrics(
-                            context_length=lm.context_length,
-                            tokens_per_second=lm.tokens_per_second,
-                            time_to_first_token_range_milliseconds=ttft,
-                            prefill_tokens_per_second=lm.prefill_tokens_per_second,
-                            desired_compute_unit=lm.desired_compute_unit,
-                        )
-                    )
+            llm_metrics = [
+                perf_pb2.ModelPerf.LLMPerfMetrics(
+                    context_length=lm.context_length,
+                    tokens_per_second=lm.tokens_per_second,
+                    prefill_tokens_per_second=lm.prefill_tokens_per_second,
+                    desired_compute_unit=lm.desired_compute_unit,
+                )
+                for lm in details.llm_metrics or []
+            ]
 
+            component_precision = (
+                self.precisions[precision].components[component].precision
+            )
             perf_details.append(
                 perf_pb2.ModelPerf.PerformanceDetails(
                     precision=precision_to_proto(precision),
@@ -479,6 +524,11 @@ class QAIHMModelPerf(BaseQAIHMConfig):
                     profile_job=profile_job,
                     metrics=metrics,
                     llm_metrics=llm_metrics,
+                    component_precision=(
+                        precision_to_proto(component_precision)
+                        if component_precision is not None
+                        else None
+                    ),
                 )
             )
 
@@ -493,3 +543,71 @@ class QAIHMModelPerf(BaseQAIHMConfig):
             supported_chipsets=self.supported_chipsets,
             performance_metrics=perf_details,
         )
+
+    @classmethod
+    def from_proto(cls, proto: perf_pb2.ModelPerf) -> QAIHMModelPerf:
+        """Build the in-memory representation from a ``ModelPerf`` proto."""
+        precisions: dict[Precision, QAIHMModelPerf.PrecisionDetails] = {}
+        for entry in proto.performance_metrics:
+            components = precisions.setdefault(
+                precision_from_proto(entry.precision), cls.PrecisionDetails()
+            ).components
+            component = components.setdefault(entry.component, cls.ComponentDetails())
+            if entry.HasField("component_precision"):
+                component.precision = precision_from_proto(entry.component_precision)
+            path = ScorecardProfilePath.from_runtime(runtime_from_proto(entry.runtime))
+            component.performance_metrics.setdefault(
+                ScorecardDevice.parse(entry.device), {}
+            )[path] = cls.PerformanceDetails.from_proto(entry)
+
+        return cls(
+            supported_devices=[
+                ScorecardDevice.parse(d) for d in proto.supported_devices
+            ],
+            supported_chipsets=list(proto.supported_chipsets),
+            precisions=precisions,
+        )
+
+    @classmethod
+    def from_yaml(
+        cls, path: str | os.PathLike, create_empty_if_no_file: bool = False
+    ) -> QAIHMModelPerf:
+        """Read a perf.yaml, which is the YAML form of a ``ModelPerf`` proto."""
+        if create_empty_if_no_file and (
+            not os.path.exists(path) or os.path.getsize(path) == 0
+        ):
+            return cls()
+        return cls.from_proto(read_proto_yaml(path, perf_pb2.ModelPerf))
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """
+        Write this perf to ``path`` as the YAML form of a ``ModelPerf`` proto.
+
+        Entries are sorted so regenerated files have a stable order. If this perf
+        is empty, any existing file at ``path`` is deleted instead.
+
+        Parameters
+        ----------
+        path
+            Where to write the file.
+        **kwargs
+            Unused. Accepted so the signature matches ``BaseQAIHMConfig.to_yaml``.
+
+        Returns
+        -------
+        written : bool
+            True if the file was written.
+        """
+        path = Path(path)
+        if self.empty:
+            path.unlink(missing_ok=True)
+            return False
+        proto = self.to_proto("", "", exclude_similar_devices=False)
+        for entry in proto.performance_metrics:
+            if not entry.tool_versions.ListFields():
+                entry.ClearField("tool_versions")
+        proto.performance_metrics.sort(
+            key=lambda e: (e.precision, e.component, e.device, e.runtime)
+        )
+        write_proto_yaml(proto, path)
+        return True

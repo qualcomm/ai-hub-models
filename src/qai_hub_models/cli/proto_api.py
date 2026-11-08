@@ -16,23 +16,23 @@ from qai_hub_models_cli.versions import CURRENT_VERSION
 from tqdm import tqdm
 
 from qai_hub_models._version import __version__
-from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
-from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.utils.path_helpers import MODEL_IDS, is_internal_repo
 
 
 def get_manifest_proto() -> ReleaseManifest:
     """Build a ReleaseManifest from local model configs (dev installs)."""
-    # Neither the scripts package nor the scorecard one is present in release
+    # Neither the scripts package nor the internal one is present in release
     # builds, so import from both here rather than at module scope.
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
     from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
     from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
     from qai_hub_models.scripts.build_release_proto import _manifest_filter_fields
 
     def _build_entry(model_id: str) -> ManifestModelEntry | None:
-        info = QAIHMModelManifest.from_model(model_id)
-        info_proto = info.to_proto(__version__)
-        if not is_internal_repo() and info.status != MODEL_STATUS.PUBLISHED:
+        model_info = WebsiteModelInfo.from_model(model_id)
+        info = model_info.manifest
+        info_proto = model_info.to_proto(__version__)
+        if not is_internal_repo() and not model_info.is_published:
             return None
         release_assets = QAIHMModelReleaseAssets.from_model(
             model_id, not_exists_ok=True
@@ -62,7 +62,11 @@ def get_manifest_proto() -> ReleaseManifest:
 
 def get_info_proto(model_id: str) -> ModelInfo:
     """Build a ModelInfo proto from local model config (dev installs)."""
-    return QAIHMModelManifest.from_model(model_id).to_proto(__version__)
+    # The website feed spans manifest.yaml and internal-config.yaml, and the latter
+    # is internal-only, so import here to keep this module importable without it.
+    from qai_hub_models.scorecard.model_info import WebsiteModelInfo
+
+    return WebsiteModelInfo.from_model(model_id).to_proto(__version__)
 
 
 def get_perf_proto(model_id: str) -> ModelPerf:

@@ -1,26 +1,12 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Text Processing
 description: A 1.7B parameter instruction-tuned variant of SmolLM2, fine-tuned for conversational and instruction-following tasks, optimized for efficient on-device inference on Qualcomm Snapdragon platforms.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: Compact language model capable of solving a wide range of tasks while being lightweight.
 id: smollm2_1_7b_it
 is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct/blob/main/README.md
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download
-  devices: {}
-  genie_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -60,9 +46,6 @@ only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
 - geniex_qairt
 - genie
-related_models:
-- llama_v3_2_1b_instruct
-- llama_v3_2_3b_instruct
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2502.02737
 research_paper_title: 'SmolLM2: When Smol Goes Big -- Data-Centric Training of a Small Language Model'
@@ -79,16 +62,11 @@ runtime_technical_details:
     model_infer_id: ai-hub-models/SmolLM2-1_7B-Instruct
 separate_quantize_script: true
 source_repo: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - generative-ai
-technical_details:
-  Architecture: Llama-based
-  Response Rate: Rate of response generation after the first response token.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens) and the upper bound is for a prompt using the full context length (8192 tokens).
 templates:
 - llama3
 - llm

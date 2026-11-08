@@ -35,8 +35,10 @@ on:
         default: all
 
       python_version:
-        default: "3.10"
+        description: Defaults to .github/python-version
+        required: false
         type: string
+        default: ''
 
       disable_override_workbench_job_timeout:
         default: false
@@ -105,8 +107,10 @@ on:
         default: pytorch
 
       python_version:
-        default: "3.10"
+        description: Python version. Leave empty to use .github/python-version
+        required: false
         type: string
+        default: ''
 
       disable_override_workbench_job_timeout:
         description: Disable shorter workbench job timeout used for QAIHM PRs.
@@ -145,17 +149,20 @@ jobs:
   precommit_check:
     name: "Pre-commit Hook Rules Check"
     if: ${{ inputs.precommit_scope != 'NONE' && !inputs.use_public_wheel }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     env:
       QAIHM_CI_USE_EDITABLE_INSTALL: 1
-      PYTHON_VERSION: ${{inputs.python_version}}
     steps:
     - uses: actions/checkout@v7
+
+    - name: Resolve Python Version
+      env:
+        PYTHON_VERSION: ${{ inputs.python_version }}
+      run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
 
     - name: CI Setup
       uses: ./.github/actions/ci-setup
       with:
-        sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
         python-version: ${{ env.PYTHON_VERSION }}
         venv-path: ${{ env.VENV_PATH }}
         bnt-venv-install-cmd: install_global_requirements
@@ -178,7 +185,7 @@ jobs:
 
     - name: Build Protobuf Python Files
       # 3.13 and above don't support our version of grpcio-tools, which is needed to build proto.
-      if: ${{ inputs.python_version == '3.10' || inputs.python_version == '3.11' || inputs.python_version == '3.12' }}
+      if: ${{ env.PYTHON_VERSION == '3.10' || env.PYTHON_VERSION == '3.11' || env.PYTHON_VERSION == '3.12' }}
       run: |
         python3 scripts/build_and_test.py \
           --venv="${{ env.VENV_PATH }}" \
@@ -208,10 +215,9 @@ jobs:
         fi
 
   test_qaihm_unit:
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 600 # 10 hours
     env:
-      PYTHON_VERSION: ${{inputs.python_version}}
       QAIHM_TEST_DEPLOYMENT: ${{ inputs.deployment }}
       QAIHM_TEST_USE_PUBLIC_WHEEL: ${{ inputs.use_public_wheel }}
 
@@ -224,11 +230,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
+
       - name: CI Setup
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
@@ -273,21 +283,24 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-unit-py${{ inputs.python_version }}
+          name: test-results-unit-py${{ env.PYTHON_VERSION }}
           path: ${{ github.workspace }}/test-results
 
   get_changed_models:
     name: Get Changed Models
     if: ${{ inputs.models == 'changed' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
-    env:
-      PYTHON_VERSION: ${{ inputs.python_version }}
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       models: ${{ steps.get_changed.outputs.models }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
 
       - name: Get Changed Files
         run: |
@@ -303,7 +316,6 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
 
@@ -343,9 +355,8 @@ jobs:
     name: Verify Model Tests
     needs: test_qaihm_models
     if: ${{ !cancelled() && needs.test_qaihm_models.result != 'skipped' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     env:
-      PYTHON_VERSION: ${{ inputs.python_version }}
       QAIHM_TEST_DEPLOYMENT: ${{ inputs.deployment }}
       QAIHM_TEST_ARTIFACTS_DIR: build/scorecard-yamls/${{ github.run_id }}
       QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT: ${{ inputs.disable_override_workbench_job_timeout && '1' || '0' }}
@@ -353,13 +364,18 @@ jobs:
       - uses: actions/checkout@v7
         if: ${{ inputs.enable_compile_tests }}
 
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
+
       - name: Download Workbench Jobs Artifact
         id: download_artifact
         if: ${{ inputs.enable_compile_tests }}
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: Test Cached Artifact (Flaky-Job-IDs, ${{ github.run_id }}, py${{ inputs.python_version }})
+          name: Test Cached Artifact (Flaky-Job-IDs, ${{ github.run_id }}, py${{ env.PYTHON_VERSION }})
           path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
 
       - name: CI Setup
@@ -367,7 +383,6 @@ jobs:
         if: ${{ steps.download_artifact.outcome == 'success' }}
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}
@@ -399,7 +414,7 @@ jobs:
         if: ${{ always() && steps.download_artifact.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-workbench-jobs-py${{ inputs.python_version }}
+          name: test-results-workbench-jobs-py${{ env.PYTHON_VERSION }}
           path: ${{ github.workspace }}/test-results
 
       - name: Check Job Submissions
@@ -414,10 +429,9 @@ jobs:
   wheel_smoke_test:
     name: Wheel Smoke Test
     if: ${{ inputs.enable_wheel_test }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 60
     env:
-      PYTHON_VERSION: ${{ inputs.python_version }}
       QAIHM_TEST_DEPLOYMENT: ${{ inputs.deployment }}
       SMOKE_MODEL: sinet
       COMPILE_MARKER: "Optimizing model"
@@ -427,11 +441,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
+
       - name: CI Setup
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}
@@ -455,7 +473,11 @@ jobs:
 
       - name: Create fresh venv and install wheels
         run: |
-          "${{ steps.ci_setup.outputs.python-path }}" -m venv "${RUNNER_TEMP}/wheel_venv"
+          if command -v uv > /dev/null; then
+            uv venv --seed --python "${{ steps.ci_setup.outputs.python-path }}" "${RUNNER_TEMP}/wheel_venv"
+          else
+            "${{ steps.ci_setup.outputs.python-path }}" -m venv "${RUNNER_TEMP}/wheel_venv"
+          fi
           # shellcheck disable=SC1091
           source "${RUNNER_TEMP}/wheel_venv/bin/activate"
           pip install --upgrade pip
@@ -504,18 +526,20 @@ jobs:
     name: Combine Test Results
     needs: [precommit_check, test_qaihm_unit, test_qaihm_models, verify_model_tests]
     if: ${{ always() }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
-    env:
-      PYTHON_VERSION: ${{ inputs.python_version }}
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: actions/checkout@v7
+
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
 
       - name: CI Setup
         id: ci_setup
         if: ${{ inputs.generate_test_summary }}
         uses: ./.github/actions/ci-setup
         with:
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           python-version: ${{ env.PYTHON_VERSION }}
           venv-path: ${{ env.VENV_PATH }}
 
@@ -524,7 +548,7 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: test-results-unit-py${{ inputs.python_version }}
+          name: test-results-unit-py${{ env.PYTHON_VERSION }}
           path: build/all-test-results/unit-tests
 
       - name: Download 'QAIHM Model Tests' Results
@@ -533,7 +557,7 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: test-results-models-py${{ inputs.python_version }}
+          name: test-results-models-py${{ env.PYTHON_VERSION }}
           path: build/all-test-results/model-tests
 
       - name: Download 'Verify Model Tests' Results
@@ -542,7 +566,7 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: test-results-workbench-jobs-py${{ inputs.python_version }}
+          name: test-results-workbench-jobs-py${{ env.PYTHON_VERSION }}
           path: build/all-test-results/workbench-jobs
 
       - name: Generate Test Summary
@@ -574,7 +598,7 @@ jobs:
           fi
 
           python -m qai_hub_models.scripts.generate_test_summary \
-            --title "py${{ inputs.python_version }} Test" \
+            --title "py${{ env.PYTHON_VERSION }} Test" \
             "${FAILURE_ARGS[@]}" \
             "${TEST_ARGS[@]}" \
             --output build/combined-test-results/summary.md
@@ -589,7 +613,7 @@ jobs:
       - name: Upload Combined Test Results
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-py${{ inputs.python_version }}
+          name: test-results-py${{ env.PYTHON_VERSION }}
           path: build/combined-test-results
 
       - name: Delete Individual Test Results
@@ -597,17 +621,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Delete unit test results
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-unit-py${{ inputs.python_version }}\") | .id" | while read artifact_id; do
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-unit-py${{ env.PYTHON_VERSION }}\") | .id" | while read artifact_id; do
             echo "Deleting artifact $artifact_id"
             gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
           done
           # Delete model test results (split artifacts)
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-models-py${{ inputs.python_version }}\") | .id" | while read artifact_id; do
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-models-py${{ env.PYTHON_VERSION }}\") | .id" | while read artifact_id; do
             echo "Deleting artifact $artifact_id"
             gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
           done
           # Delete workbench jobs test results
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-workbench-jobs-py${{ inputs.python_version }}\") | .id" | while read artifact_id; do
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-workbench-jobs-py${{ env.PYTHON_VERSION }}\") | .id" | while read artifact_id; do
             echo "Deleting artifact $artifact_id"
             gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
           done

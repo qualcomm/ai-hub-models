@@ -21,9 +21,6 @@ import itertools
 import json
 import logging
 
-from qai_hub_models.utils.base_multi_graph_collection_model import (
-    MultiGraphWorkbenchModelCollection,
-)
 from qai_hub_models.utils.base_multi_graph_model import (
     MultiGraphWorkbenchModel,
 )
@@ -65,10 +62,14 @@ from qai_hub_models.models.templates.llm.llm_helpers import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_CONTEXT_LENGTH,
     DEFAULT_SEQUENCE_LENGTH,
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
     DynamicPreSplitOnnxMixin,
     DynamicQuantizablePreSplitMixin,
+    LLMCollectionBase,
     LLMDynamic_AIMETOnnx,
     LLMPartBase,
+    QuantizeFullTypeW8A16Mixin,
     SingleSlotCacheMixin,
     get_onnx_model,
     get_tokenizer,
@@ -126,7 +127,7 @@ HF_REPO_NAME = "Qwen/Qwen2.5-VL-7B-Instruct"
 HF_REPO_URL = f"https://huggingface.co/{HF_REPO_NAME}"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 80
+MIN_MEMORY_RECOMMENDED = 150
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16
@@ -314,7 +315,13 @@ class Qwen2_5_VL_7B_PreSplit(
 # ---------------------------------------------------------------------------
 
 
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
 class Qwen2_5_VL_7B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
     DynamicQuantizablePreSplitMixin["Qwen2_5_VL_7B_PreSplit"],
     Qwen2VLDynamic_AIMETOnnx,
 ):
@@ -1175,7 +1182,9 @@ class Qwen2_5_VL_7B_Part5_Of_5(Qwen2_5_VL_7B_PartBase):
 # ---------------------------------------------------------------------------
 # Collection Class
 # ---------------------------------------------------------------------------
-class Qwen2_5_VL_7B_Collection(MultiGraphWorkbenchModelCollection):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
     """
     Unified Collection with 5 text Parts + 1 Vision Encoder for Qwen2.5-VL-7B.
 

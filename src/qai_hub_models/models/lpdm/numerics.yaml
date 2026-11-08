@@ -1,0 +1,36 @@
+metrics:
+- benchmark_value: 26.0
+  dataset_link: https://universe.roboflow.com/zara-hara/car-plate-k6xij/dataset/26
+  dataset_name: roboflow_car_plate
+  dataset_split_description: valid split (Roboflow car-plate-k6xij v26)
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 26.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 26.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 26.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 26.0
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 26.0
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
+  metric_description: Fraction of images where plate category (characters left of the emirate logo), plate number (characters right of the logo), and plate state (emirate) all exactly match ground truth.
+  metric_enablement_threshold: 10.0
+  metric_name: Plate String Accuracy
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: '%'
+  num_partial_samples: 100
+  partial_torch_metric: 26.0

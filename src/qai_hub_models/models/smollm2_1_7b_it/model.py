@@ -27,7 +27,13 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.lm_driver.generator import HubCompatibleGenerator
 
 # LLMIOType is re-exported from this module so the CLI input-spec parser can
@@ -182,8 +188,14 @@ class Smollm2_1_7B_Instruct_PreSplit(LlamaPreSplitBase):
         )
 
 
-class Smollm2_1_7B_Instruct_QuantizablePreSplit(
-    LlamaQuantizablePreSplitBase[Smollm2_1_7B_Instruct_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Smollm2_1_7B_Instruct_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    LlamaQuantizablePreSplitBase[Smollm2_1_7B_Instruct_PreSplit],
 ):
     """Quantizable PreSplit for Smollm2 1.7B Instruct."""
 
@@ -241,7 +253,9 @@ class Smollm2_1_7B_Instruct_QuantizablePreSplit(
         gc.collect()
 
 
-class Smollm2_1_7B_Instruct_PartBase(LlamaPartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Smollm2_1_7B_Instruct_PartBase(QuantizeFullTypeW8A16PartMixin, LlamaPartBase):
     """Unified Part base for Smollm2 1.7B Instruct."""
 
     num_splits = NUM_SPLITS
@@ -300,7 +314,11 @@ class FPSplitModelWrapper(SplitForwardMixin, Smollm2_1_7B_Instruct_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Smollm2_1_7B_Instruct_Collection(LlamaPreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Smollm2_1_7B_Instruct_Collection(
+    CollectionCompileO0Mixin, LlamaPreSplitCollectionBase
+):
     """Unified Collection with 3 Parts for Smollm2 1.7B Instruct."""
 
     hf_repo_name = HF_REPO_NAME

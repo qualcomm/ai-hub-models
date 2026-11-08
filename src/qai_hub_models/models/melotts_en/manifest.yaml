@@ -1,17 +1,8 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
 datasets:
 - common_voice
 description: MeloTTS is a high-quality multi-lingual text-to-speech library for English, Chinese, Korean, Japanese and Spanish language.
 disabled_paths: {}
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: High-quality text-to-speech for English.
 id: melotts_en
 is_collection_model: true
@@ -30,37 +21,15 @@ readme_install_system_deps: |
   ```bash
   sudo apt install libportaudio2
   ```
-related_models:
-- melotts_es
-- melotts_zh
-- pipertts_en
 requires_aot_prepare: true
 research_paper: https://github.com/myshell-ai/MeloTTS
 research_paper_title: MeloTTS High-quality Multi-lingual Multi-accent Text-to-Speech
 source_repo: https://github.com/myshell-ai/MeloTTS
-status: published
 supported_precisions:
 - w8a16
 - mixed_with_float
 tags:
 - real-time
-technical_details:
-  Max decoded sequence length: 512 tokens
-  Model checkpoint: myshell-ai/MeloTTS-English
-  Model size (bert_wrapper) (float): 360 MB
-  Model size (charsiu_decoder) (float): 21.8 MB
-  Model size (charsiu_encoder) (float): 57.5 MB
-  Model size (decoder) (float): 55.5 MB
-  Model size (encoder) (float): 30.5 MB
-  Model size (flow) (float): 76.9 MB
-  Model size (sdp) (float): 1.52 MB
-  Number of parameters (bert_wrapper): 94.5M
-  Number of parameters (charsiu_decoder): 5.72M
-  Number of parameters (charsiu_encoder): 15.1M
-  Number of parameters (decoder): 14.5M
-  Number of parameters (encoder): 7.97M
-  Number of parameters (flow): 20.1M
-  Number of parameters (sdp): 395K
 templates:
 - melotts
 use_case: Audio Generation

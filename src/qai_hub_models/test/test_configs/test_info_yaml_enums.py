@@ -57,6 +57,7 @@ class TestModelLicenseHuggingFaceName:
             MODEL_LICENSE.COMMERCIAL,
             MODEL_LICENSE.OTHER_NON_COMMERCIAL,
             MODEL_LICENSE.AIMET_MODEL_ZOO,
+            MODEL_LICENSE.LFM1_0,
         ],
     )
     def test_licenses_hf_does_not_know_fall_back_to_other(

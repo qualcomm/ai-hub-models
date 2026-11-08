@@ -1,27 +1,12 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: MobileNetV2 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
 external_repos:
   pytorch_mobilenet_v2:
     commit_sha: 99f213657e97de463c11c9e0eaca3bda598e8b3f
     repo_url: https://github.com/tonylins/pytorch-mobilenet-v2.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: mobilenet_v2
-imsdk_supported: true
 license: https://github.com/tonylins/pytorch-mobilenet-v2/blob/master/LICENSE
 license_type: apache-2.0
 name: MobileNet-v2
@@ -31,14 +16,9 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 71.9
-related_models:
-- squeezenet1_1
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/1801.04381
 research_paper_title: 'MobileNetV2: Inverted Residuals and Linear Bottlenecks'
 source_repo: https://github.com/tonylins/pytorch-mobilenet-v2/tree/master
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
@@ -47,12 +27,6 @@ supported_precisions:
 tags:
 - backbone
 - real-time
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 13.3 MB
-  Model size (w8a16): 4.39 MB
-  Number of parameters: 3.49M
 templates:
 - imagenet_classifier
 use_case: Image Classification

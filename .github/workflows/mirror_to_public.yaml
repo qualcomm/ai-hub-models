@@ -12,7 +12,7 @@ concurrency:
 jobs:
   mirror-history:
     name: Mirror to History Branch
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
 
     steps:
       - uses: actions/checkout@v7
@@ -54,7 +54,7 @@ jobs:
 
   mirror-public:
     name: Push to Public Repo
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
 
     steps:
       - uses: actions/checkout@v7

@@ -7,12 +7,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from PIL import Image
-from transformers import PreTrainedTokenizerBase
 
+from qai_hub_models.datasets.device_eval import (
+    DeviceEvalDataset,
+    DeviceEvalItem,
+    register_device_eval_dataset,
+)
 from qai_hub_models.models.templates.llm.grace_tasks import (
     GRACE_DOC_URL,
     MULTIMODAL_TASK_NAME,
@@ -29,6 +33,11 @@ from qai_hub_models.utils.base_dataset import (
     DatasetMetadata,
     DatasetSplit,
 )
+from qai_hub_models.utils.metrics import GRACE2_GRADE, MetricMetadata
+
+# Type-only: collect_llm_accuracy_csv imports this module from a venv without transformers.
+if TYPE_CHECKING:
+    from transformers import PreTrainedTokenizerBase
 
 MULTIMODAL_DATASET_ID = MULTIMODAL_TASK_NAME
 MULTIMODAL_VERSION = 1
@@ -81,7 +90,8 @@ def _format_text_prompt(
     return formatted_prompt
 
 
-class Grace2(BaseDataset):
+@register_device_eval_dataset
+class Grace2(BaseDataset, DeviceEvalDataset):
     """The Grace2 prompt set: 10 categories x 10 text-only prompts.
 
     Yields items shaped like the other LLM eval datasets so they collate the
@@ -162,6 +172,20 @@ class Grace2(BaseDataset):
     @classmethod
     def dataset_name(cls) -> str:
         return GRACE_TASK_NAME
+
+    @classmethod
+    def device_eval_items(cls) -> list[DeviceEvalItem]:
+        return [
+            DeviceEvalItem(p.idx, p.prompt, p.category) for p in load_eval_prompts()
+        ]
+
+    @classmethod
+    def metric_metadata(cls) -> MetricMetadata:
+        return GRACE2_GRADE
+
+    @classmethod
+    def doc_url(cls) -> str:
+        return GRACE_DOC_URL
 
 
 def _multimodal_image_asset(filename: str) -> CachedWebDatasetAsset:

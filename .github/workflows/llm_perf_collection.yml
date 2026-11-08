@@ -50,6 +50,12 @@ on:
         default: true
         type: boolean
 
+      eval_dataset:
+        description: 'Device-eval dataset for run_eval (e.g. "grace2"). Blank uses grace2.'
+        required: false
+        default: ''
+        type: string
+
       create_pr:
         description: 'Create PR with perf.yaml changes'
         default: true
@@ -92,6 +98,11 @@ on:
         type: boolean
         default: true
 
+      eval_dataset:
+        description: 'Device-eval dataset for run_eval. Blank uses grace2.'
+        type: string
+        default: ''
+
       create_pr:
         description: 'Create PR with perf.yaml changes'
         type: boolean
@@ -110,7 +121,7 @@ defaults:
 jobs:
   prepare_matrix:
     name: "Split Devices By QDC Pool"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       matrix_include: ${{ steps.split.outputs.matrix_include }}
     steps:
@@ -129,7 +140,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.prepare_matrix.outputs.matrix_include) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 2880
     permissions:
       contents: read
@@ -217,6 +228,7 @@ jobs:
         QAIHM_LLM_EVAL_DEVICE_SCOPE: ${{ env.QAIHM_TEST_DEVICES_RESOLVED }}
         QAIHM_LLM_PERF_PRECISIONS: ${{ inputs.precision }}
         QAIHM_RUN_EVAL: ${{ inputs.run_eval }}
+        QAIHM_EVAL_DATASET: ${{ inputs.eval_dataset || '' }}
         QAIHM_TEST_QAIRT_VERSION: ${{ inputs.qairt_version || 'qaihm_default' }}
         QAIHM_LLM_PERF_RELEASE_ASSETS: ${{ inputs.release_assets_action_id != '' && format('{0}/llm-release-assets/release-assets.yaml', github.workspace) || '' }}
         AWS_ROLE_ARN: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
@@ -243,6 +255,7 @@ jobs:
         QAIHM_LLM_EVAL_DEVICE_SCOPE: ${{ env.QAIHM_TEST_DEVICES_RESOLVED }}
         QAIHM_LLM_PERF_PRECISIONS: ${{ inputs.precision }}
         QAIHM_RUN_EVAL: ${{ inputs.run_eval }}
+        QAIHM_EVAL_DATASET: ${{ inputs.eval_dataset || '' }}
         QAIHM_TEST_QAIRT_VERSION: ${{ inputs.qairt_version || 'qaihm_default' }}
         QAIHM_LLM_PERF_UPDATES: ${{ github.workspace }}/genie_perf_updates_${{ matrix.pool }}.jsonl
         QAIHM_LLM_PERF_RELEASE_ASSETS: ${{ inputs.release_assets_action_id != '' && format('{0}/llm-release-assets/release-assets.yaml', github.workspace) || '' }}
@@ -326,7 +339,7 @@ jobs:
     name: "Consolidate Perf Updates → PR"
     needs: collect_llm_perf
     if: ${{ !cancelled() && inputs.create_pr }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 60
     permissions:
       contents: write
@@ -459,7 +472,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       is_grader: true
       deployment: ${{ inputs.deployment || 'prod' }}
       grader_artifacts_run_id: ${{ github.run_id }}

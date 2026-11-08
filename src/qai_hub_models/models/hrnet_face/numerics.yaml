@@ -3,22 +3,31 @@ metrics:
   dataset_link: https://1drv.ms/u/s!AiWjZ1LamlxzdmYbSkHpPYhI8Ms
   dataset_name: cofw
   dataset_split_description: COFW train or test split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 0.0335
-        qnn_dlc:
-          partial_metric: 0.0335
-        tflite:
-          partial_metric: 0.0335
-      w8a8:
-        onnx:
-          partial_metric: 0.0348
-        qnn_dlc:
-          partial_metric: 0.0348
-        tflite:
-          partial_metric: 0.0348
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0335
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0335
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0335
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0348
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0348
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 0.0348
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
   higher_is_better: false
   metric_description: Average keypoint error normalized by inter-ocular distance (COFW dataset).
   metric_enablement_threshold: 0.01

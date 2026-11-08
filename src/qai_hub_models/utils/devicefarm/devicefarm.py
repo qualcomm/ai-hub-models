@@ -262,6 +262,7 @@ class DeviceFarm(ABC):
         entry_script: str | None,
         job_name: str,
         timeout: int = DEFAULT_JOB_TIMEOUT,
+        job_timeout: int | None = None,
     ) -> str:
         """
         Zip ``entries``, upload the bundle, and submit an automated job for it.
@@ -291,6 +292,11 @@ class DeviceFarm(ABC):
         timeout
             Maximum seconds to wait for a device/job slot to free up before
             submission gives up. Does not bound job execution time.
+        job_timeout
+            Maximum seconds the job may run on the device. If None, the
+            backend's default applies: QDC uses its fixed default run
+            timeout, and AWS Device Farm falls back to ``timeout`` (which on
+            AWS does bound execution).
 
         Returns
         -------

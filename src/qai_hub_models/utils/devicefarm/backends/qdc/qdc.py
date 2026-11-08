@@ -91,6 +91,8 @@ POLL_INTERVAL = 30
 # (5xx) endpoint on tight upload/download loops that have no outer throttle.
 RETRY_BACKOFF_BASE = 5
 RETRY_BACKOFF_MAX = 300
+# Default seconds QDC lets a submitted job run on the device.
+QDC_DEFAULT_JOB_RUN_TIMEOUT = 600
 # QDC submission fail if name exceeds this
 QDC_JOB_NAME_LIMIT = 32
 # Number of consecutive errors tolerated when polling status. With BASE=5 and
@@ -265,9 +267,10 @@ def _call_with_retry(
 
     Used to wrap QDC SDK calls that talk to the network and are safe to repeat:
     status polling (``get_jobs_job_id``), log retrieval/download
-    (``get_jobs_download_logs``), artifact upload (``upload_file``, whose only
-    commit point is the final chunk and which returns the uuid of the
-    successful attempt), and job submission (``submit_job``).
+    (``get_jobs_presigned_download_logs``), artifact upload
+    (``upload_file_v2``, whose only commit point is the final ``end_upload_v2``
+    and which returns the uuid of the successful attempt), and job submission
+    (``submit_job``).
 
     Parameters
     ----------
@@ -512,6 +515,7 @@ class QDCDeviceFarm(DeviceFarm):
         entry_script: str | None,
         job_name: str,
         timeout: int = DEFAULT_JOB_TIMEOUT,
+        job_timeout: int | None = None,
     ) -> str:
         """
         Zip ``entries``, upload the bundle to QDC, and submit an automated job for it.
@@ -541,6 +545,9 @@ class QDCDeviceFarm(DeviceFarm):
             Job name shown in QDC; truncated to ``QDC_JOB_NAME_LIMIT``.
         timeout
             Unused by this backend; see above.
+        job_timeout
+            Seconds QDC lets the job run on the device before aborting it.
+            Defaults to ``QDC_DEFAULT_JOB_RUN_TIMEOUT`` when None.
 
         Returns
         -------
@@ -553,7 +560,13 @@ class QDCDeviceFarm(DeviceFarm):
             create_zip_from_entries(zip_path, entries)
             artifact_id = self._upload_file(zip_path, ArtifactType.TESTSCRIPT)
         return self._submit_automated_job(
-            qdc_device, [artifact_id], entry_script, job_name=job_name
+            qdc_device,
+            [artifact_id],
+            entry_script,
+            job_name=job_name,
+            job_timeout=QDC_DEFAULT_JOB_RUN_TIMEOUT
+            if job_timeout is None
+            else job_timeout,
         )
 
     def _submit_automated_job(
@@ -562,6 +575,7 @@ class QDCDeviceFarm(DeviceFarm):
         job_artifacts: list[str],
         entry_script: str | None,
         job_name: str = "QDC Automated Job",
+        job_timeout: int = QDC_DEFAULT_JOB_RUN_TIMEOUT,
     ) -> str:
         """
         Submit an automated application job to QDC and return its job_id.
@@ -580,6 +594,8 @@ class QDCDeviceFarm(DeviceFarm):
             Optional entry script path for the job.
         job_name
             Name of the job to submit.
+        job_timeout
+            Seconds QDC lets the job run on the device before aborting it.
 
         Returns
         -------
@@ -597,7 +613,7 @@ class QDCDeviceFarm(DeviceFarm):
                     external_job_id="ExJobId001",
                     job_type=JobType.AUTOMATED,
                     job_mode=JobMode.APPLICATION,
-                    timeout=600,
+                    timeout=job_timeout,
                     test_framework=qdc_device.test_framework,
                     entry_script=entry_script,
                     job_artifacts=job_artifacts,
@@ -709,14 +725,20 @@ class QDCDeviceFarm(DeviceFarm):
         target_path
             Local path to save the downloaded file.
         """
-        # Safe to retry as-is: the SDK fetches the whole file into memory inside
-        # its own request, and only opens target_path (mode 'wb', single write)
-        # after a 200 response. A failed attempt never touches the file, and a
-        # later success truncates it -- so no partial/corrupt file can persist.
-        _call_with_retry(
-            lambda: qdc_api.download_job_log_files(self.client, filename, target_path),
-            f"download_job_log_files({filename})",
-        )
+        # v2 serves the raw file from a presigned URL; re-wrap it into the
+        # single-entry zip that v1 returned and callers unpack. Safe to retry:
+        # each attempt rewrites raw_path in a single 'wb' write.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            raw_path = os.path.join(tmpdir, "log")
+            _call_with_retry(
+                lambda: qdc_api.download_job_log_files_v2(
+                    self.client, filename, raw_path
+                ),
+                f"download_job_log_files_v2({filename})",
+            )
+            create_zip_from_entries(
+                target_path, [(raw_path, os.path.basename(filename))]
+            )
 
     def _upload_file(self, file_path: str, artifact_type: ArtifactType) -> str:
         """Upload a file to QDC.
@@ -733,14 +755,15 @@ class QDCDeviceFarm(DeviceFarm):
         artifact_id: str
             ID of the uploaded artifact.
         """
-        # The SDK uploads large bundles in chunks (start -> continue -> end); the
-        # artifact only commits at the final `end_upload`, and upload_file returns
-        # the uuid of the *successful* attempt -- so a retry after a mid-transfer
-        # drop at worst leaves an orphaned, unreferenced partial artifact server-
-        # side (a benign leak), never a duplicate job. We therefore still retry
-        # network errors here. The 403 actually observed in CI lands on the first
-        # call (post_artifacts_start_upload), before anything is committed.
-        return _call_with_retry(
-            lambda: qdc_api.upload_file(self.client, file_path, artifact_type),
-            f"upload_file({file_path})",
+        # The SDK uploads to presigned URLs (start -> PUT parts -> end); the
+        # artifact only commits at the final `end_upload_v2`, and upload_file_v2
+        # returns the uuid of the *successful* attempt -- so a retry after a
+        # mid-transfer drop at worst leaves an orphaned, unreferenced partial
+        # artifact server-side (a benign leak), never a duplicate job.
+        artifact_id = _call_with_retry(
+            lambda: qdc_api.upload_file_v2(self.client, file_path, artifact_type),
+            f"upload_file_v2({file_path})",
         )
+        if artifact_id is None:
+            raise RuntimeError(f"upload_file_v2 returned None for {file_path}")
+        return artifact_id

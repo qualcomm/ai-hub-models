@@ -1,62 +1,30 @@
-name: Detectron2-Panoptic-Segmentation
-id: detectron2_panoptic_seg
-status: pending
-headline: Panoptic segmentation combining instance and semantic predictions on COCO.
-domain: Computer Vision
+datasets:
+- coco
 description: Detectron2-Panoptic-Segmentation is a machine learning model that performs panoptic segmentation (trained on COCO dataset), combining instance and semantic segmentation.
-use_case: Semantic Segmentation
-tags: []
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-related_models:
-- detectron2_detection
-- mask2former
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_static_banner: true
-has_animated_banner: false
-dataset:
-- detection-datasets/coco
-technical_details:
-  Model checkpoint: panoptic_fpn_R_50_1x
-  Input resolution: 800x800
-  Number of parameters: 46.0M
-  Model size (float): 176 MB
-license_type: apache-2.0
-source_repo: https://github.com/facebookresearch/detectron2/
+domain: Computer Vision
+has_on_target_demo: true
+headline: Panoptic segmentation combining instance and semantic predictions on COCO.
+id: detectron2_panoptic_seg
+is_collection_model: true
 license: https://github.com/facebookresearch/detectron2/blob/main/LICENSE
+license_type: apache-2.0
+name: Detectron2-Panoptic-Segmentation
 numerics_benchmark:
   dataset_name: coco
   metric_name: Panoptic Quality
-  value: 39.4
-  unit: PQ
   source: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
-  # Reference PQ is the detectron2 MODEL_ZOO number at native resolution
-  # (ResizeShortestEdge: short side 800, long side up to 1333). This recipe
-  # uses a fixed 800x800 letterbox for a smaller/faster on-device model, which
-  # costs ~4 PQ (verified against native detectron2 on the same images: 25.8 vs
-  # 29.9; the gap is almost entirely Things and closes at 1024x1024). This is a
-  # resolution trade-off, not a numerics defect, and applies to all precisions.
+  unit: PQ
+  value: 39.4
+post_pip_install_commands:
+- pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
+pre_pip_install_commands:
+- pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
+source_repo: https://github.com/facebookresearch/detectron2/
 supported_precisions:
 - float
 - mixed
-has_on_target_demo: true
-disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Compilation Failure(s): Detectron2PanopticROIHead'
-is_collection_model: true
-datasets:
-- coco
 templates:
 - detectron2
 - proposal_based_detection
 - panoptic_seg
-pre_pip_install_commands:
-- pip install "torch>=2.1,<2.12.0" "setuptools>=80"
-post_pip_install_commands:
-- pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
+use_case: Semantic Segmentation

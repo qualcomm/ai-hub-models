@@ -26,7 +26,6 @@ class ScorecardCompilePath(Enum):
     TFLITE = "tflite"
     TFL_CONVERTER = "tfl_converter"
     QNN_DLC = "qnn_dlc"
-    QNN_DLC_VIA_QNN_EP = "qnn_dlc_via_qnn_ep"
     QNN_CONTEXT_BINARY = "qnn_context_binary"
     ONNX = "onnx"
     PRECOMPILED_QNN_ONNX = "precompiled_qnn_onnx"
@@ -95,10 +94,7 @@ class ScorecardCompilePath(Enum):
             return TargetRuntime.PRECOMPILED_QNN_ONNX
         if self == ScorecardCompilePath.QNN_CONTEXT_BINARY:
             return TargetRuntime.QNN_CONTEXT_BINARY
-        if (
-            self == ScorecardCompilePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardCompilePath.QNN_DLC_VIA_QNN_EP
-        ):
+        if self == ScorecardCompilePath.QNN_DLC:
             return TargetRuntime.QNN_DLC
         if self == ScorecardCompilePath.GENIE:
             return TargetRuntime.GENIE
@@ -118,6 +114,18 @@ class ScorecardCompilePath(Enum):
     def supports_precision(self, precision: Precision) -> bool:
         if self == ScorecardCompilePath.ONNX_FP16:
             return not precision.has_quantized_activations
+
+        if self == ScorecardCompilePath.TFL_CONVERTER:
+            return precision in {
+                Precision.float,
+                Precision.mixed_with_float,
+                Precision.w8a8,
+                Precision.w8a16,
+                Precision.mixed,
+                Precision.w8a8_mixed_int16,
+                Precision.w8a16_mixed_int16,
+                Precision.w8a16_mixed_fp16,
+            }
 
         return self.runtime.supports_precision(precision)
 
@@ -181,9 +189,6 @@ class ScorecardCompilePath(Enum):
         out += self._get_qairt_version_option(
             include_default=include_default_qaihm_qnn_version
         )
-
-        if self == ScorecardCompilePath.QNN_DLC_VIA_QNN_EP:
-            out = out + " --use_qnn_onnx_ep_converter"
 
         if self == ScorecardCompilePath.TFL_CONVERTER:
             out = out + " --use_tfl_converter"

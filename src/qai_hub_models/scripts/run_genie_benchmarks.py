@@ -11,6 +11,8 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
+from qai_hub_models.datasets.device_eval import DEFAULT_DEVICE_EVAL_DATASET
+
 if TYPE_CHECKING:
     from qai_hub_models.scorecard.device import ScorecardDevice
 
@@ -80,6 +82,7 @@ def _cmd_submit(args: argparse.Namespace) -> int:
                 jobs_file=args.jobs_file,
                 qairt_sdk_path=cfg.qairt_sdk_path,
                 skip_perf_update=cfg.skip_perf_update,
+                eval_dataset=args.eval_dataset,
             )
             submitted += 1
             cases.append((case_name, None))
@@ -138,6 +141,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
                 output_dir=os.path.join(model_id, GENIE_BUNDLES_ROOT),
                 qairt_sdk_path=cfg.qairt_sdk_path,
                 skip_perf_update=cfg.skip_perf_update,
+                eval_dataset=args.eval_dataset,
             )
         except Exception as e:
             print(
@@ -166,6 +170,16 @@ def _cmd_collect(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_eval_dataset_arg(parser: argparse.ArgumentParser) -> None:
+    # Submit and collect must agree: collect re-parses the logs against this dataset's prompts.
+    parser.add_argument(
+        "--eval-dataset",
+        default=os.environ.get("QAIHM_EVAL_DATASET") or DEFAULT_DEVICE_EVAL_DATASET,
+        help="Device-eval dataset to run when on-device accuracy is on. Defaults "
+        "to the QAIHM_EVAL_DATASET env var, else %(default)s.",
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -188,12 +202,14 @@ def main() -> int:
         default=DEFAULT_POLL_INTERVAL,
         help="Seconds between queue checks while throttled.",
     )
+    _add_eval_dataset_arg(p_submit)
 
     p_collect = sub.add_parser(
         "collect", help="Poll jobs listed in the jobs file and update perf.yaml."
     )
     p_collect.add_argument("--jobs-file", required=True)
     p_collect.add_argument("--junit-xml", default=None)
+    _add_eval_dataset_arg(p_collect)
 
     args = ap.parse_args()
     if args.cmd == "submit":

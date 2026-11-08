@@ -1,17 +1,12 @@
-precisions:
-  w4a16:
-    components:
-      JAIS-6p7b-Chat:
-        performance_metrics:
-          Dragonwing Q-8750:
-            qnn_context_binary:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                time_to_first_token_range_milliseconds:
-                  max: 3811.696
-                  min: 238.231
-                tokens_per_second: 13.33
+performance_metrics:
+- component: JAIS-6p7b-Chat
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    tokens_per_second: 13.33
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-for-galaxy
 - qualcomm-qcs8750

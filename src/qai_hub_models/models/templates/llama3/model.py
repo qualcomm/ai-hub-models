@@ -64,6 +64,7 @@ from qai_hub_models.models.templates.llm.model import (
 )
 from qai_hub_models.utils.aimet.encodings import propagate_memory_encodings
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
+from qai_hub_models.utils.envvars import CheckpointEnvvar
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 from qai_hub_models.utils.onnx.helpers import (
     ONNXBundle,
@@ -548,6 +549,9 @@ class LlamaDynamicQuantizablePreSplitMixin(DynamicQuantizablePreSplitMixin[FPMod
     ) -> tuple[str, FPModelT | None]:
         """Fetch encodings only and export ONNX from the FP torch model.
 
+        QAIHM_TEST_CHECKPOINT takes the encodings from a private-bucket zip
+        instead of the asset store; the ONNX is still re-exported.
+
         Parameters
         ----------
         precision
@@ -564,15 +568,22 @@ class LlamaDynamicQuantizablePreSplitMixin(DynamicQuantizablePreSplitMixin[FPMod
         """
         from qai_hub_models.utils.printing import print_with_box
 
-        precision_checkpoint = cls.default_checkpoint[precision]
-        encodings_path = str(
-            CachedWebModelAsset.from_asset_store(
-                cls.model_id,
-                cls.model_asset_version,
-                f"{precision_checkpoint}/model.encodings",
-            ).fetch()
-        )
-        checkpoint = str(Path(encodings_path).parent)
+        # Encodings only, from the private zip rather than the asset store. This
+        # family's license does not cover redistributing the weights, so the
+        # ONNX is re-exported below either way.
+        private_key = CheckpointEnvvar.get()
+        if private_key:
+            checkpoint = str(cls.fetch_default_checkpoint(precision))
+        else:
+            precision_checkpoint = cls.default_checkpoint[precision]
+            encodings_path = str(
+                CachedWebModelAsset.from_asset_store(
+                    cls.model_id,
+                    cls.model_asset_version,
+                    f"{precision_checkpoint}/model.encodings",
+                ).fetch()
+            )
+            checkpoint = str(Path(encodings_path).parent)
 
         # Create FP model for ONNX export + tokenizer/config
         if fp_model is None:

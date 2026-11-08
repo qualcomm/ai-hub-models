@@ -180,16 +180,16 @@ if [ "$RUN_EVAL" = "1" ]; then
   EVAL_ERR=$LOG/geniex_eval_stderr.txt
 
   # Retry a random device flake once, but not a "Context length exceeded"
-  # overflow -- that's a legit long generation, so keep the partial [gen] output
-  # and move on. Each attempt writes to fresh temp files so the accepted
+  # overflow or a geniex-bench self-abort -- those are legit long/diverging
+  # generations, so keep the partial [gen] output and move on. Each attempt writes to fresh temp files so the accepted
   # attempt's output goes under the ===EVAL_IDX=== marker exactly once; a
   # first-attempt failure's [gen] lines are not concatenated with the retry.
   # $1 = per-prompt stdout tmp; $2 = per-prompt stderr tmp; $3.. = the command.
   geniex_eval_retry() {
     local out="$1"; local err="$2"; shift 2
     "$@" >"$out" 2>"$err" && return 0
-    if grep -q "Context length exceeded" "$err"; then
-      echo "geniex_eval_retry: context length exceeded, skipping retry: $*" >&2
+    if grep -qE "Context length exceeded|self-abort: reason=" "$out" "$err"; then
+      echo "geniex_eval_retry: context overflow or self-abort, skipping retry: $*" >&2
       return 0
     fi
     echo "geniex_eval_retry: command failed, retrying once: $*" >&2
@@ -204,13 +204,18 @@ if [ "$RUN_EVAL" = "1" ]; then
     idx=$(basename "$prompt_file" | sed 's/prompt_\([0-9]*\)\.txt/\1/')
     pout=$(mktemp)
     perr=$(mktemp)
-    # timeout kills a crashed/hung DSP run so the loop advances; sleep lets the
-    # DSP release before the next attach.
+    # timeout kills a crashed/hung DSP run so the loop advances (SIGTERM lets
+    # geniex-bench self-abort cleanly, SIGKILL after 5s); sleep lets the DSP
+    # release before the next attach.
     if geniex_eval_retry "$pout" "$perr" \
-      timeout {EVAL_TIMEOUT_S} ./bin/geniex-bench --plugin "$e_plugin" --device "$e_dev" \
+      timeout -s TERM -k 5 {EVAL_TIMEOUT_S} ./bin/geniex-bench --plugin "$e_plugin" --device "$e_dev" \
         -m "$e_model" "${QAIRT_LIB_ARGS[@]}" --accuracy --prompt-file "$prompt_file" \
         --system-prompt "$SYSTEM_PROMPT" --no-think \
         -c {EVAL_CTX} -n {EVAL_N_GEN} --seed {EVAL_SEED} --mm-data-dir "$MM_CACHE" \
+        --max-gen-time-s {EVAL_MAX_GEN_TIME_S} \
+        --no-progress-timeout-s {EVAL_NO_PROGRESS_TIMEOUT_S} \
+        --repetition-max-repeats {EVAL_REPETITION_MAX_REPEATS} \
+        --ngram-max-repeats {EVAL_NGRAM_MAX_REPEATS} \
         --chipset "{CHIPSET}"; then
       eval_ran=$((eval_ran + 1))
     fi

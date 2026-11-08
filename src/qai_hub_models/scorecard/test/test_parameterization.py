@@ -264,41 +264,6 @@ def test_default_paths_aot_model(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "tflite" not in path_values
 
 
-def test_explicit_ep_path_aot_model(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicitly requested qnn_dlc_via_qnn_ep works for AOT models."""
-    EnabledPathsEnvvar.patchenv(
-        monkeypatch, {SpecialPathSetting.DEFAULT, "qnn_dlc_via_qnn_ep"}
-    )
-    EnabledPrecisionsEnvvar.patchenv(monkeypatch, {SpecialPrecisionSetting.DEFAULT})
-
-    profile_paths = get_profile_parameterized_pytest_config(
-        "", AOT_RUNTIMES, AOT_RUNTIMES
-    )
-    path_values = {p[1].value for p in profile_paths}
-    assert "qnn_dlc_via_qnn_ep" in path_values
-    assert "qnn_context_binary" in path_values
-    assert "precompiled_qnn_onnx" in path_values
-    # Regular qnn_dlc NOT present (only via default, runtime not in supported)
-    assert "qnn_dlc" not in path_values
-
-
-def test_explicit_ep_path_jit_model(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicitly requested qnn_dlc_via_qnn_ep also works for JIT models."""
-    EnabledPathsEnvvar.patchenv(
-        monkeypatch, {SpecialPathSetting.DEFAULT, "qnn_dlc_via_qnn_ep"}
-    )
-    EnabledPrecisionsEnvvar.patchenv(monkeypatch, {SpecialPrecisionSetting.DEFAULT})
-
-    profile_paths = get_profile_parameterized_pytest_config(
-        "", JIT_RUNTIMES, JIT_RUNTIMES
-    )
-    path_values = {p[1].value for p in profile_paths}
-    assert "qnn_dlc_via_qnn_ep" in path_values
-    assert "qnn_dlc" in path_values
-    assert "onnx" in path_values
-    assert "tflite" in path_values
-
-
 def test_engine_prefix_aot_model(monkeypatch: pytest.MonkeyPatch) -> None:
     """Engine prefix 'qnn' only enables paths whose runtime is in supported."""
     EnabledPathsEnvvar.patchenv(monkeypatch, {"qnn"})
@@ -333,9 +298,9 @@ def test_engine_prefix_does_not_enable_unpublished_paths(
     """
     An engine prefix must not select paths outside default_paths().
 
-    qnn_dlc_via_qnn_ep and qnn_dlc_gpu share the QNN_DLC runtime, so a bare
-    'qnn' used to select them via should_run_path_for_model while the `enabled`
-    property (which gates the same rule on default_paths) reported them off.
+    qnn_dlc_gpu shares the QNN_DLC runtime, so a bare 'qnn' used to select it
+    via should_run_path_for_model while the `enabled` property (which gates
+    the same rule on default_paths) reported it off.
     count_device_jobs keys its tally on `enabled` and raised KeyError.
     """
     EnabledPathsEnvvar.patchenv(monkeypatch, {"qnn"})
@@ -346,7 +311,6 @@ def test_engine_prefix_does_not_enable_unpublished_paths(
     )
     path_values = {p[1].value for p in profile_paths}
     assert "qnn_dlc" in path_values
-    assert "qnn_dlc_via_qnn_ep" not in path_values
     assert "qnn_dlc_gpu" not in path_values
 
 
@@ -357,10 +321,9 @@ def test_engine_prefix_does_not_enable_unpublished_paths(
         {"qnn"},
         {"onnx"},
         {"tflite"},
-        {"qnn_dlc_via_qnn_ep"},
         {"qnn_dlc_gpu"},
-        {SpecialPathSetting.DEFAULT, "qnn_dlc_via_qnn_ep"},
-        {"qnn", "qnn_dlc_via_qnn_ep"},
+        {SpecialPathSetting.DEFAULT, "qnn_dlc_gpu"},
+        {"qnn", "qnn_dlc_gpu"},
         {SpecialPathSetting.DEFAULT, "onnx_dml_gpu"},
     ],
 )
@@ -391,11 +354,11 @@ def test_llm_runtimes_do_not_match_qnn_paths(monkeypatch: pytest.MonkeyPatch) ->
     """
     Multi-graph LLMs list only GENIE/GENIEX_QAIRT runtimes. These live on the
     GENIEX inference engine, not QNN, so QNN compile paths like
-    qnn_dlc_via_qnn_ep must NOT run against them (they would hit the AOT-only
+    qnn_dlc_gpu must NOT run against them (they would hit the AOT-only
     assertion in base_multi_graph_model.get_graph_hub_compile_options).
     """
     EnabledPathsEnvvar.patchenv(
-        monkeypatch, {SpecialPathSetting.DEFAULT, "qnn_dlc_via_qnn_ep"}
+        monkeypatch, {SpecialPathSetting.DEFAULT, "qnn_dlc_gpu"}
     )
     EnabledPrecisionsEnvvar.patchenv(monkeypatch, {SpecialPrecisionSetting.DEFAULT})
 
@@ -406,7 +369,7 @@ def test_llm_runtimes_do_not_match_qnn_paths(monkeypatch: pytest.MonkeyPatch) ->
         "", llm_runtimes, llm_runtimes
     )
     path_values = {p[1].value for p in profile_paths}
-    assert "qnn_dlc_via_qnn_ep" not in path_values
+    assert "qnn_dlc_gpu" not in path_values
     assert "qnn_dlc" not in path_values
     assert "qnn_context_binary" not in path_values
     # GENIE is excluded from the default sweep; see default_sweep_paths().

@@ -1,0 +1,15 @@
+applicable_scenarios:
+- Meeting Transcription
+- Smart Home
+- Accessibility
+global_requirements_incompatible: true
+has_static_banner: true
+related_models:
+- whisper_small
+status: published
+technical_details:
+  Input resolution (embedding): 32 x 498 x 80 (batch x frames x mel-bins)
+  Input resolution (segmentation): 32 x 1 x 80000 (batch x channel x 5s at 16kHz)
+  Model checkpoint: pyannote/speaker-diarization-3.1
+  Number of speakers (segmentation output): 7 (powerset encoding for up to 3 speakers)
+  Quantization: Segmentation float, Embedding W8A16 via AI Hub

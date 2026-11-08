@@ -5,19 +5,17 @@
 
 from __future__ import annotations
 
-import torch
-from PIL.Image import Image
+from qai_hub_models.models.mobile_vit.model import MOBILEVIT_TRANSFORM
+from qai_hub_models.models.templates.imagenet_classifier.app import (
+    ImagenetClassifierApp,
+)
+from qai_hub_models.protocols import ExecutableModelProtocol
 
-from qai_hub_models.models.mobile_vit.model import MobileVIT
 
-
-class MobileVITApp:
+class MobileVITApp(ImagenetClassifierApp):
     """Encapsulates the logic for running inference on a MobileVIT model."""
 
-    def __init__(self, model: MobileVIT) -> None:
-        self.model = model
-
-    def predict(self, image: Image) -> torch.Tensor:
-        feature = self.model.feature_extractor(images=image, return_tensors="pt")
-        logits = self.model(feature.pixel_values)
-        return torch.softmax(logits[0], dim=0)
+    def __init__(self, model: ExecutableModelProtocol) -> None:
+        super().__init__(
+            model, normalization_in_network=True, transform=MOBILEVIT_TRANSFORM
+        )

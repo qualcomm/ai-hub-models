@@ -22,6 +22,7 @@ per sub-graph, so no manual encoding/value_info surgery.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
 import onnx
@@ -49,6 +50,8 @@ class LayerSubgraph:
     input_names: list[str]  # graph inputs (prev residual, mask, pos, KV)
     residual_out: str  # this layer's residual output tensor
     taps: list[Tap] = field(default_factory=list)  # o_proj / gate_up / down (+residual)
+    # sanitized input name -> original tensor name (the key in captured part inputs)
+    input_sources: dict[str, str] = field(default_factory=dict)
 
 
 def split_part_into_layers(
@@ -131,7 +134,51 @@ def add_projection_taps(sub: LayerSubgraph) -> LayerSubgraph:
     tapped = build_tapped_bundle(sub.bundle, proj_taps, f"layer_{sub.layer}")
     sub.bundle = tapped
     sub.taps = taps
+    _sanitize_input_names(sub)
     return sub
+
+
+def _sanitize_input_names(sub: LayerSubgraph) -> None:
+    """Rename graph inputs containing '/' or '.' to their sanitized form, in place.
+
+    AI Hub validates a dataset against the compiled model's raw input names, but
+    the on-device runtime expects sanitized ones, so an input like the previous
+    layer's residual ('/model/model/layers.0/Add_1_output_0') can satisfy only one.
+    """
+    model = onnx.load(str(sub.bundle.onnx_graph_path), load_external_data=False)
+    initializers = {i.name for i in model.graph.initializer}
+    renames = {
+        i.name: _sanitize(i.name)
+        for i in model.graph.input
+        if i.name not in initializers and _sanitize(i.name) != i.name
+    }
+    if not renames:
+        return
+
+    graph = model.graph
+    for vi in list(graph.input) + list(graph.output) + list(graph.value_info):
+        vi.name = renames.get(vi.name, vi.name)
+    for node in graph.node:
+        for idx, name in enumerate(node.input):
+            if name in renames:
+                node.input[idx] = renames[name]
+    onnx.save(model, str(sub.bundle.onnx_graph_path))
+
+    enc_path = sub.bundle.aimet_encodings_path
+    if enc_path is not None:
+        data = json.loads(enc_path.read_text())
+        acts = data.get("activation_encodings")
+        if isinstance(acts, dict):
+            data["activation_encodings"] = {
+                renames.get(k, k): v for k, v in acts.items()
+            }
+        elif isinstance(acts, list):
+            for e in acts:
+                e["name"] = renames.get(e.get("name"), e.get("name"))
+        enc_path.write_text(json.dumps(data))
+
+    sub.input_names = [renames.get(n, n) for n in sub.input_names]
+    sub.input_sources = {new: old for old, new in renames.items()}
 
 
 def build_layer_feed(
@@ -157,11 +204,15 @@ def build_layer_feed(
     n = len(cap.inputs)
     feed: dict[str, list] = {name: [] for name in input_order}
 
+    # Captured part inputs are keyed by the original (unsanitized) tensor name.
+    def source(name: str) -> str:
+        return sub.input_sources.get(name, name)
+
     # The residual input is the one sub-graph input NOT sourced from the part
     # inputs (mask/pos/KV all come from cap.inputs).
     part_keys = set(cap.inputs[0].keys()) if n else set()
     residual_input_name = next(
-        (name for name in input_order if name not in part_keys), None
+        (name for name in input_order if source(name) not in part_keys), None
     )
 
     # Golden residual VALUES for the previous layer (by index). Absent for the
@@ -172,9 +223,9 @@ def build_layer_feed(
     for i in range(n):
         part_in = cap.inputs[i]
         for name in input_order:
-            if name in part_in:
+            if source(name) in part_in:
                 # Shared inputs (mask/pos/KV) and the part-entry hidden state.
-                feed[name].append(part_in[name])
+                feed[name].append(part_in[source(name)])
             elif name == residual_input_name and prev_vals is not None:
                 # Previous layer's residual, injected from the golden sim run.
                 feed[name].append(prev_vals[i])

@@ -81,9 +81,7 @@ HF_AVAILABLE_LICENSES = {
     "llama3.1",
     "llama3.2",
     "llama3.3",
-    "stability-ai",
     "gemma",
-    "lfm1.0",
     "unknown",
     "other",
     "array",
@@ -225,9 +223,6 @@ class MODEL_STATUS(Enum):
     UNPUBLISHED = "unpublished"
     # pending models are waiting for scorecard to collect perf data before being published
     PENDING = "pending"
-    # Default when omitted. Only valid for external recipes — in-tree
-    # recipes must set an explicit status (enforced in test_manifest_yamls.py).
-    UNSET = "unset"
 
 
 @unique

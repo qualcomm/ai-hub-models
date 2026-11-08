@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Incabinet driver monitoring
-- Phone unlocking
-- Building access control
-dataset:
-- mpiigaze
 description: Predicts gaze direction (pitch, yaw) from 96x160 grayscale eye images using the EyeNet model.
 domain: Computer Vision
 external_repos:
@@ -11,13 +5,7 @@ external_repos:
     commit_sha: 249691893a37944a03e4ad4a3448083b6f63af10
     patches_filename: gaze_estimation_patches.diff
     repo_url: https://github.com/david-wb/gaze-estimation
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Eye gaze estimation from cropped eye images.
 id: eyegaze
 license: https://github.com/qualcomm/ai-hub-models/blob/main/LICENSE
@@ -30,17 +18,10 @@ numerics_benchmark:
   unit: MAE (Degrees)
   value: 16.8
 source_repo: https://github.com/david-wb/gaze-estimation
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 96x160
-  Model checkpoint: checkpoint.pt
-  Model size (float): 9.6MB
-  Model size (w8a16): 3.3 MB
-  Number of parameters: 2.58M
 use_case: Gaze Estimation

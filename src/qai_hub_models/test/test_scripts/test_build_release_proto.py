@@ -27,7 +27,6 @@ from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scripts.build_release_proto import (
     _build_release_assets_proto,
     _manifest_filter_fields,
-    _simplify_enum_values_for_website_import,
     cmd_aws,
     cmd_website,
 )
@@ -126,30 +125,6 @@ def output_dir(tmp_path: Path) -> Path:
     return tmp_path / "release_output"
 
 
-def test_simplify_enum_values_for_website_import() -> None:
-    assert _simplify_enum_values_for_website_import("PRECISION_W8A8") == "w8a8"
-    assert (
-        _simplify_enum_values_for_website_import("RUNTIME_QNN_CONTEXT_BINARY")
-        == "qnn_context_binary"
-    )
-    assert _simplify_enum_values_for_website_import("RUNTIME_TFLITE") == "tflite"
-    assert _simplify_enum_values_for_website_import("PRECISION_FLOAT") == "float"
-    assert (
-        _simplify_enum_values_for_website_import("some_other_string")
-        == "some_other_string"
-    )
-    assert _simplify_enum_values_for_website_import(
-        {"precision": "PRECISION_W8A16", "name": "foo"}
-    ) == {
-        "precision": "w8a16",
-        "name": "foo",
-    }
-    assert _simplify_enum_values_for_website_import(["RUNTIME_ONNX", "hello"]) == [
-        "onnx",
-        "hello",
-    ]
-
-
 def test_cmd_website(output_dir: Path) -> None:
     args = argparse.Namespace(
         output_dir=str(output_dir), version=__version__, models=SAMPLE_MODELS
@@ -175,11 +150,13 @@ def test_cmd_website(output_dir: Path) -> None:
         release_assets_yaml = model_dir / "release-assets.yaml"
         if release_assets_yaml.exists():
             text = release_assets_yaml.read_text()
-            assert "PRECISION_" not in text, f"Unsanitized precision enum in {model_id}"
-            assert "RUNTIME_" not in text, f"Unsanitized runtime enum in {model_id}"
-
             data = ruamel.yaml.YAML().load(text)
             assert isinstance(data, dict)
+            assert data["assets"]
+            assert all(a["precision"].startswith("PRECISION_") for a in data["assets"])
+            assert all(a["runtime"].startswith("RUNTIME_") for a in data["assets"])
+            assert all(a["download_url"] for a in data["assets"])
+            assert not any("s3_key" in a for a in data["assets"])
 
 
 def test_cmd_aws(output_dir: Path) -> None:

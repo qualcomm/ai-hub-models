@@ -10,10 +10,7 @@ from pathlib import Path
 import pytest
 
 from qai_hub_models import Precision, TargetRuntime
-from qai_hub_models.configs._info_yaml_enums import (
-    MODEL_DOMAIN_USE_CASES,
-    MODEL_STATUS,
-)
+from qai_hub_models.configs._info_yaml_enums import MODEL_DOMAIN_USE_CASES
 from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
 from qai_hub_models.configs.manifest_yaml import (
     MODEL_DOMAIN,
@@ -22,6 +19,7 @@ from qai_hub_models.configs.manifest_yaml import (
     QAIHMModelManifest,
     TechnicalDetails,
 )
+from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, QAIHM_WEB_ASSET
 from qai_hub_models.utils.device import CANARY_DEVICES
 from qai_hub_models.utils.metrics import VALID_METRIC_PAIRS
@@ -97,7 +95,7 @@ def test_model_usecase_to_hf_pipeline_tag() -> None:
         assert use_case.map_to_hf_pipeline_tag() in HF_PIPELINE_TAGS
 
 
-def _check_website_facing(manifest: QAIHMModelManifest) -> None:
+def _check_website_facing(info: WebsiteModelInfo) -> None:
     """Enforce website / scorecard / publication rules for an in-tree recipe.
 
     These checks live here, not in ``QAIHMModelManifest.check_fields``, so
@@ -105,6 +103,7 @@ def _check_website_facing(manifest: QAIHMModelManifest) -> None:
     external recipes can pass without pulling in Qualcomm-catalog rules
     (banner presence, canary devices, headline copy style, etc.).
     """
+    manifest, internal = info.manifest, info.internal
     assert manifest.id is not None
     assert manifest.name is not None
     assert manifest.headline is not None
@@ -117,7 +116,7 @@ def _check_website_facing(manifest: QAIHMModelManifest) -> None:
     if not manifest.headline.endswith("."):
         raise ValueError("Model headlines must end with a period.")
 
-    for r_model in manifest.related_models:
+    for r_model in internal.related_models:
         if r_model == manifest.id:
             raise ValueError(f"Model {r_model} cannot be related to itself.")
 
@@ -130,20 +129,11 @@ def _check_website_facing(manifest: QAIHMModelManifest) -> None:
             "Arxiv links should be `abs` links, not link directly to pdfs."
         )
 
-    if manifest.status == MODEL_STATUS.PUBLISHED:
-        can_be_published, reason = manifest.can_promote_to_published()
+    # status_reason coupling is enforced by QAIHMModelInternalConfig's validator.
+    if info.is_published:
+        can_be_published, reason = info.can_promote_to_published()
         if not can_be_published:
             raise ValueError(f"Model cannot be published: {reason}")
-
-    if manifest.status == MODEL_STATUS.UNPUBLISHED and not manifest.status_reason:
-        raise ValueError(
-            "Unpublished models must set `status_reason` in manifest.yaml with "
-            "a link to the related issue."
-        )
-    if manifest.status == MODEL_STATUS.PUBLISHED and manifest.status_reason:
-        raise ValueError(
-            "`status_reason` in manifest.yaml should not be set for published models."
-        )
 
     if manifest.numerics_benchmark is not None:
         pair = (
@@ -160,22 +150,22 @@ def _check_website_facing(manifest: QAIHMModelManifest) -> None:
                 f"Valid pairs:\n  {valid_pairs_str}"
             )
 
-    if manifest.status == MODEL_STATUS.PUBLISHED:
+    if info.is_published:
         if not os.path.exists(manifest.get_package_path() / "manifest.yaml"):
             raise ValueError("All published models must have a manifest.yaml")
         if not os.path.exists(manifest.get_package_path() / "perf.yaml"):
             raise ValueError("All published models must have a perf.yaml")
         if not manifest.supports_at_least_1_runtime:
             raise ValueError("Published models must support at least one export path")
-        if not manifest.has_static_banner:
+        if not internal.has_static_banner:
             raise ValueError("Published models must have a static asset.")
 
     expected_qaihm_repo = Path("src") / "qai_hub_models" / "models" / manifest.id
     if expected_qaihm_repo != ASSET_CONFIG.get_qaihm_repo(manifest.id):
         raise ValueError("QAIHM repo not pointing to expected relative path")
 
-    if manifest.model_type_llm and manifest.llm_details is not None:
-        if manifest.llm_details.call_to_action in {
+    if manifest.model_type_llm and internal.llm_details is not None:
+        if internal.llm_details.call_to_action in {
             LLM_CALL_TO_ACTION.DOWNLOAD,
             LLM_CALL_TO_ACTION.DOWNLOAD_AND_VIEW_README,
         }:
@@ -197,18 +187,19 @@ def _check_website_facing(manifest: QAIHMModelManifest) -> None:
         )
 
 
-def _collect_website_urls(manifest: QAIHMModelManifest) -> list[tuple[str, str]]:
+def _collect_website_urls(info: WebsiteModelInfo) -> list[tuple[str, str]]:
     """Build the URL HEAD-check list for an in-tree recipe."""
+    manifest, internal = info.manifest, info.internal
     assert manifest.id is not None
     urls: list[tuple[str, str]] = []
-    if manifest.has_static_banner:
+    if internal.has_static_banner:
         urls.append(
             (
                 ASSET_CONFIG.get_web_asset_url(manifest.id, QAIHM_WEB_ASSET.STATIC_IMG),
                 "Static banner does not exist",
             )
         )
-    if manifest.has_animated_banner:
+    if internal.has_animated_banner:
         urls.append(
             (
                 ASSET_CONFIG.get_web_asset_url(
@@ -224,48 +215,18 @@ def _collect_website_urls(manifest: QAIHMModelManifest) -> list[tuple[str, str]]
     if manifest.source_repo:
         urls.append((manifest.source_repo, "Source repo does not exist"))
 
-    if (
-        manifest.model_type_llm
-        and manifest.llm_details
-        and manifest.llm_details.devices
-    ):
-        for device_runtime_config_mapping in manifest.llm_details.devices.values():
-            for runtime_detail in device_runtime_config_mapping.values():
-                if runtime_detail.model_download_url.startswith(
-                    ("http://", "https://")
-                ):
-                    url = runtime_detail.model_download_url
-                else:
-                    version = runtime_detail.model_download_url.split("/")[0][1:]
-                    relative_path = "/".join(
-                        runtime_detail.model_download_url.split("/")[1:]
-                    )
-                    url = ASSET_CONFIG.get_model_asset_url(
-                        manifest.id, version, relative_path
-                    )
-                urls.append(
-                    (
-                        url,
-                        f"Download URL does not exist ({runtime_detail.model_download_url})",
-                    )
-                )
     return urls
 
 
 def _validate_model(model_id: str) -> None:
-    manifest = QAIHMModelManifest.from_model(model_id)
+    info = WebsiteModelInfo.from_model(model_id)
+    manifest = info.manifest
     QAIHMModelManifest.model_validate(manifest)
     assert manifest.id == model_id, (
         f"{model_id} config ID does not match the model's folder name"
     )
-    assert manifest.status is not MODEL_STATUS.UNSET, (
-        f"{model_id}: in-tree models must set `status` in manifest.yaml to one "
-        f"of {[s.value for s in MODEL_STATUS if s is not MODEL_STATUS.UNSET]}. "
-        "The `unset` default only exists for external / standalone recipes "
-        "authored outside the qai_hub_models package."
-    )
-    _check_website_facing(manifest)
-    validate_urls_exist(_collect_website_urls(manifest))
+    _check_website_facing(info)
+    validate_urls_exist(_collect_website_urls(info))
     manifest.check_geniex_runtime_technical_details()
 
 

@@ -24,7 +24,6 @@ import pandas as pd
 import ruamel.yaml
 
 from qai_hub_models import Precision
-from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard import ScorecardProfilePath
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
@@ -42,6 +41,7 @@ from qai_hub_models.scorecard.envvars import (
     SpecialPrecisionSetting,
     StaticModelsDirEnvvar,
 )
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.results.code_gen import (
@@ -69,7 +69,6 @@ from qai_hub_models.scorecard.results.yaml import (
     ToolVersionsByPathYaml,
     get_model_component_and_graph_names,
 )
-from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
 )
@@ -255,7 +254,7 @@ def _scope_from_test_config(
     return {(prec, path, device) for prec, path, device in test_params.profile_tests}
 
 
-def _perf_components_owned_here(sc: QAIHMModelScorecardConfig) -> set[str] | None:
+def _perf_components_owned_here(sc: QAIHMModelInternalConfig) -> set[str] | None:
     """
     perf.yaml component names this writer may modify, or None for all of them.
 
@@ -565,11 +564,12 @@ def process_model(
         return None
 
 
-def _get_pytorch_tags(manifest: QAIHMModelManifest) -> list[str]:
-    assert manifest.status is not MODEL_STATUS.UNSET
+def _get_pytorch_tags(
+    manifest: QAIHMModelManifest, sc: QAIHMModelInternalConfig
+) -> list[str]:
     tags = [tag.value for tag in manifest.tags]
     tags.append("pytorch")
-    tags.append(manifest.status.value)
+    tags.append(sc.status.value)
     return tags
 
 
@@ -643,7 +643,7 @@ def process_e2e_recipe_model(
 
     # Load configs
     manifest = QAIHMModelManifest.from_model(model_id)
-    sc = QAIHMModelScorecardConfig.from_model(model_id)
+    sc = QAIHMModelInternalConfig.from_model(model_id)
 
     # Skip certain models
     if manifest.is_precompiled or sc.skip_hub_tests_and_scorecard or sc.skip_scorecard:
@@ -670,7 +670,7 @@ def process_e2e_recipe_model(
         model_id,
         manifest.domain,
         manifest.use_case,
-        _get_pytorch_tags(manifest),
+        _get_pytorch_tags(manifest, sc),
         known_failure_reasons=manifest.disabled_paths,
         default_quantized_precision=manifest.default_quantized_precision,
         default_device=ScorecardDevice.get(manifest.default_device),
@@ -687,9 +687,8 @@ def process_e2e_recipe_model(
         print_with_id(f"Updated Runtime Failure Reasons in {manifest_path}")
 
         # Update model status & reason, if applicable
-        if update_model_publish_status(manifest):
-            manifest_path = manifest.to_model_yaml()
-            print_with_id(pstr=f"Updated publish status at {manifest_path}")
+        if config_path := update_model_publish_status(manifest):
+            print_with_id(pstr=f"Updated publish status at {config_path}")
 
     model_card = QAIHMModelPerf()
     prev_model_card = QAIHMModelPerf()
@@ -968,7 +967,7 @@ if __name__ == "__main__":
         assert global_numerics_diff is not None
         try:
             manifest = QAIHMModelManifest.from_model(model_id)
-            sc = QAIHMModelScorecardConfig.from_model(model_id)
+            sc = QAIHMModelInternalConfig.from_model(model_id)
             if (
                 sc.skip_hub_tests_and_scorecard
                 or sc.skip_scorecard
@@ -1037,9 +1036,8 @@ if __name__ == "__main__":
                         perf.apply_similar_devices(load_similar_devices())
                         perf.to_model_yaml(model_id)
 
-                    # Un-publish or re-publish the model if needed by updating manifest.yaml.
-                    if update_model_publish_status(manifest):
-                        manifest.to_model_yaml()
+                    # Un-publish or re-publish the model if needed.
+                    update_model_publish_status(manifest)
 
             numerics.to_model_yaml(model_id)
             print(f"{model_id} numerics update complete")
@@ -1093,6 +1091,11 @@ if __name__ == "__main__":
             args.artifacts_dir, f"newly-disabled-{now_str}.json"
         )
         global_numerics_diff.dump_newly_disabled_json(newly_disabled_path)
+
+        quantized_failures_path = os.path.join(
+            args.artifacts_dir, f"quantized-failures-{now_str}.json"
+        )
+        global_numerics_diff.dump_quantized_failures_json(quantized_failures_path)
 
         # Write accuracy to intermediates folder, scoped-merged onto the committed CSV.
         if args.sync_code_gen and using_prod_hub:

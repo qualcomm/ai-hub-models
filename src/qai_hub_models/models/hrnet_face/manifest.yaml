@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Incabinet driver monitoring, phone unlocking, and building access control.
-dataset:
-- cofw
 datasets:
 - coco
 description: Detects attributes (liveness, eye closeness, mask presence, glasses presence, sunglasses presence) that apply to a given face.
@@ -10,13 +6,7 @@ external_repos:
   hrnet_facial_landmark_detection:
     commit_sha: f776dbe8eb6fec831774a47209dae5547ae2cda5
     repo_url: https://github.com/HRNet/HRNet-Facial-Landmark-Detection.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Comprehensive facial analysis by extracting face features.
 id: hrnet_face
 license: https://github.com/HRNet/HRNet-Facial-Landmark-Detection/blob/master/LICENCE
@@ -31,16 +21,9 @@ numerics_benchmark:
 research_paper: https://arxiv.org/abs/1908.07919
 research_paper_title: Deep High-Resolution Representation Learning for Visual Recognition
 source_repo: https://github.com/HRNet/HRNet-Facial-Landmark-Detection
-status: published
 supported_precisions:
 - float
 - w8a8
 tags:
 - real-time
-technical_details:
-  Input resolution: 256x256
-  Model checkpoint: HR18-COFW.pth
-  Model size (float): 36.87MB
-  Model size (w8a8): 17.7 MB
-  Number of parameters: 9.68M
 use_case: Object Detection

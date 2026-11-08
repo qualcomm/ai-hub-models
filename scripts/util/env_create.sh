@@ -43,7 +43,11 @@ if [ ! -d "$ENV_PATH" ]; then
   mkdir -p "$(dirname "$ENV_PATH")"
 
   echo "Creating virtual env $ENV_PATH."
-  $PYTHON -m venv "$ENV_PATH"
+  if command -v uv > /dev/null; then
+    uv venv --seed --python "$PYTHON" "$ENV_PATH"
+  else
+    $PYTHON -m venv "$ENV_PATH"
+  fi
 
   echo "Activating virtual env."
   source "$ENV_PATH/$ACTIVATE_SUBDIR/activate"

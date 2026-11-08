@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Injury prevention training
-- Sports performance analysis
-- Posture recognition
-dataset:
-- coco
 datasets:
 - coco
 description: Posenet performs pose estimation on human images.
@@ -12,15 +6,9 @@ external_repos:
   posenet_pytorch:
     commit_sha: 6f7376d47683553b99d6b67734bc8b368dbcda73
     repo_url: https://github.com/rwightman/posenet-pytorch.git
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
-has_static_banner: true
 headline: Perform accurate human pose estimation.
 id: posenet_mobilenet
-imsdk_supported: true
 license: https://github.com/rwightman/posenet-pytorch/blob/master/LICENSE.txt
 license_type: apache-2.0
 name: Posenet-Mobilenet
@@ -30,21 +18,11 @@ numerics_benchmark:
   source: AI Hub Models Reference Eval
   unit: mAP
   value: 47.8
-related_models:
-- litehrnet
-- hrnet_pose
 research_paper: https://arxiv.org/abs/1803.08225
 research_paper_title: 'PersonLab: Person Pose Estimation and Instance Segmentation with a Bottom-Up, Part-Based, Geometric Embedding Model'
 source_repo: https://github.com/rwightman/posenet-pytorch
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_int16
 - w8a8
-technical_details:
-  Input resolution: 513x257
-  Model checkpoint: mobilenet_v1_101
-  Model size (float): 12.7 MB
-  Model size (w8a8): 12.7 MB
-  Number of parameters: 3.31M
 use_case: Pose Estimation

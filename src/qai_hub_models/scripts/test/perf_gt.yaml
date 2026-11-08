@@ -1,3 +1,82 @@
+performance_metrics:
+- component: decoder
+  device: Samsung Galaxy S24
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 184
+      min: 0
+    inference_time_milliseconds: 1.922
+    layer_counts:
+      npu: 370
+      total: 370
+    primary_compute_unit: NPU
+  precision: PRECISION_FLOAT
+  profile_job:
+    id: jep20xw6g
+    status: Passed
+  runtime: RUNTIME_TFLITE
+  tool_versions:
+    tflite: 2.15.0
+- component: decoder
+  device: Samsung Galaxy S24
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 35
+      min: 0
+    inference_time_milliseconds: 2.363
+    layer_counts:
+      cpu: 1
+      npu: 1
+      total: 2
+    primary_compute_unit: NPU
+  precision: PRECISION_FLOAT
+  profile_job:
+    id: jogk7v2vp
+    status: Passed
+  runtime: RUNTIME_ONNX
+  tool_versions:
+    onnx_runtime: 1.18.0
+- component: encoder
+  device: Samsung Galaxy S24
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 302
+      min: 0
+    inference_time_milliseconds: 163.291
+    layer_counts:
+      npu: 592
+      total: 592
+    primary_compute_unit: NPU
+  precision: PRECISION_FLOAT
+  profile_job:
+    id: jopr860k5
+    status: Passed
+  runtime: RUNTIME_TFLITE
+  tool_versions:
+    tflite: 2.15.0
+- component: encoder
+  device: Samsung Galaxy S24
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 88
+      min: 14
+    inference_time_milliseconds: 144.066
+    layer_counts:
+      npu: 1
+      total: 1
+    primary_compute_unit: NPU
+  precision: PRECISION_FLOAT
+  profile_job:
+    id: j1p802eqg
+    status: Passed
+  runtime: RUNTIME_ONNX
+  tool_versions:
+    onnx_runtime: 1.18.0
+supported_chipsets:
+- qualcomm-snapdragon-8gen3
+- qualcomm-snapdragon-8gen2
+- qualcomm-snapdragon-8gen1
+- qualcomm-snapdragon-888
 supported_devices:
 - Samsung Galaxy S24
 - Samsung Galaxy S24 Ultra
@@ -12,70 +91,3 @@ supported_devices:
 - Xiaomi 12
 - Samsung Galaxy S21
 - Samsung Galaxy S21 Ultra
-supported_chipsets:
-- qualcomm-snapdragon-8gen3
-- qualcomm-snapdragon-8gen2
-- qualcomm-snapdragon-8gen1
-- qualcomm-snapdragon-888
-precisions:
-  float:
-    components:
-      encoder:
-        performance_metrics:
-          Samsung Galaxy S24:
-            onnx:
-              job_id: j1p802eqg
-              job_status: Passed
-              inference_time_milliseconds: 144.066
-              estimated_peak_memory_range_mb:
-                min: 14
-                max: 88
-              primary_compute_unit: NPU
-              layer_counts:
-                total: 1
-                npu: 1
-              tool_versions:
-                onnx_runtime: 1.18.0
-            tflite:
-              job_id: jopr860k5
-              job_status: Passed
-              inference_time_milliseconds: 163.291
-              estimated_peak_memory_range_mb:
-                min: 0
-                max: 302
-              primary_compute_unit: NPU
-              layer_counts:
-                total: 592
-                npu: 592
-              tool_versions:
-                tflite: 2.15.0
-      decoder:
-        performance_metrics:
-          Samsung Galaxy S24:
-            onnx:
-              job_id: jogk7v2vp
-              job_status: Passed
-              inference_time_milliseconds: 2.363
-              estimated_peak_memory_range_mb:
-                min: 0
-                max: 35
-              primary_compute_unit: NPU
-              layer_counts:
-                total: 2
-                npu: 1
-                cpu: 1
-              tool_versions:
-                onnx_runtime: 1.18.0
-            tflite:
-              job_id: jep20xw6g
-              job_status: Passed
-              inference_time_milliseconds: 1.922
-              estimated_peak_memory_range_mb:
-                min: 0
-                max: 184
-              primary_compute_unit: NPU
-              layer_counts:
-                total: 370
-                npu: 370
-              tool_versions:
-                tflite: 2.15.0

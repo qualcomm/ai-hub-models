@@ -24,7 +24,12 @@ from transformers import AutoTokenizer
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.model_metadata import ModelMetadata
-from qai_hub_models.models.templates.llm.grader.grace import load_default_eval_prompts
+from qai_hub_models.datasets.device_eval import (
+    DEFAULT_DEVICE_EVAL_DATASET,
+    DeviceEvalItem,
+    label_eval_results,
+    load_device_eval_items,
+)
 from qai_hub_models.models.templates.llm.model import LLMBase
 from qai_hub_models.models.templates.llm.perf_collection import (
     get_llm_eval_device,
@@ -60,6 +65,7 @@ from qai_hub_models.utils.llm.eval_io import (
     save_eval_metadata_json,
     save_eval_results_json,
 )
+from qai_hub_models.utils.llm.geniex.jobs import get_geniex_qairt_sdk_url
 
 # Perf/job diagnostics go through logging, not print: nightly runs pytest under
 # xdist, where worker stdout is dropped even with --capture=no. INFO is set
@@ -213,6 +219,7 @@ class GenieAndroidArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("<<HEXAGON_VERSION>>", hexagon_version)
                 .replace("<<QAIRT_VERSION>>", qairt_version)
+                .replace("<<QAIRT_SDK_URL>>", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("<<NUM_TRIALS>>", str(num_trials))
                 .replace("<<DEVICE_LOGS_DIR>>", device_logs_dir)
                 .replace("<<GENIE_BUNDLE_URL>>", genie_bundle_url or "")
@@ -345,6 +352,7 @@ class GenieLinuxArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("{HEXAGON_VERSION}", hexagon_version)
                 .replace("{QAIRT_VERSION}", qairt_version)
+                .replace("{QAIRT_SDK_URL}", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("{NUM_TRIALS}", str(num_trials))
                 .replace("{DEVICE_LOGS_DIR}", device_logs_dir)
             )
@@ -396,6 +404,7 @@ class GenieWindowsArtifactHandler(GenieArtifactHandler):
             f.write(
                 file_content.replace("{HEXAGON_VERSION}", hexagon_version)
                 .replace("{QAIRT_VERSION}", qairt_version)
+                .replace("{QAIRT_SDK_URL}", get_geniex_qairt_sdk_url(qairt_version))
                 .replace("{NUM_TRIALS}", str(num_trials))
                 .replace("{DEVICE_LOGS_DIR}", device_logs_dir)
             )
@@ -770,16 +779,18 @@ def compute_genie_eval_results(
     return results
 
 
-_USE_DEFAULT_PROMPTS = object()
+# Kept for callers that predate named datasets: it now just names the default one.
+_USE_DEFAULT_PROMPTS = DEFAULT_DEVICE_EVAL_DATASET
+
+# A device-eval dataset name, an explicit prompt list, or None for no eval.
+EvalPrompts = str | list[str] | None
 
 
-def _resolve_eval_prompts(
-    eval_prompts: list[str] | None | object,
-) -> list[str] | None:
-    if eval_prompts is _USE_DEFAULT_PROMPTS:
-        return load_default_eval_prompts()
+def _resolve_eval_items(eval_prompts: EvalPrompts) -> list[DeviceEvalItem] | None:
+    if isinstance(eval_prompts, str):
+        return load_device_eval_items(eval_prompts)
     if isinstance(eval_prompts, list):
-        return eval_prompts
+        return [DeviceEvalItem(idx, prompt) for idx, prompt in enumerate(eval_prompts)]
     return None
 
 
@@ -790,7 +801,7 @@ def submit_genie_bundle(
     job_name: str = "LLM Genie",
     qairt_sdk_path: str | None = None,
     qairt_version: str | None = None,
-    eval_prompts: list[str] | None | object = None,
+    eval_prompts: EvalPrompts = None,
     num_trials: int = 25,
     model_id: str | None = None,
     genie_bundle_url: str | None = None,
@@ -803,7 +814,8 @@ def submit_genie_bundle(
     URL the device curls the bundle from directly, instead of the caller
     shipping the (potentially multi-GB) bundle through the artifact zip.
     """
-    prompts_to_use = _resolve_eval_prompts(eval_prompts)
+    items = _resolve_eval_items(eval_prompts)
+    prompts_to_use = [item.prompt for item in items] if items else None
     platform = HubDevicePlatform(hub_device_name)
     device_logs_dir = device_logs_dir_name(backend)
 
@@ -845,7 +857,7 @@ def collect_genie_bundle(
     backend: DeviceFarm,
     hub_device_name: str,
     job_id: str,
-    eval_prompts: list[str] | None | object = None,
+    eval_prompts: EvalPrompts = None,
     save_logs_dir: str | None = None,
     log_label: str | None = None,
 ) -> tuple[
@@ -865,7 +877,7 @@ def collect_genie_bundle(
     when set, is where every job's logs are archived for diagnosis (success and
     failure alike), named by ``log_label``.
     """
-    prompts_to_use = _resolve_eval_prompts(eval_prompts)
+    items = _resolve_eval_items(eval_prompts)
 
     job_status = backend.status(job_id, timeout=GENIE_JOB_TIMEOUT)
     job_result = backend.result(job_id)
@@ -906,9 +918,12 @@ def collect_genie_bundle(
     tps, prefill_tps, ttft = compute_genie_metrics(backend, job_log_files)
 
     eval_results: list[dict] = []
-    if prompts_to_use:
-        eval_results = compute_genie_eval_results(
-            backend, job_log_files, prompts_to_use
+    if items:
+        eval_results = label_eval_results(
+            compute_genie_eval_results(
+                backend, job_log_files, [item.prompt for item in items]
+            ),
+            items,
         )
 
     if tps is None:
@@ -930,7 +945,7 @@ def submit_and_collect_genie_bundle(
     job_name: str = "LLM Genie",
     qairt_sdk_path: str | None = None,
     qairt_version: str | None = None,
-    eval_prompts: list[str] | None | object = None,
+    eval_prompts: EvalPrompts = None,
     num_trials: int = 25,
     model_id: str | None = None,
     save_logs_dir: str | None = None,
@@ -939,8 +954,8 @@ def submit_and_collect_genie_bundle(
     Submit a Genie bundle and wait for the result, in one call.
 
     Runs profiling and (optionally) evaluation in a single job. Eval is
-    skipped by default; pass ``_USE_DEFAULT_PROMPTS`` for the built-in 100
-    questions, or a list of prompts to use a custom set.
+    skipped by default; pass a device-eval dataset name (e.g. ``"grace2"``)
+    to run that set, or a list of prompts to use a custom set.
 
     Composed wrapper over ``submit_genie_bundle`` + ``collect_genie_bundle``
     for manual/on-device-test callers that want a single submit-and-wait
@@ -1059,6 +1074,7 @@ def submit_llm_perf_job(
     jobs_file: str,
     qairt_sdk_path: str | None = None,
     skip_perf_update: bool = False,
+    eval_dataset: str = DEFAULT_DEVICE_EVAL_DATASET,
 ) -> str:
     """Fetch the genie bundle, submit one device-farm job, upsert its record.
 
@@ -1076,7 +1092,7 @@ def submit_llm_perf_job(
         context_lengths = _bundle_context_lengths(genie_bundle_path)
         genie_bundle_url = get_genie_bundle_url(model_id, precision, device.chipset)
 
-        eval_prompts = _USE_DEFAULT_PROMPTS if device == get_llm_eval_device() else None
+        eval_prompts = eval_dataset if device == get_llm_eval_device() else None
         job_name = f"Genie {model_id} {precision}"
 
         backend = get_device_farm(device)
@@ -1086,7 +1102,9 @@ def submit_llm_perf_job(
             str(genie_bundle_path),
             job_name=job_name,
             qairt_sdk_path=qairt_sdk_path,
-            qairt_version=QAIRTVersionEnvvar.get_on_device_sdk_version(),
+            qairt_version=QAIRTVersionEnvvar.get_on_device_sdk_version(
+                TargetRuntime.GENIE
+            ),
             eval_prompts=eval_prompts,
             model_id=model_id,
             genie_bundle_url=genie_bundle_url,
@@ -1108,6 +1126,7 @@ def collect_llm_perf_job(
     output_dir: Path | str,
     qairt_sdk_path: str | None = None,
     skip_perf_update: bool = False,
+    eval_dataset: str = DEFAULT_DEVICE_EVAL_DATASET,
 ) -> tuple[float | None, float | None, float | None]:
     """Poll a submitted Genie job.
 
@@ -1123,7 +1142,7 @@ def collect_llm_perf_job(
             precision=precision,
         )
 
-    eval_prompts = _USE_DEFAULT_PROMPTS if device == get_llm_eval_device() else None
+    eval_prompts = eval_dataset if device == get_llm_eval_device() else None
     key = make_key(model_id, str(precision), "GENIE", device.name)
     hub_device_name = device.reference_device.name
     backend = get_device_farm(device)
@@ -1152,7 +1171,7 @@ def collect_llm_perf_job(
         finally:
             shutil.rmtree(bundle_path, ignore_errors=True)
 
-    if not skip_perf_update and tps is not None and ttft is not None:
+    if not skip_perf_update and tps is not None:
         # Genie runs a single measurement, reported at the largest exported length.
         update_perf_yaml(
             model_id,
@@ -1160,8 +1179,7 @@ def collect_llm_perf_job(
             precision,
             max(context_lengths),
             tps,
-            ttft,
-            prefill_tps,
+            prefill_tps=prefill_tps,
         )
 
     if eval_results:
@@ -1173,6 +1191,7 @@ def collect_llm_perf_job(
             str(precision),
             f"{base}.meta.json",
             path=ScorecardProfilePath.GENIE,
+            dataset_name=eval_dataset,
         )
 
     return tps, ttft, prefill_tps

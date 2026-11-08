@@ -1,24 +1,10 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 description: MobileNetV4 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
 external_repos:
   MobileNetV4_pytorch:
     commit_sha: 5653796f9cb2b99120e0f6a9023ee8c8f0e4786e
     repo_url: https://github.com/jaiwei98/MobileNetV4-pytorch.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Efficient pure-conv ImageNet classifier for mobile devices.
 id: mobilenet_v4
 license: https://github.com/jaiwei98/MobileNetV4-pytorch/blob/main/LICENSE
@@ -30,26 +16,15 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2404.10518
   unit: '%'
   value: 79.9
-related_models:
-- mobilenet_v2
-- mobilenet_v3_large
-- mobilenet_v3_small
 research_paper: https://arxiv.org/abs/2404.10518
 research_paper_title: MobileNetV4 -- Universal Models for the Mobile Ecosystem
 source_repo: https://github.com/jaiwei98/MobileNetV4-pytorch
-status: published
 supported_precisions:
 - float
 - w8a8
 tags:
 - backbone
 - real-time
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 37.0 MB
-  Model size (w8a8): 10.2 MB
-  Number of parameters: 9.68M
 templates:
 - imagenet_classifier
 use_case: Image Classification

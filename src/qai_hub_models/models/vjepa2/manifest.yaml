@@ -1,38 +1,25 @@
-applicable_scenarios:
-- Camera
-- Action Recognition
-- Video Understanding
 description: V-JEPA 2 (Video Joint-Embedding Predictive Architecture 2) is a self-supervised video encoder from Meta AI that uses a ViT (Vision Transformer) backbone to produce per-token video embeddings. It is used as a frozen backbone for downstream video understanding tasks such as action recognition and video retrieval.
+disabled_paths:
+  float:
+    tflite:
+      scorecard_failure: 'Failing jobs: j5wyowdmg'
+  w8a16:
+    onnx:
+      scorecard_failure: 'Failing jobs: jpv23ql7g'
+    qnn_dlc:
+      scorecard_failure: 'Failing jobs: j5wyow4zg'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: false
-has_static_banner: true
 headline: Self-supervised video representation backbone.
 id: vjepa2
-imsdk_supported: false
 license: https://github.com/facebookresearch/vjepa2/blob/main/LICENSE
 license_type: mit
 name: V-JEPA-2
-related_models:
-- video_mae
-- resnet_3d
 research_paper: https://arxiv.org/abs/2506.09985
 research_paper_title: 'V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning'
 source_repo: https://github.com/facebookresearch/vjepa2
-status: pending
 supported_precisions:
 - float
 - w8a16
 tags:
 - backbone
-technical_details:
-  Model checkpoint: facebook/vjepa2-vitl-fpc64-256
-  Input resolution: 256x256
-  Number of frames: 8
-  Number of parameters: 304M
-  Model size (float): 1.13 GB
-  Model size (w8a16): 304 MB
 use_case: Video Classification

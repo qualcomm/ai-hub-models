@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------
 
 import datetime
+from pathlib import Path
 from unittest import mock
 
 import boto3
@@ -136,3 +137,29 @@ def test_count_waiting_jobs_counts_only_queued_runs_for_the_device() -> None:
     assert farm.count_waiting_jobs("Samsung Galaxy S26") == 3
     # Stops at the first all-completed page instead of walking the whole history.
     assert farm.client.list_runs.call_count == 3
+
+
+@pytest.mark.parametrize(
+    ("job_timeout", "expected"),
+    [(None, 600), (0, 0), (900, 900)],
+)
+def test_aws_submit_bundle_job_timeout_falls_back_to_timeout_only_when_none(
+    job_timeout: int | None, expected: int, tmp_path: Path
+) -> None:
+    farm = aws.AwsDeviceFarm.__new__(aws.AwsDeviceFarm)
+    entry = tmp_path / "a.txt"
+    entry.write_text("x")
+    with (
+        mock.patch.object(aws, "get_aws_device_arns", return_value=["arn"]),
+        mock.patch.object(farm, "_upload_file", return_value="pkg"),
+        mock.patch.object(farm, "_submit_automated_job", return_value="run") as submit,
+    ):
+        farm.submit_bundle(
+            "Samsung Galaxy S25",
+            [(str(entry), "a.txt")],
+            None,
+            "job",
+            timeout=600,
+            job_timeout=job_timeout,
+        )
+    assert submit.call_args.kwargs["timeout"] == expected

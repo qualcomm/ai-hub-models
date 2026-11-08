@@ -75,10 +75,29 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from pr_triage_report import build_tables, render_markdown, render_slack_payload
+from pr_triage_types import (
+    APPROVED,
+    DRAFT,
+    GENAI,
+    GROUP_ORDER,
+    LABEL_GROUPS,
+    NEEDS_REVIEW,
+    NEEDS_REVIEW_INDIA,
+    NON_GENAI,
+    OTHER,
+    PR,
+    PUBLIC_GROUP,
+    ROBOTICS,
+    STALE,
+    WIP,
+    Activity,
+    Context,
+)
 
 # =====================================================================
 # 1. RULES
@@ -103,31 +122,13 @@ BOT_AUTHORS = {"qaihm-bot_QCOM"}
 # --- Repository -------------------------------------------------------
 
 BASE_BRANCH = "main"
+# Open PRs here are listed in their own report section, with no other checks.
+PUBLIC_REPO = "qualcomm/ai-hub-models"
 STALE_DAYS = 14
 STALE_CLOSE_MESSAGE = (
     f"Closing this PR because it has had no activity for {STALE_DAYS}+ days. "
     "Feel free to reopen it when you are ready to continue."
 )
-
-# --- Groups -----------------------------------------------------------
-
-# Stale is checked first (see pick_group) but listed last.
-STALE = "Stale"
-GENAI = "Onboarding - GenAI"
-NON_GENAI = "Onboarding - Non-GenAI"
-ROBOTICS = "Onboarding - Robotics"
-OTHER = "Other"
-LABEL_GROUPS = [GENAI, NON_GENAI, ROBOTICS]
-GROUP_ORDER = [*LABEL_GROUPS, OTHER, STALE]
-
-# --- Statuses and issues ----------------------------------------------
-
-NEEDS_REVIEW = "Needs Review"
-NEEDS_REVIEW_INDIA = "Needs Review (India Team)"
-APPROVED = "Approved"
-WIP = "WIP"
-DRAFT = "Draft"
-STATUS_ORDER = [NEEDS_REVIEW, NEEDS_REVIEW_INDIA, APPROVED, WIP, DRAFT]
 
 ISSUE_COMMENTS = "review comments pending"
 ISSUE_CHANGES_REQUESTED = "changes requested"
@@ -164,52 +165,9 @@ TRANSIENT_ERRORS = (
     "internal server error",
 )
 
-# Slack allows 100 rows per table and 10,000 characters of table text per message.
-SLACK_TABLE_MAX_ROWS = 100
-SLACK_TABLE_CHAR_BUDGET = 10_000
-SLACK_PR_TITLE_MAX = 60
-
 # =====================================================================
 # 2. DATA TYPES
 # =====================================================================
-
-
-@dataclass
-class PR:
-    """One row in a report."""
-
-    number: int
-    title: str
-    url: str
-    author: str
-    group: str
-    status: str
-    issues: list[str]
-    reviewers: list[str]
-    days_since_update: float
-    days_since_review: float | None
-
-
-@dataclass
-class Context:
-    """What is shared by every PR in a run."""
-
-    aihm_reviewers: set[str]  # both reviewer teams; nobody else counts
-    nongenai_initial_reviewers: set[
-        str
-    ]  # NON_GENAI_INITIAL_REVIEWERS, minus anyone also in the main team
-    developers: set[str]
-    required_checks: set[str]
-    now: datetime
-
-
-@dataclass
-class Activity:
-    """When the author and AIHM reviewers last acted on a PR."""
-
-    last_author_update: datetime
-    last_review: datetime | None
-    has_unanswered_thread: bool
 
 
 # =====================================================================
@@ -296,7 +254,7 @@ PR_FIELDS = """
 
 PR_QUERY = (
     """
-query($owner: String!, $repo: String!, $base: String!, $pageSize: Int!, $cursor: String) {
+query($owner: String!, $repo: String!, $base: String, $pageSize: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequests(states: OPEN, baseRefName: $base, first: $pageSize, after: $cursor) {
       pageInfo { hasNextPage endCursor }
@@ -441,8 +399,11 @@ def fetch_pr(owner: str, repo: str, number: int) -> dict[str, Any]:
     return gql_pr
 
 
-def fetch_open_prs(owner: str, repo: str) -> list[dict[str, Any]]:
-    """Every open PR, as the dicts that GraphQL returns (named `gql_pr` below).
+def fetch_open_prs(
+    owner: str, repo: str, base: str | None = BASE_BRANCH
+) -> list[dict[str, Any]]:
+    """Every open PR into `base` (any branch if None), as the dicts that GraphQL
+    returns (named `gql_pr` below).
 
     A `gql_pr` has the fields requested in PR_QUERY (latest reviews, comments, review
     threads, commits, labels, ...) exactly as GitHub sends them. The rest of the
@@ -456,7 +417,7 @@ def fetch_open_prs(owner: str, repo: str) -> list[dict[str, Any]]:
             PR_QUERY,
             owner=owner,
             repo=repo,
-            base=BASE_BRANCH,
+            base=base,
             pageSize=PR_PAGE_SIZE,
             cursor=cursor,
         )["pullRequests"]
@@ -484,6 +445,11 @@ def days_since(now: datetime, then: datetime) -> float:
 
 def login(node: dict[str, Any]) -> str:
     return (node.get("author") or {}).get("login", "")
+
+
+def pr_author(gql_pr: dict[str, Any]) -> str:
+    """The PR author's login; "ghost" for a deleted account."""
+    return (gql_pr["author"] or {}).get("login", "ghost")
 
 
 def is_bot(node: dict[str, Any]) -> bool:
@@ -693,7 +659,7 @@ def pick_reviewers(
 
 
 def analyze(gql_pr: dict[str, Any], ctx: Context) -> PR:
-    author = (gql_pr["author"] or {}).get("login", "ghost")
+    author = pr_author(gql_pr)
     labels = {label["name"] for label in gql_pr["labels"]["nodes"]}
     # Members of the two reviewer teams, excluding the PR author.
     aihm_reviewers = ctx.aihm_reviewers - {author}
@@ -766,7 +732,7 @@ def analyze(gql_pr: dict[str, Any], ctx: Context) -> PR:
 
 def reviewers_to_request(gql_pr: dict[str, Any], ctx: Context) -> list[str]:
     """Reviewers the labels call for, skipping any group someone has already joined."""
-    author = (gql_pr["author"] or {}).get("login", "ghost")
+    author = pr_author(gql_pr)
     labels = {label["name"] for label in gql_pr["labels"]["nodes"]}
     everyone = (
         ctx.aihm_reviewers
@@ -881,6 +847,26 @@ def build_groups(owner: str, repo: str, apply: bool = False) -> dict[str, list[P
     return groups
 
 
+def fetch_public_prs(now: datetime) -> list[PR]:
+    """Open PRs in PUBLIC_REPO, with no checks, only the time since the last update."""
+    owner, repo = PUBLIC_REPO.split("/")
+    prs = []
+    for gql_pr in fetch_open_prs(owner, repo, base=None):
+        author = pr_author(gql_pr)
+        activity = collect_activity(gql_pr, author, set())
+        prs.append(
+            PR(
+                number=gql_pr["number"],
+                title=gql_pr["title"],
+                url=gql_pr["url"],
+                author=author,
+                group=PUBLIC_GROUP,
+                days_since_update=days_since(now, activity.last_author_update),
+            )
+        )
+    return sorted(prs, key=lambda p: -p.days_since_update)
+
+
 def summarize_groups(groups: dict[str, list[PR]]) -> dict[str, list[PR]]:
     """Non-draft stale PRs, plus PRs with status Needs Review."""
     summary = {}
@@ -893,161 +879,7 @@ def summarize_groups(groups: dict[str, list[PR]]) -> dict[str, list[PR]]:
 
 
 # =====================================================================
-# 9. REPORTS
-# =====================================================================
-
-HEADERS = ["PR", "Status", "Issues", "Reviewer(s)", "Last update", "Last review"]
-SLACK_COLUMN_SETTINGS: list[dict[str, Any]] = [
-    {"is_wrapped": True},
-    {},
-    {"is_wrapped": True},
-    {"is_wrapped": True},
-    {"align": "right"},
-    {"align": "right"},
-]
-
-
-def group_title(group: str) -> str:
-    """The table title; label names are fixed by GitHub, so they're mapped here."""
-    if group == OTHER:
-        return "Other External PRs"
-    return group.replace("Onboarding", "External Onboarding", 1)
-
-
-def fmt_age(days: float | None) -> str:
-    """5h under a day, otherwise 3.2d; empty if there is no date."""
-    if days is None:
-        return ""
-    hours = round(days * 24)
-    return f"{hours}h" if hours < 24 else f"{days:.1f}d"
-
-
-def sort_prs(group: str, prs: list[PR]) -> list[PR]:
-    """Longest since the last update first; non-stale groups sort by status first."""
-    if group == STALE:
-        return sorted(prs, key=lambda p: -p.days_since_update)
-    return sorted(
-        prs, key=lambda p: (STATUS_ORDER.index(p.status), -p.days_since_update)
-    )
-
-
-def pr_label(pr: PR, max_title: int | None = None) -> str:
-    """The PR cell: #123 title (author)."""
-    title = pr.title
-    if max_title is not None and len(title) > max_title:
-        title = title[: max_title - 1] + "…"
-    return f"#{pr.number} {title} ({pr.author})"
-
-
-def row_cells(pr: PR, max_title: int | None = None) -> list[str]:
-    return [
-        pr_label(pr, max_title),
-        pr.status,
-        ", ".join(pr.issues),
-        ", ".join(pr.reviewers),
-        fmt_age(pr.days_since_update),
-        fmt_age(pr.days_since_review),
-    ]
-
-
-def escape_markdown(text: str) -> str:
-    """Escape characters that break a markdown link or table."""
-    for char in "\\[]|":
-        text = text.replace(char, "\\" + char)
-    return text
-
-
-def render_markdown(groups: dict[str, list[PR]], title: str) -> str:
-    lines = [f"# {title}", ""]
-    for name in GROUP_ORDER:
-        if not groups[name]:
-            continue
-        lines += [
-            f"## {group_title(name)} ({len(groups[name])})",
-            "",
-            "| " + " | ".join(HEADERS) + " |",
-            "|" + "---|" * len(HEADERS),
-        ]
-        for pr in sort_prs(name, groups[name]):
-            cells = row_cells(pr)
-            cells[0] = f"[{escape_markdown(cells[0])}]({pr.url})"
-            lines.append("| " + " | ".join(cells) + " |")
-        lines.append("")
-    return "\n".join(lines)
-
-
-def slack_text_cell(text: str) -> dict[str, Any]:
-    return {"type": "raw_text", "text": text or " "}
-
-
-def slack_rich_cell(element: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "type": "rich_text",
-        "elements": [{"type": "rich_text_section", "elements": [element]}],
-    }
-
-
-def slack_bold_cell(text: str) -> dict[str, Any]:
-    return slack_rich_cell({"type": "text", "text": text, "style": {"bold": True}})
-
-
-def slack_link_cell(text: str, url: str) -> dict[str, Any]:
-    return slack_rich_cell({"type": "link", "text": text, "url": url})
-
-
-def slack_rows(prs: list[PR], budget: int) -> tuple[list[list[dict[str, Any]]], int]:
-    """Rows for the PRs that fit in `budget` characters, and the characters used."""
-    rows: list[list[dict[str, Any]]] = []
-    used = sum(len(h) for h in HEADERS)
-    for pr in prs:
-        texts = row_cells(pr, SLACK_PR_TITLE_MAX)
-        cost = sum(len(t) for t in texts)
-        if used + cost > budget or len(rows) >= SLACK_TABLE_MAX_ROWS:
-            continue
-        used += cost
-        rows.append(
-            [slack_link_cell(texts[0], pr.url), *map(slack_text_cell, texts[1:])]
-        )
-    return rows, used
-
-
-def slack_section(text: str) -> dict[str, Any]:
-    return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
-
-
-def render_slack_payload(groups: dict[str, list[PR]]) -> dict[str, Any]:
-    """A chat.postMessage body with one table per group.
-
-    Rows past Slack's table limits are dropped and counted in a closing note.
-    """
-    blocks = [slack_section(":mag: *Open PR Digest*")]
-    budget = SLACK_TABLE_CHAR_BUDGET
-    hidden = 0
-    for name in GROUP_ORDER:
-        prs = sort_prs(name, groups[name])
-        rows, used = slack_rows(prs, budget)
-        hidden += len(prs) - len(rows)
-        if not rows:
-            continue
-        budget -= used
-        blocks += [
-            slack_section(f"*{group_title(name)}* ({len(prs)})"),
-            {
-                "type": "table",
-                "column_settings": SLACK_COLUMN_SETTINGS,
-                "rows": [[slack_bold_cell(h) for h in HEADERS], *rows],
-            },
-        ]
-    if hidden:
-        note = f"{hidden} more PRs are not shown here. See the full report."
-        blocks.append(
-            {"type": "context", "elements": [{"type": "mrkdwn", "text": note}]}
-        )
-    return {"text": "Open PR Digest", "blocks": blocks}
-
-
-# =====================================================================
-# 10. MAIN
+# 9. MAIN
 # =====================================================================
 
 
@@ -1119,8 +951,16 @@ def main() -> None:
 
     groups = build_groups(owner, repo, args.apply)
     summary_groups = summarize_groups(groups)
+    try:
+        public_prs = fetch_public_prs(datetime.now(timezone.utc))
+    except Exception as e:
+        log(f"Skipping the {PUBLIC_GROUP} section: {e!r}")
+        public_prs = []
 
-    full_report = render_markdown(groups, "Open PR Digest - Full")
+    full_tables = build_tables(groups, public_prs)
+    summary_tables = build_tables(summary_groups, public_prs)
+
+    full_report = render_markdown(full_tables, "Open PR Digest - Full")
     print(full_report)
     if args.step_summary_file:
         with open(args.step_summary_file, "a") as f:
@@ -1128,11 +968,11 @@ def main() -> None:
     if args.full_report_file:
         Path(args.full_report_file).write_text(full_report + "\n")
     if args.summary_report_file:
-        summary = render_markdown(summary_groups, "Open PR Digest - Summary")
+        summary = render_markdown(summary_tables, "Open PR Digest - Summary")
         Path(args.summary_report_file).write_text(summary + "\n")
     if args.slack_message_file:
         Path(args.slack_message_file).write_text(
-            json.dumps(render_slack_payload(summary_groups))
+            json.dumps(render_slack_payload(summary_tables))
         )
 
 

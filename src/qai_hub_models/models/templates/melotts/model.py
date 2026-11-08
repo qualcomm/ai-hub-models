@@ -235,8 +235,6 @@ class Encoder(BaseModel):
         device: Device | None = None,
         context_graph_name: str | None = None,
     ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
         if target_runtime != TargetRuntime.ONNX:
             other_compile_options += " --truncate_64bit_tensors --truncate_64bit_io "
         return super().get_hub_compile_options(
@@ -517,24 +515,6 @@ class SDP(BaseModel):
     def context_graph_name(self) -> str:
         return "sdp"
 
-    def get_hub_compile_options(
-        self,
-        target_runtime: TargetRuntime,
-        precision: Precision,
-        other_compile_options: str = "",
-        device: Device | None = None,
-        context_graph_name: str | None = None,
-    ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
-        return super().get_hub_compile_options(
-            target_runtime,
-            precision,
-            other_compile_options,
-            device,
-            context_graph_name,
-        )
-
     def component_precision(self) -> Precision:
         return Precision.float
 
@@ -648,24 +628,6 @@ class Flow(BaseModel):
     def context_graph_name(self) -> str:
         return "flow"
 
-    def get_hub_compile_options(
-        self,
-        target_runtime: TargetRuntime,
-        precision: Precision,
-        other_compile_options: str = "",
-        device: Device | None = None,
-        context_graph_name: str | None = None,
-    ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
-        return super().get_hub_compile_options(
-            target_runtime,
-            precision,
-            other_compile_options,
-            device,
-            context_graph_name,
-        )
-
     def component_precision(self) -> Precision:
         return Precision.w8a16
 
@@ -714,24 +676,6 @@ class Decoder(BaseModel):
     def context_graph_name(self) -> str:
         return "decoder"
 
-    def get_hub_compile_options(
-        self,
-        target_runtime: TargetRuntime,
-        precision: Precision,
-        other_compile_options: str = "",
-        device: Device | None = None,
-        context_graph_name: str | None = None,
-    ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
-        return super().get_hub_compile_options(
-            target_runtime,
-            precision,
-            other_compile_options,
-            device,
-            context_graph_name,
-        )
-
     def component_precision(self) -> Precision:
         return Precision.w8a16
 
@@ -741,24 +685,6 @@ class T5Encoder(_T5EncoderBase):
     def context_graph_name(self) -> str:
         return "charsiu_encoder"
 
-    def get_hub_compile_options(
-        self,
-        target_runtime: TargetRuntime,
-        precision: Precision,
-        other_compile_options: str = "",
-        device: Device | None = None,
-        context_graph_name: str | None = None,
-    ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
-        return super().get_hub_compile_options(
-            target_runtime,
-            precision,
-            other_compile_options,
-            device,
-            context_graph_name,
-        )
-
     def component_precision(self) -> Precision:
         return Precision.float
 
@@ -767,24 +693,6 @@ class T5Decoder(_T5DecoderBase):
     @property
     def context_graph_name(self) -> str:
         return "charsiu_decoder"
-
-    def get_hub_compile_options(
-        self,
-        target_runtime: TargetRuntime,
-        precision: Precision,
-        other_compile_options: str = "",
-        device: Device | None = None,
-        context_graph_name: str | None = None,
-    ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
-        return super().get_hub_compile_options(
-            target_runtime,
-            precision,
-            other_compile_options,
-            device,
-            context_graph_name,
-        )
 
     def component_precision(self) -> Precision:
         return Precision.float
@@ -884,8 +792,6 @@ class BertWrapper(BaseModel):
         device: Device | None = None,
         context_graph_name: str | None = None,
     ) -> str:
-        if target_runtime.qairt_version_changes_compilation:
-            other_compile_options += " --qairt_version latest "
         if target_runtime != TargetRuntime.ONNX:
             other_compile_options += " --truncate_64bit_tensors --truncate_64bit_io "
         return super().get_hub_compile_options(

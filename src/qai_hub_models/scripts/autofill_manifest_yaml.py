@@ -18,6 +18,7 @@ from ruamel.yaml import YAML
 from tflite import Model as TFModel
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.utils.asset_loaders import qaihm_temp_dir
 from qai_hub_models.utils.export.context import resolve_recipe_dir
 from qai_hub_models.utils.export.dispatch import select_pipeline
@@ -27,7 +28,11 @@ from qai_hub_models.utils.export.result import (
     LegacyCollectionExportResult,
     MultiGraphCollectionExportResult,
 )
-from qai_hub_models.utils.path_helpers import MODEL_IDS, QAIHM_MODELS_ROOT
+from qai_hub_models.utils.path_helpers import (
+    MODEL_IDS,
+    QAIHM_MODELS_ROOT,
+    SCORECARD_MODELS_ROOT,
+)
 
 
 def _display_with_sig_figs(num: float, num_sig_figs: int = 3) -> str:
@@ -104,34 +109,32 @@ def get_model_size_and_parameters(
         return str(size), parameters
 
 
-def add_details_to_manifest(
-    manifest_dict: dict[str, Any],
+def add_details_to_internal_config(
+    config_dict: dict[str, Any],
     details: dict[str, dict[str, tuple[str, str | None]]],
 ) -> dict[str, Any]:
+    new_config = copy.deepcopy(config_dict)
+    tech = new_config.setdefault("technical_details", {})
+
     # Clean the old keys
-    new_manifest = copy.deepcopy(manifest_dict)
-    if "technical_details" in manifest_dict:
-        for detail_key in manifest_dict["technical_details"]:
-            if "model size" in detail_key.lower() or "parameters" in detail_key.lower():
-                del new_manifest["technical_details"][detail_key]
+    for detail_key in list(tech):
+        if "model size" in detail_key.lower() or "parameters" in detail_key.lower():
+            del tech[detail_key]
 
     # Add more standard keys here
     for precision_str, precision_data in details.items():
         for name, (size, parameters) in precision_data.items():
-            if "technical_details" in new_manifest:
-                param_key = (
-                    "Number of parameters"
-                    if name == "model"
-                    else f"Number of parameters ({name})"
-                )
-                size_key = "Model size" if name == "model" else f"Model size ({name})"
-                if parameters is not None:
-                    new_manifest["technical_details"][param_key] = parameters
-                new_manifest["technical_details"][f"{size_key} ({precision_str})"] = (
-                    size
-                )
+            param_key = (
+                "Number of parameters"
+                if name == "model"
+                else f"Number of parameters ({name})"
+            )
+            size_key = "Model size" if name == "model" else f"Model size ({name})"
+            if parameters is not None:
+                tech[param_key] = parameters
+            tech[f"{size_key} ({precision_str})"] = size
 
-    return new_manifest
+    return new_config
 
 
 def main() -> None:
@@ -142,7 +145,7 @@ def main() -> None:
         nargs="+",
         type=str,
         default=None,
-        help="Models for which to autofill manifest.yaml technical details.",
+        help="Models for which to autofill internal-config.yaml technical details.",
     )
     parser.add_argument(
         "--all",
@@ -168,10 +171,7 @@ def main() -> None:
         model_dir = QAIHM_MODELS_ROOT / model_name
         yaml = YAML()
         yaml.width = sys.maxsize
-        perf: dict[str, Any] = {}
-        if (model_dir / "perf.yaml").exists():
-            with open(model_dir / "perf.yaml") as f:
-                perf = yaml.load(f)
+        perf = QAIHMModelPerf.from_model(model_name, not_exists_ok=True)
 
         manifest = QAIHMModelManifest.from_model(model_name)
         precisions = manifest.supported_precisions
@@ -252,25 +252,25 @@ def main() -> None:
                             f"Unknown export script result type: {type(results)}"
                         )
             else:
-                if not perf:
+                if perf.empty:
                     print(f"No perf data for model {model_name}. Skipping.")
                     continue
-                for precision_str, precision_data in perf["precisions"].items():
-                    for submodel_name, submodel_data in precision_data[
-                        "components"
-                    ].items():
+                for precision, precision_data in perf.precisions.items():
+                    precision_str = str(precision)
+                    for (
+                        submodel_name,
+                        submodel_data,
+                    ) in precision_data.components.items():
                         details_key = (
                             submodel_name
-                            if len(precision_data["components"]) > 1
+                            if len(precision_data.components) > 1
                             else "model"
                         )
                         # Get model from first available profile job
                         found = False
-                        for device_data in submodel_data.get(
-                            "performance_metrics", {}
-                        ).values():
+                        for device_data in submodel_data.performance_metrics.values():
                             for runtime_data in device_data.values():
-                                if job_id := runtime_data.get("job_id"):
+                                if job_id := runtime_data.job_id:
                                     try:
                                         job = hub.get_job(job_id)
                                         details[precision_str][details_key] = (
@@ -284,14 +284,16 @@ def main() -> None:
                             if found:
                                 break
 
-            manifest_path = model_dir / "manifest.yaml"
-            with open(manifest_path) as f:
-                manifest_dict = yaml.load(f)
-            new_manifest = add_details_to_manifest(
-                manifest_dict=manifest_dict, details=details
+            config_path = SCORECARD_MODELS_ROOT / model_name / "internal-config.yaml"
+            config_dict: dict[str, Any] = {}
+            if config_path.exists():
+                config_dict = yaml.load(config_path) or {}
+            new_config = add_details_to_internal_config(
+                config_dict=config_dict, details=details
             )
-            with open(manifest_path, "wb") as f:
-                yaml.dump(new_manifest, f)
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "wb") as f:
+                yaml.dump(new_config, f)
 
         except Exception as e:
             raise ValueError(f"Failed for model {model_name}") from e

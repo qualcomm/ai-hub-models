@@ -1,57 +1,27 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
-- Transcription
-dataset:
-- librispeech
-description: Facebook Wav2Vec2-Conformer-Large is an English ASR model fine-tuned on 960 hours of LibriSpeech. It uses a Conformer encoder with relative-position attention (24 layers, 1024 hidden dim, 16 heads) and a CTC head for decoding. The model accepts raw 16kHz audio and outputs transcribed text via CTC greedy decoding.
-domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_on_target_demo: true
-has_static_banner: true
-headline: English speech recognition with Wav2Vec2-Conformer encoder and CTC decoder.
-id: wav2vec2_conformer
-license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
-license_type: apache-2.0
 name: Wav2Vec2-Conformer-Large-960h
+id: wav2vec2_conformer
+headline: English speech recognition with Wav2Vec2-Conformer encoder and CTC decoder.
+domain: Audio
+description: Facebook Wav2Vec2-Conformer-Large is an English ASR model fine-tuned on 960 hours of LibriSpeech. It uses a Conformer encoder with relative-position attention (24 layers, 1024 hidden dim, 16 heads) and a CTC head for decoding. The model accepts raw 16kHz audio and outputs transcribed text via CTC greedy decoding.
 numerics_benchmark:
   dataset_name: librispeech
   metric_name: Word Error Rate
-  source: https://huggingface.co/facebook/wav2vec2-conformer-rel-pos-large-960h-ft
-  unit: WER
   value: 1.85
-readme_install_system_deps: |
-  #### Linux
-  ```bash
-  sudo apt install ffmpeg
-  ```
-
-   #### Windows
-  ```
-  winget install ffmpeg
-  ```
-related_models:
-- whisper_small
-- distil_whisper
-- huggingface_wavlm_base_plus
-requires_aot_prepare: true
+  unit: WER
+  source: https://huggingface.co/facebook/wav2vec2-conformer-rel-pos-large-960h-ft
+use_case: Speech Recognition
+tags:
+- real-time
+license_type: apache-2.0
 research_paper: https://arxiv.org/abs/2006.11477
-research_paper_title: 'wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations'
+research_paper_title: "wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations"
 source_repo: https://huggingface.co/facebook/wav2vec2-conformer-rel-pos-large-960h-ft
-status: published
+license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
+has_on_target_demo: true
 supported_precisions:
 - float
 - w8a16
-tags:
-- real-time
-technical_details:
-  Input resolution: 1x160000 (10s at 16kHz)
-  Model checkpoint: facebook/wav2vec2-conformer-rel-pos-large-960h-ft
-  Model size (float): ~2.4 GB
-  Number of parameters: ~600M
 templates:
 - conformer
-use_case: Speech Recognition
+requires_aot_prepare: true
+readme_install_system_deps: "#### Linux\n```bash\nsudo apt install ffmpeg\n```\n\n #### Windows\n```\nwinget install ffmpeg\n```\n"

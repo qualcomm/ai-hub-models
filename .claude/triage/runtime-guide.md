@@ -32,7 +32,7 @@ Error occurs
   │   │   ├─ configs/model_metadata.py + `QcQuantizeOp_` in names → Quantization (AIMET leaking names)
   │   │   ├─ configs/model_metadata.py + no `QcQuantizeOp_` → Compiler/ONNX2EP (compiler renamed outputs)
   │   │   ├─ utils/testing_export_eval.py → Test infra bug (ai-hub-models)
-  │   │   ├─ models/*/export.py → Export script bug (ai-hub-models)
+  │   │   ├─ utils/export/ → Export pipeline bug (ai-hub-models)
   │   │   ├─ scorecard/ → Scorecard infra bug (ai-hub-models)
   │   │   └─ Our code raises but root cause is bad compiler output → Compiler team
   │   └─ NO → Check where the error actually comes from

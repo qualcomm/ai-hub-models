@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
 datasets:
 - imagenet
 description: NASNet is a CNN-based architecture discovered via Neural Architecture Search (NAS) that can classify images from the Imagenet dataset.
@@ -14,17 +8,9 @@ disabled_paths:
     qnn_dlc:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-58.300 %) above threshold (10.0 %)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: nasnet
-imsdk_supported: true
 license: https://github.com/huggingface/pytorch-image-models?tab=Apache-2.0-1-ov-file
 license_type: apache-2.0
 name: NASNet
@@ -34,27 +20,14 @@ numerics_benchmark:
   source: https://huggingface.co/timm/nasnetalarge.tf_in1k
   unit: '%'
   value: 82.6
-private_perf_form_factors:
-- Auto
-related_models:
-- efficientvit_b2_cls
-- efficientvit_l2_cls
 research_paper: https://arxiv.org/abs/1707.07012
 research_paper_title: Learning Transferable Architectures for Scalable Image Recognition
 source_repo: https://github.com/huggingface/pytorch-image-models/tree/main
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - bu-auto
-technical_details:
-  Activations (M): '19.4'
-  GMACs: '5.9'
-  Input resolution: 224x224
-  Model checkpoint: nasnetalarge.tf_in1k
-  Model size (float): 338 MB
-  Number of parameters: 88.7M
 templates:
 - imagenet_classifier
 use_case: Image Classification

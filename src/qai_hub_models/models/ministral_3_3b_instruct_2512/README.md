@@ -20,9 +20,6 @@ qai-hub-models info Ministral-3-3B-Instruct-2512
 # Print performance and accuracy metrics
 qai-hub-models perf Ministral-3-3B-Instruct-2512
 qai-hub-models numerics Ministral-3-3B-Instruct-2512
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch Ministral-3-3B-Instruct-2512 --runtime geniex_llamacpp --precision q4_0
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

@@ -17,6 +17,7 @@ from huggingface_hub import HfApi
 from qai_hub_models._version import __version__ as qaihm_version
 from qai_hub_models.configs.manifest_yaml import MODEL_STATUS, QAIHMModelManifest
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
@@ -112,7 +113,8 @@ def release_model_to_hf(
         If True, generates model card without pushing to HuggingFace.
     """
     # Generate model card & license.
-    manifest = QAIHMModelManifest.from_model(model_id)
+    sc = QAIHMModelInternalConfig.from_model(model_id)
+    manifest = sc.manifest
     assert manifest.name is not None
     model_perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
 
@@ -127,7 +129,7 @@ def release_model_to_hf(
     # Push the model card if the model is public and this is not a dry-run.
     if (
         not dry_run
-        and manifest.status == MODEL_STATUS.PUBLISHED
+        and sc.status == MODEL_STATUS.PUBLISHED
         and len(model_perf.supported_chipsets) > 0
     ):
         assert huggingface_token is not None, (
@@ -227,11 +229,9 @@ def release_hf_model_cards(
 
     for model_id in model_list:
         try:
-            manifest = QAIHMModelManifest.from_model(model_id)
-            if manifest.status != MODEL_STATUS.PUBLISHED:
-                print(
-                    f"Skipping {model_id}: status is {manifest.status.name.lower()}, not published"
-                )
+            status = QAIHMModelInternalConfig.from_model(model_id).status
+            if status != MODEL_STATUS.PUBLISHED:
+                print(f"Skipping {model_id}: status is {status.value}, not published")
                 continue
             print(f"Releasing {model_id} to HuggingFace")
             release_model_to_hf(

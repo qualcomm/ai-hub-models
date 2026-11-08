@@ -30,6 +30,7 @@ DEVKIT_ASSET = CachedWebDatasetAsset(
     IMAGENET_FOLDER_NAME,
     IMAGENET_VERSION,
     DEVKIT_NAME,
+    private_s3_key="qai-hub-models/datasets/imagenet/ILSVRC2012_devkit_t12.tar.gz",
 )
 VAL_PREP_ASSET = CachedWebDatasetAsset(
     "https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh",

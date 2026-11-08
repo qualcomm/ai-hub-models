@@ -3,44 +3,38 @@
 Review resolved nightly and scorecard issues from the past week, evaluate triage
 accuracy for both, and propose updates to the triage knowledge base via a PR.
 
-**Budget: 50 tool calls max. Target: finish in under 40 tool calls. Batch aggressively.**
+**Budget: 75 tool calls max. Target: finish in under 30 tool calls. Batch aggressively.**
 
 ## Context Variables
 
 Injected via the workflow:
 - `REPO` — the repository (owner/name), e.g. `qcom-ai-hub/ai-hub-models-internal`
-- `TETRACODE_REPO` — issue tracker, e.g. `qcom-ai-hub/tetracode`
+- `KB_INPUT` — directory holding the pre-collected tetracode issues and KB copies
 - `LOOKBACK_DAYS` — how many days to look back (default: 7)
 
-## Step 1: Collect Data (~12–18 tool calls)
+Your token cannot read `qcom-ai-hub/tetracode`, and Claude Code blocks edits under
+`.claude/`. The workflow's `collect-kb-data` job gathers the issues for you, and the
+`open-kb-pr` job commits your edits and opens the PR. Never query tetracode or run git.
 
-For ~7 nightly issues, the per-issue body+comments+timeline trio costs ~21 calls. Batch
-all per-issue calls into a single message so the runtime parallelizes them. If approaching
-the 45-action wrap-up threshold, finish evaluation with whatever evidence you have rather
-than fetching more.
+## Step 1: Collect Data (~4 tool calls)
 
+`KB_INPUT` contains:
+- `nightly_issues.json` — nightly issues from the past `LOOKBACK_DAYS` days
+- `scorecard_issues.json` — scorecard issues from the past `LOOKBACK_DAYS + 7` days
+  (the extra week lets you check whether last week's SUSTAINED predictions persisted)
+- `issues/{num}.json` — body, labels, assignee, `closed_at`
+- `issues/{num}_comments.jsonl` — one comment per line (`author`, `created`, `body`)
+- `issues/{num}_timeline.jsonl` — closed / assigned / referenced events
+- `kb/*.md` — editable copies of the KB files
 
-Run these FOUR calls in the SAME message (parallel):
+Run these in the SAME message (parallel):
 
-**Call A** — nightly issues from the past week:
+**Call A** — all issue data:
 ```
-gh issue list --repo $TETRACODE_REPO \
-  --search "[QAIHM Nightly] created:>=$(date -d '$LOOKBACK_DAYS days ago' +%Y-%m-%d)" \
-  --label "ai-hub-models" \
-  --state all --limit 20 \
-  --json number,title,state,createdAt,closedAt,labels
-```
-
-**Call B** — scorecard regression issues from the past week (and one extra week
-back, so we can check whether last week's SUSTAINED predictions persisted):
-```
-gh issue list --repo $TETRACODE_REPO \
-  --search "label:scorecard created:>=$(date -d '$((LOOKBACK_DAYS + 7)) days ago' +%Y-%m-%d)" \
-  --state all --limit 20 \
-  --json number,title,state,createdAt,closedAt,labels
+cat $KB_INPUT/nightly_issues.json $KB_INPUT/scorecard_issues.json $KB_INPUT/issues/*
 ```
 
-**Call C** — merged PRs from the past week:
+**Call B** — merged PRs from the past week:
 ```
 gh pr list --repo $REPO \
   --search "is:merged merged:>=$(date -d '$LOOKBACK_DAYS days ago' +%Y-%m-%d)" \
@@ -48,23 +42,14 @@ gh pr list --repo $REPO \
   --json number,title,author,mergedAt,body,files
 ```
 
-**Call D** — read all 5 KB files in one message:
+**Call C** — the KB files you will edit:
 ```
-cat .claude/triage/error-patterns.md .claude/triage/teams.md \
-    .claude/triage/runtime-guide.md .claude/triage/examples.md \
-    .claude/triage/scorecard-patterns.md
+cat $KB_INPUT/kb/error-patterns.md $KB_INPUT/kb/teams.md \
+    $KB_INPUT/kb/runtime-guide.md $KB_INPUT/kb/examples.md \
+    $KB_INPUT/kb/scorecard-patterns.md
 ```
-
-Then, for each issue (nightly + scorecard), fetch THREE things in parallel — body, comments,
-and timeline — so verdicts rest on positive evidence, not on silent closure. Batch all
-issues into one message:
-
-```
-# Per issue (parallel; replace {num} with each issue number):
-gh api repos/$TETRACODE_REPO/issues/{num} --jq '{number, state, title, body, labels: [.labels[].name], assignee: .assignee.login, closed_at}'
-gh api repos/$TETRACODE_REPO/issues/{num}/comments --jq '[.[] | {author: .user.login, created: .created_at, body: .body[0:8000]}]'
-gh api repos/$TETRACODE_REPO/issues/{num}/timeline --paginate --jq '[.[] | select(.event=="closed" or .event=="assigned" or .event=="referenced" or .event=="cross-referenced") | {event, actor: .actor.login, assignee: .assignee.login, source: .source.issue.number, commit_id: .commit_id, created: .created_at}]'
-```
+`historical-patterns.md` is large; `grep` it for the signature you are adding rather
+than reading it whole.
 
 From the **body**, extract the failing tests / job IDs / stack traces — this is the
 ground-truth signal the nightly Breeze was triaging from. You must re-read it; do not
@@ -206,17 +191,13 @@ the reappearance ratio (if not):
   FLAKY two weeks in a row → add to "Known Flaky Model/Device Combos" table in
   `scorecard-patterns.md` (currently a placeholder)
 
-If no updates are needed (all triage correct, no new patterns), skip to Step 4 with
-a "no updates" PR that just reports the accuracy scores.
+If no updates are needed (all triage correct, no new patterns), skip to Step 4 and still
+write `pr-body.md` with the accuracy scores; no PR is opened for an empty diff.
 
 ## Step 3: Apply Updates (~8 tool calls)
 
-1. Create branch:
-   ```
-   git checkout -b auto/kb-weekly-update-$(date +%Y-%m-%d)
-   ```
-
-2. Edit the KB files using the Edit tool. Editable files:
+1. Edit the copies in `$KB_INPUT/kb/` using the Edit tool. Never edit `.claude/triage/`
+   directly. Editable files:
    - `error-patterns.md`, `teams.md`, `runtime-guide.md`, `examples.md` — nightly KB
    - `historical-patterns.md` — recurring failure patterns; new rows come
      exclusively from `triage-wrong` closures where the human comment or fix
@@ -240,26 +221,10 @@ a "no updates" PR that just reports the accuracy scores.
    - For confirmed flaky combos: replace the `(initially empty)` placeholder row
      in `scorecard-patterns.md` with real entries the first time, then append after
 
-3. Commit + push in ONE sequence:
-   ```
-   git add .claude/triage/
-   git commit -m "Weekly KB update: {N} new patterns, {M} corrections
+## Step 4: Write PR Description (~1 tool call)
 
-   Nightly triage accuracy: X/Y correct ({pct}%)
-   Scorecard sustained accuracy: A/B confirmed ({pct}%)
-   {one-line per notable change}"
-   git push -u origin auto/kb-weekly-update-$(date +%Y-%m-%d)
-   ```
-
-## Step 4: Create PR (~3 tool calls)
-
-```
-gh pr create --repo $REPO \
-  --title "[Auto] Weekly triage KB update — $(date +%Y-%m-%d)" \
-  --body-file /tmp/pr-body.md
-```
-
-Write `/tmp/pr-body.md` first with this format:
+Write `$KB_INPUT/kb/pr-body.md`. The `open-kb-pr` job uses it as the PR body; it opens
+no PR when the KB files are unchanged. Format:
 ```markdown
 ## Weekly Triage Knowledge Base Update
 
@@ -299,13 +264,11 @@ Write `/tmp/pr-body.md` first with this format:
 
 ## Rules
 
-- **50 action limit** (each tool call = 1 action) — if approaching 45 actions, wrap up immediately (commit what you have)
+- **75 action limit** (each tool call = 1 action) — if approaching 65 actions, wrap up immediately (write `pr-body.md` with what you have)
 - NEVER remove existing error patterns, team entries, or scorecard signatures — only add or modify
-- Always create a PR for human review
 - Batch `gh` calls — never loop over issues one-by-one
-- If no nightly AND no scorecard issues this week → create a minimal PR noting "No issues to review"
+- If no nightly AND no scorecard issues this week → write a minimal `pr-body.md` noting "No issues to review"
 - If only one of (nightly, scorecard) had issues, run that section and note "No {other} issues this week" in the PR
-- If tetracode access fails → fall back to reading commit comments on $REPO
 - Keep PR description under 10,000 characters
 - Include links to original issues and fixing PRs for verification
 - Scorecard cluster quality and team routing are NOT scored — only the SUSTAINED prediction is falsifiable

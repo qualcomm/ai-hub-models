@@ -34,10 +34,6 @@ GRACE_METRIC_NAME = f"Grace{GRACE_VERSION}"
 # The image + question set, graded the same way.
 MULTIMODAL_TASK_NAME = "multimodal_prompts"
 
-# Tasks whose evaluator generates free-form responses and grades them, as
-# opposed to the forward-only metrics (wikitext, mmlu, ...).
-PROMPT_TASKS: frozenset[str] = frozenset({GRACE_TASK_NAME, MULTIMODAL_TASK_NAME})
-
 
 def resolve_task_name(task: str) -> str:
     """Map the version-less ``grace`` alias onto the current Grace task name."""

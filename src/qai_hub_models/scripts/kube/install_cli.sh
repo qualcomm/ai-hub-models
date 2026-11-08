@@ -5,12 +5,9 @@
 # ---------------------------------------------------------------------
 set -e
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
 run_sudo() {
   if [ "$(id -u)" -eq 0 ]; then
     "$@"
-  elif [ -n "${SUDO_PASSWORD:-}" ]; then
-    SUDO_ASKPASS="${REPO_ROOT}/scripts/ci/gh_askpass.sh" sudo --askpass "$@"
   else
     sudo "$@"
   fi

@@ -111,7 +111,7 @@ env:
 jobs:
   aggregate_scorecard_results:
     name: Results for ${{ inputs.action_id == '' && inputs.latest_results_branch || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, inputs.action_id) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: write
       actions: read
@@ -135,6 +135,8 @@ jobs:
       results_url: ${{ steps.upload-results.conclusion == 'success' && steps.upload-results.outputs.artifact-url || 'N/A' }}
       qaihm_test_deployment: ${{ steps.get_branch_and_date.outputs.qaihm_test_deployment }}
       csv_url: ${{ steps.upload-metrics.conclusion == 'success' && steps.upload-metrics.outputs.artifact-url || 'N/A' }}
+      csv_artifact_name: ${{ steps.upload-metrics.conclusion == 'success' && format('Scorecard Results CSV ({0})', inputs.action_id || inputs.latest_results_branch) || '' }}
+      tableau_ready: ${{ steps.upload-metrics.conclusion == 'success' && steps.create-perf-files.outcome != 'failure' && steps.create-release-assets-files.outcome != 'failure' }}
       regression_issue_url: ${{ steps.file-regression-issue.outputs.issue_url || '' }}
       trend_summary: ${{ steps.extract-trend-summary.outputs.trend_summary || '' }}
 
@@ -278,8 +280,6 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}
           hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
@@ -363,22 +363,6 @@ jobs:
             ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/results.csv \
             --output-file ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/scorecard_failure_analysis.csv
 
-      - name: Copy CSV to Tableau
-        if: ${{ !cancelled() && inputs.publish_to_tableau && steps.aggregate-results.outcome == 'success' && steps.create-perf-files.outcome != 'failure' && steps.create-release-assets-files.outcome != 'failure' }}
-        run: |
-          if [ -z "$QAIHM_TEST_TABLEAU_BRANCH_NAME" ]; then
-            echo "tableau_branch_name must be set to upload to Tableau. Exiting."
-            exit 1
-          fi
-          mkdir -p tableau-scorecard-mountpoint
-          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S apt install -y cifs-utils
-          # Setup password for mount command
-          export PASSWD='${{ secrets.TETRASERVICE_PASSWORD }}'
-          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S mount -t cifs //snowcone/edaap_aihub_sc ./tableau-scorecard-mountpoint -o rw,user=tetraservice
-          unset PASSWD
-          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S cp ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/results.csv ./tableau-scorecard-mountpoint/scorecard-accuracy.csv
-          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S umount ./tableau-scorecard-mountpoint
-
       - name: Refresh Model Runtime Estimates
         id: refresh-runtime-estimates
         if: ${{ !cancelled() && inputs.create_pr && inputs.tableau_branch_name == 'weekly-prod' && inputs.action_id != '' && steps.create-perf-files.outcome != 'failure' && steps.create-release-assets-files.outcome != 'failure' }}
@@ -416,6 +400,7 @@ jobs:
           git ls-files -co src/qai_hub_models | grep "\/models/.*/perf.*\.yaml$" | xargs -r git add
           git ls-files -co src/qai_hub_models | grep "\/models/.*/numerics.*\.yaml$" | xargs -r git add
           git ls-files -co src/qai_hub_models | grep "\/models/.*/manifest\.yaml$" | xargs -r git add
+          git ls-files -co src/qai_hub_models | grep "\/scorecard/models/.*/internal-config\.yaml$" | xargs -r git add
           git ls-files -co src/qai_hub_models | grep "\/models/.*/release-assets.*\.yaml$" | xargs -r git add
           git ls-files -co src/qai_hub_models | grep "\/models/.*/export\.py$" | xargs -r git add
           git ls-files -co src/qai_hub_models | grep "\/models/.*/evaluate\.py$" | xargs -r git add
@@ -522,6 +507,7 @@ jobs:
             --perf-regressions-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/perf-regressions-2x-*.json" \
             --numerics-regressions-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/numerics-regressions-*.json" \
             --newly-disabled-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/newly-disabled-*.json" \
+            --quantized-failures-json "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/quantized-failures-*.json" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --perf-diff-url "${{ steps.upload-perf-diff-summary.outputs.artifact-url || 'N/A' }}" \
             --numerics-diff-url "${{ steps.upload-numerics-diff-summary.outputs.artifact-url || 'N/A' }}" \
@@ -583,11 +569,41 @@ jobs:
           name: All Scorecard Artifacts (${{ inputs.action_id || inputs.latest_results_branch }})
           path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
 
+  publish_to_tableau:
+    name: Copy CSV to Tableau
+    needs: [aggregate_scorecard_results]
+    if: ${{ !cancelled() && inputs.publish_to_tableau && needs.aggregate_scorecard_results.outputs.tableau_ready == 'true' }}
+    # Needs the internal network share (//snowcone), so this stays on a tetra runner.
+    runs-on: [tetra-ubuntu-2204, self-hosted]
+    env:
+      QAIHM_TEST_TABLEAU_BRANCH_NAME: ${{ inputs.tableau_branch_name }}
+    steps:
+      - name: Download Scorecard CSV
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.aggregate_scorecard_results.outputs.csv_artifact_name }}
+          path: ${{ github.workspace }}/scorecard-csv
+
+      - name: Copy CSV to Tableau
+        run: |
+          if [ -z "$QAIHM_TEST_TABLEAU_BRANCH_NAME" ]; then
+            echo "tableau_branch_name must be set to upload to Tableau. Exiting."
+            exit 1
+          fi
+          mkdir -p tableau-scorecard-mountpoint
+          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S apt install -y cifs-utils
+          # Setup password for mount command
+          export PASSWD='${{ secrets.TETRASERVICE_PASSWORD }}'
+          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S mount -t cifs //snowcone/edaap_aihub_sc ./tableau-scorecard-mountpoint -o rw,user=tetraservice
+          unset PASSWD
+          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S cp scorecard-csv/results.csv ./tableau-scorecard-mountpoint/scorecard-accuracy.csv
+          echo '${{ secrets.TETRASERVICE_PASSWORD }}' | sudo -S umount ./tableau-scorecard-mountpoint
+
   create_pr:
     name: Create AI Hub Models PR for Perf Results
     needs: [aggregate_scorecard_results]
     if: ${{ !cancelled() && inputs.create_pr && needs.aggregate_scorecard_results.outputs.branch_name != '' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       qaihm_pr_url: ${{ steps.create-qaihm-pr.outputs.result }}
 
@@ -628,12 +644,6 @@ jobs:
                 '[All Results + Hub Job YAML (zip)](${{ needs.aggregate_scorecard_results.outputs.results_url }})',
               ].join('\n')
             });
-            const reviewerResult = await github.request(`POST /repos/${owner}/${repo}/pulls/${result.data.number}/requested_reviewers`, {
-              owner: owner,
-              repo: repo,
-              pull_number: result.data.number,
-              team_reviewers: ['ai-hub-models-reviewers'],
-            })
             // Assign the PR to whoever triggered the run. Scheduled runs have
             // no human triggerer, so leave those unassigned.
             if (context.eventName !== 'schedule') {
@@ -652,7 +662,7 @@ jobs:
     needs: [aggregate_scorecard_results, create_pr]
     # Fires on partial runs too — Slack is visibility, not a publish gate.
     if: ${{ !cancelled() && inputs.notify_slack }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
 
     permissions:
       contents: write
@@ -736,8 +746,8 @@ jobs:
           1. Write the full comment markdown to '/tmp/breeze_scorecard_comment.md'.
           2. Emit it via
              'python3 scripts/breeze_nightly/emit_comment_b64.py /tmp/breeze_scorecard_comment.md'
-        A downstream 'post_scorecard_breeze_comment' job recovers the file from
-        this job's log and posts it to ISSUE_URL.
+        A downstream 'post_scorecard_breeze_comment' job downloads the file as an
+        artifact (falling back to this job's log) and posts it to ISSUE_URL.
 
         Context variables for the skill:
         - ISSUE_URL: ${{ needs.aggregate_scorecard_results.outputs.regression_issue_url }}
@@ -777,6 +787,9 @@ jobs:
       show_full_output: true
       claude_output_mode: summary
       additional_permissions: "actions: read"
+      # The SDK caps logged tool stdout at ~30KB, which truncates large comments
+      # before the END marker; the artifact carries the file intact.
+      artifact_upload: /tmp/breeze_scorecard_comment.md
 
   post_scorecard_breeze_comment:
     name: Post Scorecard Breeze Comment to Tetracode
@@ -784,7 +797,7 @@ jobs:
     # hitting the turn cap, the comment is still recoverable from its log.
     if: ${{ always() && needs.scorecard-analysis.result != 'cancelled' && needs.aggregate_scorecard_results.outputs.regression_issue_url != '' }}
     needs: [aggregate_scorecard_results, scorecard-analysis]
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       actions: read
@@ -793,13 +806,26 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+          python-version-file: .github/python-version
 
-      - name: Recover Breeze comment from agent job log
+      - name: Download Breeze comment artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: scorecard-analysis-artifact
+          path: /tmp/breeze/artifact
+
+      - name: Recover Breeze comment
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/breeze
+          if [ -s /tmp/breeze/artifact/breeze_scorecard_comment.md ]; then
+            cp /tmp/breeze/artifact/breeze_scorecard_comment.md /tmp/breeze/comment.md
+            echo "Recovered comment from artifact ($(wc -c < /tmp/breeze/comment.md) bytes)"
+            exit 0
+          fi
+          echo "::warning::No comment artifact; falling back to agent job log"
           AGENT_JOB_ID=$(gh api --paginate \
             "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" \
             --jq '.jobs[] | select(.name | contains("scorecard-analysis")) | .id' \

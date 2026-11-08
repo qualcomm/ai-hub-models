@@ -1,498 +1,484 @@
-precisions:
-  w4a16:
-    components:
-      Intern3.5-VL-4B:
-        performance_metrics:
-          Arduino VENTUNO Q:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1237.941811
-                time_to_first_token_range_milliseconds:
-                  max: 827.1794285714286
-                  min: 103.39742857142858
-                tokens_per_second: 15.837382
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1090.433575
-                time_to_first_token_range_milliseconds:
-                  max: 1878.152
-                  min: 117.3845
-                tokens_per_second: 14.419179
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 891.395112
-                time_to_first_token_range_milliseconds:
-                  max: 4595.044266666667
-                  min: 143.59513333333334
-                tokens_per_second: 11.982163
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1298.839669
-                time_to_first_token_range_milliseconds:
-                  max: 394.198
-                  min: 98.5495
-                tokens_per_second: 16.190276
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing IQ-9075 EVK:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1307.487115
-                time_to_first_token_range_milliseconds:
-                  max: 783.1817142857142
-                  min: 97.89771428571427
-                tokens_per_second: 16.733503
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1108.417042
-                time_to_first_token_range_milliseconds:
-                  max: 1847.6799999999998
-                  min: 115.47999999999999
-                tokens_per_second: 14.769687
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 873.596303
-                time_to_first_token_range_milliseconds:
-                  max: 4688.664533333333
-                  min: 146.52076666666665
-                tokens_per_second: 12.076711
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1315.404101
-                time_to_first_token_range_milliseconds:
-                  max: 389.234
-                  min: 97.3085
-                tokens_per_second: 17.670954
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing IQ-X7181:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1220.868124
-                time_to_first_token_range_milliseconds:
-                  max: 838.7474285714285
-                  min: 104.84342857142856
-                tokens_per_second: 18.585193
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1084.479238
-                time_to_first_token_range_milliseconds:
-                  max: 1888.464
-                  min: 118.029
-                tokens_per_second: 16.603552
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 868.529315
-                time_to_first_token_range_milliseconds:
-                  max: 4716.018133333333
-                  min: 147.37556666666666
-                tokens_per_second: 12.744666
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1301.27586
-                time_to_first_token_range_milliseconds:
-                  max: 393.46
-                  min: 98.365
-                tokens_per_second: 20.35014
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing Q-8750:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1681.019118
-                time_to_first_token_range_milliseconds:
-                  max: 609.1542857142857
-                  min: 76.14428571428572
-                tokens_per_second: 20.032424
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1533.977341
-                time_to_first_token_range_milliseconds:
-                  max: 1335.0914285714284
-                  min: 83.44321428571428
-                tokens_per_second: 18.671254
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1126.311097
-                time_to_first_token_range_milliseconds:
-                  max: 3636.650666666667
-                  min: 113.64533333333334
-                tokens_per_second: 16.282822
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1797.525594
-                time_to_first_token_range_milliseconds:
-                  max: 284.836
-                  min: 71.209
-                tokens_per_second: 20.660377
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S25:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1681.019118
-                time_to_first_token_range_milliseconds:
-                  max: 609.1542857142857
-                  min: 76.14428571428572
-                tokens_per_second: 20.032424
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1533.977341
-                time_to_first_token_range_milliseconds:
-                  max: 1335.0914285714284
-                  min: 83.44321428571428
-                tokens_per_second: 18.671254
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1126.311097
-                time_to_first_token_range_milliseconds:
-                  max: 3636.650666666667
-                  min: 113.64533333333334
-                tokens_per_second: 16.282822
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1797.525594
-                time_to_first_token_range_milliseconds:
-                  max: 284.836
-                  min: 71.209
-                tokens_per_second: 20.660377
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S26:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1576.590447
-                time_to_first_token_range_milliseconds:
-                  max: 649.5028571428571
-                  min: 81.18785714285714
-                tokens_per_second: 20.538036
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1349.78484
-                time_to_first_token_range_milliseconds:
-                  max: 1517.2788571428569
-                  min: 94.82992857142855
-                tokens_per_second: 17.391508
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1107.613923
-                time_to_first_token_range_milliseconds:
-                  max: 3698.0394666666666
-                  min: 115.56373333333333
-                tokens_per_second: 15.367085
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1634.811262
-                time_to_first_token_range_milliseconds:
-                  max: 313.186
-                  min: 78.2965
-                tokens_per_second: 20.89245
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Snapdragon X Elite CRD:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1220.868124
-                time_to_first_token_range_milliseconds:
-                  max: 838.7474285714285
-                  min: 104.84342857142856
-                tokens_per_second: 18.585193
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1084.479238
-                time_to_first_token_range_milliseconds:
-                  max: 1888.464
-                  min: 118.029
-                tokens_per_second: 16.603552
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 868.529315
-                time_to_first_token_range_milliseconds:
-                  max: 4716.018133333333
-                  min: 147.37556666666666
-                tokens_per_second: 12.744666
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1301.27586
-                time_to_first_token_range_milliseconds:
-                  max: 393.46
-                  min: 98.365
-                tokens_per_second: 20.35014
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Snapdragon X2 Elite CRD:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 1024
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 2160.186509
-                time_to_first_token_range_milliseconds:
-                  max: 474.0331428571428
-                  min: 59.25414285714285
-                tokens_per_second: 33.457982
-              - context_length: 2048
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1964.599927
-                time_to_first_token_range_milliseconds:
-                  max: 1042.4514285714286
-                  min: 65.15321428571428
-                tokens_per_second: 32.522077
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1591.225716
-                time_to_first_token_range_milliseconds:
-                  max: 2574.1162666666664
-                  min: 80.44113333333333
-                tokens_per_second: 25.563643
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 2418.471073
-                time_to_first_token_range_milliseconds:
-                  max: 211.704
-                  min: 52.926
-                tokens_per_second: 34.954055
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-      Vision-Encoder:
-        performance_metrics:
-          Arduino VENTUNO Q:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 6
-                min: 1
-              inference_time_milliseconds: 187.523
-              job_id: jgj36d1ep
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 6
-                min: 1
-              inference_time_milliseconds: 187.739
-              job_id: j57o1269g
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Dragonwing IQ-9075 EVK:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 8
-                min: 3
-              inference_time_milliseconds: 187.974
-              job_id: jpv2yq4rg
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 8
-                min: 3
-              inference_time_milliseconds: 187.326
-              job_id: jgd6yn0zp
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Dragonwing IQ-X7181:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 185.718
-              job_id: jgod7zmk5
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 184.05
-              job_id: jp1ok2375
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Dragonwing Q-8750:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 10
-                min: 2
-              inference_time_milliseconds: 129.794
-              job_id: j5wy0wxmg
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 10
-                min: 2
-              inference_time_milliseconds: 130.766
-              job_id: jpx089mlp
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Samsung Galaxy S25:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 10
-                min: 2
-              inference_time_milliseconds: 129.794
-              job_id: j5wy0wxmg
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 10
-                min: 2
-              inference_time_milliseconds: 130.766
-              job_id: jpx089mlp
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Samsung Galaxy S26:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 10
-                min: 2
-              inference_time_milliseconds: 108.078
-              job_id: jg9o7088g
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 9
-                min: 1
-              inference_time_milliseconds: 108.014
-              job_id: j5m91e49g
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Snapdragon X Elite CRD:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 185.718
-              job_id: jgod7zmk5
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 184.05
-              job_id: jp1ok2375
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-          Snapdragon X2 Elite CRD:
-            genie:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 98.071
-              job_id: jgzzq2wxg
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
-            geniex_qairt:
-              estimated_peak_memory_range_mb:
-                max: 1
-                min: 1
-              inference_time_milliseconds: 99.082
-              job_id: jp4e6n81g
-              job_status: Passed
-              layer_counts:
-                npu: 992
-                total: 992
-              primary_compute_unit: NPU
-              tool_versions:
-                qairt: 2.50.0.260828221209
+performance_metrics:
+- component: Intern3.5-VL-4B
+  device: Arduino VENTUNO Q
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1237.941811
+    tokens_per_second: 15.837382
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1090.433575
+    tokens_per_second: 14.419179
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 891.395112
+    tokens_per_second: 11.982163
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1298.839669
+    tokens_per_second: 16.190276
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Dragonwing IQ-9075 EVK
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1307.487115
+    tokens_per_second: 16.733503
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1108.417042
+    tokens_per_second: 14.769687
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 873.596303
+    tokens_per_second: 12.076711
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1315.404101
+    tokens_per_second: 17.670954
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1220.868124
+    tokens_per_second: 18.585193
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1084.479238
+    tokens_per_second: 16.603552
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 868.529315
+    tokens_per_second: 12.744666
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1301.27586
+    tokens_per_second: 20.35014
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1681.019118
+    tokens_per_second: 20.032424
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1533.977341
+    tokens_per_second: 18.671254
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1126.311097
+    tokens_per_second: 16.282822
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1797.525594
+    tokens_per_second: 20.660377
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Samsung Galaxy S25
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1681.019118
+    tokens_per_second: 20.032424
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1533.977341
+    tokens_per_second: 18.671254
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1126.311097
+    tokens_per_second: 16.282822
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1797.525594
+    tokens_per_second: 20.660377
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Samsung Galaxy S26
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1576.590447
+    tokens_per_second: 20.538036
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1349.78484
+    tokens_per_second: 17.391508
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1107.613923
+    tokens_per_second: 15.367085
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1634.811262
+    tokens_per_second: 20.89245
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1220.868124
+    tokens_per_second: 18.585193
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1084.479238
+    tokens_per_second: 16.603552
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 868.529315
+    tokens_per_second: 12.744666
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1301.27586
+    tokens_per_second: 20.35014
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Intern3.5-VL-4B
+  device: Snapdragon X2 Elite CRD
+  llm_metrics:
+  - context_length: 1024
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 2160.186509
+    tokens_per_second: 33.457982
+  - context_length: 2048
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1964.599927
+    tokens_per_second: 32.522077
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1591.225716
+    tokens_per_second: 25.563643
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 2418.471073
+    tokens_per_second: 34.954055
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Vision-Encoder
+  device: Arduino VENTUNO Q
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 6
+      min: 1
+    inference_time_milliseconds: 187.523
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jgj36d1ep
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Arduino VENTUNO Q
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 6
+      min: 1
+    inference_time_milliseconds: 187.739
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: j57o1269g
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing IQ-9075 EVK
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 8
+      min: 3
+    inference_time_milliseconds: 187.974
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jpv2yq4rg
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing IQ-9075 EVK
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 8
+      min: 3
+    inference_time_milliseconds: 187.326
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jgd6yn0zp
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing IQ-X7181
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 185.718
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jgod7zmk5
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing IQ-X7181
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 184.05
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jp1ok2375
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing Q-8750
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 10
+      min: 2
+    inference_time_milliseconds: 129.794
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: j5wy0wxmg
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Dragonwing Q-8750
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 10
+      min: 2
+    inference_time_milliseconds: 130.766
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jpx089mlp
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Samsung Galaxy S25
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 10
+      min: 2
+    inference_time_milliseconds: 129.794
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: j5wy0wxmg
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Samsung Galaxy S25
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 10
+      min: 2
+    inference_time_milliseconds: 130.766
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jpx089mlp
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Samsung Galaxy S26
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 10
+      min: 2
+    inference_time_milliseconds: 108.078
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jg9o7088g
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Samsung Galaxy S26
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 9
+      min: 1
+    inference_time_milliseconds: 108.014
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: j5m91e49g
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Snapdragon X Elite CRD
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 185.718
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jgod7zmk5
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Snapdragon X Elite CRD
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 184.05
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jp1ok2375
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Snapdragon X2 Elite CRD
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 98.071
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jgzzq2wxg
+    status: Passed
+  runtime: RUNTIME_GENIE
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- component: Vision-Encoder
+  device: Snapdragon X2 Elite CRD
+  metrics:
+    estimated_peak_memory_range_mb:
+      max: 1
+      min: 1
+    inference_time_milliseconds: 99.082
+    layer_counts:
+      npu: 992
+      total: 992
+    primary_compute_unit: NPU
+  precision: PRECISION_W4A16
+  profile_job:
+    id: jp4e6n81g
+    status: Passed
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    qairt: 2.50.0.260828221209
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-gen5-for-galaxy
 - qualcomm-snapdragon-8-elite-for-galaxy

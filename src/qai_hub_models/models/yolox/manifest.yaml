@@ -1,26 +1,12 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- COCO
 description: YoloX is a machine learning model that predicts bounding boxes and classes of objects in an image.
 disabled_paths:
   w8a8_mixed_int16:
     qnn_dlc:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-38.337 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolox
-imsdk_supported: true
 license: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE
 license_type: apache-2.0
 name: Yolo-X
@@ -33,15 +19,10 @@ numerics_benchmark:
 post_pip_install_commands:
 - pip install git+https://github.com/Megvii-BaseDetection/YOLOX.git@6ddff48 --no-deps --no-build-isolation --use-pep517
 pre_pip_install_commands:
-- pip install "torch>=2.1,<2.12.0" "setuptools>=80"
-related_models:
-- yolov6
-- yolov7
-- yolov8_det
+- pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
 research_paper: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/README.md
 research_paper_title: 'YOLOX: Exceeding YOLO Series in 2021'
 source_repo: https://github.com/Megvii-BaseDetection/YOLOX/
-status: published
 supported_precisions:
 - float
 - w8a8_mixed_int16
@@ -49,13 +30,6 @@ supported_precisions:
 - w8a8
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: YoloX Small
-  Model size (float): 34.3 MB
-  Model size (w8a16): 9.53 MB
-  Model size (w8a8): 8.96 MB
-  Number of parameters: 8.98M
 templates:
 - yolo
 use_case: Object Detection

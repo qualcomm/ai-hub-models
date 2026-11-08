@@ -751,8 +751,8 @@ def onnx_model_is_precompiled_qairt(onnx_model: onnx.ModelProto) -> bool:
 ONNX_ENV_CHECKED: bool = False
 ONNX_ENV_ERROR: str | None = None
 ONNX_PACKAGE_NAME = "onnx"
-ONNX_MAX_COMPATIBLE_VERSION = "1.18.0"
-ONNX_MIN_INCOMPATIBLE_VERSION = "1.19.0"
+ONNX_MAX_COMPATIBLE_VERSION = "1.22.0"
+ONNX_MIN_INCOMPATIBLE_VERSION = "1.23.0"
 
 
 def verify_onnx_export_is_compatible_with_ai_hub(

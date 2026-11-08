@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-dataset:
-- coco
 description: WeDetect is a text-conditioned object detection model that uses a prompt-then-detect strategy. Text class names are reparameterized into the model weights before export, producing a fixed-vocabulary detector that runs efficiently on-device. The model uses LTRB (Left-Top-Right-Bottom) regression with multi-scale feature maps at strides 8, 16, and 32.
 disabled_paths:
   mixed_with_float:
@@ -15,16 +9,9 @@ external_repos:
     commit_sha: 43009416e3ffc2a19100e79012f1482c55dce372
     patches_filename: wedetect_patches.diff
     repo_url: https://github.com/WeChatCV/WeDetect.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time text-conditioned object detection optimized for mobile and edge.
 id: wedetect
-imsdk_supported: true
 is_collection_model: true
 license: https://github.com/WeChatCV/WeDetect/blob/main/README.md
 license_type: gpl-3.0
@@ -37,26 +24,13 @@ numerics_benchmark:
   value: 44.9
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- yolo_world
-- yolov8_det
 research_paper: https://arxiv.org/abs/2512.12309
 research_paper_title: 'WeDetect: Fast Open-Vocabulary Object Detection as Retrieval'
 restrict_model_sharing: true
 source_repo: https://github.com/WeChatCV/WeDetect
-status: published
 supported_precisions:
 - float
 - mixed_with_float
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: wedetect_tiny
-  Model size (detector) (float): 143 MB
-  Model size (detector) (mixed_with_float): 35.9 MB
-  Model size (text_encoder) (float): 592 B
-  Model size (text_encoder) (mixed_with_float): 13.3 KB
-  Number of parameters (detector): 37.3M
-  Number of parameters (text_encoder): '3.00'
 use_case: Object Detection

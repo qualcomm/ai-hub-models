@@ -65,8 +65,8 @@ def get_opus_model(mt_version: str) -> tuple[QcMarianEncoder, QcMarianDecoder]:
     if mt_version == "Helsinki-NLP/opus-mt-en-jap":
         mt_version = CachedWebModelAsset.from_asset_store(
             "opus_mt_en_ja",
-            1,
-            "en_jp_torch_model.zip",
+            2,
+            "en_jp_torch_model_v2.zip",
         ).fetch(extract=True)  # Download QC trained en_jp model
         print(f"pt_model_path = {mt_version}")
 

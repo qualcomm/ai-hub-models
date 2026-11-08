@@ -1,0 +1,40 @@
+metrics:
+- benchmark_value: 45.1
+  dataset_link: https://github.com/hpatches/hpatches-dataset
+  dataset_name: hpatches
+  dataset_split_description: Full HPatches sequences benchmark (116 sequences x 5 pairs)
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 52.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 52.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 52.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 51.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 51.5
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 51.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
+  metric_description: 'HPatches Repeatability: the fraction of keypoints detected in one image that have a corresponding detected keypoint in the other image within a pixel distance threshold, after warping by the ground-truth homography.'
+  metric_enablement_threshold: 10.0
+  metric_name: Accuracy
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: '%'
+  num_partial_samples: 100
+  partial_torch_metric: 52.4

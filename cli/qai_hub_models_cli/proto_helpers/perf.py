@@ -13,7 +13,7 @@ from qai_hub_models_cli.errors import CLIUnknownNameError
 from qai_hub_models_cli.proto.perf_pb2 import ModelPerf
 from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
-from qai_hub_models_cli.proto.shared.range_pb2 import DoubleRange, IntRange
+from qai_hub_models_cli.proto.shared.range_pb2 import IntRange
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto_helpers._common import fetch_model_proto
 from qai_hub_models_cli.proto_helpers.platform import device_names_for_filter
@@ -195,18 +195,6 @@ def _format_int_range(r: IntRange) -> str:
     return ""
 
 
-def _format_double_range(r: DoubleRange) -> str:
-    """Format a ``DoubleRange`` as ``min-max`` (or a single value if min == max)."""
-    has_min, has_max = r.HasField("min"), r.HasField("max")
-    if has_min and has_max:
-        return f"{r.min:.1f}" if r.min == r.max else f"{r.min:.1f}-{r.max:.1f}"
-    if has_min:
-        return f"{r.min:.1f}"
-    if has_max:
-        return f"{r.max:.1f}"
-    return ""
-
-
 def _sdk_versions_str(record: ModelPerf.PerformanceDetails) -> str:
     """Render an asset's tool versions, or ``—`` when unset."""
     return (
@@ -306,7 +294,6 @@ def format_perf_table(
             "Context Len",
             "Compute Unit",
             "Tokens/sec",
-            "Time to First Token (ms)",
             "Prefill Tokens/sec",
             "SDK Versions",
         ]
@@ -326,9 +313,6 @@ def format_perf_table(
                     # before 0.57.0; assume npu in that case.
                     (lm.desired_compute_unit or "npu").upper(),
                     f"{lm.tokens_per_second:.1f}",
-                    _format_double_range(lm.time_to_first_token_range_milliseconds)
-                    if lm.HasField("time_to_first_token_range_milliseconds")
-                    else "",
                     f"{lm.prefill_tokens_per_second:.1f}"
                     if lm.HasField("prefill_tokens_per_second")
                     else "",

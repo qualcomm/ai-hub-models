@@ -9,10 +9,8 @@ import csv
 
 from qai_hub_models.configs._info_yaml_enums import MODEL_LICENSE
 from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
-from qai_hub_models.configs.manifest_yaml import (
-    MODEL_STATUS,
-    QAIHMModelManifest,
-)
+from qai_hub_models.configs.manifest_yaml import MODEL_STATUS
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.utils.path_helpers import MODEL_IDS
 
 
@@ -26,7 +24,7 @@ def main() -> None:
         nargs="+",
         type=str,
         default=None,
-        help="Models for which to generate export.py.",
+        help="Models for which to generate the legal summary.",
     )
     parser.add_argument(
         "--include-unpublished-models",
@@ -53,17 +51,19 @@ def main() -> None:
         scorecard_csv.writerow(csv_header)
 
         for model_id in model_ids:
-            model = QAIHMModelManifest.from_model(model_id)
+            sc = QAIHMModelInternalConfig.from_model(model_id)
+            model = sc.manifest
             if (
                 not args.include_unpublished_models
-                and model.status == MODEL_STATUS.UNPUBLISHED
+                and sc.status == MODEL_STATUS.UNPUBLISHED
             ):
                 continue
 
+            llm_details = sc.llm_details
             coming_soon_status = None
             if (
-                model.llm_details
-                and model.llm_details.call_to_action == LLM_CALL_TO_ACTION.COMING_SOON
+                llm_details
+                and llm_details.call_to_action == LLM_CALL_TO_ACTION.COMING_SOON
             ):
                 coming_soon_status = "'Coming Soon' (No Asset Published)"
 

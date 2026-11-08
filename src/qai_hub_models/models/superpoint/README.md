@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [SuperPoint: Self-supervised keypoint detector and descriptor for image matching and SLAM](https://aihub.qualcomm.com/models/superpoint)
 
 SuperPoint is a self-supervised framework for detecting interest points and computing their descriptors in a single forward pass. It uses a VGG-style encoder shared between a keypoint detector head and a descriptor head, trained via homographic adaptation on synthetic shapes and real images. The model outputs up to 500 keypoints per image with 256-dimensional L2-normalised descriptors, suitable for feature matching, visual localisation, and SLAM.

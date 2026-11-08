@@ -1,0 +1,39 @@
+description: Qwen3.5 is the latest multilingual language model series from Alibaba Cloud with improved reasoning and instruction-following capabilities over Qwen3.
+domain: Generative AI
+headline: 4B parameter model from the Qwen3.5 series for on-device inference.
+id: qwen3_5_4b
+is_aimet: true
+is_collection_model: true
+license: https://huggingface.co/Qwen/Qwen3.5-4B/blob/main/LICENSE
+license_type: apache-2.0
+lm_quantization_details:
+  w4a16:
+    recipe:
+    - dataset:
+        name: Wikitext
+        split: train
+      name: AdaScale
+      num_batches: 128
+      num_iterations: 2048
+    - dataset:
+        name: Wikitext
+        split: train
+      name: Calibration
+model_type_llm: true
+name: Qwen3.5-4B
+only_allow_orchestrator_runtimes: true
+orchestrator_runtimes:
+- genie
+requires_aot_prepare: true
+research_paper: https://qwen.ai/blog?id=qwen3.5
+research_paper_title: 'Qwen3.5: Towards Native Multimodal Agents'
+separate_quantize_script: true
+source_repo: https://huggingface.co/Qwen/Qwen3.5-4B
+supported_precisions:
+- w4a16
+tags:
+- llm
+- generative-ai
+templates:
+- qwen3_5
+use_case: Text Generation

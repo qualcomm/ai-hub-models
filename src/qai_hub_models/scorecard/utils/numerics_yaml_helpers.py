@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import NumericsAccuracyBenchmark
+from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.numerics_yaml import (
     QAIHMModelNumerics,
@@ -122,7 +122,10 @@ def create_numerics_struct(
                 if pd.isna(device_accuracy):
                     continue
                 precision = Precision.parse(row.precision)
-                runtime = ScorecardProfilePath(row.runtime)
+                try:
+                    runtime = ScorecardProfilePath(row.runtime)
+                except ValueError:
+                    continue  # retired path from an older scorecard
                 if not runtime.is_published:
                     continue
                 if precision not in metric_data_dict:
@@ -196,6 +199,17 @@ def create_numerics_yaml(
         threshold_override=threshold_override,
     )
     if numerics_diff is not None:
+        model_df = accuracy_df[
+            (accuracy_df.model_id == model_name) & accuracy_df["Sim Accuracy"].notna()
+        ]
+        for _, row in model_df.iterrows():
+            key = (
+                model_name,
+                row.dataset_name,
+                row.metric_name,
+                Precision.parse(row.precision),
+            )
+            numerics_diff.sim_accuracies[key] = float(row["Sim Accuracy"])
         numerics_diff.update_summary(
             model_name, existing_struct, numerics_struct, benchmark=benchmark
         )

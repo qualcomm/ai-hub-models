@@ -3,18 +3,24 @@ metrics:
   dataset_link: https://www.image-net.org/
   dataset_name: imagenet
   dataset_split_description: validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        precompiled_qnn_onnx:
-          partial_metric: 81.1
-        qnn_context_binary:
-          partial_metric: 81.1
-      w8a8:
-        precompiled_qnn_onnx:
-          partial_metric: 80.7
-        qnn_context_binary:
-          partial_metric: 80.7
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 81.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_CONTEXT_BINARY
+  - device: Samsung Galaxy S25
+    partial_metric: 81.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 80.7
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_CONTEXT_BINARY
+  - device: Samsung Galaxy S25
+    partial_metric: 80.7
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  higher_is_better: true
   metric_description: Percentage of top 1 model predictions that are correct.
   metric_enablement_threshold: 10.0
   metric_name: Top-1 Accuracy

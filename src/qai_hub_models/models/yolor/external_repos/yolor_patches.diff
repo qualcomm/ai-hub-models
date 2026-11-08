@@ -2,9 +2,9 @@
 # compatibility. Also rewrites the YOLOLayer / JDELayer inference branches
 # to avoid in-place slice assignments on a 5D tensor (io[..., :2] = ...).
 # torch.export lowers those as scatter ops that blow up the compiled QNN
-# graph: pt2 exports of yolor either fail to finalize the QNN graph or run
-# ~10x slower. The rewrite flattens the prediction to 2D and builds the
-# output with torch.cat, preserving the yolov5-style math bit-exact.
+# graph. The rewrite builds the output with torch.cat. The activations stay
+# on the 5D tensor: flattening it before the sigmoid breaks onnx / qnn_dlc
+# accuracy on device (47.2 -> 0.02 mAP) even though CPU output is identical.
 #
 diff --git a/models/models.py b/models/models.py
 index 76c44b6..244e6af 100644
@@ -22,7 +22,7 @@ index 76c44b6..244e6af 100644
 
  ONNX_EXPORT = False
 
-@@ -417,16 +417,18 @@ class YOLOLayer(nn.Module):
+@@ -417,16 +417,11 @@ class YOLOLayer(nn.Module):
              return p_cls, xy * ng, wh
 
          else:  # inference
@@ -36,22 +36,15 @@ index 76c44b6..244e6af 100644
 -            #io[..., :4] *= self.stride
 -            #torch.sigmoid_(io[..., 4:])
 -            return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
-+            # pt2-friendly: avoid in-place slice assignments on a 5D tensor
-+            # (io[..., :2] = ..., etc.). torch.export lowers these as scatter
-+            # ops that blow up the compiled QNN graph.
-+            m = self.na * self.nx * self.ny
-+            grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
-+            anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2)
-+            p_flat = p.view(bs * m, self.no)
-+            io = p_flat.sigmoid()
-+            xy = (io[:, 0:2] * 2. - 0.5 + grid.repeat(bs, 1)) * self.stride
-+            wh = (io[:, 2:4] * 2) ** 2 * anchor_wh.repeat(bs, 1) * self.stride
-+            io_out = torch.cat([xy, wh, io[:, 4:]], dim=-1)
-+            return io_out.view(bs, m, self.no), p_flat
++            io = p.sigmoid()
++            xy = (io[..., 0:2] * 2. - 0.5 + self.grid) * self.stride
++            wh = (io[..., 2:4] * 2) ** 2 * self.anchor_wh * self.stride
++            io_out = torch.cat([xy, wh, io[..., 4:]], dim=-1)
++            return io_out.view(bs, -1, self.no), p
 
 
  class JDELayer(nn.Module):
-@@ -510,16 +512,16 @@ class JDELayer(nn.Module):
+@@ -510,16 +505,11 @@ class JDELayer(nn.Module):
              return p_cls, xy * ng, wh
 
          else:  # inference
@@ -65,16 +58,11 @@ index 76c44b6..244e6af 100644
 -            io[..., :4] *= self.stride
 -            io[..., 4:] = F.softmax(io[..., 4:])
 -            return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
-+            # pt2-friendly: avoid in-place slice assignments (see YOLOLayer).
-+            m = self.na * self.nx * self.ny
-+            grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
-+            anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2)
-+            p_flat = p.view(bs * m, self.no)
-+            xy = (torch.sigmoid(p_flat[:, 0:2]) * 2. - 0.5 + grid.repeat(bs, 1)) * self.stride
-+            wh = (torch.sigmoid(p_flat[:, 2:4]) * 2) ** 2 * anchor_wh.repeat(bs, 1) * self.stride
-+            cls = F.softmax(p_flat[:, 4:], dim=-1)
++            xy = (torch.sigmoid(p[..., 0:2]) * 2. - 0.5 + self.grid) * self.stride
++            wh = (torch.sigmoid(p[..., 2:4]) * 2) ** 2 * self.anchor_wh * self.stride
++            cls = F.softmax(p[..., 4:], dim=-1)
 +            io_out = torch.cat([xy, wh, cls], dim=-1)
-+            return io_out.view(bs, m, self.no), p_flat
++            return io_out.view(bs, -1, self.no), p
 
  class Darknet(nn.Module):
      # YOLOv3 object detection model

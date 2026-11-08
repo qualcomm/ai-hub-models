@@ -1,374 +1,242 @@
-precisions:
-  q4_0:
-    components:
-      Gemma-4-E2B-it:
-        performance_metrics:
-          Arduino VENTUNO Q:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 47.795072
-                time_to_first_token_range_milliseconds:
-                  max: 2742397.376
-                  min: 85699.918
-                tokens_per_second: 6.88609
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 57.553795
-                time_to_first_token_range_milliseconds:
-                  max: 35586.904
-                  min: 8896.726
-                tokens_per_second: 10.463808
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 25.920333
-                time_to_first_token_range_milliseconds:
-                  max: 5056910.56
-                  min: 158028.455
-                tokens_per_second: 2.241468
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 37.55549
-                time_to_first_token_range_milliseconds:
-                  max: 54539.352
-                  min: 13634.838
-                tokens_per_second: 3.703586
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 481.697041
-                time_to_first_token_range_milliseconds:
-                  max: 272125.28
-                  min: 8503.915
-                tokens_per_second: 12.612885
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 507.952129
-                time_to_first_token_range_milliseconds:
-                  max: 4034.968
-                  min: 1008.742
-                tokens_per_second: 14.707124
-          Dragonwing IQ-9075 EVK:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 100.816275
-                time_to_first_token_range_milliseconds:
-                  max: 1300126.656
-                  min: 40628.958
-                tokens_per_second: 18.118229
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 136.533697
-                time_to_first_token_range_milliseconds:
-                  max: 15002.312
-                  min: 3750.578
-                tokens_per_second: 23.224758
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 74.724871
-                time_to_first_token_range_milliseconds:
-                  max: 1754099.712
-                  min: 54815.616
-                tokens_per_second: 7.144893
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 113.154323
-                time_to_first_token_range_milliseconds:
-                  max: 18104.136
-                  min: 4526.034
-                tokens_per_second: 10.010592
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 508.552712
-                time_to_first_token_range_milliseconds:
-                  max: 257769.152
-                  min: 8055.286
-                tokens_per_second: 14.488949
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 544.551086
-                time_to_first_token_range_milliseconds:
-                  max: 3765.324
-                  min: 941.331
-                tokens_per_second: 16.604906
-          Dragonwing IQ-X7181:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 284.328675
-                time_to_first_token_range_milliseconds:
-                  max: 14406.617806451613
-                  min: 450.2068064516129
-                tokens_per_second: 39.291585
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 263.863846
-                time_to_first_token_range_milliseconds:
-                  max: 1942.8186666666666
-                  min: 485.70466666666664
-                tokens_per_second: 41.958422
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 308.401804
-                time_to_first_token_range_milliseconds:
-                  max: 13282.330838709677
-                  min: 415.0728387096774
-                tokens_per_second: 18.449844
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 411.030606
-                time_to_first_token_range_milliseconds:
-                  max: 1247.9226666666666
-                  min: 311.98066666666665
-                tokens_per_second: 29.585078
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 944.125968
-                time_to_first_token_range_milliseconds:
-                  max: 4339.405419354838
-                  min: 135.6064193548387
-                tokens_per_second: 20.882314
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 902.306521
-                time_to_first_token_range_milliseconds:
-                  max: 568.7253333333333
-                  min: 142.18133333333333
-                tokens_per_second: 21.995727
-              tool_versions:
-                geniex: v0.8.0
-          Dragonwing Q-8750:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 90.674496
-                time_to_first_token_range_milliseconds:
-                  max: 45174.662193548385
-                  min: 1411.708193548387
-                tokens_per_second: 20.181043
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 215.073878
-                time_to_first_token_range_milliseconds:
-                  max: 2381.250666666667
-                  min: 595.3126666666667
-                tokens_per_second: 34.222659
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 224.961471
-                time_to_first_token_range_milliseconds:
-                  max: 18209.788903225806
-                  min: 569.0559032258064
-                tokens_per_second: 18.759262
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 420.797016
-                time_to_first_token_range_milliseconds:
-                  max: 1219.4253333333331
-                  min: 304.8563333333333
-                tokens_per_second: 29.879023
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1410.72657
-                time_to_first_token_range_milliseconds:
-                  max: 2905.664
-                  min: 90.802
-                tokens_per_second: 27.544753
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1686.088888
-                time_to_first_token_range_milliseconds:
-                  max: 304.364
-                  min: 76.091
-                tokens_per_second: 28.915732
-          Samsung Galaxy S25:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 90.674496
-                time_to_first_token_range_milliseconds:
-                  max: 45174.662193548385
-                  min: 1411.708193548387
-                tokens_per_second: 20.181043
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 215.073878
-                time_to_first_token_range_milliseconds:
-                  max: 2381.250666666667
-                  min: 595.3126666666667
-                tokens_per_second: 34.222659
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 224.961471
-                time_to_first_token_range_milliseconds:
-                  max: 18209.788903225806
-                  min: 569.0559032258064
-                tokens_per_second: 18.759262
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 420.797016
-                time_to_first_token_range_milliseconds:
-                  max: 1219.4253333333331
-                  min: 304.8563333333333
-                tokens_per_second: 29.879023
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1410.72657
-                time_to_first_token_range_milliseconds:
-                  max: 2905.664
-                  min: 90.802
-                tokens_per_second: 27.544753
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1686.088888
-                time_to_first_token_range_milliseconds:
-                  max: 304.364
-                  min: 76.091
-                tokens_per_second: 28.915732
-          Samsung Galaxy S26:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 99.577743
-                time_to_first_token_range_milliseconds:
-                  max: 41134.53419354839
-                  min: 1285.4541935483871
-                tokens_per_second: 22.363562
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 242.413683
-                time_to_first_token_range_milliseconds:
-                  max: 2113.428
-                  min: 528.357
-                tokens_per_second: 31.705111
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 279.649961
-                time_to_first_token_range_milliseconds:
-                  max: 14648.328258064515
-                  min: 457.7602580645161
-                tokens_per_second: 22.277421
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 455.74037
-                time_to_first_token_range_milliseconds:
-                  max: 1126.7813333333334
-                  min: 281.69533333333334
-                tokens_per_second: 31.801764
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1703.772818
-                time_to_first_token_range_milliseconds:
-                  max: 2406.5052903225805
-                  min: 75.20329032258064
-                tokens_per_second: 32.76263
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1894.397222
-                time_to_first_token_range_milliseconds:
-                  max: 272.5453333333333
-                  min: 68.13633333333333
-                tokens_per_second: 33.695561
-          Snapdragon X Elite CRD:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 284.328675
-                time_to_first_token_range_milliseconds:
-                  max: 14406.617806451613
-                  min: 450.2068064516129
-                tokens_per_second: 39.291585
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 263.863846
-                time_to_first_token_range_milliseconds:
-                  max: 1942.8186666666666
-                  min: 485.70466666666664
-                tokens_per_second: 41.958422
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 308.401804
-                time_to_first_token_range_milliseconds:
-                  max: 13282.330838709677
-                  min: 415.0728387096774
-                tokens_per_second: 18.449844
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 411.030606
-                time_to_first_token_range_milliseconds:
-                  max: 1247.9226666666666
-                  min: 311.98066666666665
-                tokens_per_second: 29.585078
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 944.125968
-                time_to_first_token_range_milliseconds:
-                  max: 4339.405419354838
-                  min: 135.6064193548387
-                tokens_per_second: 20.882314
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 902.306521
-                time_to_first_token_range_milliseconds:
-                  max: 568.7253333333333
-                  min: 142.18133333333333
-                tokens_per_second: 21.995727
-              tool_versions:
-                geniex: v0.8.0
-          Snapdragon X2 Elite CRD:
-            geniex_llamacpp:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 513.204806
-                time_to_first_token_range_milliseconds:
-                  max: 7982.382451612903
-                  min: 249.44945161290323
-                tokens_per_second: 43.359435
-              - context_length: 512
-                desired_compute_unit: cpu
-                prefill_tokens_per_second: 681.618489
-                time_to_first_token_range_milliseconds:
-                  max: 751.4866666666667
-                  min: 187.87166666666667
-                tokens_per_second: 53.469257
-              - context_length: 4096
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 712.375258
-                time_to_first_token_range_milliseconds:
-                  max: 5750.971870967742
-                  min: 179.71787096774193
-                tokens_per_second: 14.345144
-              - context_length: 512
-                desired_compute_unit: gpu
-                prefill_tokens_per_second: 846.445151
-                time_to_first_token_range_milliseconds:
-                  max: 606.2026666666666
-                  min: 151.55066666666664
-                tokens_per_second: 33.652612
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1921.192379
-                time_to_first_token_range_milliseconds:
-                  max: 2138.203870967742
-                  min: 66.81887096774194
-                tokens_per_second: 14.99925
-              - context_length: 512
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 2131.15482
-                time_to_first_token_range_milliseconds:
-                  max: 242.43599999999998
-                  min: 60.608999999999995
-                tokens_per_second: 30.331006
-              tool_versions:
-                geniex: v0.8.0
+performance_metrics:
+- component: Gemma-4-E2B-it
+  device: Arduino VENTUNO Q
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 47.795072
+    tokens_per_second: 6.88609
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 57.553795
+    tokens_per_second: 10.463808
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 25.920333
+    tokens_per_second: 2.241468
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 37.55549
+    tokens_per_second: 3.703586
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 481.697041
+    tokens_per_second: 12.612885
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 507.952129
+    tokens_per_second: 14.707124
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+- component: Gemma-4-E2B-it
+  device: Dragonwing IQ-9075 EVK
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 100.816275
+    tokens_per_second: 18.118229
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 136.533697
+    tokens_per_second: 23.224758
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 74.724871
+    tokens_per_second: 7.144893
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 113.154323
+    tokens_per_second: 10.010592
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 508.552712
+    tokens_per_second: 14.488949
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 544.551086
+    tokens_per_second: 16.604906
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+- component: Gemma-4-E2B-it
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 284.328675
+    tokens_per_second: 39.291585
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 263.863846
+    tokens_per_second: 41.958422
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 308.401804
+    tokens_per_second: 18.449844
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 411.030606
+    tokens_per_second: 29.585078
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 944.125968
+    tokens_per_second: 20.882314
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 902.306521
+    tokens_per_second: 21.995727
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+  tool_versions:
+    geniex: v0.8.0
+- component: Gemma-4-E2B-it
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 90.674496
+    tokens_per_second: 20.181043
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 215.073878
+    tokens_per_second: 34.222659
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 224.961471
+    tokens_per_second: 18.759262
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 420.797016
+    tokens_per_second: 29.879023
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1410.72657
+    tokens_per_second: 27.544753
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1686.088888
+    tokens_per_second: 28.915732
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+- component: Gemma-4-E2B-it
+  device: Samsung Galaxy S25
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 90.674496
+    tokens_per_second: 20.181043
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 215.073878
+    tokens_per_second: 34.222659
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 224.961471
+    tokens_per_second: 18.759262
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 420.797016
+    tokens_per_second: 29.879023
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1410.72657
+    tokens_per_second: 27.544753
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1686.088888
+    tokens_per_second: 28.915732
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+- component: Gemma-4-E2B-it
+  device: Samsung Galaxy S26
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 99.577743
+    tokens_per_second: 22.363562
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 242.413683
+    tokens_per_second: 31.705111
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 279.649961
+    tokens_per_second: 22.277421
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 455.74037
+    tokens_per_second: 31.801764
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1703.772818
+    tokens_per_second: 32.76263
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1894.397222
+    tokens_per_second: 33.695561
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+- component: Gemma-4-E2B-it
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 284.328675
+    tokens_per_second: 39.291585
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 263.863846
+    tokens_per_second: 41.958422
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 308.401804
+    tokens_per_second: 18.449844
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 411.030606
+    tokens_per_second: 29.585078
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 944.125968
+    tokens_per_second: 20.882314
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 902.306521
+    tokens_per_second: 21.995727
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+  tool_versions:
+    geniex: v0.8.0
+- component: Gemma-4-E2B-it
+  device: Snapdragon X2 Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 513.204806
+    tokens_per_second: 43.359435
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 681.618489
+    tokens_per_second: 53.469257
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 712.375258
+    tokens_per_second: 14.345144
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 846.445151
+    tokens_per_second: 33.652612
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1921.192379
+    tokens_per_second: 14.99925
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 2131.15482
+    tokens_per_second: 30.331006
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+  tool_versions:
+    geniex: v0.8.0
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-gen5-for-galaxy
 - qualcomm-snapdragon-8-elite-for-galaxy

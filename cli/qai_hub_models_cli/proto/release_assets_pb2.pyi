@@ -38,11 +38,14 @@ class ModelReleaseAssets(google.protobuf.message.Message):
         CHIPSET_FIELD_NUMBER: builtins.int
         DOWNLOAD_URL_FIELD_NUMBER: builtins.int
         TOOL_VERSIONS_FIELD_NUMBER: builtins.int
+        S3_KEY_FIELD_NUMBER: builtins.int
         precision: shared.precision_pb2.Precision.ValueType
         runtime: shared.runtime_pb2.Runtime.ValueType
         chipset: builtins.str
         """Optional for universal assets, set for chipset-specific assets."""
         download_url: builtins.str
+        s3_key: builtins.str
+        """Internal only: key of the asset in the private S3 bucket."""
         @property
         def tool_versions(self) -> shared.tool_versions_pb2.ToolVersions: ...
         def __init__(
@@ -53,10 +56,14 @@ class ModelReleaseAssets(google.protobuf.message.Message):
             chipset: builtins.str | None = ...,
             download_url: builtins.str = ...,
             tool_versions: shared.tool_versions_pb2.ToolVersions | None = ...,
+            s3_key: builtins.str | None = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing.Literal["_chipset", b"_chipset", "chipset", b"chipset", "tool_versions", b"tool_versions"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["_chipset", b"_chipset", "chipset", b"chipset", "download_url", b"download_url", "precision", b"precision", "runtime", b"runtime", "tool_versions", b"tool_versions"]) -> None: ...
+        def HasField(self, field_name: typing.Literal["_chipset", b"_chipset", "_s3_key", b"_s3_key", "chipset", b"chipset", "s3_key", b"s3_key", "tool_versions", b"tool_versions"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_chipset", b"_chipset", "_s3_key", b"_s3_key", "chipset", b"chipset", "download_url", b"download_url", "precision", b"precision", "runtime", b"runtime", "s3_key", b"s3_key", "tool_versions", b"tool_versions"]) -> None: ...
+        @typing.overload
         def WhichOneof(self, oneof_group: typing.Literal["_chipset", b"_chipset"]) -> typing.Literal["chipset"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_s3_key", b"_s3_key"]) -> typing.Literal["s3_key"] | None: ...
 
     AIHM_VERSION_FIELD_NUMBER: builtins.int
     MODEL_ID_FIELD_NUMBER: builtins.int

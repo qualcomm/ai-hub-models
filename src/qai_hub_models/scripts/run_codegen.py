@@ -14,9 +14,9 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scripts.generate_global_readme import generate_global_readme
 from qai_hub_models.scripts.generate_model_readme import generate_and_write_model_readme
 from qai_hub_models.utils.path_helpers import (
@@ -35,110 +35,6 @@ def _is_auto_generated(path: Path) -> bool:
     with open(path) as f:
         head = f.read(2048)
     return HEADER in head
-
-
-def _get_steps(manifest: QAIHMModelManifest) -> dict[str, str]:
-    steps = {}
-    # step_number needs to be an object (not a primitive) for its state
-    # to persist across function calls
-    step_number = 1
-
-    def add_step(name: str, step: str) -> None:
-        nonlocal step_number
-        steps[name] = str(step_number) + ". " + step
-        step_number += 1
-
-    if manifest.is_precompiled:
-        add_step("init", "Initialize model")
-        add_step("upload", "Upload model assets to hub")
-    else:
-        add_step(
-            "init",
-            "Instantiates a PyTorch model and exports it to a serialized format",
-        )
-        if manifest.can_use_quantize_job:
-            add_step(
-                "quantize",
-                "Converts the PyTorch model to ONNX and quantizes the ONNX model.",
-            )
-        add_step("compile", "Compiles the model to an asset that can be run on device")
-    add_step("profile", "Profiles the model performance on a real device")
-
-    if not manifest.is_precompiled:
-        add_step("inference", "Inferences the model on sample inputs")
-
-    add_step(
-        "tool_versions",
-        "Extracts relevant tool (eg. SDK) versions used to compile and profile this model",
-    )
-
-    if not manifest.is_precompiled:
-        add_step("download", "Downloads the model asset to the local directory")
-    else:
-        add_step("download", "Saves the model asset to the local directory")
-
-    summary_step = "Summarizes the results from profiling"
-    if not manifest.is_precompiled:
-        summary_step += " and inference"
-    add_step("summary", summary_step)
-    return steps
-
-
-def _extract_runtime_and_precision_options(
-    manifest: QAIHMModelManifest,
-    manifest_dict: dict | None = None,
-) -> dict[str, Any]:
-    manifest_dict = manifest_dict or {}
-
-    # All runtime + precision pairs that are supported for this model, for use in the export script.
-    def _supported_runtimes(precision: Precision) -> list[str]:
-        rts = [r for r in TargetRuntime if manifest.is_supported(precision, r)]
-        # Demote legacy GENIE so GENIEX_QAIRT wins the CLI default; remove when GENIE is gone (tetracode#20247).
-        rts.sort(key=lambda r: 1 if r == TargetRuntime.GENIE else 0)
-        return [r.name for r in rts]
-
-    supported_precision_runtimes: dict[str, list[str]] = {
-        str(precision): _supported_runtimes(precision)
-        for precision in manifest.supported_precisions
-    }
-    supported_precision_runtimes = {
-        p: rs for p, rs in supported_precision_runtimes.items() if rs
-    }  # drop empty precision entries
-
-    manifest_dict["default_runtime"] = manifest.default_runtime.name
-    manifest_dict["supported_precision_runtimes"] = supported_precision_runtimes
-    manifest_dict["default_aihub_job_precision"] = str(manifest.default_precision)
-    manifest_dict["can_use_quantize_job"] = manifest.can_use_quantize_job
-    manifest_dict["supports_quantization"] = manifest.supports_quantization
-
-    return manifest_dict
-
-
-def _generate_export(
-    environment: Environment,
-    model_name: str,
-    model_display_name: str,
-    model_status: str,
-    manifest: QAIHMModelManifest,
-    model_dir: Path,
-) -> str:
-    template = environment.get_template("export_template.j2")
-
-    manifest_dict = manifest.model_dump()
-    _extract_runtime_and_precision_options(manifest, manifest_dict)
-
-    file_contents = template.render(
-        manifest_dict,
-        model_name=model_name,
-        model_display_name=model_display_name,
-        model_status=model_status,
-        header=HEADER,
-        steps=_get_steps(manifest),
-    )
-    export_file_path = os.path.join(model_dir, "export.py")
-    with open(export_file_path, "w") as f:
-        f.write(file_contents)
-    return export_file_path
 
 
 def _generate_unit_tests(
@@ -176,25 +72,6 @@ def _generate_conftest(
     return str(conftest_path)
 
 
-def _generate_evaluate(
-    environment: Environment,
-    model_name: str,
-    model_status: str,
-    manifest: dict[str, Any],
-    evaluate_path: Path,
-) -> str:
-    template = environment.get_template("evaluate_template.j2")
-    file_contents = template.render(
-        manifest,
-        model_name=model_name,
-        model_status=model_status,
-        header=HEADER,
-    )
-    with open(evaluate_path, "w") as f:
-        f.write(file_contents)
-    return str(evaluate_path)
-
-
 def _generate_external_repos_init(
     environment: Environment,
     model_name: str,
@@ -214,25 +91,26 @@ def _generate_external_repos_init(
     return file_path
 
 
-def _generate_template_external_repos(environment: Environment) -> list[str]:
-    """Generate __init__.py for each templates/*/manifest.yaml that declares external_repos."""
-    templates_dir = QAIHM_MODELS_ROOT / "templates"
-    if not templates_dir.exists():
+def _generate_external_repos_for_subfolders(
+    environment: Environment, root: Path
+) -> list[str]:
+    """Generate __init__.py for each <root>/*/manifest.yaml that declares external_repos."""
+    if not root.exists():
         return []
 
     template = environment.get_template("external_repos_init_template.j2")
     generated = []
-    for template_folder in sorted(templates_dir.iterdir()):
-        manifest_path = template_folder / "manifest.yaml"
+    for folder in sorted(root.iterdir()):
+        manifest_path = folder / "manifest.yaml"
         if not manifest_path.exists():
             continue
         manifest = QAIHMModelManifest.from_yaml(manifest_path)
         if not manifest.external_repos:
             continue
-        external_repos_dir = template_folder / "external_repos"
+        external_repos_dir = folder / "external_repos"
         os.makedirs(external_repos_dir, exist_ok=True)
         file_contents = template.render(
-            template_name=template_folder.name,
+            template_name=folder.name,
             header=HEADER,
         )
         file_path = external_repos_dir / "__init__.py"
@@ -242,32 +120,32 @@ def _generate_template_external_repos(environment: Environment) -> list[str]:
     return generated
 
 
+def _generate_template_external_repos(environment: Environment) -> list[str]:
+    return _generate_external_repos_for_subfolders(
+        environment, QAIHM_MODELS_ROOT / "templates"
+    )
+
+
+def _generate_example_external_repos(environment: Environment) -> list[str]:
+    return _generate_external_repos_for_subfolders(
+        environment, QAIHM_REPO_ROOT / "scripts" / "examples"
+    )
+
+
 def generate_code_for_model(model_name: str) -> list[str]:
     model_dir = QAIHM_MODELS_ROOT / model_name
-    scorecard_config = QAIHMModelScorecardConfig.from_model(model_name)
+    scorecard_config = QAIHMModelInternalConfig.from_model(model_name)
     manifest = scorecard_config.manifest
 
     if scorecard_config.skip_export:
-        print(f"Skipping export.py generation for {model_name}.")
+        print(f"Skipping code generation for {model_name}.")
         return []
-
-    model_display_name = manifest.name or model_name
-    model_status = manifest.status.value
 
     environment = Environment(
         loader=FileSystemLoader(Path(__file__).parent / "templates/"),
         keep_trailing_newline=True,
     )
-    generated_files = [
-        _generate_export(
-            environment,
-            model_name,
-            model_display_name,
-            model_status,
-            manifest,
-            model_dir,
-        )
-    ]
+    generated_files: list[str] = []
     # Generate or clean up external repo files
     external_repos_dir = model_dir / "external_repos"
     if manifest.external_repos:
@@ -278,9 +156,7 @@ def generate_code_for_model(model_name: str) -> list[str]:
         shutil.rmtree(external_repos_dir)
 
     manifest_dict = manifest.model_dump()
-    _extract_runtime_and_precision_options(manifest, manifest_dict)
-
-    manifest_dict["has_external_repos"] = bool(manifest.external_repos)
+    manifest_dict["can_use_quantize_job"] = manifest.can_use_quantize_job
     manifest_dict["is_llm"] = scorecard_config.is_llm
     manifest_dict["standalone_components"] = scorecard_config.standalone_components
 
@@ -327,20 +203,6 @@ def generate_code_for_model(model_name: str) -> list[str]:
         elif conftest_path.exists() and _is_auto_generated(conftest_path):
             os.remove(conftest_path)
 
-    evaluate_path = model_dir / "evaluate.py"
-    if not manifest.is_precompiled and not scorecard_config.skip_evaluate:
-        generated_files.append(
-            _generate_evaluate(
-                environment,
-                model_name,
-                model_status,
-                manifest_dict,
-                evaluate_path,
-            )
-        )
-    elif evaluate_path.exists() and _is_auto_generated(evaluate_path):
-        os.remove(evaluate_path)
-
     zoo_root = QAIHM_MODELS_ROOT
     return [os.path.join(zoo_root, gen_file) for gen_file in generated_files]
 
@@ -353,7 +215,7 @@ def main() -> None:
         "-m",
         nargs="+",
         type=str,
-        help="Models for which to generate export.py.",
+        help="Models for which to generate files.",
     )
     group.add_argument(
         "--all",
@@ -375,9 +237,10 @@ def main() -> None:
     models = args.models if args.models else MODEL_IDS
     modified_files = []
 
-    # Generate template external repos __init__.py files
+    # Generate template and scripts/examples external repos __init__.py files
     if args.all:
         modified_files.extend(_generate_template_external_repos(environment))
+        modified_files.extend(_generate_example_external_repos(environment))
 
     for model in models:
         try:
@@ -387,11 +250,15 @@ def main() -> None:
             raise ValueError(f"Failed to generate export files for {model}") from e
 
     # Generate global README
-    all_manifests = [QAIHMModelManifest.from_model(mid) for mid in MODEL_IDS]
+    published = [
+        sc.manifest
+        for sc in (QAIHMModelInternalConfig.from_model(mid) for mid in MODEL_IDS)
+        if sc.status is MODEL_STATUS.PUBLISHED
+    ]
     modified_files.extend(
         str(p)
         for p in generate_global_readme(
-            all_manifests, QAIHM_REPO_ROOT, QAIHM_PACKAGE_SRC_ROOT
+            published, QAIHM_REPO_ROOT, QAIHM_PACKAGE_SRC_ROOT
         )
     )
 

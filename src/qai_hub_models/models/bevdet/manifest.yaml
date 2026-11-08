@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Object Detection
-dataset:
-- nuscene
 datasets:
 - nuscenes
 description: BEVDet is a machine learning model for generating a birds eye view represenation from the sensors(cameras) mounted on a vehicle.
@@ -15,13 +11,7 @@ external_repos:
     commit_sha: 26144be7c11c2972a8930d6ddd6471b8ea900d13
     patches_filename: bevdet_patches.diff
     repo_url: https://github.com/HuangJunJie2017/BEVDet.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Construct a bird’s eye view from sensors mounted on a vehicle.
 id: bevdet
 is_collection_model: true
@@ -30,20 +20,12 @@ license_type: apache-2.0
 name: BEVDet
 pre_pip_install_commands:
 - pip install nuscenes-devkit==1.2.0 --no-deps
-related_models:
-- simple_bev_cam
 research_paper: https://arxiv.org/abs/2112.11790
 research_paper_title: 'BEVDet: High-Performance Multi-Camera 3D Object Detection in Bird-Eye-View'
 source_repo: https://github.com/HuangJunJie2017/BEVDet/
-status: published
 supported_precisions:
 - float
 - mixed_with_float
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 1 x 6 x 3 x 256 x 704
-  Model checkpoint: bevdet-r50.pth
-  Model size: 171 MB
-  Number of parameters: 44M
 use_case: Driver Assistance

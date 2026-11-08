@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [U2Net-Segmentation: Salient object segmentation for high-quality foreground extraction](https://aihub.qualcomm.com/models/u2net_segmentation)
 
 U2-Net is a machine learning model for salient object detection and foreground extraction. It uses a two-level nested U-structure (RSU blocks) to capture both local and global context at multiple scales, producing high-quality binary foreground masks. The model is trained on the DUTS dataset and is well-suited for background removal, portrait segmentation, and object extraction on mobile and edge devices.
@@ -25,7 +22,7 @@ qai-hub-models perf U2Net-Segmentation
 qai-hub-models numerics U2Net-Segmentation
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch U2Net-Segmentation --runtime qnn_context_binary --precision float
+qai-hub-models fetch U2Net-Segmentation --runtime tflite --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

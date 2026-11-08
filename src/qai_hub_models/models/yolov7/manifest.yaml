@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
 description: YoloV7 is a machine learning model that predicts bounding boxes and classes of objects in an image.
 domain: Computer Vision
 external_repos:
@@ -9,17 +5,9 @@ external_repos:
     commit_sha: 84932d70fb9e2932d0a70e4a1f02a1d6dd1dd6ca
     patches_filename: yolov7_patches.diff
     repo_url: https://github.com/WongKinYiu/yolov7
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolov7
-imsdk_supported: true
 license: https://github.com/WongKinYiu/yolov7/blob/main/LICENSE.md
 license_type: gpl-3.0
 name: Yolo-v7
@@ -31,15 +19,10 @@ numerics_benchmark:
   value: 39.5
 outputs_to_skip_validation:
   '2': Boxes with low confidence disagree on class index between torch and on-device
-related_models:
-- yolov6
-- yolov8_det
-- yolov11_det
 research_paper: https://arxiv.org/abs/2207.02696
 research_paper_title: 'YOLOv7: Trainable bag-of-freebies sets new state-of-the-art for real-time object detectors'
 restrict_model_sharing: true
 source_repo: https://github.com/WongKinYiu/yolov7/
-status: published
 supported_precisions:
 - float
 - w8a16
@@ -47,13 +30,6 @@ supported_precisions:
 tags:
 - bu-auto
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: YoloV7 Tiny
-  Model size (float): 23.8 MB
-  Model size (w8a16): 6.66 MB
-  Model size (w8a8): 6.23 MB
-  Number of parameters: 6.24M
 templates:
 - yolo
 use_case: Object Detection

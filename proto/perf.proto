@@ -43,6 +43,10 @@ message ModelPerf {
 
     // Only used for LLMs.
     repeated LLMPerfMetrics llm_metrics = 8;
+
+    // Precision of this component, when it differs from the model's precision
+    // (e.g. a mixed-precision component of a collection model).
+    optional Precision component_precision = 9;
   }
 
   message ProfileJob {
@@ -76,7 +80,8 @@ message ModelPerf {
 
     double tokens_per_second = 2;
 
-    optional DoubleRange time_to_first_token_range_milliseconds = 3;
+    reserved 3;
+    reserved "time_to_first_token_range_milliseconds";
 
     optional double prefill_tokens_per_second = 4;
 

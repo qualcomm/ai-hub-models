@@ -62,7 +62,7 @@ env:
 jobs:
   determine_llm_models:
     name: Determine LLM Models
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       models: ${{ steps.find.outputs.models }}
       llm_split_matrix: ${{ steps.find.outputs.llm_split_matrix }}
@@ -70,6 +70,7 @@ jobs:
       geniex_version: ${{ steps.parse_versions.outputs.geniex_version }}
       qairt_version: ${{ steps.parse_versions.outputs.qairt_version }}
       genie_scope: ${{ steps.parse_versions.outputs.genie_scope }}
+      eval_dataset: ${{ steps.parse_versions.outputs.eval_dataset }}
     steps:
       - uses: actions/checkout@v7
 
@@ -82,8 +83,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download Flaky-Job Artifacts
@@ -116,7 +115,7 @@ jobs:
       s3_prefix: ${{ inputs.s3_prefix }}
       models: ${{ matrix.split.models }}
       split_name: ${{ matrix.split.split_name }}
-      runs_on: '["tetra-ubuntu-2204", "self-hosted"]'
+      runs_on: '["aihub-models-ubuntu-2404-ec2"]'
       build_and_test_target: test_llm_export_scripts
       expect_post_flaky_artifact: false
 
@@ -129,7 +128,7 @@ jobs:
     outputs:
       fresh_asset_models: ${{ steps.check.outputs.fresh_asset_models }}
       missing_splits: ${{ steps.check.outputs.missing_splits }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: read
       actions: write
@@ -139,8 +138,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download per-split release assets
@@ -197,6 +194,7 @@ jobs:
       qairt_version: ${{ needs.determine_llm_models.outputs.qairt_version }}
       # options' genie_scope overrides test_scope for Genie only.
       run_eval: ${{ (needs.determine_llm_models.outputs.genie_scope || inputs.test_scope) != 'perf' }}
+      eval_dataset: ${{ needs.determine_llm_models.outputs.eval_dataset }}
       create_pr: false
       release_assets_action_id: ${{ inputs.action_id }}
 
@@ -220,6 +218,7 @@ jobs:
       release_assets_action_id: ${{ inputs.action_id }}
       create_pr: false
       scope: ${{ inputs.test_scope }}
+      eval_dataset: ${{ needs.determine_llm_models.outputs.eval_dataset }}
 
   collect_llm_perf_geniex_llamacpp:
     name: Collect LLM Performance Numbers (GenieX-llama.cpp)
@@ -240,3 +239,4 @@ jobs:
       release_assets_action_id: ${{ inputs.action_id }}
       create_pr: false
       scope: ${{ inputs.test_scope }}
+      eval_dataset: ${{ needs.determine_llm_models.outputs.eval_dataset }}

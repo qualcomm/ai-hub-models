@@ -106,7 +106,7 @@ jobs:
       name: Generate Combined Test Summary
       needs: [run-tests310, run-tests311, run-tests312, run-tests313, scorecard-integration-test, run-sync-public-website]
       if: ${{ always() }}
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
       env:
         VENV_PATH: build/ci-envs/qaihm-build
       steps:
@@ -115,8 +115,6 @@ jobs:
         - name: CI Setup
           uses: ./.github/actions/ci-setup
           with:
-            python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-            sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
             venv-path: ${{ env.VENV_PATH }}
 
         - name: Download py3.10 Test Results
@@ -247,7 +245,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'schedule' }}
         name: Notify Failure
         needs: [run-tests310, run-tests311, run-tests312, run-tests313, scorecard-integration-test, run-sync-public-website, generate_test_summary]
-        runs-on: [tetra-ubuntu-2204, self-hosted]
+        runs-on: aihub-models-ubuntu-2404-ec2
         outputs:
             issue_urls: ${{ steps.create-github-issues.outputs.issue_urls }}
             workbench_issue_url: ${{ steps.create-github-issues.outputs.workbench_issue_url }}
@@ -269,7 +267,6 @@ jobs:
           id: ci_setup
           uses: ./.github/actions/ci-setup
           with:
-            python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
             venv-path: ${{ env.VENV_PATH }}
 
         - name: Download Combined Test Results
@@ -413,7 +410,7 @@ jobs:
         if: ${{ always() && needs.breeze-nightly-analysis.result == 'success' && needs.notify_failure.result == 'success' && github.event_name == 'schedule' }}
         name: Post Breeze Comment to Tetracode
         needs: [notify_failure, breeze-nightly-analysis]
-        runs-on: [tetra-ubuntu-2204, self-hosted]
+        runs-on: aihub-models-ubuntu-2404-ec2
         permissions:
             contents: read
             actions: read
@@ -422,7 +419,7 @@ jobs:
 
         - uses: actions/setup-python@v7
           with:
-              python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
+              python-version-file: .github/python-version
 
         - name: Recover Breeze comment from agent job log
           env:
@@ -475,7 +472,7 @@ jobs:
         if: ${{ always() && needs.notify_failure.result == 'success' && github.event_name == 'schedule' }}
         name: Notify Slack
         needs: [notify_failure, breeze-nightly-analysis, post_breeze_comment]
-        runs-on: [tetra-ubuntu-2204, self-hosted]
+        runs-on: aihub-models-ubuntu-2404-ec2
         steps:
         - name: Send Slack Notification
           uses: slackapi/slack-github-action@v4

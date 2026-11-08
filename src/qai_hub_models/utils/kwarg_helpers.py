@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import inspect
 import re
+import types
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -22,6 +23,7 @@ __all__ = [
     "filter_per_component_kwargs",
     "filter_per_graph_kwargs",
     "get_params",
+    "to_ns",
 ]
 
 
@@ -112,3 +114,11 @@ def cli_friendly_class_name(class_name: str) -> str:
     name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", class_name)
     name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
     return name.lower()
+
+
+def to_ns(d: dict) -> types.SimpleNamespace:
+    """Recursively convert a nested dict to SimpleNamespace for attribute access."""
+    ns = types.SimpleNamespace()
+    for k, v in d.items():
+        setattr(ns, k, to_ns(v) if isinstance(v, dict) else v)
+    return ns

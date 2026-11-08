@@ -2,15 +2,20 @@ metrics:
 - dataset_link: https://cocodataset.org/
   dataset_name: coco_seg
   dataset_split_description: val2017 split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 27.7
-        qnn_dlc:
-          partial_metric: 27.3
-        tflite:
-          partial_metric: 27.3
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 27.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 27.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 27.7
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Mean Average Precision averaged over IOU thresholds 0.5 to 0.95 in 0.05 increments.
   metric_enablement_threshold: 10.0
   metric_name: Mean Average Precision

@@ -61,7 +61,7 @@ jobs:
   ## Pre-commit hook rules check
   ##
   sync_models:
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     env:
       PR_REF_NAME: dev/qaihm_bot/update-scorecard-assets-${{ inputs.branch_name == '' && github.run_id || inputs.branch_name }}
       QAIHM_TEST_MODELS: ${{inputs.models}}
@@ -79,8 +79,6 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENTS }},prod
           hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}

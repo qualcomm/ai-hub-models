@@ -77,6 +77,7 @@ class TestGenie:
         # run genie-t2t-run on the device
         num_trials = int("<<NUM_TRIALS>>")
         genie_bundle_url = "<<GENIE_BUNDLE_URL>>"
+        qairt_sdk_url = "<<QAIRT_SDK_URL>>"
         trial_commands = []
         for i in range(num_trials):
             trial_commands.append(
@@ -143,7 +144,7 @@ rm -rf /data/local/tmp/qairt
 echo "=== Pre-download connectivity check ==="
 echo "Pinging google.com before QAIRT SDK download..."
 ping -c 1 google.com && echo "Pre-download ping: SUCCESS" || echo "Pre-download ping: FAILED"
-curl -L -J --fail --max-time 300 --retry 3 --retry-delay 5 --output /data/local/tmp/qairt.zip https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/<<QAIRT_VERSION>>/v<<QAIRT_VERSION>>.zip
+curl -L --fail --max-time 3600 --retry 3 --retry-delay 5 --output /data/local/tmp/qairt.zip "{qairt_sdk_url}"
 echo "=== Post-download connectivity check ==="
 echo "Pinging google.com after QAIRT SDK download..."
 ping -c 1 google.com && echo "Post-download ping: SUCCESS" || echo "Post-download ping: FAILED"
@@ -216,7 +217,7 @@ fi
                 check=True,
             )
 
-        _preflight_url("https://softwarecenter.qualcomm.com/")
+        _preflight_url(qairt_sdk_url)
         if genie_bundle_url:
             _preflight_url(genie_bundle_url)
 

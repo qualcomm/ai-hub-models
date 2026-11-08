@@ -142,23 +142,16 @@ def _encoded_activation_names(bundle: ONNXBundle) -> set[str]:
 def _first_transformer_layer(part: object) -> int:
     """Global index of this Part's first decoder layer.
 
-    Derived from the cumulative layer counts of the preceding parts (via the
-    shared harness.layers_per_part distribution), NOT from a single uniform
-    num_layers_per_split -- so an uneven split (e.g. 10/10/8) gives correct
-    per-part offsets rather than drifting when a part is short.
+    Sum of the layer counts of the preceding parts, each counted from its own
+    split ONNX graph (harness.layers_per_part) -- so it matches the real split
+    (e.g. num_layers_per_split=15 on 32 layers -> 15/15/2), not an assumed
+    uniform ceil(num_layers / num_transformer_parts) distribution.
     """
     from harness import layers_per_part
 
-    presplit = part._presplit
-    num_layers = presplit.num_layers
-    num_splits = part.num_splits
-    split_lm_head = bool(getattr(presplit, "split_lm_head", False))
-    lpp = layers_per_part(
-        num_layers, num_splits, split_embedding=True, split_lm_head=split_lm_head
-    )
+    lpp = layers_per_part(part._presplit)
     # part_id is 1-indexed; sum layers of all parts before this one (0-indexed).
-    this_idx = part.part_id - 1
-    return sum(lpp.get(i, 0) for i in range(this_idx))
+    return sum(lpp[i] for i in range(part.part_id - 1))
 
 
 # TODO(unify-with-production): _residual_add_boundaries below re-implements the

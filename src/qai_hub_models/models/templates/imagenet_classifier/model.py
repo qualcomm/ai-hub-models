@@ -10,6 +10,7 @@ from collections.abc import Callable
 
 import numpy as np
 import torch
+from torchvision import transforms
 from typing_extensions import Self
 
 from qai_hub_models.configs.model_metadata import ModelMetadata
@@ -47,6 +48,9 @@ TEST_IMAGENET_IMAGE = CachedWebModelAsset.from_asset_store(
 
 class ImagenetClassifier(BaseModel):
     """Base class for all Imagenet Classifier models within QAI Hub Models."""
+
+    INPUT_DIM: int = IMAGENET_DIM
+    INPUT_TRANSFORM: transforms.Compose = IMAGENET_TRANSFORM
 
     def __init__(
         self,
@@ -120,7 +124,7 @@ class ImagenetClassifier(BaseModel):
     def get_input_spec(self, batch_size: int = 1) -> InputSpec:
         return {
             "image_tensor": TensorSpec(
-                shape=(batch_size, 3, IMAGENET_DIM, IMAGENET_DIM),
+                shape=(batch_size, 3, self.INPUT_DIM, self.INPUT_DIM),
                 dtype="float32",
                 io_type=IoType.IMAGE,
                 value_range=(0.0, 1.0),
@@ -143,7 +147,7 @@ class ImagenetClassifier(BaseModel):
         self, input_spec: InputSpec | None = None
     ) -> dict[str, list[np.ndarray]]:
         image = load_image(TEST_IMAGENET_IMAGE)
-        tensor = IMAGENET_TRANSFORM(image).unsqueeze(0)
+        tensor = self.INPUT_TRANSFORM(image).unsqueeze(0)
         return dict(image_tensor=[tensor.numpy()])
 
     @classmethod

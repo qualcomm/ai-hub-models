@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [D-FINE: Real-time transformer based object detector](https://aihub.qualcomm.com/models/dfine)
 
 D-FINE is a state-of-the-art real-time object detection model that redefines the regression task in DETRs as fine-grained distribution refinement. The default variant is trained on the COCO dataset.

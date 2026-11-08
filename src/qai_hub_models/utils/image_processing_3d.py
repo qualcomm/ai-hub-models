@@ -4,6 +4,8 @@
 # ---------------------------------------------------------------------
 from __future__ import annotations
 
+import functools
+
 import numpy as np
 import torch
 
@@ -169,3 +171,113 @@ def rotation_matrix_to_euler(rot: torch.Tensor) -> torch.Tensor:
     out[:, 1] = y * (1 - singular) + ys * singular
     out[:, 2] = z * (1 - singular) + zs * singular
     return out
+
+
+def transform_coordinates_3d(coords: np.ndarray, RT: np.ndarray) -> np.ndarray:
+    """
+    Apply a 4x4 homogeneous transform to (3, N) coordinates.
+
+    Parameters
+    ----------
+    coords
+        Input coordinates, shape (3, N), dtype float32.
+    RT
+        Homogeneous transformation matrix, shape (4, 4), dtype float32.
+
+    Returns
+    -------
+    np.ndarray
+        Transformed coordinates, shape (3, N), dtype float32.
+    """
+    assert coords.shape[0] == 3
+    coords_with_ones = np.vstack(
+        [coords, np.ones((1, coords.shape[1]), dtype=np.float32)]
+    )
+    return (RT @ coords_with_ones)[:3, :]
+
+
+@functools.lru_cache(maxsize=4)
+def _get_pixel_grids(h: int, w: int) -> tuple[np.ndarray, np.ndarray]:
+    """Return (u_grid, v_grid) pixel coordinate arrays for a given resolution.
+
+    Results are cached for up to 4 distinct (h, w) sizes.  The returned arrays
+    are read-only to prevent callers from silently corrupting the cache.
+    """
+    xmap = np.tile(np.arange(w), (h, 1)).astype(np.float32)
+    ymap = np.tile(np.arange(h), (w, 1)).T.astype(np.float32)
+    xmap.flags.writeable = False
+    ymap.flags.writeable = False
+    return xmap, ymap
+
+
+def depth_to_full_pointcloud(
+    depth_filled: np.ndarray,
+    fx: float,
+    fy: float,
+    cx: float,
+    cy: float,
+    depth_scale: float = 1000.0,
+) -> np.ndarray:
+    """
+    Back-project a full depth image to a 3D point cloud.
+
+    Parameters
+    ----------
+    depth_filled
+        Depth image of shape (H, W) in raw uint16 units.
+    fx
+        Focal length x in pixels.
+    fy
+        Focal length y in pixels.
+    cx
+        Principal point x in pixels.
+    cy
+        Principal point y in pixels.
+    depth_scale
+        Factor to convert depth units to metres (default 1000.0 for mm→m).
+
+    Returns
+    -------
+    np.ndarray
+        Point cloud of shape (H, W, 3) in metres, float32.
+    """
+    h, w = depth_filled.shape
+    xmap, ymap = _get_pixel_grids(h, w)
+
+    pts_z = depth_filled / depth_scale
+    pts_x = (xmap - cx) * pts_z / fx
+    pts_y = (ymap - cy) * pts_z / fy
+
+    return np.stack([pts_x, pts_y, pts_z], axis=2).astype(np.float32)
+
+
+def build_camera_projection_matrix(
+    fx: float, fy: float, cx: float, cy: float
+) -> np.ndarray:
+    """
+    Build a 3x4 camera projection matrix from intrinsic parameters.
+
+    Parameters
+    ----------
+    fx
+        Focal length x in pixels.
+    fy
+        Focal length y in pixels.
+    cx
+        Principal point x in pixels.
+    cy
+        Principal point y in pixels.
+
+    Returns
+    -------
+    np.ndarray
+        Projection matrix of shape (3, 4), dtype float32.
+    """
+    return np.array(
+        [
+            [fx, 0, cx, 0],
+            [0, fy, cy, 0],
+            [0, 0, 1, 0],
+        ],
+        dtype=np.float32,
+    )

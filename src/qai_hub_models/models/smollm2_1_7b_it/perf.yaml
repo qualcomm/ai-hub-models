@@ -1,99 +1,88 @@
-precisions:
-  w4a16:
-    components:
-      SmolLM2-1.7B-Instruct:
-        performance_metrics:
-          Arduino VENTUNO Q:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1249.010833
-                time_to_first_token_range_milliseconds:
-                  max: 3279.3950967741935
-                  min: 102.48109677419355
-                tokens_per_second: 17.26779
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing IQ-X7181:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1201.09394
-                time_to_first_token_range_milliseconds:
-                  max: 3410.2245161290325
-                  min: 106.56951612903227
-                tokens_per_second: 17.88621
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing Q-8750:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1548.550049
-                time_to_first_token_range_milliseconds:
-                  max: 2645.0549677419353
-                  min: 82.65796774193548
-                tokens_per_second: 26.170988
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S25:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1548.550049
-                time_to_first_token_range_milliseconds:
-                  max: 2645.0549677419353
-                  min: 82.65796774193548
-                tokens_per_second: 26.170988
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S26:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1860.028191
-                time_to_first_token_range_milliseconds:
-                  max: 2202.1171612903227
-                  min: 68.81616129032258
-                tokens_per_second: 28.528349
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Snapdragon X Elite CRD:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1201.09394
-                time_to_first_token_range_milliseconds:
-                  max: 3410.2245161290325
-                  min: 106.56951612903227
-                tokens_per_second: 17.88621
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Snapdragon X2 Elite CRD:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 2293.849789
-                time_to_first_token_range_milliseconds:
-                  max: 1785.6443870967742
-                  min: 55.80138709677419
-                tokens_per_second: 36.544427
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
+performance_metrics:
+- component: SmolLM2-1.7B-Instruct
+  device: Arduino VENTUNO Q
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1249.010833
+    tokens_per_second: 17.26779
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1201.09394
+    tokens_per_second: 17.88621
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1548.550049
+    tokens_per_second: 26.170988
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Samsung Galaxy S25
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1548.550049
+    tokens_per_second: 26.170988
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Samsung Galaxy S26
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1860.028191
+    tokens_per_second: 28.528349
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1201.09394
+    tokens_per_second: 17.88621
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: SmolLM2-1.7B-Instruct
+  device: Snapdragon X2 Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 2293.849789
+    tokens_per_second: 36.544427
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-gen5-for-galaxy
 - qualcomm-snapdragon-8-elite-for-galaxy

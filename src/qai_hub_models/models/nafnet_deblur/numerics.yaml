@@ -2,27 +2,40 @@ metrics:
 - dataset_link: https://seungjunnah.github.io/Datasets/reds.html
   dataset_name: reds
   dataset_split_description: REDS dataset for image deblurring
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 29.4
-        qnn_dlc:
-          partial_metric: 22.6
-        tflite:
-          partial_metric: 22.6
-      w8a16:
-        onnx:
-          partial_metric: 29.4
-        qnn_dlc:
-          partial_metric: 29.4
-      w8a8:
-        onnx:
-          partial_metric: 28.6
-        qnn_dlc:
-          partial_metric: 28.6
-        tflite:
-          partial_metric: 28.6
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 22.6
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 22.6
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 29.4
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 28.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 28.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 28.6
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 29.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 29.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of how similar the denoised image is to the clean original.
   metric_enablement_threshold: 10.0
   metric_name: Peak Signal-to-Noise Ratio (PSNR)

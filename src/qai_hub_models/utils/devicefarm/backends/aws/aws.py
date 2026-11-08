@@ -246,6 +246,7 @@ class AwsDeviceFarm(DeviceFarm):
         entry_script: str | None,
         job_name: str,
         timeout: int = DEFAULT_JOB_TIMEOUT,
+        job_timeout: int | None = None,
     ) -> str:
         """
         Zip ``entries``, upload the bundle to AWS Device Farm, and schedule a run for it.
@@ -278,6 +279,8 @@ class AwsDeviceFarm(DeviceFarm):
             (converted to minutes, minimum 1) on the scheduled run. Unlike
             the QDC backend, this bounds job execution time, not a wait for a
             free device slot.
+        job_timeout
+            If set, overrides ``timeout`` as the run's execution limit.
 
         Returns
         -------
@@ -303,7 +306,10 @@ class AwsDeviceFarm(DeviceFarm):
             create_zip_from_entries(zip_path, entries)
             test_package_arn = self._upload_file(zip_path, "APPIUM_PYTHON_TEST_PACKAGE")
         return self._submit_automated_job(
-            device_arns, test_package_arn, job_name=job_name, timeout=timeout
+            device_arns,
+            test_package_arn,
+            job_name=job_name,
+            timeout=timeout if job_timeout is None else job_timeout,
         )
 
     def _submit_automated_job(

@@ -9,7 +9,10 @@ from __future__ import annotations
 import json
 import logging
 
-from qai_hub_models.models.templates.llm.grader.grace import GRACE_TASK_NAME
+from qai_hub_models.datasets.device_eval import (
+    DEFAULT_DEVICE_EVAL_DATASET,
+    get_device_eval_dataset,
+)
 from qai_hub_models.scorecard import ScorecardProfilePath
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,7 @@ def save_eval_metadata_json(
     precision: str,
     output_path: str,
     path: ScorecardProfilePath,
-    dataset_name: str = GRACE_TASK_NAME,
+    dataset_name: str = DEFAULT_DEVICE_EVAL_DATASET,
 ) -> None:
     """Save a sidecar identifying which (model, chipset, precision, path, dataset) an eval JSON belongs to.
 
@@ -43,7 +46,9 @@ def save_eval_metadata_json(
     and the eval filename cannot be parsed unambiguously (model IDs and chipset
     slugs both contain delimiters). collect_llm_accuracy_csv reads this sidecar
     to recover the identity, and skips any grade file that lacks it. ``path`` is
-    the scorecard runtime the accuracy row is written under.
+    the scorecard runtime the accuracy row is written under. ``metric_name`` is
+    recorded too because grade_responses runs in the grader venv, which cannot
+    import the dataset registry.
     """
     metadata = {
         "model_id": model_id,
@@ -51,6 +56,7 @@ def save_eval_metadata_json(
         "precision": precision,
         "path": path.value,
         "dataset_name": dataset_name,
+        "metric_name": get_device_eval_dataset(dataset_name).metric_metadata().name,
     }
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)

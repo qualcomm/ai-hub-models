@@ -1,9 +1,3 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
 description: RepViT is a lightweight pure CNN model for mobile devices, incorporating efficient architectural designs from Vision Transformers into CNNs. It achieves over 80% top-1 accuracy on ImageNet with 1ms latency on an iPhone 12.
 domain: Computer Vision
 external_repos:
@@ -11,15 +5,9 @@ external_repos:
     commit_sha: 298f42075eda5d2e6102559fad260c970769d34e
     patches_filename: repvit_patches.diff
     repo_url: https://github.com/THU-MIG/RepViT.git
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier optimized for mobile devices.
 id: repvit
-imsdk_supported: true
 license: https://github.com/THU-MIG/RepViT/blob/main/LICENSE
 license_type: apache-2.0
 name: RepViT
@@ -29,21 +17,11 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2307.09283
   unit: '%'
   value: 83.3
-related_models:
-- efficientnet_lite4
-- mobilenet_v2
-- mobilenet_v3_small
 research_paper: https://arxiv.org/abs/2307.09283
 research_paper_title: 'RepViT: Revisiting Mobile CNN From ViT Perspective'
 source_repo: https://github.com/THU-MIG/RepViT
-status: published
 tags:
 - backbone
-technical_details:
-  Input resolution: 224x224
-  Model checkpoint: Imagenet
-  Model size (float): 91 MB
-  Number of parameters: 22.9M
 templates:
 - imagenet_classifier
 use_case: Image Classification

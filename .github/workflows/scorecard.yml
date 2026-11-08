@@ -32,7 +32,7 @@ on:
           default: default
 
         options:
-          description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7"). See scripts/ci/parse_options.py for the full key list.'
+          description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7,checkpoint=<private-bucket key>"; checkpoint needs models to name one model). See scripts/ci/parse_options.py for the full key list.'
           required: false
           type: string
           default: ''
@@ -92,7 +92,7 @@ on:
           type: string
 
         options:
-          description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7"). See scripts/ci/parse_options.py.'
+          description: 'Comma-separated scorecard options (e.g. "qairt_version=2.45,geniex_version=0.3.7,checkpoint=<private-bucket key>"; checkpoint needs models to name one model). See scripts/ci/parse_options.py.'
           type: string
           default: ''
 
@@ -135,7 +135,7 @@ env:
 jobs:
   wait_workbench_deployment:
     name: Wait For Workbench to Finish Deploying
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 180
     env:
       QAIHM_TEST_DEPLOYMENT: ${{ inputs.deployment }}
@@ -145,8 +145,6 @@ jobs:
     - name: CI Setup
       uses: ./.github/actions/ci-setup
       with:
-        python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-        sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
         venv-path: ${{ env.VENV_PATH }}
         hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }},prod
         hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
@@ -176,7 +174,6 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/test_models_split.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       deployment: ${{ inputs.deployment }}
       models: ${{ inputs.models }}
       test_devices: ${{ inputs.test_devices }}
@@ -257,7 +254,7 @@ jobs:
     name: Combine Test Results
     needs: [submit_split_jobs, collect_results_split]
     if: ${{ always() && needs.submit_split_jobs.result != 'skipped' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     steps:
       - uses: actions/checkout@v7
 
@@ -265,8 +262,6 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
 
       - name: Download Model Test Results

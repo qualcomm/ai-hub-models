@@ -2,16 +2,20 @@ metrics:
 - dataset_link: https://www.eecs.yorku.ca/~kamel/sidd/
   dataset_name: sidd
   dataset_split_description: SIDD dataset for image denoising
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 39.7
-      w8a16:
-        onnx:
-          partial_metric: 39.6
-        qnn_dlc:
-          partial_metric: 39.6
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 39.7
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 39.6
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 39.6
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of how similar the denoised image is to the clean original.
   metric_enablement_threshold: 10.0
   metric_name: Peak Signal-to-Noise Ratio (PSNR)

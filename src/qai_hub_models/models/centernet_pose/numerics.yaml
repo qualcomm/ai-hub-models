@@ -2,13 +2,16 @@ metrics:
 - dataset_link: http://images.cocodataset.org/
   dataset_name: coco_body
   dataset_split_description: val2017 split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        precompiled_qnn_onnx:
-          partial_metric: 64.3
-        qnn_context_binary:
-          partial_metric: 64.3
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 64.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_CONTEXT_BINARY
+  - device: Samsung Galaxy S25
+    partial_metric: 64.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  higher_is_better: true
   metric_description: Mean Average Precision (across predicted classes).
   metric_enablement_threshold: 10.0
   metric_name: Mean Average Precision

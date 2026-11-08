@@ -97,7 +97,7 @@ repeating long explanations inline>
 
 **Citations:**
 - `src/qai_hub_models/models/templates/llm/model.py`
-- `src/qai_hub_models/models/qwen3_4b_instruct_2507/export.py`
+- `src/qai_hub_models/utils/export/pipeline.py`
 
 **Confidence floor:** high
 **Last updated:** 2026-06-25
@@ -447,7 +447,7 @@ We don't have AI Hub Workbench docs covering dual-NPU programming; questions abo
 **Answer:**
 AI Hub Models depends on packages that aren't yet available on ARM64 Windows. **Use x86 Python on Windows for now.** See the install note in the README: https://github.com/qualcomm/ai-hub-models#1-install-python-package
 
-For ARM64-only workflows: `onnxruntime-qnn==1.22` does have ARM64 wheels and may be usable for inference of pre-built assets. You can also download pre-exported model assets directly from https://aihub.qualcomm.com/models without re-running `export.py`.
+For ARM64-only workflows: `onnxruntime-qnn==1.22` does have ARM64 wheels and may be usable for inference of pre-built assets. You can also download pre-exported model assets directly from https://aihub.qualcomm.com/models without re-running `qai-hub-models export`.
 
 We're tracking the ORT 1.24/1.25 upgrade internally; AI Hub Workbench is on ORT 1.24 (QAIRT 2.42), and 1.25 is in progress.
 

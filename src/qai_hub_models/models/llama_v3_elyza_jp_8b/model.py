@@ -32,6 +32,10 @@ from qai_hub_models.models.templates.llm.generator_factory import make_generator
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_CONTEXT_LENGTH,
     DEFAULT_SEQUENCE_LENGTH,
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
     SplitForwardMixin,
 )
 from qai_hub_models.models.templates.llm.model import (
@@ -105,8 +109,14 @@ class Llama3_Elyza_JP_8B_PreSplit(LlamaPreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Llama3_Elyza_JP_8B_QuantizablePreSplit(
-    LlamaQuantizablePreSplitBase[Llama3_Elyza_JP_8B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Llama3_Elyza_JP_8B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    LlamaQuantizablePreSplitBase[Llama3_Elyza_JP_8B_PreSplit],
 ):
     """Quantizable PreSplit for Llama-3-ELYZA-JP 8B."""
 
@@ -200,7 +210,9 @@ class Llama3_Elyza_JP_8B_QuantizablePreSplit(
         return make_hub_dataset_entries(tuple(inputs), list(input_spec.keys()))
 
 
-class Llama3_Elyza_JP_8B_PartBase(LlamaPartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Llama3_Elyza_JP_8B_PartBase(QuantizeFullTypeW8A16PartMixin, LlamaPartBase):
     """Unified Part base for Llama-3-ELYZA-JP 8B."""
 
     num_splits = NUM_SPLITS
@@ -267,7 +279,11 @@ class FPSplitModelWrapper(SplitForwardMixin, Llama3_Elyza_JP_8B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Llama3_Elyza_JP_8B_Collection(LlamaPreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Llama3_Elyza_JP_8B_Collection(
+    CollectionCompileO0Mixin, LlamaPreSplitCollectionBase
+):
     """Unified Collection with 5 Parts for Llama-3-ELYZA-JP 8B."""
 
     hf_repo_name = HF_REPO_NAME

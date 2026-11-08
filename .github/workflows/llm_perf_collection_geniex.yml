@@ -50,7 +50,7 @@ on:
         type: string
 
       qairt_version:
-        description: 'QAIRT version for the qairt plugin (e.g. "2.50"). A non-default version is downloaded on-device and swapped into the geniex-bench bundle; "qaihm_default" keeps the bundled QAIRT.'
+        description: 'QAIRT version for the qairt plugin (e.g. "2.50"). The version is downloaded on-device and swapped into the geniex-bench bundle; "qaihm_default" uses the QAIRT default from common.py.'
         required: false
         default: 'qaihm_default'
         type: string
@@ -68,6 +68,12 @@ on:
           - perf
           - accuracy
           - perf_and_accuracy
+
+      eval_dataset:
+        description: 'Device-eval dataset for the accuracy scope (e.g. "grace2"). Every prompt in it runs. Blank uses grace2.'
+        required: false
+        default: ''
+        type: string
 
       create_pr:
         description: 'Create PR with perf.yaml changes'
@@ -102,7 +108,7 @@ on:
         default: ''
 
       qairt_version:
-        description: 'QAIRT version for the qairt plugin (e.g. "2.50"). A non-default version is downloaded on-device and swapped into the geniex-bench bundle; "qaihm_default" keeps the bundled QAIRT.'
+        description: 'QAIRT version for the qairt plugin (e.g. "2.50"). The version is downloaded on-device and swapped into the geniex-bench bundle; "qaihm_default" uses the QAIRT default from common.py.'
         type: string
         default: 'qaihm_default'
 
@@ -116,6 +122,11 @@ on:
         type: string
         default: perf
 
+      eval_dataset:
+        description: 'Device-eval dataset for the accuracy scope. Every prompt in it runs. Blank uses grace2.'
+        type: string
+        default: ''
+
       create_pr:
         description: 'Create PR with perf.yaml changes'
         type: boolean
@@ -128,7 +139,7 @@ defaults:
 jobs:
   prepare_matrix:
     name: "Split Devices By QDC Pool"
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     outputs:
       matrix_include: ${{ steps.split.outputs.matrix_include }}
     steps:
@@ -147,7 +158,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.prepare_matrix.outputs.matrix_include) }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 2880
     permissions:
       contents: read
@@ -236,6 +247,7 @@ jobs:
         GENIEX_BENCH_PRECISIONS: ${{ inputs.precision || 'default' }}
         GENIEX_VERSION: ${{ inputs.geniex_version || '' }}
         GENIEX_SCOPE: ${{ inputs.scope || 'perf' }}
+        GENIEX_EVAL_DATASET: ${{ inputs.eval_dataset || '' }}
         QAIHM_TEST_QAIRT_VERSION: ${{ inputs.qairt_version || 'qaihm_default' }}
         QAIHM_LLM_PERF_RELEASE_ASSETS: ${{ inputs.release_assets_action_id != '' && format('{0}/llm-release-assets/release-assets.yaml', github.workspace) || '' }}
         QAIHM_LLM_PERF_UPDATES: ${{ github.workspace }}/geniex_perf_updates_${{ matrix.pool }}.jsonl
@@ -256,6 +268,9 @@ jobs:
         # scope=accuracy skips the perf sweep (and perf.yaml updates) entirely.
         if [ "$GENIEX_SCOPE" != "perf" ]; then
           extra+=(--run-eval)
+          if [ -n "$GENIEX_EVAL_DATASET" ]; then
+            extra+=(--eval-dataset "$GENIEX_EVAL_DATASET")
+          fi
         fi
         if [ "$GENIEX_SCOPE" = "accuracy" ]; then
           extra+=(--no-run-perf)
@@ -329,7 +344,7 @@ jobs:
     needs: collect_geniex_bench_perf
     # Accuracy-only runs produce no perf.yaml manifest, so skip the PR entirely.
     if: ${{ !cancelled() && inputs.create_pr && inputs.scope != 'accuracy' }}
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 60
     permissions:
       contents: write
@@ -466,7 +481,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
-      python_version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
       is_grader: true
       grader_artifacts_run_id: ${{ github.run_id }}
       split_name: geniex-${{ inputs.geniex_bench_plugin || 'all' }}

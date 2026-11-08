@@ -1,29 +1,14 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
-- Customer Support
 datasets:
 - imagenet
 description: Qwen2.5-VL-7B-Instruct is a multimodal vision-language model with 7 billion parameters that can process both images and text, enabling visual question answering, image description, and other vision-language tasks.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: State-of-the-art vision-language model capable of understanding images and generating text responses.
 id: qwen2_5_vl_7b_instruct
 is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download
-  devices: {}
-  genie_compatible: true
-  geniex_llamacpp_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -82,9 +67,6 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
-related_models:
-- qwen3_4b
-- qwen3_4b_instruct_2507
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2502.13923
 research_paper_title: Qwen2.5-VL Technical Report
@@ -105,7 +87,6 @@ runtime_technical_details:
     model_infer_id: ai-hub-models/Qwen2.5-VL-7B-Instruct
 separate_quantize_script: true
 source_repo: https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct
-status: published
 supported_precisions:
 - w4a16
 - q4_0
@@ -113,10 +94,6 @@ tags:
 - llm
 - vlm
 - generative-ai
-technical_details:
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: English, Chinese, and many others.
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt. The lower bound is for a short prompt (up to 128 tokens, i.e., one iteration of the prompt processor) and the upper bound is for a prompt using the full context length.
 templates:
 - llm
 - qwen2_vl

@@ -3,22 +3,32 @@ metrics:
   dataset_link: https://huggingface.co/datasets/eugenesiow/Set14
   dataset_name: set14
   dataset_split_description: all 14 standard SR benchmark images
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 28.7
-        qnn_dlc:
-          partial_metric: 28.7
-        tflite:
-          partial_metric: 28.7
-      w8a8:
-        onnx:
-          partial_metric: 28.0
-        qnn_dlc:
-          partial_metric: 28.0
-        tflite:
-          partial_metric: 28.0
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 28.7
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 28.7
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 28.7
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 28.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 28.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 28.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: A measure of how similar two images are.
   metric_enablement_threshold: 10.0
   metric_name: Peak Signal-to-Noise Ratio (PSNR)

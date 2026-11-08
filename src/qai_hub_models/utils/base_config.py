@@ -35,6 +35,54 @@ def sorted_mappings(value: Any) -> Any:
     return value
 
 
+def _yaml_writer(flow_lists: bool = False) -> ruamel.yaml.YAML:
+    """A ruamel writer configured the way every QAIHM YAML file is written."""
+    yaml = ruamel.yaml.YAML()
+
+    # add_representer is a classmethod, so registering on yaml.representer
+    # would reconfigure every RoundTripRepresenter in the process, not just
+    # this dump. A throwaway subclass gets its own registry (ruamel copies on
+    # first write), so register new representers on _Representer, not on
+    # yaml.representer.
+    class _Representer(RoundTripRepresenter):
+        pass
+
+    yaml.Representer = _Representer
+
+    # build_and_test.py uses simplistic YAML readers that can't read strings on
+    # multiple lines. Make sure strings aren't dumped to multiple lines.
+    yaml.width = 4096
+
+    # Allow strings with newlines to dump as newlines rather than \n
+    def _yaml_repr_str(dumper: RoundTripRepresenter, data: str) -> Any:
+        if "\n" in data:
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+    _Representer.add_representer(str, _yaml_repr_str)
+
+    if flow_lists:
+
+        def _yaml_repr_list(dumper: RoundTripRepresenter, data: list) -> Any:
+            return dumper.represent_sequence(
+                "tag:yaml.org,2002:seq", data, flow_style=True
+            )
+
+        _Representer.add_representer(list, _yaml_repr_list)
+
+    return yaml
+
+
+def dump_yaml_dict(data: Any, path: str | Path, flow_lists: bool = False) -> None:
+    """Write a plain dict to YAML with every mapping's keys sorted alphabetically.
+
+    Split out of to_yaml so callers that merge several configs into one file (the
+    website's info.yaml) get byte-identical output to a single config's dump.
+    """
+    with open(path, "w") as f:
+        _yaml_writer(flow_lists).dump(sorted_mappings(data), f)
+
+
 class BaseQAIHMConfig(BaseModel):
     """
     A base class for all AI Hub Models configs.
@@ -56,6 +104,21 @@ class BaseQAIHMConfig(BaseModel):
             exclude_defaults=True,
             exclude_none=True,
         )
+
+    def to_yaml_dict(self, exclude_defaults: bool = True, **kwargs: Any) -> Any:
+        """This config as a plain dict, exactly as to_yaml would write it.
+
+        Rendered via pydantic_yaml first (which handles JSON-mode serializers and
+        custom types) and re-parsed, so the result contains only YAML primitives.
+        """
+        rendered = to_yaml_str(
+            self,
+            custom_yaml_writer=_yaml_writer(),
+            exclude_defaults=exclude_defaults,
+            exclude_none=True,
+            **kwargs,
+        )
+        return ruamel.yaml.YAML(typ="safe", pure=True).load(rendered)
 
     def to_yaml(
         self,
@@ -100,53 +163,8 @@ class BaseQAIHMConfig(BaseModel):
          * all dataclass fields have default values
          * every field in this dataclass instance is set to its default value
         """
-        yaml = ruamel.yaml.YAML()
-
-        # add_representer is a classmethod, so registering on yaml.representer
-        # would reconfigure every RoundTripRepresenter in the process, not just
-        # this dump. A throwaway subclass gets its own registry (ruamel copies on
-        # first write), so register new representers on _Representer, not on
-        # yaml.representer.
-        class _Representer(RoundTripRepresenter):
-            pass
-
-        yaml.Representer = _Representer
-
-        # build_and_test.py uses simplistic YAML readers that can't read strings on multiple lines.
-        # Make sure strings aren't dumped to multiple lines in the YAML.
-        yaml.width = 4096
-
-        # Allow strings with newlines to dump as newlines rather than \n
-        def _yaml_repr_str(dumper: RoundTripRepresenter, data: str) -> Any:
-            if "\n" in data:
-                return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-            return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-        _Representer.add_representer(str, _yaml_repr_str)
-
-        # Enable flow style for lists if requested
-        if flow_lists:
-
-            def _yaml_repr_list(dumper: RoundTripRepresenter, data: list) -> Any:
-                return dumper.represent_sequence(
-                    "tag:yaml.org,2002:seq", data, flow_style=True
-                )
-
-            _Representer.add_representer(list, _yaml_repr_list)
-
-        # Render via pydantic_yaml first (handles JSON-mode serializers, custom
-        # types, etc.), then re-parse and recursively sort every mapping's keys
-        # so the on-disk file has a deterministic order.
-        rendered = to_yaml_str(
-            self,
-            custom_yaml_writer=yaml,
-            exclude_defaults=exclude_defaults,
-            exclude_none=True,
-            **kwargs,
-        )
-        data = ruamel.yaml.YAML(typ="safe", pure=True).load(rendered)
-        with open(path, "w") as f:
-            yaml.dump(sorted_mappings(data), f)
+        data = self.to_yaml_dict(exclude_defaults=exclude_defaults, **kwargs)
+        dump_yaml_dict(data, path, flow_lists=flow_lists)
 
         # Remove file if empty
         if (not write_if_empty or delete_if_empty) and os.path.getsize(path) in (

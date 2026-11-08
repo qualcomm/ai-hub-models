@@ -43,7 +43,7 @@ jobs:
 
   validate_scorecard_outputs:
     name: Validate Scorecard Outputs
-    runs-on: [tetra-ubuntu-2204, self-hosted]
+    runs-on: aihub-models-ubuntu-2404-ec2
     needs: run_scorecard
     if: ${{ !cancelled() }}
     timeout-minutes: 60
@@ -64,9 +64,9 @@ jobs:
       - name: CI Setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ vars.CI_PYTHON_VERSION || '3.10' }}
-          sudo-password: ${{ secrets.TETRASERVICE_PASSWORD }}
           venv-path: ${{ env.VENV_PATH }}
+          hub-deployments: prod
+          hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
 
       - name: Download Scorecard Artifacts
         uses: actions/download-artifact@v8

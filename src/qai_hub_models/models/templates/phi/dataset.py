@@ -5,10 +5,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import torch
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetSplit
+
+if TYPE_CHECKING:
+    from qai_hub_models.models.templates.llm.model import LLMBase
 
 
 def collate_fn(
@@ -23,7 +28,7 @@ def collate_fn(
 
 class BaseTrickyLLMPrompts(BaseDataset):
     """
-    LLM prompts with known problem areas (with Phi 3 prompt format). The
+    LLM prompts with known problem areas (in the subclass's prompt format). The
     prompts typically include part of a reasonable answer and is cut off
     mid-sentence where known problems tend to appear.
 
@@ -115,16 +120,35 @@ class BaseTrickyLLMPrompts(BaseDataset):
 
 
 class TrickyLLMPromptsPhi35(BaseTrickyLLMPrompts):
-    MODEL_NAME = "phi35"
+    """Abstract base for Phi-family tricky-prompt datasets (Phi-3.5 and Phi-4).
+
+    The prompts are tokenizer- and prompt-format-specific, so this class carries no
+    variant of its own. Concrete subclasses must set:
+
+        MODEL_NAME   -- identifier used in dataset_name() (e.g. "phi4_mini")
+        HF_REPO_NAME -- HuggingFace repo supplying the tokenizer
+        LLMBaseClass -- model base whose get_input_prompt_with_tags() produces the
+                        correct prompt format for this variant
+    """
+
+    MODEL_NAME: str = ""  # set in subclass
+    HF_REPO_NAME: str = ""  # set in subclass
+    LLMBaseClass: type[LLMBase] | None = None  # set in subclass
 
     def raw_prompts(self) -> list[str]:
-        from qai_hub_models.models.templates.phi.model import Phi35Base
+        assert self.HF_REPO_NAME, (
+            "HF_REPO_NAME must be set in TrickyLLMPromptsPhi35 subclass."
+        )
+        llm_cls = self.LLMBaseClass
+        assert llm_cls is not None, (
+            "LLMBaseClass must be set in TrickyLLMPromptsPhi35 subclass."
+        )
 
-        tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3.5-mini-instruct")
+        tokenizer = AutoTokenizer.from_pretrained(self.HF_REPO_NAME)
 
         return [
             (
-                Phi35Base.get_input_prompt_with_tags(
+                llm_cls.get_input_prompt_with_tags(
                     user_input_prompt="What is Gravity?",
                     system_context_prompt="You are a helpful AI assistant.",
                     tokenizer=tokenizer,
@@ -132,7 +156,7 @@ class TrickyLLMPromptsPhi35(BaseTrickyLLMPrompts):
                 + "Gravity is a fundamental force of nature that attracts two bodies with mass towards each other. It is described by Isaac Newton'"
             ),
             (
-                Phi35Base.get_input_prompt_with_tags(
+                llm_cls.get_input_prompt_with_tags(
                     user_input_prompt="What is Gravity?",
                     system_context_prompt="You are a helpful AI assistant.",
                     tokenizer=tokenizer,

@@ -2,15 +2,20 @@ metrics:
 - dataset_link: https://zheng-lab-anu.github.io/Project/project_reid.html
   dataset_name: market1501
   dataset_split_description: Evaluation split using bounding_box_test/ (gallery) and query/ from Market-1501-v15.09.15 (max 1000 images by default).
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 84.1
-        qnn_dlc:
-          partial_metric: 84.2
-        tflite:
-          partial_metric: 84.2
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 84.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 84.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 84.1
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Mean Average Precision for person re-identification retrieval.
   metric_enablement_threshold: 10.0
   metric_name: Mean Average Precision

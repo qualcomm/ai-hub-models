@@ -14,6 +14,7 @@ from typing import Any, cast
 import qai_hub as hub
 
 from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.protocols import ExecutableModelProtocol
 from qai_hub_models.utils.args import get_model_kwargs
 from qai_hub_models.utils.base_app import CollectionAppEvaluateProtocol
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
@@ -30,6 +31,10 @@ from qai_hub_models.utils.export.context import (
 from qai_hub_models.utils.export.dispatch import select_pipeline
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, compile_model_from_args
 from qai_hub_models.utils.input_spec import InputSpec
+from qai_hub_models.utils.precompiled_qnn_onnx import (
+    PrecompiledQnnOnnxModel,
+    find_component_onnx,
+)
 
 
 def evaluate_model(
@@ -50,6 +55,7 @@ def evaluate_model(
     skip_device_accuracy: bool = False,
     compute_quant_cpu_accuracy: bool = False,
     num_calibration_samples: int | None = None,
+    local_model_dir: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -95,10 +101,20 @@ def evaluate_model(
         If flag is set, computes the accuracy of the quantized onnx model on the CPU.
     num_calibration_samples
         The number of calibration data samples to use for quantization.
+    local_model_dir
+        Directory with one precompiled_qnn_onnx subdirectory per component. If
+        set, the components run on this machine as the "on-device" executor
+        and nothing is compiled or submitted to Workbench.
     **kwargs
         Additional kwargs for model instantiation (from_pretrained).
     """
     warnings.filterwarnings("ignore")
+
+    if local_model_dir is not None and compute_quant_cpu_accuracy:
+        raise ValueError(
+            "--local-model-dir cannot be combined with --compute-quant-cpu-accuracy: "
+            "the quantized CPU path needs a Workbench-compiled model."
+        )
 
     model_cls = cast(type[WorkbenchModelCollection], resolve_model_cls(source_dir))
     app_cls = cast(
@@ -159,8 +175,24 @@ def evaluate_model(
         model_executors["torch"] = app_cls.from_components(torch_model_list)
         input_spec = torch_model_list[0].get_input_spec()
 
+    if local_model_dir is not None:
+        local_components: list[ExecutableModelProtocol] = [
+            PrecompiledQnnOnnxModel(
+                find_component_onnx(Path(local_model_dir) / name),
+                input_names=list(collection_model.get_component_input_spec(name)),
+            )
+            for name in collection_model.component_names
+        ]
+        if not skip_device_accuracy:
+            model_executors["on-device"] = app_cls.from_components(local_components)
+        if input_spec is None:
+            input_spec = collection_model.get_component_input_spec(
+                collection_model.component_names[0]
+            )
     # On-device or quant-cpu path
-    if not skip_device_accuracy or (supports_quant_cpu and compute_quant_cpu_accuracy):
+    elif not skip_device_accuracy or (
+        supports_quant_cpu and compute_quant_cpu_accuracy
+    ):
         if hub_model_id is not None:
             hub_model_id_list = hub_model_id.split(",")
             assert len(hub_model_id_list) == num_components, (

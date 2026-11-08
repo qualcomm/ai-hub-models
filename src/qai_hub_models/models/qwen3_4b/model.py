@@ -30,7 +30,13 @@ from qai_hub_models.models.templates.llm.model import (
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
-from qai_hub_models.models.templates.llm.model import SplitForwardMixin
+from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
+    QuantizeFullTypeW8A16PartMixin,
+    SplitForwardMixin,
+)
 from qai_hub_models.models.templates.lm_driver.generator import HubCompatibleGenerator
 from qai_hub_models.models.templates.qwen3.model import (
     Qwen3PartBase,
@@ -49,7 +55,7 @@ MODEL_ID = __name__.split(".")[-2]
 # v3 static (pre-dynamo); v4 dynamic-shape (dynamo); v5 untied embedding/lm_head.
 # v6 re-migrates encodings so split-boundary residual adds keep their calibrated
 # encodings (the HTP linker needs them to match across parts).
-MODEL_ASSET_VERSION = 6
+MODEL_ASSET_VERSION = 7
 
 # Model architecture constants (from Qwen3-4B)
 NUM_LAYERS = 36
@@ -65,7 +71,7 @@ HEAD_DIM = 128
 HF_REPO_NAME = "Qwen/Qwen3-4B"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 40
+MIN_MEMORY_RECOMMENDED = 120
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16
@@ -100,7 +106,15 @@ class Qwen3_4B_PreSplit(Qwen3PreSplitBase):
     default_precision = DEFAULT_PRECISION
 
 
-class Qwen3_4B_QuantizablePreSplit(Qwen3QuantizablePreSplitBase[Qwen3_4B_PreSplit]):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_4B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Qwen3QuantizablePreSplitBase[Qwen3_4B_PreSplit],
+):
     """Quantizable PreSplit for Qwen3-4B."""
 
     FPModel = Qwen3_4B_PreSplit
@@ -122,7 +136,9 @@ class Qwen3_4B_QuantizablePreSplit(Qwen3QuantizablePreSplitBase[Qwen3_4B_PreSpli
     supports_thinking = True
 
 
-class Qwen3_4B_PartBase(Qwen3PartBase):
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+class Qwen3_4B_PartBase(QuantizeFullTypeW8A16PartMixin, Qwen3PartBase):
     """Unified Part base for Qwen3-4B."""
 
     num_splits = NUM_SPLITS
@@ -184,7 +200,9 @@ class FPSplitModelWrapper(SplitForwardMixin, Qwen3_4B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-class Qwen3_4B_Collection(Qwen3PreSplitCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_4B_Collection(CollectionCompileO0Mixin, Qwen3PreSplitCollectionBase):
     """Unified Collection with 4 Parts for Qwen3-4B."""
 
     hf_repo_name = HF_REPO_NAME

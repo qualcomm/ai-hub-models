@@ -27,10 +27,7 @@ from qai_hub_models_cli.proto import (
 from qai_hub_models_cli.proto.shared import tensor_spec_pb2, tool_versions_pb2
 
 from qai_hub_models.configs._info_yaml_llm_details import LLMDetails
-from qai_hub_models.configs.manifest_yaml import (
-    NumericsAccuracyBenchmark,
-    QAIHMModelManifest,
-)
+from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.model_metadata import (
     ChipsetAttributes,
     GenieChatTemplate,
@@ -42,6 +39,7 @@ from qai_hub_models.configs.model_metadata import (
     ModelFileMetadata,
     ModelMetadata,
 )
+from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 from qai_hub_models.configs.tensor_spec import (
     ImageMetadata,
     QuantizationParameters,
@@ -52,6 +50,7 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     DeviceDetailsYaml,
     FormFactorYaml,
 )
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
@@ -187,8 +186,31 @@ class TestSharedFieldCoverage:
 # ---------------------------------------------------------------------------
 
 
+# ModelInfo fields that come from internal-config.yaml rather than manifest.yaml.
+# Listed explicitly rather than imported from internal/model_info.py so the split
+# itself is pinned here: moving a field between the two files must edit this test.
+_INTERNAL_OWNED_INFO_FIELDS = {
+    "status",
+    "status_reason",
+    "applicable_scenarios",
+    "has_animated_banner",
+    "has_static_banner",
+    "imsdk_supported",
+    "llm_details",
+    "model_maker_id",
+    "private_perf_form_factors",
+    "related_models",
+    "technical_details",
+}
+
+# Still declared in the proto, but no longer carried by any YAML schema.
+_UNUSED_INFO_PROTO_FIELDS = {"dataset", "form_factors"}
+
+_ALL_INFO_PROTO_FIELDS = {f.name for f in info_pb2.ModelInfo.DESCRIPTOR.fields}
+
+
 class TestInfoFieldCoverage:
-    def test_model_info(self) -> None:
+    def test_model_info_manifest_half(self) -> None:
         _check_coverage(
             QAIHMModelManifest,
             info_pb2.ModelInfo.DESCRIPTOR,
@@ -229,14 +251,37 @@ class TestInfoFieldCoverage:
                 "skip_example_usage",
                 "supported_precisions",
             },
-            proto_only={"aihm_version"},
+            proto_only={"aihm_version"}
+            | _INTERNAL_OWNED_INFO_FIELDS
+            | _UNUSED_INFO_PROTO_FIELDS,
+        )
+
+    def test_model_info_internal_half(self) -> None:
+        _check_coverage(
+            QAIHMModelInternalConfig,
+            info_pb2.ModelInfo.DESCRIPTOR,
+            pydantic_only={
+                # Scorecard / CI knobs. Never reach the website feed.
+                "downloadable_llm_asset",
+                "freeze_perf_yaml",
+                "global_requirements_incompatible",
+                "numerics_threshold_override",
+                "skip_evaluate",
+                "skip_export",
+                "skip_hub_tests_and_scorecard",
+                "skip_scorecard",
+                "standalone_components",
+                "test_split",
+                "weekend_group",
+            },
+            proto_only=(_ALL_INFO_PROTO_FIELDS - _INTERNAL_OWNED_INFO_FIELDS)
+            | _UNUSED_INFO_PROTO_FIELDS,
         )
 
     def test_llm_details(self) -> None:
         _check_coverage(
             LLMDetails,
             info_pb2.ModelInfo.LLMDetails.DESCRIPTOR,
-            pydantic_only={"devices"},
         )
 
     def test_numerics_accuracy_benchmark(self) -> None:
@@ -334,6 +379,5 @@ class TestReleaseAssetsFieldCoverage:
         _check_coverage(
             QAIHMModelReleaseAssets.AssetDetails,
             release_assets_pb2.ModelReleaseAssets.AssetDetails.DESCRIPTOR,
-            pydantic_only={"s3_key"},
             proto_only={"precision", "runtime", "chipset"},
         )

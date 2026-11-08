@@ -41,6 +41,7 @@ from qai_hub_models.utils.export.context import (
     import_recipe_module,
     resolve_manifest,
     resolve_model_cls,
+    resolve_publish_status,
     resolve_recipe_dir,
 )
 from qai_hub_models.utils.export.dispatch import select_pipeline
@@ -53,28 +54,25 @@ def _confirm_run_ok(source_dir: Path, args: argparse.Namespace | None = None) ->
 
     Two prompts, both skipped in dev mode / CI / pytest.
 
-    **Unpublished recipe.** Only ``unpublished`` and ``pending`` prompt. Both are
-    in-tree statuses that say something true: the recipe is in the Qualcomm
-    catalog but has not cleared review, so the warning's offer of no support is
-    accurate.
+    **Unpublished recipe.** Only in-tree ``unpublished`` and ``pending`` recipes
+    prompt: the recipe is in the Qualcomm catalog but has not cleared review, so
+    the warning's offer of no support is accurate.
 
-    ``unset`` does not prompt. It is the default every external / standalone
-    recipe ships with, and in-tree recipes must set an explicit status
-    (enforced in ``test_manifest_yamls.py``), so ``unset`` means "authored
-    outside the catalog" — where the warning is simply wrong. It told authors
-    their own recipe might not meet standards Qualcomm never applied to it, on
-    every single run. The generated card's banner already skips external
-    recipes for the same reason.
+    External recipes have no publish status and never prompt. The warning would
+    tell authors their own recipe might not meet standards Qualcomm never applied
+    to it, on every single run.
 
     **Known-failing path.** When ``args`` carries the resolved precision and
     runtime, a pair the manifest records a failure for prompts as well. Such a
     pair stays selectable on purpose — the record can be stale — but running one
     unwarned means paying for Hub jobs the recipe already expects to fail.
     """
-    manifest = resolve_manifest(source_dir)
-    if manifest.status in _PROMPT_STATUSES and not check_unpublished_model_warning():
+    if (
+        resolve_publish_status(source_dir) in _PROMPT_STATUSES
+        and not check_unpublished_model_warning()
+    ):
         return False
-    return args is None or _confirm_path_ok(manifest, args)
+    return args is None or _confirm_path_ok(resolve_manifest(source_dir), args)
 
 
 def _passing_paths(
@@ -137,6 +135,16 @@ def build_evaluate_parser_for(source_dir: Path) -> argparse.ArgumentParser:
         default_device=manifest.default_device,
     )
     parser.set_preferred_precision_runtimes(_passing_paths(manifest, export_paths))
+    parser.add_argument(
+        "--local-model-dir",
+        dest="local_model_dir",
+        type=str,
+        default=None,
+        help="Run precompiled_qnn_onnx model(s) on this machine instead of on "
+        "Workbench. For a single model, the directory holding its wrapper .onnx "
+        "and .bin; for a collection model, a directory with one subdirectory "
+        "per component.",
+    )
     return parser
 
 

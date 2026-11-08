@@ -345,5 +345,15 @@ PLATE_STRING_ACCURACY = _register_metric(
     )
 )
 
+MEAN_AVERAGE_PRECISION_5DEG_2CM = _register_metric(
+    MetricMetadata(
+        name="Mean Average Precision",
+        unit="mAP@5deg2cm",
+        description="Mean Average Precision at 5-degree 2cm pose accuracy threshold on NOCS REAL275.",
+        range=(0.0, 100.0),
+        float_vs_device_threshold=10.0,
+    )
+)
+
 # Freeze the valid pairs set now that all metrics are registered.
 VALID_METRIC_PAIRS: frozenset[tuple[str, str]] = frozenset(_VALID_METRIC_PAIRS)

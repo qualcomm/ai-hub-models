@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Text Classification
-- Sentiment Analysis
-- Named Entity Recognition
 datasets:
 - wikitext
 description: ELECTRABERT is a lightweight BERT model designed for efficient self-supervised learning of language representations. It can be used for identify unnatural or artificially modified text and as a backbone for various NLP tasks.
@@ -10,32 +6,17 @@ disabled_paths:
     tflite:
       scorecard_accuracy_failure: Torch and On-device accuracy diff (-79.200 %) above threshold (10.0 %)
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Language model for masked language modeling and general-purpose NLP tasks.
 id: electra_bert_base_discrim_google
 license: https://github.com/google-research/electra/blob/master/LICENSE
 license_type: apache-2.0
 name: Electra-Bert-Base-Discrim-Google
-related_models:
-- albert_base_v2_hf
 research_paper: https://arxiv.org/abs/2003.10555
 research_paper_title: 'ELECTRA: Pre-training Text Encoders as Discriminators Rather Than Generators'
 source_repo: https://github.com/google-research/electra/
-status: published
 tags:
 - backbone
-technical_details:
-  Input resolution: 1x384
-  Model checkpoint: google/electra-base-discriminator
-  Model size (float): 417 MB
-  Number of parameters: 109M
 templates:
 - bert_hf
 use_case: Text Generation

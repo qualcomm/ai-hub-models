@@ -20,9 +20,6 @@ qai-hub-models info Granite-4.0-Micro
 # Print performance and accuracy metrics
 qai-hub-models perf Granite-4.0-Micro
 qai-hub-models numerics Granite-4.0-Micro
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch Granite-4.0-Micro --runtime geniex_llamacpp --precision q4_0
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

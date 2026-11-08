@@ -20,6 +20,7 @@ from qai_hub_models.scorecard.envvars import (
     EnabledPrecisionsEnvvar,
     SpecialModelSetting,
 )
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.code_gen import (
     remove_asset_failures,
@@ -32,7 +33,6 @@ from qai_hub_models.scorecard.results.yaml import (
     ScorecardAssetYaml,
     get_model_component_and_graph_names,
 )
-from qai_hub_models.scorecard.scorecard_config_yaml import QAIHMModelScorecardConfig
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
 )
@@ -108,7 +108,7 @@ def main() -> None:
     for model_id in sorted(pytorch_models):
         try:
             manifest = QAIHMModelManifest.from_model(model_id)
-            sc = QAIHMModelScorecardConfig.from_model(model_id)
+            sc = QAIHMModelInternalConfig.from_model(model_id)
             if (
                 sc.skip_hub_tests_and_scorecard
                 or sc.skip_scorecard
@@ -143,9 +143,9 @@ def main() -> None:
             modified_files.append(str(merged.to_model_yaml(model_id)))
 
             # Update model status & reason, if applicable
-            if update_model_publish_status(manifest):
-                manifest_path = manifest.to_model_yaml()
-                print(f"Updated publish status at {manifest_path}")
+            if config_path := update_model_publish_status(manifest):
+                modified_files.append(str(config_path))
+                print(f"Updated publish status at {config_path}")
 
         except Exception as e:
             raise ValueError(

@@ -4,8 +4,10 @@
 # ---------------------------------------------------------------------
 
 import numpy as np
+import pytest
 
 from qai_hub_models.models.easyocr.app import EasyOCRApp
+from qai_hub_models.models.easyocr.dataset import CocoTextCalibrationDataset
 from qai_hub_models.models.easyocr.demo import INPUT_IMAGE_ADDRESS
 from qai_hub_models.models.easyocr.demo import main as demo_main
 from qai_hub_models.models.easyocr.model import (
@@ -25,6 +27,26 @@ CHINESE_INPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
 ENGLISH_INPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "english.png"
 )
+
+
+def test_cocotext_metadata_validation() -> None:
+    dataset = CocoTextCalibrationDataset.__new__(CocoTextCalibrationDataset)
+    dataset.metadata = {"anns": {}, "imgs": {}}
+    with pytest.raises(ValueError, match="No eligible"):
+        dataset._get_image_metadata()
+
+    dataset.metadata = {
+        "anns": {
+            "1": {
+                "image_id": 1,
+                "legibility": "legible",
+                "language": "english",
+                "utf8_string": "text",
+            }
+        },
+        "imgs": {"1": {"id": 1, "set": "train", "file_name": "../image.jpg"}},
+    }
+    assert dataset._get_image_metadata()[0]["file_name"] == "image.jpg"
 
 
 def test_task() -> None:

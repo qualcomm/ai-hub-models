@@ -1,21 +1,9 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
 description: Gemma is a family of open models built by Google DeepMind. Gemma 4 models are multimodal, handling text and image input (with audio supported on small models) and generating text output. This release includes open-weights models in both pre-trained and instruction-tuned variants. Gemma 4 features a context window of up to 256K tokens and maintains multilingual support in over 140 languages.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: Lightweight multimodal model from Google DeepMind handling text and image input.
 id: gemma_4_e2b_it
 license: https://ai.google.dev/gemma/apache_2
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download and View Readme
-  geniex_llamacpp_compatible: true
 model_type_llm: true
 name: Gemma-4-E2B-it
 numerics_benchmark:
@@ -26,9 +14,6 @@ numerics_benchmark:
   value: 97.0
 orchestrator_runtimes:
 - geniex_llamacpp
-related_models:
-- gemma_4_e4b_it
-- gemma_3n_e4b_it
 research_paper: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
 research_paper_title: Gemma 4
 runtime_technical_details:
@@ -40,17 +25,10 @@ runtime_technical_details:
     model_infer_id: google/gemma-4-E2B-it-qat-q4_0-gguf
 skip_example_usage: true
 source_repo: https://huggingface.co/google/gemma-4-E2B-it
-status: published
 supported_precisions:
 - q4_0
 tags:
 - llm
 - vlm
 - generative-ai
-technical_details:
-  Model architecture: Transformer with SigLIP-style ViT Vision Encoder, Per-Layer Embeddings (PLE), interleaved sliding-window/global attention with Grouped Query Attention (GQA), and shared KV layers.
-  Number of parameters: 2B (effective)
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: Multilingual (trained on 140+ languages)
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt.
 use_case: Text Generation

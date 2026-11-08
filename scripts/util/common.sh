@@ -98,10 +98,6 @@ function run_as_root()
         "${@}"
     else
         log_debug "We're ${EUID}; running ${*} via sudo."
-        if [ -n "${GITHUB_ACTION:-}" ]; then
-            SUDO_ASKPASS="${REPO_ROOT}/scripts/ci/gh_askpass.sh" sudo --askpass "${@}"
-        else
-            sudo "${@}"
-        fi
+        sudo "${@}"
     fi
 }

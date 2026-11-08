@@ -29,5 +29,8 @@ message ModelReleaseAssets {
     string download_url = 4;
 
     ToolVersions tool_versions = 5;
+
+    // Internal only: key of the asset in the private S3 bucket.
+    optional string s3_key = 6;
   }
 }

@@ -23,8 +23,10 @@ from qai_hub_models.models.templates.llm.perf_collection import (
 from qai_hub_models.scorecard import ScorecardProfilePath
 from qai_hub_models.utils.aws import (
     QAIHM_PRIVATE_S3_BUCKET,
+    QAIHM_PUBLIC_S3_BUCKET,
     get_presigned_download_url,
     get_qaihm_s3,
+    s3_file_exists,
 )
 from qai_hub_models.utils.devicefarm.devicefarm import (
     FAILED_JOB_LOG_TIMEOUT,
@@ -63,6 +65,7 @@ DEFAULT_CONTEXT_LENGTHS = [512, 1024, 4096]
 _MIN_RESULT_SCHEMA_VERSION = 3
 
 _N_GEN = 128
+QAIRT_SDK_S3_PREFIX = "qai-hub-models/qairt-sdk"
 
 # Each accuracy prompt runs as its own geniex-bench process: the timeout kills a
 # crashed/hung DSP run so the loop advances, the sleep lets the DSP release
@@ -70,6 +73,12 @@ _N_GEN = 128
 _EVAL_N_GEN = 2048
 _EVAL_TIMEOUT_S = 600
 _EVAL_SLEEP_S = 10
+_SELF_ABORT_RE = re.compile(r"\[warn\]\s*self-abort: reason=([\w-]+)")
+_STOP_REASON_RE = re.compile(r"\[info\]\s*stop_reason=([\w-]+)")
+_EVAL_MAX_GEN_TIME_S = 420
+_EVAL_NO_PROGRESS_TIMEOUT_S = 120
+_EVAL_REPETITION_MAX_REPEATS = 40
+_EVAL_NGRAM_MAX_REPEATS = 4
 
 # Matches Genie's on-device eval seed (genie_config.json's sampler default,
 # see llm_helpers.create_genie_config) -- pinned explicitly rather than
@@ -229,6 +238,10 @@ class GenieXBenchArtifactHandler(ABC):
             .replace("{EVAL_SEED}", str(eval_seed))
             .replace("{EVAL_TIMEOUT_S}", str(_EVAL_TIMEOUT_S))
             .replace("{EVAL_SLEEP_S}", str(_EVAL_SLEEP_S))
+            .replace("{EVAL_MAX_GEN_TIME_S}", str(_EVAL_MAX_GEN_TIME_S))
+            .replace("{EVAL_NO_PROGRESS_TIMEOUT_S}", str(_EVAL_NO_PROGRESS_TIMEOUT_S))
+            .replace("{EVAL_REPETITION_MAX_REPEATS}", str(_EVAL_REPETITION_MAX_REPEATS))
+            .replace("{EVAL_NGRAM_MAX_REPEATS}", str(_EVAL_NGRAM_MAX_REPEATS))
             .replace("{CTX_LIST}", ",".join(str(c) for c in context_lengths))
             .replace("{RUN_PERF}", "1" if run_perf else "0")
             .replace("{RUN_EVAL}", "1" if eval_prompts else "0")
@@ -313,6 +326,11 @@ class GenieXBenchAndroidArtifactHandler(GenieXBenchArtifactHandler):
 
         bench_url = _bench_url("android-arm64", "tar.gz", geniex_version)
         bundle_url = (qairt_bundle_urls or {}).get(next(iter(qairt_bundles or {}), ""))
+        sdk_url = (
+            get_geniex_qairt_sdk_url(qairt_version)
+            if plugin == "qairt" and qairt_version
+            else ""
+        )
         test_folder = os.path.join(dest_dir, "tests")
         os.makedirs(test_folder, exist_ok=True)
         for fn in os.listdir(pytest_dir):
@@ -327,7 +345,8 @@ class GenieXBenchAndroidArtifactHandler(GenieXBenchArtifactHandler):
                 content = self._apply_common_replacements(
                     content.replace("{ANDROID_BENCH_URL}", bench_url)
                     .replace("{N_GEN}", str(_N_GEN))
-                    .replace("{QAIRT_BUNDLE_URL}", bundle_url or ""),
+                    .replace("{QAIRT_BUNDLE_URL}", bundle_url or "")
+                    .replace("{QAIRT_SDK_URL}", sdk_url),
                     context_lengths,
                     run_perf,
                     eval_prompts,
@@ -480,11 +499,17 @@ class GenieXBenchWindowsArtifactHandler(GenieXBenchArtifactHandler):
 
         with open(ps1_src, encoding="utf-8") as f:
             script = f.read()
+        sdk_url = (
+            get_geniex_qairt_sdk_url(qairt_version)
+            if plugin == "qairt" and qairt_version
+            else ""
+        )
         script = self._apply_common_replacements(
             script.replace(
                 "{WINDOWS_BENCH_URL}",
                 _bench_url("windows-arm64", "zip", geniex_version),
             )
+            .replace("{QAIRT_SDK_URL}", sdk_url)
             .replace("{CHIPSET}", chipset)
             .replace("{MODELS}", "\n".join(matrix_rows))
             .replace(
@@ -713,7 +738,7 @@ def compute_geniex_metrics(
 
 
 def compute_geniex_eval_results(logs_dir: str, prompts: list[str]) -> list[dict]:
-    """Parse ``geniex_eval_outputs.txt`` into [{idx, prompt, output}].
+    """Parse ``geniex_eval_outputs.txt`` into [{idx, prompt, output, cause}].
 
     ``logs_dir`` holds job logs fetched by ``DeviceFarm.download_job_logs``.
     The device scripts run ``geniex-bench --accuracy`` once per prompt and
@@ -733,6 +758,7 @@ def compute_geniex_eval_results(logs_dir: str, prompts: list[str]) -> list[dict]
             "idx": idx,
             "prompt": prompts[idx] if idx < len(prompts) else "",
             "output": _extract_model_output(outputs.get(idx, "")),
+            "cause": _extract_eval_cause(outputs.get(idx, "")),
         }
         for idx in sorted(outputs.keys())
     ]
@@ -780,6 +806,22 @@ def _extract_model_output(raw_output: str) -> str:
         if line.startswith(gen_prefix)
     ]
     return "\n".join(lines).strip()
+
+
+def _extract_eval_cause(raw_output: str) -> str:
+    """Classify why one ``geniex-bench --accuracy`` run ended.
+
+    Returns ``divergence:<reason>`` when geniex-bench self-aborted, else the
+    reported ``stop_reason`` (e.g. ``length``, ``stop``), else ``freeze`` for
+    a run that produced neither marker (killed externally or hung).
+    """
+    abort = _SELF_ABORT_RE.search(raw_output)
+    if abort:
+        return f"divergence:{abort.group(1)}"
+    stop = _STOP_REASON_RE.search(raw_output)
+    if stop:
+        return stop.group(1)
+    return "freeze"
 
 
 def _hf_repo(model_url: str) -> str:
@@ -830,6 +872,54 @@ def get_geniex_qairt_bundle_url(
         )
     bucket = get_qaihm_s3(QAIHM_PRIVATE_S3_BUCKET)[0]
     return get_presigned_download_url(bucket, asset.s3_key)
+
+
+def get_qairt_sdk_software_center_url(qairt_version: str) -> str:
+    """Build the Software Center download URL for a QAIRT SDK zip.
+
+    Parameters
+    ----------
+    qairt_version
+        Full SDK version, e.g. "2.50.0.260828".
+
+    Returns
+    -------
+    url : str
+        The public Software Center URL for that version's SDK zip.
+    """
+    return (
+        "https://softwarecenter.qualcomm.com/api/download/software/sdks/"
+        f"Qualcomm_AI_Runtime_Community/All/{qairt_version}/v{qairt_version}.zip"
+    )
+
+
+def get_geniex_qairt_sdk_url(qairt_version: str) -> str:
+    """Mint a presigned S3 GET URL for a QAIRT SDK zip.
+
+    The device curls this instead of Software Center, the same way it pulls
+    the model bundle (see :func:`get_geniex_qairt_bundle_url`). Software
+    Center cut short several 2.5GB transfers; only versions mirrored to S3
+    can be served from it, so an unmirrored one falls back to Software Center.
+
+    Parameters
+    ----------
+    qairt_version
+        Full SDK version, e.g. "2.50.0.260828".
+
+    Returns
+    -------
+    url : str
+        A presigned S3 URL, or the Software Center URL if S3 has no such zip.
+    """
+    key = f"{QAIRT_SDK_S3_PREFIX}/v{qairt_version}.zip"
+    bucket = get_qaihm_s3(QAIHM_PUBLIC_S3_BUCKET)[0]
+    if not s3_file_exists(bucket, key):
+        print(
+            f"No QAIRT SDK at s3://{QAIHM_PUBLIC_S3_BUCKET}/{key}; "
+            "falling back to Software Center."
+        )
+        return get_qairt_sdk_software_center_url(qairt_version)
+    return get_presigned_download_url(bucket, key)
 
 
 def submit_geniex_bench(

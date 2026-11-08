@@ -10,8 +10,8 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from qai_hub_models import TargetRuntime
-from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, UNPUBLISHED_MODEL_WARNING
 from qai_hub_models.utils.path_helpers import MODEL_IDS
 
@@ -126,8 +126,8 @@ def get_shared_template_args(manifest: QAIHMModelManifest) -> dict[str, Any]:
 
 def generate_and_write_model_readme(model_id: str) -> Path:
     """Generate a README for this model from the jinja template and write it."""
-    manifest = QAIHMModelManifest.from_model(model_id)
-    assert manifest.status is not MODEL_STATUS.UNSET
+    sc = QAIHMModelInternalConfig.from_model(model_id)
+    manifest = sc.manifest
     assert manifest.headline is not None
 
     # Convert precisions to strings for Jinja template. Populated for both
@@ -144,7 +144,7 @@ def generate_and_write_model_readme(model_id: str) -> Path:
     template_vars.update(
         {
             # Model info
-            "model_status": manifest.status.value,
+            "model_status": sc.status.value,
             "unpublished_model_warning": UNPUBLISHED_MODEL_WARNING,
             "model_headline": manifest.headline.strip("."),
             "model_package": manifest.get_package_name(),

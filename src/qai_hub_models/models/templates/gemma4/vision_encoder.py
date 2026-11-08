@@ -9,7 +9,7 @@ patch-embedder + encoder + pooler) followed by ``embed_vision`` (a projection
 into the language-model embedding space), producing the soft-token embeddings
 the LLM consumes at image positions. It is wrapped as an AI Hub :class:`BaseModel`
 and registered as the ``vision_encoder`` component of the Gemma4 Collection, so
-``export.py`` and the scorecard serialize it to a float ONNX and compile it to a
+the export pipeline and the scorecard serialize it to a float ONNX and compile it to a
 QNN asset alongside the text Parts.
 
 One compiled asset = one fixed square resolution (``image_size``, default 448):

@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Self driving cars
-dataset:
-- ImageNet
 description: InternImage employs DCNv3 as its core operator to equips the model with dynamic and effective receptive fields required for downstream tasks like object detection and segmentation, while enabling adaptive spatial aggregation.
 domain: Computer Vision
 external_repos:
@@ -9,10 +5,6 @@ external_repos:
     commit_sha: 31c962dc6c1ceb23e580772f7daaa6944694fbe6
     patches_filename: internimage_patches.diff
     repo_url: https://github.com/OpenGVLab/InternImage
-form_factors:
-- Auto
-has_animated_banner: true
-has_static_banner: true
 headline: InternImage Large-Scale Vision Foundation Model.
 id: internimage
 license: https://github.com/OpenGVLab/InternImage/tree/master?tab=MIT-1-ov-file
@@ -24,20 +16,12 @@ numerics_benchmark:
   source: https://arxiv.org/abs/2211.05778
   unit: '%'
   value: 83.5
-private_perf_form_factors:
-- Auto
 requires_aot_prepare: true
-status: published
 supported_precisions:
 - float
 - w8a8
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 1x3x224x224
-  Model checkpoint: internimage_t_1k_224
-  Model size (float): 117 MB
-  Number of parameters: 30.6M
 templates:
 - imagenet_classifier
 use_case: Image Classification

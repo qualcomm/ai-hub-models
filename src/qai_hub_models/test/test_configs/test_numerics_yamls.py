@@ -11,6 +11,7 @@ import pytest
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
+from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import (
     QAIHMModelNumerics,
     get_numerics_yaml_path,
@@ -83,12 +84,12 @@ def test_yaml_roundtrip() -> None:
 
 
 def _struct_from_intermediates(model_id: str) -> QAIHMModelNumerics:
-    info = QAIHMModelManifest.from_model(model_id)
+    sc = QAIHMModelInternalConfig.from_model(model_id)
     struct = create_numerics_struct(
         model_id,
         pd.read_csv(ScorecardArtifact.ACCURACY_CSV.intermediates_path),
         get_chipset_registry(),
-        benchmark=info.numerics_benchmark,
+        benchmark=sc.manifest.numerics_benchmark,
     )
     assert struct is not None
     return struct

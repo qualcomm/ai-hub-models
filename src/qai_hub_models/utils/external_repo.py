@@ -437,7 +437,7 @@ def _rewrite_absolute_imports(actual_path: Path, canonical_path: Path) -> None:
     for py_file in actual_path.rglob("*.py"):
         if py_file.is_symlink() and not py_file.exists():
             continue
-        with open(py_file) as f:
+        with open(py_file, errors="surrogateescape") as f:
             lines = f.readlines()
         changed = False
         for i, line in enumerate(lines):
@@ -446,7 +446,7 @@ def _rewrite_absolute_imports(actual_path: Path, canonical_path: Path) -> None:
                 lines[i] = rewritten
                 changed = True
         if changed:
-            with open(py_file, "w") as f:
+            with open(py_file, "w", errors="surrogateescape") as f:
                 f.writelines(lines)
 
 
@@ -470,9 +470,9 @@ def _make_package(path: Path) -> None:
         elif entry.suffix == ".py":
             if entry.is_symlink() and not entry.exists():
                 continue
-            content = entry.read_text()
+            content = entry.read_text(errors="surrogateescape")
             if not content.startswith(MYPY_IGNORE):
-                entry.write_text(MYPY_IGNORE + content)
+                entry.write_text(MYPY_IGNORE + content, errors="surrogateescape")
     if not (path / "__init__.py").exists():
         (path / "__init__.py").write_text(MYPY_IGNORE)
 

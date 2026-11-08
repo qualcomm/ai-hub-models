@@ -212,7 +212,6 @@ Key files across these three locations:
  * `demo.py`: Runs a prompt for qualitative evaluation.
  * `evaluate.py`: Executes benchmark tasks (e.g., PPL, MMLU) for quantitative evaluation.
  * `app.py`: Provides Python orchestration used by `demo.py` and `evaluate.py`.
- * `export.py`: Exports deployable assets for inference.
  * `generator.py`: Infrastructure that allows the LLM classes to be used directly in `transformers` generators.
 
 ### Model Classes

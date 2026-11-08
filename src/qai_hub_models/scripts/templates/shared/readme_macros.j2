@@ -148,9 +148,11 @@ qai-hub-models info {{ model_name }}
 qai-hub-models perf {{ model_name }}
 qai-hub-models numerics {{ model_name }}
 {% if assets_shareable %}
+{% if default_runtime != "geniex_llamacpp" %}
 
 # Download a ready-to-deploy asset
 qai-hub-models fetch {{ model_name }} --runtime {{ default_runtime }} --precision {{ default_precision }}
+{% endif %}
 {% else %}
 
 # Pre-exported assets are not available to download for this model due to

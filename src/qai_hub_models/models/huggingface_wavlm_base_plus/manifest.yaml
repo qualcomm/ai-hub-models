@@ -1,8 +1,3 @@
-applicable_scenarios:
-- Smart Home
-- Accessibility
-dataset:
-- librispeech
 datasets:
 - librispeech
 description: HuggingFaceWavLMBasePlus is a real time speech processing backbone based on Microsoft's WavLM model.
@@ -27,13 +22,7 @@ disabled_paths:
     voice_ai:
       scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
 domain: Audio
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time Speech processing.
 id: huggingface_wavlm_base_plus
 license: https://github.com/microsoft/unilm/blob/master/LICENSE
@@ -55,20 +44,9 @@ readme_install_system_deps: |
   ```
   winget install ffmpeg
   ```
-related_models:
-- whisper_tiny
-- whisper_base
-- whisper_small
 research_paper: https://arxiv.org/abs/2110.13900
 research_paper_title: 'WavLM: Large-Scale Self-Supervised Pre-Training for Full Stack Speech Processing'
 source_repo: https://huggingface.co/patrickvonplaten/wavlm-libri-clean-100h-base-plus/tree/main
-status: pending
-status_reason: model does not support at least one export path
 tags:
 - backbone
-technical_details:
-  Input resolution: 1x320000
-  Model checkpoint: wavlm-libri-clean-100h-base-plus
-  Model size (float): 363 MB
-  Number of parameters: 95.1M
 use_case: Speech Recognition

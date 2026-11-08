@@ -397,6 +397,7 @@ def _render(
     perf_dropped: int = 0,
     numerics_dropped: int = 0,
     accuracy_dropped: int = 0,
+    quantized_failures: list[dict] | None = None,
 ) -> str:
     template = _env.get_template("scorecard_regression_issue_template.j2")
     return template.render(
@@ -405,6 +406,7 @@ def _render(
         numerics_regressions=numerics_regressions,
         newly_disabled_configs=newly_disabled_configs,
         newly_failing_benchmarks=newly_failing_benchmarks,
+        quantized_failures=quantized_failures or [],
         run_url=run_url,
         perf_diff_url=perf_diff_url,
         numerics_diff_url=numerics_diff_url,
@@ -426,6 +428,7 @@ def build_issue_body(
     deployment: str = "workbench",
     previous_deployment: str | None = None,
     context: ScorecardContext | None = None,
+    quantized_failures: list[dict] | None = None,
 ) -> str:
     """Build the GitHub issue body with regression tables.
 
@@ -450,6 +453,7 @@ def build_issue_body(
     # Accuracy rows don't carry job IDs, so no re-tagging / linkifying needed.
     disabled = list(newly_disabled_configs)
     benchmarks = list(newly_failing_benchmarks)
+    quantized = list(quantized_failures or [])
 
     body = _render(
         today,
@@ -461,20 +465,25 @@ def build_issue_body(
         perf_diff_url,
         numerics_diff_url,
         context=context,
+        quantized_failures=quantized,
     )
     perf_dropped = numerics_dropped = accuracy_dropped = 0
     while len(body) > MAX_ISSUE_BODY_LEN and (
-        perf or numerics or disabled or benchmarks
+        perf or numerics or disabled or benchmarks or quantized
     ):
         # Bulk-drop based on current overage so we don't re-render once per row.
-        total_rows = len(perf) + len(numerics) + len(disabled) + len(benchmarks)
+        total_rows = (
+            len(perf) + len(numerics) + len(disabled) + len(benchmarks) + len(quantized)
+        )
         chars_per_row = max(1, len(body) // max(total_rows, 1))
         rows_to_drop = max(1, (len(body) - MAX_ISSUE_BODY_LEN) // chars_per_row)
         for _ in range(rows_to_drop):
-            if not (perf or numerics or disabled or benchmarks):
+            if not (perf or numerics or disabled or benchmarks or quantized):
                 break
             # Drop from whichever table currently has the most rows.
-            max_size = max(len(perf), len(numerics), len(disabled), len(benchmarks))
+            max_size = max(
+                len(perf), len(numerics), len(disabled), len(benchmarks), len(quantized)
+            )
             if len(perf) == max_size and perf:
                 perf.pop()
                 perf_dropped += 1
@@ -484,8 +493,11 @@ def build_issue_body(
             elif len(disabled) == max_size and disabled:
                 disabled.pop()
                 accuracy_dropped += 1
-            elif benchmarks:
+            elif len(benchmarks) == max_size and benchmarks:
                 benchmarks.pop()
+                accuracy_dropped += 1
+            elif quantized:
+                quantized.pop()
                 accuracy_dropped += 1
         body = _render(
             today,
@@ -500,6 +512,7 @@ def build_issue_body(
             perf_dropped=perf_dropped,
             numerics_dropped=numerics_dropped,
             accuracy_dropped=accuracy_dropped,
+            quantized_failures=quantized,
         )
     # Defensive hard cap: if the template's fixed overhead alone (headers,
     # URLs, footers) exceeds the limit, GitHub would still 422 us. Truncate.
@@ -544,6 +557,14 @@ def main() -> None:
             "Path (or glob) to newly-disabled-*.json. Contains a flat list of "
             "rows tagged with `kind` (disabled_configuration or benchmark_failure) "
             "used to render the accuracy sections of the issue body."
+        ),
+    )
+    parser.add_argument(
+        "--quantized-failures-json",
+        default="",
+        help=(
+            "Path (or glob) to quantized-failures-*.json: every disabled quantized "
+            "configuration with its off-target Sim accuracy."
         ),
     )
     parser.add_argument(
@@ -655,6 +676,12 @@ def main() -> None:
         if r.get("kind") == "benchmark_failure"
     ]
     has_accuracy = bool(disabled_configs or newly_failing_benchmarks)
+    # Context only: these rows alone never file an issue, or one would be filed every week.
+    quantized_failures = _load_json(
+        _resolve_glob(args.quantized_failures_json)
+        if args.quantized_failures_json
+        else None
+    )
 
     if not perf_regressions and not numerics_regressions and not has_accuracy:
         print("No 2x+ regressions found — skipping issue creation.")
@@ -705,6 +732,7 @@ def main() -> None:
         deployment=args.deployment,
         previous_deployment=args.previous_deployment,
         context=context,
+        quantized_failures=quantized_failures,
     )
 
     perf_count = len(perf_regressions)

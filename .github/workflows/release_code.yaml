@@ -32,7 +32,7 @@ jobs:
       name: Release Code
       needs: [approve]
       if: ${{ !cancelled() && (needs.approve.result == 'success' || needs.approve.result == 'skipped') }}
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      runs-on: aihub-models-ubuntu-2404-ec2
 
       steps:
       - name: Verify running on a tag

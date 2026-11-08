@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
+import difflib
 import functools
 import os
+import re
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -20,15 +22,15 @@ from .constants import (
 )
 from .github import on_github
 from .plan import Task
-from .util import new_cd, run, run_and_get_output
+from .util import check_manifest_field, new_cd, run, run_and_get_output
 
 SINET_MODEL = "sinet"
 WHISPER_TINY_MODEL = "whisper_tiny"
-REPRESENTATIVE_EXPORT_MODELS = [SINET_MODEL, WHISPER_TINY_MODEL]
+REPRESENTATIVE_MODELS = [SINET_MODEL, WHISPER_TINY_MODEL]
 CODEGEN_FALLBACK_LLM_MODEL = "llama_v3_2_1b_instruct"
-SINET_EXPORT_FILE = f"src/qai_hub_models/models/{SINET_MODEL}/export.py"
-WHISPER_TINY_EXPORT_FILE = f"src/qai_hub_models/models/{WHISPER_TINY_MODEL}/export.py"
-REPRESENTATIVE_EXPORT_FILES = [SINET_EXPORT_FILE, WHISPER_TINY_EXPORT_FILE]
+SINET_MODEL_FILE = f"src/qai_hub_models/models/{SINET_MODEL}/model.py"
+WHISPER_TINY_MODEL_FILE = f"src/qai_hub_models/models/{WHISPER_TINY_MODEL}/model.py"
+REPRESENTATIVE_MODEL_FILES = [SINET_MODEL_FILE, WHISPER_TINY_MODEL_FILE]
 
 # stable_diffusion_v1_5 is an AIMET collection model (PretrainedCollectionModel
 # with quantized components). Including it in representative sets for base_model.py
@@ -70,20 +72,20 @@ LLM_GROUPS: list[list[str]] = [
     ],
 ]
 
-# Template dirs route to their representative export file:
+# Template dirs route to their representative model file:
 # llm/llama3→llama, qwen3/qwen2→qwen, qwen2_vl/qwen3_vl/vlm→qwen_vl,
 # gemma4→gemma4, lm_driver→all three reps.
-LLAMA_REPRESENTATIVE_EXPORT_FILE = (
-    "src/qai_hub_models/models/llama_v3_2_1b_instruct/export.py"
+LLAMA_REPRESENTATIVE_MODEL_FILE = (
+    "src/qai_hub_models/models/llama_v3_2_1b_instruct/model.py"
 )
-QWEN_REPRESENTATIVE_EXPORT_FILE = "src/qai_hub_models/models/qwen3_0_6b/export.py"
-QWEN_VL_REPRESENTATIVE_EXPORT_FILE = (
-    "src/qai_hub_models/models/qwen3_vl_4b_instruct/export.py"
+QWEN_REPRESENTATIVE_MODEL_FILE = "src/qai_hub_models/models/qwen3_0_6b/model.py"
+QWEN_VL_REPRESENTATIVE_MODEL_FILE = (
+    "src/qai_hub_models/models/qwen3_vl_4b_instruct/model.py"
 )
-GEMMA4_REPRESENTATIVE_EXPORT_FILE = "src/qai_hub_models/models/gemma_4_e4b_it/export.py"
-PI05_REPRESENTATIVE_EXPORT_FILE = "src/qai_hub_models/models/pi05/export.py"
-PRECOMPILED_REPRESENTATIVE_EXPORT_FILE = (
-    "src/qai_hub_models/models/qwen2_7b_instruct/export.py"
+GEMMA4_REPRESENTATIVE_MODEL_FILE = "src/qai_hub_models/models/gemma_4_e4b_it/model.py"
+PI05_REPRESENTATIVE_MODEL_FILE = "src/qai_hub_models/models/pi05/model.py"
+PRECOMPILED_REPRESENTATIVE_MODEL_FILE = (
+    "src/qai_hub_models/models/qwen2_7b_instruct/model.py"
 )
 _TEMPLATES_DIR = Path(REPO_ROOT, "src/qai_hub_models/models/templates")
 _LLAMA_REP_FILES = sorted(
@@ -129,7 +131,7 @@ MANUAL_EDGES = {
         "src/qai_hub_models/models/yolov7_quantized/model.py"
     ],
     "src/qai_hub_models/utils/base_model.py": [
-        *REPRESENTATIVE_EXPORT_FILES,
+        *REPRESENTATIVE_MODEL_FILES,
         REPRESENTATIVE_AIMET_MODEL_FILE,
     ],
     # Hosts the shared AIMET quantize path (quantize_from_steps) used by LLMs and
@@ -139,92 +141,90 @@ MANUAL_EDGES = {
     # this fan-out cheap.
     "src/qai_hub_models/utils/quantization_aimet_onnx.py": [
         REPRESENTATIVE_AIMET_MODEL_FILE,
-        LLAMA_REPRESENTATIVE_EXPORT_FILE,
-        QWEN_VL_REPRESENTATIVE_EXPORT_FILE,
-        GEMMA4_REPRESENTATIVE_EXPORT_FILE,
-        PI05_REPRESENTATIVE_EXPORT_FILE,
+        LLAMA_REPRESENTATIVE_MODEL_FILE,
+        QWEN_VL_REPRESENTATIVE_MODEL_FILE,
+        GEMMA4_REPRESENTATIVE_MODEL_FILE,
+        PI05_REPRESENTATIVE_MODEL_FILE,
     ],
-    "src/qai_hub_models/utils/export/pipeline.py": [SINET_EXPORT_FILE],
-    "src/qai_hub_models/utils/export/collection_pipeline.py": [
-        WHISPER_TINY_EXPORT_FILE
-    ],
+    "src/qai_hub_models/utils/export/pipeline.py": [SINET_MODEL_FILE],
+    "src/qai_hub_models/utils/export/collection_pipeline.py": [WHISPER_TINY_MODEL_FILE],
     "src/qai_hub_models/utils/export/multi_graph_pipeline.py": [
-        LLAMA_REPRESENTATIVE_EXPORT_FILE
+        LLAMA_REPRESENTATIVE_MODEL_FILE
     ],
     "src/qai_hub_models/utils/export/multi_graph_collection_pipeline.py": [
-        LLAMA_REPRESENTATIVE_EXPORT_FILE
+        LLAMA_REPRESENTATIVE_MODEL_FILE
     ],
     "src/qai_hub_models/utils/export/precompiled_pipeline.py": [
-        PRECOMPILED_REPRESENTATIVE_EXPORT_FILE
+        PRECOMPILED_REPRESENTATIVE_MODEL_FILE
     ],
-    "src/qai_hub_models/utils/export/dispatch.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/device.py": REPRESENTATIVE_EXPORT_FILES,
-    **{f: [LLAMA_REPRESENTATIVE_EXPORT_FILE] for f in _LLAMA_REP_FILES},
-    **{f: [QWEN_REPRESENTATIVE_EXPORT_FILE] for f in _QWEN_REP_FILES},
-    **{f: [QWEN_VL_REPRESENTATIVE_EXPORT_FILE] for f in _QWEN_VL_REP_FILES},
-    **{f: [GEMMA4_REPRESENTATIVE_EXPORT_FILE] for f in _GEMMA4_REP_FILES},
+    "src/qai_hub_models/utils/export/dispatch.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/device.py": REPRESENTATIVE_MODEL_FILES,
+    **{f: [LLAMA_REPRESENTATIVE_MODEL_FILE] for f in _LLAMA_REP_FILES},
+    **{f: [QWEN_REPRESENTATIVE_MODEL_FILE] for f in _QWEN_REP_FILES},
+    **{f: [QWEN_VL_REPRESENTATIVE_MODEL_FILE] for f in _QWEN_VL_REP_FILES},
+    **{f: [GEMMA4_REPRESENTATIVE_MODEL_FILE] for f in _GEMMA4_REP_FILES},
     **{
         f: [
-            LLAMA_REPRESENTATIVE_EXPORT_FILE,
-            QWEN_VL_REPRESENTATIVE_EXPORT_FILE,
-            GEMMA4_REPRESENTATIVE_EXPORT_FILE,
+            LLAMA_REPRESENTATIVE_MODEL_FILE,
+            QWEN_VL_REPRESENTATIVE_MODEL_FILE,
+            GEMMA4_REPRESENTATIVE_MODEL_FILE,
         ]
         for f in _LM_DRIVER_REP_FILES
     },
     **{
-        f: [LLAMA_REPRESENTATIVE_EXPORT_FILE, QWEN_VL_REPRESENTATIVE_EXPORT_FILE]
+        f: [LLAMA_REPRESENTATIVE_MODEL_FILE, QWEN_VL_REPRESENTATIVE_MODEL_FILE]
         for f in _LLM_TEXT_AND_VL_UTILS
     },
     **{
         f: [
-            LLAMA_REPRESENTATIVE_EXPORT_FILE,
-            QWEN_VL_REPRESENTATIVE_EXPORT_FILE,
-            PI05_REPRESENTATIVE_EXPORT_FILE,
+            LLAMA_REPRESENTATIVE_MODEL_FILE,
+            QWEN_VL_REPRESENTATIVE_MODEL_FILE,
+            PI05_REPRESENTATIVE_MODEL_FILE,
         ]
         for f in _LLM_AND_PI05_UTILS
     },
-    "src/qai_hub_models/common.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/_info_yaml_enums.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/_info_yaml_llm_details.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/manifest_yaml.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/devices_and_chipsets_yaml.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/model_disable_reasons.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/model_metadata.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/numerics_yaml.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/perf_yaml.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/proto_helpers.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/release_assets_yaml.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/tensor_spec.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/configs/tool_versions.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/protocols.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/device.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/envvars.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/execution_helpers.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/utils/testing.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/scorecard/utils/testing_export_eval.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/asset_loaders.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/aws.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/args.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/base_config.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/base_dataset.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/base_evaluator.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/collection_model_helpers.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/envvars.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/evaluate.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/inference.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/input_spec.py": REPRESENTATIVE_EXPORT_FILES,
+    "src/qai_hub_models/common.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/_info_yaml_enums.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/_info_yaml_llm_details.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/manifest_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/devices_and_chipsets_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/model_disable_reasons.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/model_metadata.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/numerics_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/perf_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/proto_helpers.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/release_assets_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/tensor_spec.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/tool_versions.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/protocols.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/device.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/envvars.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/execution_helpers.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/utils/testing.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/scorecard/utils/testing_export_eval.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/asset_loaders.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/aws.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/args.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/base_config.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/base_dataset.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/base_evaluator.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/collection_model_helpers.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/envvars.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/evaluate.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/inference.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/input_spec.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/utils/labels.py": [
         "src/qai_hub_models/models/yamnet/model.py",
         "src/qai_hub_models/models/yolov8_det/model.py",
     ],
-    "src/qai_hub_models/utils/onnx/torch_wrapper.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/path_helpers.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/printing.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/qai_hub_helpers.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/quantization.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/runtime_torch_wrapper.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/tflite/torch_wrapper.py": REPRESENTATIVE_EXPORT_FILES,
-    "src/qai_hub_models/utils/transpose_channel.py": REPRESENTATIVE_EXPORT_FILES,
+    "src/qai_hub_models/utils/onnx/torch_wrapper.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/path_helpers.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/printing.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/qai_hub_helpers.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/quantization.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/runtime_torch_wrapper.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/tflite/torch_wrapper.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/transpose_channel.py": REPRESENTATIVE_MODEL_FILES,
 }
 
 
@@ -276,11 +276,6 @@ def _get_file_edges(filename: str) -> set[str]:
         dependent_file = grep_result.split(":")[0]
         dependent_files.add(dependent_file)
 
-    # Model is imported to export.py via the __init__ file, so changes
-    # to model.py don't automatically register as a change to export.py
-    # Manually remedy that here.
-    if filename.endswith("model.py"):
-        dependent_files.add(filename.replace("model.py", "export.py"))
     return dependent_files
 
 
@@ -316,7 +311,6 @@ def resolve_affected_models(
     changed_files: Iterable[str],
     include_model: bool = True,
     include_demo: bool = True,
-    include_export: bool = True,
     include_tests: bool = True,
     include_generated_tests: bool = True,
     include_cj_yaml: bool = True,
@@ -345,7 +339,6 @@ def resolve_affected_models(
         if str(file_path.parent.parent) == PY_PACKAGE_RELATIVE_MODELS_ROOT:
             if file_path.name not in [
                 "model.py",
-                "export.py",
                 "test.py",
                 "demo.py",
                 "requirements.txt",
@@ -353,8 +346,6 @@ def resolve_affected_models(
             ]:
                 continue
             if not include_model and file_path.name == "model.py":
-                continue
-            if not include_export and file_path.name == "export.py":
                 continue
             if not include_tests and file_path.name == "test.py":
                 continue
@@ -438,7 +429,6 @@ def get_changed_files_in_package(
 def get_ci_test_models(
     include_model: bool = True,
     include_demo: bool = True,
-    include_export: bool = True,
     include_tests: bool = True,
     include_generated_tests: bool = True,
     include_cj_yaml: bool = True,
@@ -461,7 +451,6 @@ def get_ci_test_models(
         files,
         include_model,
         include_demo,
-        include_export,
         include_tests,
         include_generated_tests,
         include_cj_yaml,
@@ -505,6 +494,64 @@ def get_all_models() -> list[str]:
     return list(model_names)
 
 
+class ValidateQuantizeInputsTask(Task):
+    """
+    Check the quantize_and_upload inputs (the QAIHM_QUANTIZE_MODEL_ID and
+    QAIHM_QUANTIZE_PRECISION env vars).
+
+    Runs before a GPU pod is claimed. Both manifest fields are flat top-level
+    keys, so they are matched as text and no venv is needed.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Validate quantize inputs")
+
+    def does_work(self) -> bool:
+        return True
+
+    def run_task(self) -> bool:
+        model_id = os.environ.get("QAIHM_QUANTIZE_MODEL_ID", "").strip()
+        precision = os.environ.get("QAIHM_QUANTIZE_PRECISION", "").strip()
+
+        known = get_all_models()
+        if model_id not in known:
+            hint = difflib.get_close_matches(model_id, known, n=3, cutoff=0.4)
+            print(
+                f"::error::model_id {model_id!r} is not a model with a manifest.yaml."
+                + (
+                    f" Did you mean {' or '.join(repr(h) for h in hint)}?"
+                    if hint
+                    else ""
+                )
+            )
+            return False
+
+        model_dir = Path(PY_PACKAGE_MODELS_ROOT, model_id)
+        manifest = (model_dir / "manifest.yaml").read_text(encoding="utf-8")
+        ok = True
+
+        if not check_manifest_field(model_id, "separate_quantize_script"):
+            print(
+                f"::error::{model_id} does not set 'separate_quantize_script: true' "
+                "in its manifest.yaml, so it has no quantize.py to run."
+            )
+            ok = False
+
+        # quantize only runs a precision that has a recipe, which also implies it is
+        # in supported_precisions; failing here saves claiming a GPU pod.
+        if (
+            not re.search(rf"^  {re.escape(precision)}:\s*$", manifest, re.MULTILINE)
+            or "lm_quantization_details:" not in manifest
+        ):
+            print(
+                f"::error::{model_id} has no lm_quantization_details recipe for "
+                f"precision {precision!r}, so quantize has nothing to run."
+            )
+            ok = False
+
+        return ok
+
+
 class PrintCITestModelsTask(Task):
     def __init__(self, group_name: str | None = None) -> None:
         super().__init__(group_name)
@@ -514,11 +561,9 @@ class PrintCITestModelsTask(Task):
 
     def run_task(self) -> bool:
         # model / demo / test changed, or manifest.yaml changed
-        model_or_yaml_changed = get_ci_test_models(
-            include_export=False, include_generated_tests=False
-        )
+        model_or_yaml_changed = get_ci_test_models(include_generated_tests=False)
 
-        # export.py or test_generated.py changed, but the rest of the model, including manifest.yaml was not affected
+        # test_generated.py changed, but the rest of the model, including manifest.yaml was not affected
         # models will hit this when global templates change
         only_code_generation_changed = get_ci_test_models(
             include_model=False,
@@ -533,7 +578,7 @@ class PrintCITestModelsTask(Task):
             # We don't run tests for every model whose codegen files was changed.
             # However, if there are models with only codegen changes,
             # we run a representative model set to make sure codegen didn't break for regular + component models.
-            out = out.union(REPRESENTATIVE_EXPORT_MODELS)
+            out = out.union(REPRESENTATIVE_MODELS)
             llm_models = {m for group in LLM_GROUPS for m in group}
             if codegen_only_models & llm_models:
                 out.add(CODEGEN_FALLBACK_LLM_MODEL)

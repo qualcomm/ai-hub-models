@@ -10,7 +10,7 @@ import math
 import os
 import re
 import shutil
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, TypeVar, cast
@@ -191,19 +191,57 @@ def _load_model(
     return model_cache[cache_key]
 
 
+def _iter_graphs(graph: onnx.GraphProto) -> Generator[onnx.GraphProto, None, None]:
+    """Graph and every subgraph nested in its nodes' attributes."""
+    yield graph
+    for node in graph.node:
+        for attribute in node.attribute:
+            if attribute.type == onnx.AttributeProto.GRAPH:
+                yield from _iter_graphs(attribute.g)
+            elif attribute.type == onnx.AttributeProto.GRAPHS:
+                for subgraph in attribute.graphs:
+                    yield from _iter_graphs(subgraph)
+
+
+def _encodings_to_name_dicts(encodings: dict) -> bool:
+    """Key activation/param encodings by tensor name, in place.
+
+    2.0.0 has one "encodings" list with no param/activation split; it goes to
+    activation_encodings and _encodings_from_name_dicts writes it back.
+    Returns whether the file stores lists (1.0.0 and later).
+    """
+    if "encodings" in encodings:
+        encodings["activation_encodings"] = {
+            v["name"]: v for v in encodings.pop("encodings")
+        }
+        encodings["param_encodings"] = {}
+        return True
+    if not isinstance(encodings["activation_encodings"], list):
+        return False
+    encodings["activation_encodings"] = {
+        v["name"]: v for v in encodings["activation_encodings"]
+    }
+    encodings["param_encodings"] = {v["name"]: v for v in encodings["param_encodings"]}
+    return True
+
+
+def _encodings_from_name_dicts(encodings: dict) -> None:
+    """Undo _encodings_to_name_dicts for a list-based (1.0.0+) file, in place."""
+    activations = list(encodings.pop("activation_encodings").values())
+    params = list(encodings.pop("param_encodings").values())
+    if Version(encodings["version"]) >= Version("2.0.0"):
+        encodings["encodings"] = activations + params
+    else:
+        encodings["activation_encodings"] = activations
+        encodings["param_encodings"] = params
+
+
 def _load_encoding(encodingfile: PathLike | None, no_merge: bool = False) -> Any:
     all_encodings = {}
     if encodingfile is not None:
         with open(encodingfile) as json_file:
             encodings = json.load(json_file)
-        uses_lists = Version(encodings["version"]) >= Version("1.0.0")
-        if uses_lists:
-            encodings["activation_encodings"] = {
-                v["name"]: v for v in encodings["activation_encodings"]
-            }
-            encodings["param_encodings"] = {
-                v["name"]: v for v in encodings["param_encodings"]
-            }
+        _encodings_to_name_dicts(encodings)
         if no_merge:
             return encodings
         all_encodings.update(encodings["activation_encodings"])
@@ -259,15 +297,7 @@ def split_onnx_by_names(
     if encoding_file is not None:
         with open(encoding_file) as f:
             encodings = json.load(f)
-        uses_lists = isinstance(encodings["activation_encodings"], list)
-        if uses_lists:
-            # Convert encodings to dictionary
-            encodings["activation_encodings"] = {
-                v["name"]: v for v in encodings["activation_encodings"]
-            }
-            encodings["param_encodings"] = {
-                v["name"]: v for v in encodings["param_encodings"]
-            }
+        uses_lists = _encodings_to_name_dicts(encodings)
 
     onnxmodel = (
         _load_model(onnx_graph_file, load_external_data=False)
@@ -316,12 +346,18 @@ def split_onnx_by_names(
         if encodings is not None:
             new_encodings = deepcopy(encodings)
 
+            # Scan/Loop/If bodies are quantized too (e.g. Qwen3.5's delta
+            # rule), and their tensors aren't in the top-level graph.node.
+            subgraphs = list(_iter_graphs(submodel.graph))
             activation_names = (
-                {o for x in submodel.graph.node for o in x.output}
-                | {x.name for x in submodel.graph.input}
-                | {x.name for x in submodel.graph.output}
+                {o for g in subgraphs for x in g.node for o in x.output}
+                | {x.name for g in subgraphs for x in g.input}
+                | {x.name for g in subgraphs for x in g.output}
             )
-            param_names = {x.name for x in submodel.graph.initializer}
+            param_names = {x.name for g in subgraphs for x in g.initializer}
+            if Version(encodings["version"]) >= Version("2.0.0"):
+                # Params share the activation dict (see _encodings_to_name_dicts).
+                activation_names |= param_names
 
             for k in encodings["activation_encodings"]:
                 if k not in activation_names:
@@ -333,7 +369,7 @@ def split_onnx_by_names(
 
             # Due to AISW-152612 we cannot have activations encodings for
             # Gather ops, so we clean them up.
-            for node in submodel.graph.node:
+            for node in (n for g in subgraphs for n in g.node):
                 if (
                     node.op_type == "Gather"
                     and node.output[0] in new_encodings["activation_encodings"]
@@ -341,13 +377,7 @@ def split_onnx_by_names(
                     del new_encodings["activation_encodings"][node.output[0]]
 
             if uses_lists:
-                # convert back
-                new_encodings["activation_encodings"] = list(
-                    new_encodings["activation_encodings"].values()
-                )
-                new_encodings["param_encodings"] = list(
-                    new_encodings["param_encodings"].values()
-                )
+                _encodings_from_name_dicts(new_encodings)
 
             new_encodings_path = part_root_path / (new_basename + ".encodings")
             with open(new_encodings_path, "w") as write_file:
@@ -452,14 +482,7 @@ def fill_input_encodings_of_split(
         if not os.path.exists(backup):
             shutil.move(encodingfile, backup)
         if Version(encodings["version"]) >= Version("1.0.0"):
-            if isinstance(encodings["activation_encodings"], dict):
-                encodings["activation_encodings"] = list(
-                    encodings["activation_encodings"].values()
-                )
-            if isinstance(encodings["param_encodings"], dict):
-                encodings["param_encodings"] = list(
-                    encodings["param_encodings"].values()
-                )
+            _encodings_from_name_dicts(encodings)
         _save_encoding(encodings, encodingfile)
 
 
@@ -498,9 +521,11 @@ def split_onnx(
     """
 
     def _is_cache(layer: int, name: str) -> bool:
+        # Linear-attention layers (Qwen3.5) carry conv/recurrent state instead of KV.
         return (
             re.search(f"(?:past|swa)_(nativekvcache__)?(key|value)_{layer}_", name)
             is not None
+            or re.search(f"(?:conv|recurrent)_state_{layer}_", name) is not None
         )
 
     num_splits = int(num_splits)

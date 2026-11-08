@@ -1,31 +1,33 @@
-precisions:
-  float:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-onnx-float.zip
-        tool_versions:
-          onnx_runtime: 1.30.0
-          qairt: 2.50.0.260828221209
-      qnn_dlc:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-qnn_dlc-float.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-      tflite:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-tflite-float.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-  w8a8:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-onnx-w8a8.zip
-        tool_versions:
-          onnx_runtime: 1.30.0
-          qairt: 2.50.0.260828221209
-      qnn_dlc:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-qnn_dlc-w8a8.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
-      tflite:
-        s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-tflite-w8a8.zip
-        tool_versions:
-          qairt: 2.50.0.260828221209
+assets:
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-tflite-float.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-qnn_dlc-float.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-onnx-float.zip
+  tool_versions:
+    onnx_runtime: 1.30.0
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_TFLITE
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-tflite-w8a8.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-qnn_dlc-w8a8.zip
+  tool_versions:
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/37102182278/ffnet_40s-onnx-w8a8.zip
+  tool_versions:
+    onnx_runtime: 1.30.0
+    qairt: 2.50.0.260828221209

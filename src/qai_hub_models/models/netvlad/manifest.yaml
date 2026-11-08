@@ -1,0 +1,24 @@
+description: NetVLAD is a CNN-based visual place recognition model that aggregates dense local descriptors into a compact VLAD descriptor using a differentiable soft assignment to learned cluster centroids. Built on a VGG-16 backbone, it produces a 32,768-d L2-normalized descriptor suitable for nearest-neighbour place retrieval across images taken under varying conditions.
+disabled_paths: {}
+domain: Computer Vision
+has_on_target_demo: true
+headline: CNN-based visual place recognition via VLAD descriptor aggregation.
+id: netvlad
+license: https://github.com/relja/netvlad/blob/master/LICENCE
+license_type: mit
+name: NetVLAD
+numerics_benchmark:
+  dataset_name: tiny_tokyo_time_machine
+  metric_name: Recall@1
+  source: https://github.com/Nanne/pytorch-NetVlad
+  unit: '%'
+  value: 96.8
+research_paper: https://arxiv.org/abs/1511.07247
+research_paper_title: 'NetVLAD: CNN architecture for weakly supervised place recognition'
+source_repo: https://github.com/Nanne/pytorch-NetVlad
+supported_precisions:
+- w8a8_mixed_int16
+- float
+tags:
+- backbone
+use_case: Image Classification

@@ -6,11 +6,9 @@
 from __future__ import annotations
 
 from enum import Enum, unique
-from typing import Any
 
 from pydantic import model_validator
 
-from qai_hub_models import TargetRuntime
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 
 
@@ -25,39 +23,12 @@ class LLM_CALL_TO_ACTION(Enum):
     CONTACT_US = "Contact Us"
 
 
-class LLMDeviceRuntimeDetails(BaseQAIHMConfig):
-    """LLM details for a specific device+runtime combo."""
-
-    model_download_url: str
-
-
 class LLMDetails(BaseQAIHMConfig):
     """LLM details included in model info.yaml."""
 
     call_to_action: LLM_CALL_TO_ACTION
     genie_compatible: bool = False
     geniex_llamacpp_compatible: bool = False
-
-    # Dict<Device Name, Dict<Long Runtime Name, LLMDeviceRuntimeDetails>
-    # Used when genie_compatible is True (QNN context binary models)
-    devices: dict[str, dict[TargetRuntime, LLMDeviceRuntimeDetails]] | None = None
-
-    def __init__(self, **kwargs: Any) -> None:
-        val_dict = kwargs
-        dict_to_parse = val_dict
-        if "devices" not in dict_to_parse:
-            # The structure of this dict may be in an different format if loaded from YAML.
-            # In the YAML, devices are stored at the "top level", rather than inside a "devices" namespace.
-            #
-            # We construct a valid input dict by stuffing all of the "devices" into the appropriate namespace.
-            dict_to_parse = {
-                k: v for k, v in val_dict.items() if k in list(LLMDetails.model_fields)
-            }
-            dict_to_parse["devices"] = {
-                k: v for k, v in val_dict.items() if k not in dict_to_parse
-            }
-
-        super().__init__(**kwargs)
 
     @model_validator(mode="after")
     def check_fields(self) -> LLMDetails:

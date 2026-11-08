@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [MeloTTS-JA: High-quality text-to-speech for Japanese](https://aihub.qualcomm.com/models/melotts_ja)
 
 MeloTTS is a high-quality multi-lingual text-to-speech library for English, Chinese, Korean, Japanese and Spanish language.

@@ -1,35 +1,28 @@
-precisions:
-  w4a16:
-    components:
-      IBM-Granite-v3.1-8B-Instruct:
-        performance_metrics:
-          Dragonwing IQ-X7181:
-            qnn_context_binary:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                time_to_first_token_range_milliseconds:
-                  max: 9452.4864
-                  min: 295.3902
-                tokens_per_second: 8.01724
-          Dragonwing Q-8750:
-            qnn_context_binary:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                time_to_first_token_range_milliseconds:
-                  max: 6297.36
-                  min: 196.7925
-                tokens_per_second: 11.01293
-          Snapdragon X Elite CRD:
-            qnn_context_binary:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                time_to_first_token_range_milliseconds:
-                  max: 9452.4864
-                  min: 295.3902
-                tokens_per_second: 8.01724
+performance_metrics:
+- component: IBM-Granite-v3.1-8B-Instruct
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    tokens_per_second: 8.01724
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
+- component: IBM-Granite-v3.1-8B-Instruct
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    tokens_per_second: 11.01293
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
+- component: IBM-Granite-v3.1-8B-Instruct
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    tokens_per_second: 8.01724
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-for-galaxy
 - qualcomm-snapdragon-x-elite

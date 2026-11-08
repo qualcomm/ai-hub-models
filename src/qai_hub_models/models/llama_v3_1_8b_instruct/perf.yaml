@@ -1,154 +1,142 @@
-precisions:
-  w4a16:
-    components:
-      Llama-v3.1-8B-Instruct:
-        performance_metrics:
-          Arduino VENTUNO Q:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 202.26536560058594
-                time_to_first_token_range_milliseconds:
-                  max: 8860.192
-                  min: 276.881
-                tokens_per_second: 9.120010375976562
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 629.453007
-                time_to_first_token_range_milliseconds:
-                  max: 6507.237161290323
-                  min: 203.35116129032258
-                tokens_per_second: 8.618396
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing IQ-9075 EVK:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 279.0178527832031
-                time_to_first_token_range_milliseconds:
-                  max: 6423.712
-                  min: 200.741
-                tokens_per_second: 7.855151176452637
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 639.644585
-                time_to_first_token_range_milliseconds:
-                  max: 6403.556129032258
-                  min: 200.11112903225805
-                tokens_per_second: 9.023799
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing IQ-X7181:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 619.473061
-                time_to_first_token_range_milliseconds:
-                  max: 6612.071225806452
-                  min: 206.62722580645163
-                tokens_per_second: 9.963696
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Dragonwing Q-8750:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 399.36102294921875
-                time_to_first_token_range_milliseconds:
-                  max: 4488.832
-                  min: 140.276
-                tokens_per_second: 13.053466796875
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 791.557939
-                time_to_first_token_range_milliseconds:
-                  max: 5174.605419354839
-                  min: 161.70641935483872
-                tokens_per_second: 11.207357
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S25:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 399.36102294921875
-                time_to_first_token_range_milliseconds:
-                  max: 4488.832
-                  min: 140.276
-                tokens_per_second: 13.053466796875
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 791.557939
-                time_to_first_token_range_milliseconds:
-                  max: 5174.605419354839
-                  min: 161.70641935483872
-                tokens_per_second: 11.207357
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Samsung Galaxy S26:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 479.15667724609375
-                time_to_first_token_range_milliseconds:
-                  max: 3741.152
-                  min: 116.911
-                tokens_per_second: 13.041550636291504
-          Snapdragon X Elite CRD:
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 619.473061
-                time_to_first_token_range_milliseconds:
-                  max: 6612.071225806452
-                  min: 206.62722580645163
-                tokens_per_second: 9.963696
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
-          Snapdragon X2 Elite CRD:
-            genie:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 496.03173828125
-                time_to_first_token_range_milliseconds:
-                  max: 3613.6
-                  min: 112.925
-                tokens_per_second: 21.825960159301758
-            geniex_qairt:
-              llm_metrics:
-              - context_length: 4096
-                desired_compute_unit: npu
-                prefill_tokens_per_second: 1162.579133
-                time_to_first_token_range_milliseconds:
-                  max: 3523.2010322580645
-                  min: 110.10003225806452
-                tokens_per_second: 19.614429
-              tool_versions:
-                geniex: v0.9.1
-                qairt: '2.50'
+performance_metrics:
+- component: Llama-v3.1-8B-Instruct
+  device: Arduino VENTUNO Q
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 202.26536560058594
+    tokens_per_second: 9.120010375976562
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Arduino VENTUNO Q
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 629.453007
+    tokens_per_second: 8.618396
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Dragonwing IQ-9075 EVK
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 279.0178527832031
+    tokens_per_second: 7.855151176452637
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Dragonwing IQ-9075 EVK
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 639.644585
+    tokens_per_second: 9.023799
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Dragonwing IQ-X7181
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 619.473061
+    tokens_per_second: 9.963696
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 399.36102294921875
+    tokens_per_second: 13.053466796875
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Dragonwing Q-8750
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 791.557939
+    tokens_per_second: 11.207357
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Samsung Galaxy S25
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 399.36102294921875
+    tokens_per_second: 13.053466796875
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Samsung Galaxy S25
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 791.557939
+    tokens_per_second: 11.207357
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Samsung Galaxy S26
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 479.15667724609375
+    tokens_per_second: 13.041550636291504
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Snapdragon X Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 619.473061
+    tokens_per_second: 9.963696
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
+- component: Llama-v3.1-8B-Instruct
+  device: Snapdragon X2 Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 496.03173828125
+    tokens_per_second: 21.825960159301758
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- component: Llama-v3.1-8B-Instruct
+  device: Snapdragon X2 Elite CRD
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 1162.579133
+    tokens_per_second: 19.614429
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  tool_versions:
+    geniex: v0.9.1
+    qairt: '2.50'
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-gen5-for-galaxy
 - qualcomm-snapdragon-8-elite-for-galaxy

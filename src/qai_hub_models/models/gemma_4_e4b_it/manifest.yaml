@@ -1,29 +1,16 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
 description: Gemma is a family of open models built by Google DeepMind. Gemma 4 models are multimodal, handling text and image input (with audio supported on small models) and generating text output. This release includes open-weights models in both pre-trained and instruction-tuned variants. Gemma 4 features a context window of up to 256K tokens and maintains multilingual support in over 140 languages.
 disabled_paths:
   w4a16:
     geniex_qairt:
       scorecard_accuracy_failure: 'Device accuracy (0.0 %) deviates from benchmark (98.2 %) by -98.200 %, threshold: 25.0 %'
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: Multimodal model from Google DeepMind handling text and image input.
 id: gemma_4_e4b_it
 is_aimet: true
 is_collection_model: true
 license: https://ai.google.dev/gemma/apache_2
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download and View Readme
-  genie_compatible: true
-  geniex_llamacpp_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -65,9 +52,6 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
-related_models:
-- gemma_4_e2b_it
-- gemma_3n_e4b_it
 requires_aot_prepare: true
 research_paper: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
 research_paper_title: Gemma 4
@@ -95,7 +79,6 @@ runtime_technical_details:
 separate_quantize_script: true
 skip_example_usage: true
 source_repo: https://huggingface.co/google/gemma-4-E4B-it
-status: published
 supported_precisions:
 - w4a16
 - q4_0
@@ -103,16 +86,6 @@ tags:
 - llm
 - vlm
 - generative-ai
-technical_details:
-  Input sequence length for Prompt Processor: '128'
-  Minimum QNN SDK version required: 2.45.0
-  Model architecture: Transformer with SigLIP-style ViT Vision Encoder, Per-Layer Embeddings (PLE), interleaved sliding-window/global attention with Grouped Query Attention (GQA), and shared KV layers.
-  Number of parameters: 4B (effective)
-  Precision: w4a16
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: Multilingual (trained on 140+ languages)
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt.
-  Use: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 templates:
 - gemma4
 use_case: Text Generation

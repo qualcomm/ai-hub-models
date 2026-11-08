@@ -93,27 +93,6 @@ def test_direct_model_file_change() -> None:
     assert "mobilenet_v2" in models
 
 
-def test_direct_export_change() -> None:
-    """Changing a model's export.py should detect that model."""
-    models = resolve_affected_models(
-        ["src/qai_hub_models/models/mobilenet_v2/export.py"]
-    )
-    assert "mobilenet_v2" in models
-
-
-def test_model_change_propagates_to_export() -> None:
-    """
-    Changing model.py should also flag export.py (via the manual edge
-    in _get_file_edges), so the model is detected even when
-    include_model=False.
-    """
-    models = resolve_affected_models(
-        ["src/qai_hub_models/models/mobilenet_v2/model.py"],
-        include_model=False,
-    )
-    assert "mobilenet_v2" in models
-
-
 def test_template_whisper_change_detects_whisper_models() -> None:
     """Changing templates/hf_whisper should detect whisper variants."""
     models = resolve_affected_models(

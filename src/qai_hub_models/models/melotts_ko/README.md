@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [MeloTTS-KO: High-quality text-to-speech for Korean](https://aihub.qualcomm.com/models/melotts_ko)
 
 MeloTTS is a high-quality multi-lingual text-to-speech library for English, Chinese, Korean, Japanese and Spanish language.
@@ -25,7 +22,7 @@ qai-hub-models perf MeloTTS-KO
 qai-hub-models numerics MeloTTS-KO
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch MeloTTS-KO --runtime voice_ai --precision mixed_with_float
+qai-hub-models fetch MeloTTS-KO --runtime voice_ai --precision w8a16
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

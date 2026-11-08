@@ -16,7 +16,7 @@ on:
         type: boolean
         default: true
       apply:
-        description: Request reviewers and close stale PRs (scheduled runs always do)
+        description: Request reviewers and close stale PRs
         type: boolean
         default: false
 
@@ -32,7 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          sparse-checkout: src/qai_hub_models/scripts/pr_triage.py
+          sparse-checkout: |
+            src/qai_hub_models/scripts/pr_triage.py
+            src/qai_hub_models/scripts/pr_triage_report.py
+            src/qai_hub_models/scripts/pr_triage_types.py
           sparse-checkout-cone-mode: false
           fetch-depth: 1
 
@@ -46,20 +49,20 @@ jobs:
           if [[ "$APPLY" == "true" ]]; then
             args+=(--apply)
           fi
-          # Run by path: the script is stdlib-only plus the preinstalled `gh`.
+          # Run by path: the scripts are stdlib-only plus the preinstalled `gh`.
           python3 src/qai_hub_models/scripts/pr_triage.py "${args[@]}" \
             --full-report-file "$RUNNER_TEMP/pr_digest_full.md" \
             --slack-message-file "$RUNNER_TEMP/slack_message.json"
 
-      # Scheduled runs have no inputs, so Slack stays on unless it is set to false.
+      # Scheduled runs have no inputs (null, which an expression treats as false).
       - name: Build Slack payload
-        if: inputs.notify_slack != false
+        if: github.event_name == 'schedule' || inputs.notify_slack
         run: |
           jq --arg channel "$SLACK_CHANNEL" '. + {channel: $channel}' \
             "$RUNNER_TEMP/slack_message.json" > "$RUNNER_TEMP/slack_payload.json"
 
       - name: Post summary to Slack
-        if: inputs.notify_slack != false
+        if: github.event_name == 'schedule' || inputs.notify_slack
         uses: slackapi/slack-github-action@v4
         with:
           method: chat.postMessage
@@ -67,7 +70,7 @@ jobs:
           payload-file-path: ${{ runner.temp }}/slack_payload.json
 
       - name: Upload full report to Slack
-        if: inputs.notify_slack != false
+        if: github.event_name == 'schedule' || inputs.notify_slack
         uses: slackapi/slack-github-action@v4
         with:
           method: files.uploadV2

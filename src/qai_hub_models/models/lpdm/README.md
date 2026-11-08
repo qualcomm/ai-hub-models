@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [License-Plates-Detector-Model: YOLOv8-based detector for UAE licence plates — characters, digits, and emirate identifiers](https://aihub.qualcomm.com/models/lpdm)
 
 A YOLOv8-nano object detection model fine-tuned on the UAE licence-plate dataset (Roboflow car-plate-k6xij v26). The model detects and classifies 51 object classes: digits 0-9, letters A-Z, UAE emirate region identifiers and a plate bounding-box class for the full plate region.

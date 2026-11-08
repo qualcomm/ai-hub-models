@@ -15,10 +15,10 @@ from transformers import AutoProcessor
 
 from qai_hub_models import Precision
 from qai_hub_models.datasets import instantiate_dataset
+from qai_hub_models.datasets.device_eval import is_prompt_task
 from qai_hub_models.models.templates.llm.generator_factory import make_generator
 from qai_hub_models.models.templates.llm.grace_tasks import (
     GRACE_TASK_ALIAS,
-    PROMPT_TASKS,
     resolve_task_name,
 )
 from qai_hub_models.models.templates.llm.grader.grace import GRACE_TASK_NAME
@@ -314,6 +314,7 @@ def build_llm_evaluate_parser(
     if GRACE_TASK_NAME in task_choices:
         # Version-less alias for whichever Grace version this branch ships.
         task_choices.append(GRACE_TASK_ALIAS)
+    prompt_task_choices = [t for t in task_choices if is_prompt_task(t)]
     parser.add_argument(
         "--task",
         type=str,
@@ -344,7 +345,7 @@ def build_llm_evaluate_parser(
     prompt_group = parser.add_argument_group(
         "prompt-based tasks",
         "Options that only apply to the prompt-generation tasks "
-        f"({', '.join(sorted(PROMPT_TASKS))}); ignored by all other tasks.",
+        f"({', '.join(sorted(prompt_task_choices))}); ignored by all other tasks.",
     )
     prompt_group.add_argument(
         "--output-dir",
@@ -352,7 +353,7 @@ def build_llm_evaluate_parser(
         default=None,
         help=(
             "Directory to write generated responses and grader summary. "
-            f"Required for the {', '.join(sorted(PROMPT_TASKS))} tasks."
+            f"Required for the {', '.join(sorted(prompt_task_choices))} tasks."
         ),
     )
     prompt_group.add_argument(
@@ -419,7 +420,7 @@ def llm_evaluate(
     )
 
     task_kwargs: dict[str, Any] | None = None
-    if args.task in PROMPT_TASKS:
+    if is_prompt_task(args.task):
         if args.output_dir is None:
             parser.error(f"--output-dir is required for the '{args.task}' task.")
         task_kwargs = {

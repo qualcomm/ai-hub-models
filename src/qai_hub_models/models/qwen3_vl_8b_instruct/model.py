@@ -18,6 +18,9 @@ from qai_hub_models.models.templates.llm.model import (
     DEFAULT_EXPORT_SEQUENCE_LENGTHS as GLOBAL_DEFAULT_EXPORT_SEQUENCE_LENGTHS,
 )
 from qai_hub_models.models.templates.llm.model import (
+    CollectionCompileO0Mixin,
+    CompileO0Mixin,
+    QuantizeFullTypeW8A16Mixin,
     SplitForwardMixin,  # noqa: F401
 )
 from qai_hub_models.models.templates.qwen3_vl.model import (
@@ -67,7 +70,7 @@ HF_REPO_NAME = "Qwen/Qwen3-VL-8B-Instruct"
 HF_REPO_URL = f"https://huggingface.co/{HF_REPO_NAME}"
 
 # Memory requirements
-MIN_MEMORY_RECOMMENDED = 80
+MIN_MEMORY_RECOMMENDED = 150
 
 # Precision settings
 DEFAULT_PRECISION = Precision.w4a16
@@ -125,8 +128,14 @@ class Qwen3_VL_8B_PreSplit(Qwen3VLPreSplitBase):
     _hf_repo_name = HF_REPO_NAME
 
 
-class Qwen3_VL_8B_QuantizablePreSplit(
-    Qwen3VLQuantizablePreSplitBase[Qwen3_VL_8B_PreSplit]
+# TODO: remove the --quantize_full_type mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22269
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_VL_8B_QuantizablePreSplit(  # type: ignore[misc]
+    QuantizeFullTypeW8A16Mixin,
+    CompileO0Mixin,
+    Qwen3VLQuantizablePreSplitBase[Qwen3_VL_8B_PreSplit],
 ):
     """Quantizable PreSplit for Qwen3-VL-8B."""
 
@@ -236,7 +245,9 @@ class QuantizedSplitModelWrapper(  # type: ignore[misc]
     default_num_visual_tokens = DEFAULT_NUM_VISUAL_TOKENS
 
 
-class Qwen3_VL_8B_Collection(Qwen3VLCollectionBase):
+# TODO: remove the -O0 mixin; see
+# https://github.com/qcom-ai-hub/tetracode/issues/22094
+class Qwen3_VL_8B_Collection(CollectionCompileO0Mixin, Qwen3VLCollectionBase):
     """Collection model for Qwen3-VL-8B deployment.
 
     Combines 6 text parts + 1 vision encoder for full VLM deployment.

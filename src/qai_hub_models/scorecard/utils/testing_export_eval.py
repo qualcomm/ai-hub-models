@@ -1840,7 +1840,7 @@ def accuracy_on_sample_inputs_via_export(
     Parameters
     ----------
     export_model
-        Code-generated export function from export.py.
+        Export pipeline function.
     model_id
         Model ID.
     model
@@ -1978,7 +1978,7 @@ def accuracy_on_dataset_via_evaluate_and_export(
     Parameters
     ----------
     export_model
-        Code-generated export function from export.py.
+        Export pipeline function.
     model
         Model instance to run inference on.
     dataset_cls

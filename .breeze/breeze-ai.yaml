@@ -43,6 +43,57 @@ agents:
       IMPORTANT: Soft recommendations only — never auto-assign or auto-label issues.
       IMPORTANT: Analyze BOTH perf regressions (2x+ slowdown) AND numerics regressions (accuracy drift).
 
+  # Model Onboarding Review Agents (one per lens)
+  # Definitions: .agents/agents/<name>.md, rules: .agents/skills/model-onboarding-review/SKILL.md
+  review-outside-model-work:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-outside-model-work.md exactly.
+  review-data-path:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-data-path.md exactly.
+  review-flexible-shapes:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-flexible-shapes.md exactly.
+  review-quantization:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-quantization.md exactly.
+  review-manifest:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-manifest.md exactly.
+  review-dataset-evaluator:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-dataset-evaluator.md exactly.
+  review-structure:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-structure.md exactly.
+  review-math-fidelity:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-math-fidelity.md exactly.
+  review-app-contract:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-app-contract.md exactly.
+
+  # Aggregates the lens agents above and posts the consolidated review
+  review-aggregator:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-aggregator.md exactly.
+
+  # Single-agent re-review, run when someone re-requests review from the bot
+  review-rereview:
+    enabled: true
+    custom_instructions: |
+      Follow .agents/agents/review-rereview.md exactly.
+
   # PR Review Agent
   pr-review:
     enabled: true

@@ -2,20 +2,28 @@ metrics:
 - dataset_link: https://github.com/clovaai/ext_portrait_segmentation
   dataset_name: eg1800_segmentation
   dataset_split_description: validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 93.3
-        qnn_dlc:
-          partial_metric: 93.3
-        tflite:
-          partial_metric: 93.3
-      w8a8:
-        onnx:
-          partial_metric: 93.0
-        qnn_dlc:
-          partial_metric: 93.0
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 93.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 93.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 93.3
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 93.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 93.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Overlap of predicted and expected segmentation divided by the union size.
   metric_enablement_threshold: 10.0
   metric_name: Mean Intersection Over Union

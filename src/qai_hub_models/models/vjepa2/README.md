@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [V-JEPA-2: Self-supervised video representation backbone](https://aihub.qualcomm.com/models/vjepa2)
 
 V-JEPA 2 (Video Joint-Embedding Predictive Architecture 2) is a self-supervised video encoder from Meta AI that uses a ViT (Vision Transformer) backbone to produce per-token video embeddings. It is used as a frozen backbone for downstream video understanding tasks such as action recognition and video retrieval.
@@ -25,7 +22,7 @@ qai-hub-models perf V-JEPA-2
 qai-hub-models numerics V-JEPA-2
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch V-JEPA-2 --runtime tflite --precision float
+qai-hub-models fetch V-JEPA-2 --runtime qnn_dlc --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

@@ -1,6 +1,3 @@
-applicable_scenarios:
-- Anomaly Detection
-- Inventory Management
 description: DeepLabV3 is designed for semantic segmentation at multiple scales, trained on the COCO dataset. It uses ResNet50 as a backbone.
 disabled_paths:
   float:
@@ -30,35 +27,18 @@ disabled_paths:
       issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
       scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Deep Convolutional Neural Network model for semantic segmentation.
 id: deeplabv3_resnet50
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: DeepLabV3-ResNet50
-related_models:
-- deeplabv3_plus_mobilenet
-- fcn_resnet50
 research_paper: https://arxiv.org/abs/1706.05587
 research_paper_title: Rethinking Atrous Convolution for Semantic Image Segmentation
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/deeplabv3.py
-status: pending
-status_reason: No successful runtimes in scorecard (this field was auto-populated by the scorecard run)
 supported_precisions:
 - float
 - w8a8
-technical_details:
-  Input resolution: 513x513
-  Model checkpoint: COCO_WITH_VOC_LABELS_V1
-  Model size (float): 151 MB
-  Number of output classes: '21'
-  Number of parameters: 39.6M
 templates:
 - deeplab
 use_case: Semantic Segmentation

@@ -1,15 +1,13 @@
-precisions:
-  float:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/37102182278/hrnet_w48_ocr-onnx-float.zip
-        tool_versions:
-          onnx_runtime: 1.30.0
-          qairt: 2.50.0.260828221209
-  w8a16:
-    universal_assets:
-      onnx:
-        s3_key: pre_release_assets/gh_actions/37102182278/hrnet_w48_ocr-onnx-w8a16.zip
-        tool_versions:
-          onnx_runtime: 1.30.0
-          qairt: 2.50.0.260828221209
+assets:
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/37102182278/hrnet_w48_ocr-onnx-float.zip
+  tool_versions:
+    onnx_runtime: 1.30.0
+    qairt: 2.50.0.260828221209
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  s3_key: pre_release_assets/gh_actions/37102182278/hrnet_w48_ocr-onnx-w8a16.zip
+  tool_versions:
+    onnx_runtime: 1.30.0
+    qairt: 2.50.0.260828221209

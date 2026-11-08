@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Injury prevention training
-- Sports performance analysis
-- Posture recognition
 datasets:
 - coco
 - mpii
@@ -12,16 +8,9 @@ external_repos:
     commit_sha: 6f69e4676ad8d43d0d61b64b1b9726f0c369e7b1
     patches_filename: hrnet_patches.diff
     repo_url: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Perform accurate human pose estimation.
 id: hrnet_pose
-imsdk_supported: true
 license: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch/blob/master/LICENSE
 license_type: mit
 name: HRNetPose
@@ -33,24 +22,15 @@ numerics_benchmark:
   value: 74.4
 pre_pip_install_commands:
 - pip install mmpose==1.2.0 --no-deps
-related_models:
-- litehrnet
 research_paper: https://arxiv.org/abs/1902.09212
 research_paper_title: Deep High-Resolution Representation Learning for Human Pose Estimation
 source_repo: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch
-status: published
 supported_precisions:
 - float
 - w8a16
 - w8a8
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 256x192
-  Model checkpoint: hrnet_posenet_FP32_state_dict
-  Model size (float): 109 MB
-  Model size (w8a8): 28.1 MB
-  Number of parameters: 28.5M
 templates:
 - mmpose
 use_case: Pose Estimation

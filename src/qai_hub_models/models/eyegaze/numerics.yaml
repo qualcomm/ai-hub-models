@@ -2,20 +2,27 @@ metrics:
 - dataset_link: http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIGaze.tar.gz
   dataset_name: mpii_gaze
   dataset_split_description: evaluation subset
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 15.2
-        qnn_dlc:
-          partial_metric: 15.2
-        tflite:
-          partial_metric: 15.2
-      w8a16:
-        onnx:
-          partial_metric: 14.9
-        qnn_dlc:
-          partial_metric: 14.9
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 15.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 15.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 15.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 14.9
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 14.9
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
   higher_is_better: false
   metric_description: Mean angular error between predicted and ground truth gaze directions.
   metric_enablement_threshold: 5.0

@@ -2,20 +2,28 @@ metrics:
 - dataset_link: https://huggingface.co/datasets/wikitext
   dataset_name: wikitext_masked_distilbert_distilbert_base_uncased
   dataset_split_description: wikitext-2-raw-v1 validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 60.0
-        qnn_dlc:
-          partial_metric: 60.0
-        tflite:
-          partial_metric: 60.0
-      w8a16:
-        onnx:
-          partial_metric: 60.4
-        qnn_dlc:
-          partial_metric: 60.4
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 60.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 60.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 60.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 60.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 60.4
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Percentage of masked tokens correctly predicted (highest-probability token).
   metric_enablement_threshold: 10.0
   metric_name: Top-1 Accuracy

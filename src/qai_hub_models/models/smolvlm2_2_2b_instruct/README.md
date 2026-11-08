@@ -20,9 +20,6 @@ qai-hub-models info SmolVLM2-2.2B-Instruct
 # Print performance and accuracy metrics
 qai-hub-models perf SmolVLM2-2.2B-Instruct
 qai-hub-models numerics SmolVLM2-2.2B-Instruct
-
-# Download a ready-to-deploy asset
-qai-hub-models fetch SmolVLM2-2.2B-Instruct --runtime geniex_llamacpp --precision q8_0
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

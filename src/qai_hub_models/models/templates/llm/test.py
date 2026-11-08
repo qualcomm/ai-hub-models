@@ -15,12 +15,10 @@ import numpy as np
 import pytest
 
 from qai_hub_models import Precision
+from qai_hub_models.datasets.device_eval import is_prompt_task
 from qai_hub_models.models.templates.llm.common import cleanup
 from qai_hub_models.models.templates.llm.evaluate import evaluate
-from qai_hub_models.models.templates.llm.grace_tasks import (
-    PROMPT_TASKS,
-    resolve_task_name,
-)
+from qai_hub_models.models.templates.llm.grace_tasks import resolve_task_name
 from qai_hub_models.models.templates.llm.llm_helpers import log_evaluate_test_result
 from qai_hub_models.models.templates.llm.model import (
     LLM_QNN,
@@ -47,6 +45,7 @@ from qai_hub_models.models.templates.lm_schema import (
     SeqMSESpec,
     WikitextSpec,
 )
+from qai_hub_models.utils.envvars import CheckpointEnvvar
 from qai_hub_models.utils.llm.genie.jobs import (
     GENIE_BUNDLES_ROOT,
     collect_llm_perf_job,
@@ -106,15 +105,17 @@ def stub_llm_checkpoint_resolution(model_cls: type) -> Iterator[pytest.MonkeyPat
     ) -> tuple[str, None]:
         # Llama fetches encodings only and re-exports ONNX from the FP torch
         # model, so its asset store publishes a bare model.encodings.
-        precision_checkpoint = cls.default_checkpoint[precision]
-        encodings_path = Path(
-            CachedWebModelAsset.from_asset_store(
-                cls.model_id,
-                cls.model_asset_version,
-                f"{precision_checkpoint}/model.encodings",
-            ).fetch()
-        )
-        ckpt = encodings_path.parent
+        if CheckpointEnvvar.get():
+            ckpt = Path(cls.fetch_default_checkpoint(precision))
+        else:
+            precision_checkpoint = cls.default_checkpoint[precision]
+            ckpt = Path(
+                CachedWebModelAsset.from_asset_store(
+                    cls.model_id,
+                    cls.model_asset_version,
+                    f"{precision_checkpoint}/model.encodings",
+                ).fetch()
+            ).parent
         _ensure_tokenizer_and_config(cls, ckpt)
         return str(ckpt), None
 
@@ -265,7 +266,7 @@ def run_llm_evaluate_test(
     VLMs don't take them. ``fp_baseline_uses_presplit`` (default True) can be
     set False to route the FP baseline through the split wrapper instead.
     """
-    is_prompts = resolve_task_name(task) in PROMPT_TASKS
+    is_prompts = is_prompt_task(resolve_task_name(task))
     is_unquantized = checkpoint == "DEFAULT_UNQUANTIZED"
     if is_prompts:
         assert tmp_path is not None, "tmp_path is required for prompt-generation tasks"

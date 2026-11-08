@@ -3,20 +3,28 @@ metrics:
   dataset_link: http://vis-www.cs.umass.edu/lfw/
   dataset_name: lfw
   dataset_split_description: LFW standard test split (6000 pairs)
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 98.2
-        qnn_dlc:
-          partial_metric: 98.2
-        tflite:
-          partial_metric: 98.2
-      w8a16:
-        onnx:
-          partial_metric: 100.0
-        qnn_dlc:
-          partial_metric: 100.0
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 98.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 98.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 98.2
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 100.0
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 100.0
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: 'Verification accuracy on LFW pairs: fraction of same/different predictions that match ground truth at the cosine-angle threshold.'
   metric_enablement_threshold: 10.0
   metric_name: Accuracy

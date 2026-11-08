@@ -2,13 +2,16 @@ metrics:
 - dataset_link: https://cocodataset.org/#home
   dataset_name: coco_panoptic_segmentation
   dataset_split_description: val2017 split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        precompiled_qnn_onnx:
-          partial_metric: 0.419
-        qnn_context_binary:
-          partial_metric: 0.419
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 0.419
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_CONTEXT_BINARY
+  - device: Samsung Galaxy S25
+    partial_metric: 0.419
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  higher_is_better: true
   metric_description: A measure of how well all objects in the image were correctly identified and segmented.
   metric_enablement_threshold: 0.1
   metric_name: Panoptic Quality

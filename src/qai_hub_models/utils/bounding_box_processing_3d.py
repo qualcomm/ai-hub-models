@@ -853,3 +853,38 @@ def get_bev_iou_matrix(boxes: np.ndarray, query_boxes: np.ndarray) -> np.ndarray
             inter_area = inter(boxes[i], query_boxes[j])
             iou[i, j] = inter_area / (a1 + a2 - inter_area)
     return iou
+
+
+def get_3d_bbox(scale: np.ndarray, shift: float = 0) -> np.ndarray:
+    """
+    Compute 8 corners of a 3D bounding box.
+
+    Parameters
+    ----------
+    scale
+        Object size (w, h, d), shape (3,), dtype float32.
+    shift
+        Optional scalar offset added to all corners.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape (3, 8) containing the 8 bbox corner coordinates.
+    """
+    bbox_3d = (
+        np.array(
+            [
+                [scale[0] / 2, scale[1] / 2, scale[2] / 2],
+                [scale[0] / 2, scale[1] / 2, -scale[2] / 2],
+                [-scale[0] / 2, scale[1] / 2, scale[2] / 2],
+                [-scale[0] / 2, scale[1] / 2, -scale[2] / 2],
+                [scale[0] / 2, -scale[1] / 2, scale[2] / 2],
+                [scale[0] / 2, -scale[1] / 2, -scale[2] / 2],
+                [-scale[0] / 2, -scale[1] / 2, scale[2] / 2],
+                [-scale[0] / 2, -scale[1] / 2, -scale[2] / 2],
+            ],
+            dtype=np.float32,
+        )
+        + shift
+    )
+    return bbox_3d.T  # (3, 8)

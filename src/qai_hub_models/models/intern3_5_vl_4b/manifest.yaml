@@ -1,24 +1,12 @@
-applicable_scenarios:
-- Dialogue
-- Content Generation
 description: InternVL3.5 is a vision-language model from OpenGVLab capable of understanding both text and images for multimodal reasoning tasks such as visual question answering and image captioning.
 domain: Generative AI
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_multi_graph: true
-has_static_banner: true
 headline: Multimodal 4B vision-language model for text and image understanding.
 id: intern3_5_vl_4b
 is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 license_type: apache-2.0
-llm_details:
-  call_to_action: Download and View Readme
-  genie_compatible: true
 lm_quantization_details:
   w4a16:
     precision:
@@ -80,9 +68,6 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
-related_models:
-- qwen3_vl_4b_instruct
-- qwen3_vl_2b_instruct
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2508.18265
 research_paper_title: InternVL3.5 Advancing Open-Source Multimodal Models in Versatility, Reasoning, and Efficiency
@@ -96,18 +81,12 @@ runtime_technical_details:
     model_infer_id: ai-hub-models/InternVL3_5-4B
 separate_quantize_script: true
 source_repo: https://huggingface.co/OpenGVLab/InternVL3_5-4B
-status: published
 supported_precisions:
 - w4a16
 tags:
 - llm
 - vlm
 - generative-ai
-technical_details:
-  Model architecture: Multimodal Transformer with InternViT Vision Encoder, Qwen-based Large Language Model (LLM) backend, Grouped Query Attention (GQA), and SwiGLU activation. It follows a ViT → MLP → LLM design for efficient vision-language understanding and reasoning.
-  Response Rate: Rate of response generation after the first response token.
-  Supported languages: No exact mention
-  TTFT: Time To First Token is the time it takes to generate the first response token. This is expressed as a range because it varies based on the length of the prompt.
 templates:
 - llm
 - vlm

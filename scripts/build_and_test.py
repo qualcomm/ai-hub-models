@@ -15,6 +15,7 @@ from collections.abc import Callable
 from tasks.aws import ValidateAwsCredentialsTask
 from tasks.changes import (
     PrintCITestModelsTask,
+    ValidateQuantizeInputsTask,
     get_all_models,
 )
 from tasks.constants import (
@@ -37,6 +38,7 @@ from tasks.plan import (
     public_task,
     task,
 )
+from tasks.quantize_and_upload import QuantizeAndUploadTask
 from tasks.release import (
     BuildCLIWheelTask,
     BuildWheelTask,
@@ -467,6 +469,20 @@ class TaskLibrary:
     @public_task("Output list of models to test in CI as comma-separated list")
     def get_ci_test_models(self, plan: Plan) -> str:
         return plan.add_step("get_ci_test_models", PrintCITestModelsTask())
+
+    @public_task(
+        "Check QAIHM_QUANTIZE_MODEL_ID and QAIHM_QUANTIZE_PRECISION for quantize_and_upload."
+    )
+    def validate_quantize_inputs(
+        self, plan: Plan, step_id: str = "validate_quantize_inputs"
+    ) -> str:
+        return plan.add_step(step_id, ValidateQuantizeInputsTask())
+
+    @public_task("Quantize a model, evaluate it and upload the checkpoint to S3.")
+    def quantize_and_upload(
+        self, plan: Plan, step_id: str = "quantize_and_upload"
+    ) -> str:
+        return plan.add_step(step_id, QuantizeAndUploadTask(self.venv_path))
 
     @public_task("Run GPU weekly tests.")
     def test_gpu_models_weekly(

@@ -13,8 +13,8 @@ imports this and adds only its own logic + report.
 
 from __future__ import annotations
 
+import functools
 import importlib
-import math
 from dataclasses import dataclass
 
 import torch
@@ -22,6 +22,9 @@ from dataset import build_source
 from golden import PartCapture, capture_golden
 
 from qai_hub_models import Precision
+from qai_hub_models.models.templates.llm.split_onnx_utils.utils import (
+    get_split_tensors,
+)
 
 
 def resolve_model_module(model_id: str) -> object:
@@ -29,27 +32,26 @@ def resolve_model_module(model_id: str) -> object:
     return importlib.import_module(f"qai_hub_models.models.{model_id}")
 
 
-def layers_per_part(
-    num_layers: int, num_splits: int, split_embedding: bool, split_lm_head: bool
-) -> dict[int, int]:
+@functools.cache
+def _layers_in_graph(onnx_graph_path: str) -> int:
+    """Number of decoder layers in one split ONNX graph (residual boundaries)."""
+    return len(get_split_tensors(onnx_graph_path, include_first_input=False))
+
+
+def layers_per_part(presplit: object) -> dict[int, int]:
     """Map 0-based part index -> number of decoder layers it holds.
 
-    Mirrors split_onnx's block distribution: embedding is Part 1 (0 layers),
-    the transformer blocks spread across the middle parts, LM head optionally
-    its own final part.
+    Counted from each part's actual split ONNX graph (the same residual-add
+    topology split_onnx cuts on), NOT re-derived arithmetically -- so it follows
+    whatever drove the real split (num_layers_per_split, splitting_points,
+    split_embedding / split_lm_head). Embedding / LM-head-only parts count 0.
     """
-    layers = dict.fromkeys(range(num_splits), 0)
-    n_transformer = num_splits - int(split_embedding) - int(split_lm_head)
-    if n_transformer <= 0:
-        return layers
-    per = math.ceil(num_layers / n_transformer)
-    first = 1 if split_embedding else 0
-    remaining = num_layers
-    for k in range(n_transformer):
-        idx = first + k
-        layers[idx] = min(per, remaining)
-        remaining -= layers[idx]
-    return layers
+    return {
+        i: _layers_in_graph(
+            str(presplit.convert_to_onnx_and_split(part_id=i + 1).onnx_graph_path)
+        )
+        for i in range(presplit.num_splits)
+    }
 
 
 def build_split_model(
@@ -63,7 +65,7 @@ def build_split_model(
 
     The wrapper owns the Part instances (all sharing one presplit, so the ONNX
     is exported/split once). Sequence/context lengths are dynamic-path
-    attributes set after construction, as export.py does.
+    attributes set after construction, as the export pipeline does.
     """
     wrapper_cls = getattr(model_module, "QuantizedSplitModelWrapper", None)
     if wrapper_cls is None:
@@ -132,14 +134,14 @@ def build_context(
     split_model._ensure_parts()
     parts = split_model._parts
 
-    num_layers = module.NUM_LAYERS
     num_splits = module.NUM_SPLITS
-    lpp = layers_per_part(
-        num_layers,
-        num_splits,
-        split_embedding=True,
-        split_lm_head=bool(getattr(split_model, "split_lm_head", False)),
-    )
+    lpp = layers_per_part(split_model)
+    print(f"  decoder layers per part: {[lpp[i] for i in range(num_splits)]}")
+    if sum(lpp.values()) != module.NUM_LAYERS:
+        print(
+            f"  WARNING: split graphs hold {sum(lpp.values())} decoder layers, "
+            f"but {model_id}.NUM_LAYERS = {module.NUM_LAYERS}."
+        )
 
     print(f"Loading {dataset} prefill windows ...")
     source = build_source(dataset, split_model.tokenizer, ctx_len, seq_len)

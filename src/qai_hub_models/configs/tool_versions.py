@@ -45,6 +45,26 @@ class ToolVersions(BaseQAIHMConfig):
             litert=self.litert,
         )
 
+    @classmethod
+    def from_proto(cls, proto: tool_versions_pb2.ToolVersions) -> "ToolVersions":
+        return cls(
+            qairt=(
+                QAIRTVersion(proto.qairt, validate_exists_on_ai_hub=False)
+                if proto.HasField("qairt")
+                else None
+            ),
+            geniex=proto.geniex if proto.HasField("geniex") else None,
+            onnx=proto.onnx if proto.HasField("onnx") else None,
+            onnx_runtime=(
+                proto.onnx_runtime if proto.HasField("onnx_runtime") else None
+            ),
+            tflite=proto.tflite if proto.HasField("tflite") else None,
+            litert=proto.litert if proto.HasField("litert") else None,
+            ai_hub_models=(
+                proto.ai_hub_models if proto.HasField("ai_hub_models") else None
+            ),
+        )
+
     @staticmethod
     def from_compiled_model(
         model: hub.Model,

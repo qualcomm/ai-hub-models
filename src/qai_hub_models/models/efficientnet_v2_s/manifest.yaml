@@ -1,24 +1,10 @@
-applicable_scenarios:
-- Medical Imaging
-- Anomaly Detection
-- Inventory Management
-dataset:
-- imagenet-1k
-- imagenet-22k
 datasets:
 - imagenet
 description: EfficientNetV2-s is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Imagenet classifier and general purpose backbone.
 id: efficientnet_v2_s
-imsdk_supported: true
 license: https://github.com/pytorch/vision/blob/main/LICENSE
 license_type: bsd-3-clause
 name: EfficientNet-V2-s
@@ -28,30 +14,15 @@ numerics_benchmark:
   source: https://pytorch.org/vision/stable/models.html
   unit: '%'
   value: 84.2
-private_perf_form_factors:
-- Auto
-related_models:
-- efficientnet_b0
-- efficientnet_b4
-- mobilenet_v2
-- densenet121
-- googlenet
 research_paper: https://arxiv.org/abs/2104.00298
 research_paper_title: 'EfficientNetV2: Smaller Models and Faster Training'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - backbone
 - bu-auto
-technical_details:
-  Input resolution: 384x384
-  Model checkpoint: Imagenet
-  Model size (float): 81.7 MB
-  Model size (w8a16): 27.2 MB
-  Number of parameters: 21.4M
 templates:
 - imagenet_classifier
 use_case: Image Classification

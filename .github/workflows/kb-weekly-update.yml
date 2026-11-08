@@ -3,7 +3,10 @@
 ##
 ## Runs every Sunday at 9am UTC (2am PST).
 ## A Breeze agent reviews resolved nightly and scorecard issues from the past week,
-## evaluates triage accuracy for both, and opens a PR updating .claude/triage/ files.
+## evaluates triage accuracy for both, and proposes edits to .claude/triage/ files.
+##
+## The agent's token cannot read qcom-ai-hub/tetracode and Claude Code blocks edits
+## under .claude/, so CI collects the issues, the agent edits copies, and CI opens the PR.
 ##
 
 name: Weekly KB Update
@@ -19,10 +22,67 @@ on:
           required: false
           type: number
           default: 7
+        test_mode:
+          description: "Test mode: open a draft [TEST] PR and route Slack to #tungsten-debug"
+          required: false
+          type: boolean
+          default: false
+
+env:
+    KB_FILES: error-patterns.md teams.md runtime-guide.md examples.md historical-patterns.md scorecard-patterns.md
 
 jobs:
+    collect-kb-data:
+      name: Collect Tetracode Issues
+      runs-on: aihub-models-ubuntu-2404-ec2
+      permissions:
+        contents: read
+      env:
+        GH_TOKEN: ${{ secrets.STAGING_GH_TOKEN }}
+        TETRACODE_REPO: qcom-ai-hub/tetracode
+        LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}
+      steps:
+        - uses: actions/checkout@v7
+
+        - name: Dump issues and KB files
+          run: |
+            mkdir -p kb-input/issues kb-input/kb
+            NIGHTLY_SINCE=$(date -d "$LOOKBACK_DAYS days ago" +%Y-%m-%d)
+            SCORECARD_SINCE=$(date -d "$((LOOKBACK_DAYS + 7)) days ago" +%Y-%m-%d)
+
+            gh issue list --repo "$TETRACODE_REPO" \
+              --search "[QAIHM Nightly] created:>=$NIGHTLY_SINCE" \
+              --label "ai-hub-models" --state all --limit 20 \
+              --json number,title,state,createdAt,closedAt,labels > kb-input/nightly_issues.json
+            gh issue list --repo "$TETRACODE_REPO" \
+              --search "label:scorecard created:>=$SCORECARD_SINCE" \
+              --state all --limit 20 \
+              --json number,title,state,createdAt,closedAt,labels > kb-input/scorecard_issues.json
+
+            for NUM in $(jq -r '.[].number' kb-input/nightly_issues.json kb-input/scorecard_issues.json | sort -u); do
+              gh api "repos/$TETRACODE_REPO/issues/$NUM" \
+                --jq '{number, state, title, body, labels: [.labels[].name], assignee: .assignee.login, closed_at}' \
+                > "kb-input/issues/$NUM.json"
+              gh api "repos/$TETRACODE_REPO/issues/$NUM/comments" --paginate \
+                --jq '.[] | {author: .user.login, created: .created_at, body: .body[0:8000]}' \
+                > "kb-input/issues/${NUM}_comments.jsonl"
+              gh api "repos/$TETRACODE_REPO/issues/$NUM/timeline" --paginate \
+                --jq '.[] | select(.event=="closed" or .event=="assigned" or .event=="referenced" or .event=="cross-referenced") | {event, actor: .actor.login, assignee: .assignee.login, source: .source.issue.number, commit_id: .commit_id, created: .created_at}' \
+                > "kb-input/issues/${NUM}_timeline.jsonl"
+            done
+
+            for f in $KB_FILES; do cp ".claude/triage/$f" "kb-input/kb/$f"; done
+            echo "Nightly: $(jq length kb-input/nightly_issues.json), scorecard: $(jq length kb-input/scorecard_issues.json)"
+
+        - uses: actions/upload-artifact@v7
+          with:
+            name: kb-input-${{ github.run_id }}
+            path: kb-input/
+            retention-days: 7
+
     kb-weekly-update:
       name: Triage KB Weekly Update
+      needs: [collect-kb-data]
       uses: qcom-eng-Nimbus/custom-templates/.github/workflows/breeze-agent-reusable.yaml@main
       secrets: inherit
       with:
@@ -34,7 +94,6 @@ jobs:
           Write,
           Edit,
           Bash(gh:*),
-          Bash(git:*),
           Bash(cat:*),
           Bash(grep:*),
           Bash(find:*),
@@ -43,51 +102,101 @@ jobs:
           Bash(tail:*),
           Bash(wc:*),
           Bash(mkdir:*),
-          Bash(date:*),
-          mcp__github_file_ops__commit_files
+          Bash(date:*)
         prompt: |
           Review resolved nightly and scorecard issues from the past week, evaluate
-          triage accuracy for both, and propose updates to the triage knowledge base
-          via a PR.
+          triage accuracy for both, and propose updates to the triage knowledge base.
 
           Read .claude/skills/kb-weekly-update/SKILL.md and follow its process exactly.
 
+          Step 0 (do this first):
+            mkdir -p /tmp/claude/kb
+            gh run download ${{ github.run_id }} -n "kb-input-${{ github.run_id }}" -D /tmp/claude/kb
+
           Context variables for the skill:
           - REPO: ${{ github.repository }}
-          - TETRACODE_REPO: qcom-ai-hub/tetracode
+          - KB_INPUT: /tmp/claude/kb
           - LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}
         system_prompt: |
           You are Breeze AI, a triage knowledge base maintainer for QAI Hub Models.
           Your job: review how nightly failure triage AND scorecard regression triage
-          performed this past week, identify improvements, and open a PR with knowledge
-          base updates for human review.
+          performed this past week, identify improvements, and write knowledge base
+          edits plus a PR description for human review.
 
-          IMPORTANT: You have a 50-turn limit. Be efficient:
+          IMPORTANT: You have a 75-turn limit. Be efficient:
           - Read SKILL.md first — it contains ALL instructions
-          - Batch gh API calls — never loop over issues one-by-one
-          - NEVER auto-merge — always create a PR for human review
+          - Tetracode issue data is already in /tmp/claude/kb — do NOT query qcom-ai-hub/tetracode
+            (your token cannot see it; calls will 404 and burn turns)
+          - Do NOT edit .claude/ or run git — a downstream job commits and opens the PR
           - NEVER delete existing knowledge base entries without strong evidence
           - Flag low-confidence updates clearly
 
           Environment:
           - REPO: ${{ github.repository }}
-          - TETRACODE_REPO: qcom-ai-hub/tetracode
+          - KB_INPUT: /tmp/claude/kb
           - LOOKBACK_DAYS: ${{ inputs.lookback_days || '7' }}
-          - Full gh CLI access (authenticated) and complete repo checkout
-          - Write access to create branches and PRs on ${{ github.repository }}
+          - gh CLI authenticated for ${{ github.repository }} only
         bot_name: "breeze-code-action-agent[bot]"
-        max_turns: 50
+        max_turns: 75
         track_progress: false
         show_full_output: true
         claude_output_mode: summary
-        additional_permissions: "contents: write, pull-requests: write, actions: read"
+        additional_permissions: "actions: read"
         sub_category: "kb-weekly-update"
+        artifact_upload: /tmp/claude/kb/kb
+
+    open-kb-pr:
+      name: Open KB Update PR
+      needs: [kb-weekly-update]
+      runs-on: aihub-models-ubuntu-2404-ec2
+      permissions:
+        contents: write
+      outputs:
+        pr_url: ${{ steps.pr.outputs.pr_url }}
+      steps:
+        - uses: actions/checkout@v7
+          with:
+            ref: main
+
+        - uses: actions/download-artifact@v8
+          with:
+            name: kb-weekly-update-artifact
+            path: ${{ runner.temp }}/kb-out
+
+        - name: Commit KB edits and open PR
+          id: pr
+          env:
+            GH_TOKEN: ${{ secrets.STAGING_GH_TOKEN }}
+            KB_OUT: ${{ runner.temp }}/kb-out
+            TITLE_PREFIX: ${{ inputs.test_mode && '[TEST] ' || '' }}
+            DRAFT_FLAG: ${{ inputs.test_mode && '--draft' || '' }}
+          run: |
+            for f in $KB_FILES; do
+              if [ -f "$KB_OUT/$f" ]; then cp "$KB_OUT/$f" ".claude/triage/$f"; fi
+            done
+            if git diff --quiet -- .claude/triage/; then
+              echo "No KB changes proposed; not opening a PR."
+              exit 0
+            fi
+
+            BRANCH="auto/kb-weekly-update-$(date +%Y-%m-%d)-${{ github.run_id }}"
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+            git checkout -b "$BRANCH"
+            git add .claude/triage/
+            git commit -m "Weekly triage KB update — $(date +%Y-%m-%d)"
+            git push -u origin "$BRANCH"
+
+            PR_URL=$(gh pr create --repo "${{ github.repository }}" --base main --head "$BRANCH" $DRAFT_FLAG \
+              --title "${TITLE_PREFIX}[Auto] Weekly triage KB update — $(date +%Y-%m-%d)" \
+              --body-file "$KB_OUT/pr-body.md")
+            echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
 
     notify-czar:
       name: Notify Czar of KB Update PR
-      needs: [kb-weekly-update]
-      if: always()
-      runs-on: [tetra-ubuntu-2204, self-hosted]
+      needs: [kb-weekly-update, open-kb-pr]
+      if: ${{ !cancelled() }}
+      runs-on: aihub-models-ubuntu-2404-ec2
       steps:
         - name: Send Slack Notification
           uses: slackapi/slack-github-action@v4
@@ -95,5 +204,5 @@ jobs:
             method: chat.postMessage
             token: ${{ secrets.SLACK_NOTIFIER_TOKEN }}
             payload: |
-              channel: "C05LEEK0N8J"
-              text: "📚 Weekly Triage KB Update PR created — nightly + scorecard czars please review.\n\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              channel: "${{ inputs.test_mode && 'C09MKAM6AGP' || 'C05LEEK0N8J' }}"
+              text: "${{ inputs.test_mode && '[TEST] ' || '' }}${{ needs.open-kb-pr.outputs.pr_url && format('📚 Weekly Triage KB Update PR created — nightly + scorecard czars please review: {0}', needs.open-kb-pr.outputs.pr_url) || format('⚠️ Weekly Triage KB Update produced no PR (agent: {0}, PR job: {1}).', needs.kb-weekly-update.result, needs.open-kb-pr.result) }}\n\nWorkflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

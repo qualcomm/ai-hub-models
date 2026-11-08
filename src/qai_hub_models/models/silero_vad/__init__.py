@@ -6,7 +6,6 @@
 from qai_hub_models.models.silero_vad.app import SileroVADApp
 from qai_hub_models.models.silero_vad.model import MODEL_ID, SileroVAD
 
-# Alias expected by codegen-generated export.py
 Model = SileroVAD
 App = SileroVADApp
 

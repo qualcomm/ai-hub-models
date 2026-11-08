@@ -1,3 +1,6 @@
+agpose:
+- backbone
+- rotation_head
 bevdet:
 - encoder
 - pooler
@@ -125,26 +128,63 @@ mediapipe_pose:
 - pose_landmark_detector
 melotts_en:
 - encoder
+- sdp
 - flow
 - decoder
 - bert_wrapper
-- t5_encoder
-- t5_decoder
+- charsiu_encoder
+- charsiu_decoder
 melotts_es:
 - encoder
+- sdp
 - flow
 - decoder
-- t5_encoder
-- t5_decoder
+- charsiu_encoder
+- charsiu_decoder
+melotts_ja:
+- encoder
+- sdp
+- flow
+- decoder
+- bert_wrapper
+- charsiu_encoder
+- charsiu_decoder
+melotts_ko:
+- encoder
+- sdp
+- flow
+- decoder
+- bert_wrapper
+- charsiu_encoder
+- charsiu_decoder
 melotts_zh:
 - encoder
+- sdp
 - flow
 - decoder
 - bert_wrapper
 mobilesam:
 - encoder
 - decoder
+opus_mt_de_en:
+- encoder
+- decoder
+opus_mt_en_de:
+- encoder
+- decoder
 opus_mt_en_es:
+- encoder
+- decoder
+opus_mt_en_fr:
+- encoder
+- decoder
+opus_mt_en_it:
+- encoder
+- decoder
+opus_mt_en_ja:
+- encoder
+- decoder
+opus_mt_en_ko:
 - encoder
 - decoder
 opus_mt_en_zh:
@@ -153,12 +193,33 @@ opus_mt_en_zh:
 opus_mt_es_en:
 - encoder
 - decoder
+opus_mt_fr_en:
+- encoder
+- decoder
+opus_mt_it_en:
+- encoder
+- decoder
+opus_mt_ja_en:
+- encoder
+- decoder
+opus_mt_ko_en:
+- encoder
+- decoder
 opus_mt_zh_en:
 - encoder
 - decoder
 owlv2:
 - vision
 - text
+parakeet_tdt:
+- encoder
+- decoder
+- joint
+phi_4_mini_instruct:
+- part1_of_4
+- part2_of_4
+- part3_of_4
+- part4_of_4
 pi05:
 - vision_encoder
 - token_emb
@@ -172,6 +233,13 @@ pipertts_de:
 - charsiu_encoder
 - charsiu_decoder
 pipertts_en:
+- encoder
+- sdp
+- flow
+- decoder
+- charsiu_encoder
+- charsiu_decoder
+pipertts_en_amy:
 - encoder
 - sdp
 - flow

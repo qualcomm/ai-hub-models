@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [PiperTTS-EN-Amy: High-quality text-to-speech for English (Amy voice)](https://aihub.qualcomm.com/models/pipertts_en_amy)
 
 PiperTTS is a high-quality multi-lingual text-to-speech library. This model uses the Amy English voice (medium quality). Its training data is licensed CC-BY-SA-4.0 per the mimic3-voices project (https://github.com/MycroftAI/mimic3-voices).

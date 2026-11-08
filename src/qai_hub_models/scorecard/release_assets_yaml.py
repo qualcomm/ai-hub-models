@@ -7,13 +7,22 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from qai_hub_models_cli.proto import release_assets_pb2
-from qai_hub_models_cli.proto.shared import tool_versions_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    read_proto_yaml,
+    write_proto_yaml,
+)
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.proto_helpers import precision_to_proto, runtime_to_proto
+from qai_hub_models.configs.proto_helpers import (
+    precision_from_proto,
+    precision_to_proto,
+    runtime_from_proto,
+    runtime_to_proto,
+)
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.scorecard import ScorecardProfilePath
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
@@ -41,6 +50,20 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
 
         # Optional: Public download URL (populated for manifest generation)
         download_url: str | None = None
+
+        @classmethod
+        def from_proto(
+            cls, proto: release_assets_pb2.ModelReleaseAssets.AssetDetails
+        ) -> QAIHMModelReleaseAssets.AssetDetails:
+            return cls(
+                s3_key=proto.s3_key if proto.HasField("s3_key") else None,
+                tool_versions=(
+                    ToolVersions.from_proto(proto.tool_versions)
+                    if proto.HasField("tool_versions")
+                    else None
+                ),
+                download_url=proto.download_url or None,
+            )
 
     class PrecisionDetails(BaseQAIHMConfig):
         universal_assets: dict[
@@ -159,42 +182,113 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         return self.precisions[precision].universal_assets.get(path)
 
     def to_proto(
-        self, aihm_version: str, model_id: str
+        self,
+        aihm_version: str,
+        model_id: str,
+        include_internal_fields: bool = False,
     ) -> release_assets_pb2.ModelReleaseAssets:
-        assets: list[release_assets_pb2.ModelReleaseAssets.AssetDetails] = []
-        for precision, prec_details in self.precisions.items():
-            for path, asset in prec_details.universal_assets.items():
-                if asset.download_url:
-                    assets.append(
-                        release_assets_pb2.ModelReleaseAssets.AssetDetails(
-                            precision=precision_to_proto(precision),
-                            runtime=runtime_to_proto(path.runtime),
-                            download_url=asset.download_url,
-                            tool_versions=asset.tool_versions.to_proto()
-                            if asset.tool_versions
-                            else tool_versions_pb2.ToolVersions(),
-                        )
-                    )
-            for chipset, path_dict in prec_details.chipset_assets.items():
-                for path, asset in path_dict.items():
-                    if asset.download_url:
-                        assets.append(
-                            release_assets_pb2.ModelReleaseAssets.AssetDetails(
-                                precision=precision_to_proto(precision),
-                                runtime=runtime_to_proto(path.runtime),
-                                chipset=chipset,
-                                download_url=asset.download_url,
-                                tool_versions=asset.tool_versions.to_proto()
-                                if asset.tool_versions
-                                else tool_versions_pb2.ToolVersions(),
-                            )
-                        )
+        """
+        Build a ``ModelReleaseAssets`` proto.
 
-        return release_assets_pb2.ModelReleaseAssets(
-            aihm_version=aihm_version,
-            model_id=model_id,
-            assets=assets,
+        By default this is the published release proto: only assets with a
+        ``download_url``, never the private ``s3_key``. With
+        ``include_internal_fields`` it is the committed-file form instead: every
+        asset, with its ``s3_key``, and ``tool_versions`` set only when present.
+        """
+        proto = release_assets_pb2.ModelReleaseAssets(
+            aihm_version=aihm_version, model_id=model_id
         )
+        for precision, prec_details in self.precisions.items():
+            groups = [
+                (None, prec_details.universal_assets),
+                *prec_details.chipset_assets.items(),
+            ]
+            for chipset, path_dict in groups:
+                for path, asset in path_dict.items():
+                    if not include_internal_fields and not asset.download_url:
+                        continue
+                    entry = proto.assets.add(
+                        precision=precision_to_proto(precision),
+                        runtime=runtime_to_proto(path.runtime),
+                    )
+                    if chipset:
+                        entry.chipset = chipset
+                    if asset.download_url is not None:
+                        entry.download_url = asset.download_url
+                    if asset.tool_versions is not None:
+                        entry.tool_versions.CopyFrom(asset.tool_versions.to_proto())
+                    if include_internal_fields:
+                        if asset.s3_key is not None:
+                            entry.s3_key = asset.s3_key
+                    else:
+                        entry.tool_versions.SetInParent()
+        return proto
+
+    @classmethod
+    def from_proto(
+        cls, proto: release_assets_pb2.ModelReleaseAssets
+    ) -> QAIHMModelReleaseAssets:
+        """Build the in-memory representation from a ``ModelReleaseAssets`` proto."""
+        # Insert in (precision, chipset, path) name order, the order the old
+        # name-keyed YAML loaded in, so the release proto's order is unchanged.
+        entries = sorted(
+            (
+                (
+                    precision_from_proto(a.precision),
+                    a.chipset if a.HasField("chipset") else None,
+                    ScorecardProfilePath.from_runtime(runtime_from_proto(a.runtime)),
+                    a,
+                )
+                for a in proto.assets
+            ),
+            key=lambda e: (str(e[0]), e[1] or "", str(e[2])),
+        )
+        assets = cls()
+        for precision, chipset, path, asset in entries:
+            assets.add_asset(
+                cls.AssetDetails.from_proto(asset), precision, chipset, path
+            )
+        return assets
+
+    @classmethod
+    def from_yaml(
+        cls, path: str | os.PathLike, create_empty_if_no_file: bool = False
+    ) -> QAIHMModelReleaseAssets:
+        """Read a release-assets.yaml, the YAML form of a ``ModelReleaseAssets`` proto."""
+        if create_empty_if_no_file and (
+            not os.path.exists(path) or os.path.getsize(path) == 0
+        ):
+            return cls()
+        return cls.from_proto(
+            read_proto_yaml(path, release_assets_pb2.ModelReleaseAssets)
+        )
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """
+        Write these assets to ``path`` as the YAML form of a ``ModelReleaseAssets`` proto.
+
+        If there are no assets, any existing file at ``path`` is deleted instead.
+
+        Parameters
+        ----------
+        path
+            Where to write the file.
+        **kwargs
+            Unused. Accepted so the signature matches ``BaseQAIHMConfig.to_yaml``.
+
+        Returns
+        -------
+        written : bool
+            True if the file was written.
+        """
+        path = Path(path)
+        proto = self.to_proto("", "", include_internal_fields=True)
+        if not proto.assets:
+            path.unlink(missing_ok=True)
+            return False
+        proto.assets.sort(key=lambda a: (a.precision, a.chipset, a.runtime))
+        write_proto_yaml(proto, path)
+        return True
 
     @classmethod
     def from_model(

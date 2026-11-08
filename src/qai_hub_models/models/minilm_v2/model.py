@@ -49,7 +49,7 @@ class AllMiniLML6V2(BaseModel):
 
     @classmethod
     def from_pretrained(cls, weights: str = HF_MODEL_ID) -> Self:
-        model = AutoModel.from_pretrained(weights)
+        model = AutoModel.from_pretrained(weights, attn_implementation="eager")
         return cls(model)
 
     def forward(

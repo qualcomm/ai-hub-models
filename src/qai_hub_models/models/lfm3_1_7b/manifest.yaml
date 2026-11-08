@@ -1,0 +1,33 @@
+description: LFM3 is a family of hybrid language models from Liquid AI designed for fast, high-quality on-device deployment. The 1.7B model is tuned for instruction following, chat, and tool use.
+domain: Generative AI
+headline: Compact 1.7B hybrid language model from Liquid AI built for on-device deployment.
+id: lfm3_1_7b
+license: https://www.liquid.ai/lfm-license
+license_type: lfm1.0
+model_type_llm: true
+name: LFM3-1.7B
+numerics_benchmark:
+  dataset_name: grace2
+  metric_name: Grace2
+  source: AI Hub Models Reference Eval
+  unit: '%'
+  value: 80.2
+orchestrator_runtimes:
+- geniex_llamacpp
+research_paper: https://www.liquid.ai/blog/lfm3
+research_paper_title: 'Introducing LFM3: Every Modality for Specialized Intelligence'
+runtime_technical_details:
+  geniex_llamacpp:
+    Model Size: 1.05 GB
+    Quantization Type: Q4_0 (GGUF, quantization-aware distillation)
+    Supported Input Modalities: text
+    Supported Output Modalities: text
+    model_infer_id: LiquidAI/LFM3-1.7B-GGUF
+skip_example_usage: true
+source_repo: https://huggingface.co/LiquidAI/LFM3-1.7B
+supported_precisions:
+- q4_0
+tags:
+- llm
+- generative-ai
+use_case: Text Generation

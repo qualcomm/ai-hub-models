@@ -79,12 +79,20 @@ and MUST satisfy all of the following:
   `src/qai_hub_models/utils/device.py::CANARY_DEVICES` for the current
   list — typically the flagship Snapdragon Galaxy / Elite phones and a
   laptop reference device).
+- Website/catalog fields live in
+  `src/qai_hub_models/scorecard/models/<id>/scorecard-config.yaml`, not
+  `manifest.yaml`: `applicable_scenarios`, `dataset`, `form_factors`,
+  `has_animated_banner`, `has_static_banner`, `imsdk_supported`,
+  `llm_details`, `model_maker_id`, `numerics_benchmark`,
+  `private_perf_form_factors`, `related_models`, `status`,
+  `status_reason`, `technical_details`. Every in-tree model must have
+  this file.
 - `related_models` does not include the recipe's own id (no self-links).
-- **`status:` is always set for in-tree recipes.** The onboarding PR
-  always ships with `status: pending` — never omit the field, never use
-  `status: unset`, never set `status: published` on the first PR.
-  `pending` means "waiting for scorecard to collect perf data before
-  being published"; the manifest gets flipped to `published` in a
+- **`status:` is required in `scorecard-config.yaml`** (it is rejected in
+  `manifest.yaml`). The onboarding PR always ships with `status: pending`
+  — never set `status: published` on the first PR. `pending` means
+  "waiting for scorecard to collect perf data before being published"
+  and needs no `status_reason`; it gets flipped to `published` in a
   follow-up PR once the scorecard has generated `perf.yaml` and the
   static banner has landed. `unpublished` is reserved for models that
   are being intentionally held back (and requires `status_reason:`
@@ -105,9 +113,10 @@ and MUST satisfy all of the following:
   `llm_details.call_to_action` and `restrict_model_sharing` fields
   agree (see `_check_website_facing` for the exact rule).
 
-Copy from a similar published model in `src/qai_hub_models/models/` to
-get the field shape right (and remember to change `status: published` →
-`status: pending` in your copy).
+Copy from a similar published model in `src/qai_hub_models/models/` (and
+its `scorecard/models/<id>/scorecard-config.yaml`) to get the field shape
+right, and remember to change `status: published` → `status: pending` in
+your copy of the scorecard config.
 
 ### 4. Static banner + web assets
 
@@ -115,7 +124,7 @@ Published in-tree recipes need a static banner uploaded to the AI Hub
 web-asset bucket. This is out-of-scope for the authoring PR — file an
 issue for the assets team, ship the recipe as `status: pending`, and
 flip to `published` once the banner lands. `has_static_banner: true` in
-the manifest is the promise that the file exists at
+`scorecard-config.yaml` is the promise that the file exists at
 `ASSET_CONFIG.get_web_asset_url(id, QAIHM_WEB_ASSET.STATIC_IMG)`; the
 in-tree HEAD-check in `test_manifest_yamls.py` will fail if it doesn't.
 
@@ -218,7 +227,7 @@ This skill does NOT restate:
   required fields, license consistency, mixed-precision rules,
   external-repo SHA form, python-version reasons). Those are in
   `onboard`.
-- CollectionModel / SourceAsRoot / quantization / evaluator wiring —
+- CollectionModel / quantization / evaluator wiring —
   all in `onboard` and its linked sub-guides.
 - `qai-hub-models validate` report card categories — `onboard`
   §Authoring correctness.

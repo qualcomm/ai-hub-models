@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Scenario detection
-dataset:
-- nuscene
 description: Simple-Bev is a machine learning model for generating a bird's eye view representation from the sensors (cameras) mounted on a vehicle. It uses ResNet-101 as the backbone and segnet as a segmentation model for specific use cases.
 disabled_paths:
   float:
@@ -17,29 +13,14 @@ external_repos:
     commit_sha: be46f0ef71960c233341852f3d9bc3677558ab6d
     patches_filename: simple_bev_patches.diff
     repo_url: https://github.com/aharley/simple_bev
-form_factors:
-- Phone
-- Tablet
-- IoT
-has_animated_banner: true
-has_static_banner: true
 headline: Construct a bird's eye view from sensors mounted on a vehicle.
 id: simple_bev_cam
 license: https://github.com/aharley/simple_bev/blob/main/LICENSE
 license_type: bsd-3-clause
 name: Simple-Bev
-related_models:
-- unet_segmentation
 research_paper: https://arxiv.org/abs/2206.07959
 research_paper_title: 'Simple-BEV: What Really Matters for Multi-Sensor BEV Perception?'
 source_repo: https://github.com/aharley/simple_bev/blob/main/nets/segnet.py
-status: pending
-status_reason: No successful runtimes in scorecard (this field was auto-populated by the scorecard run)
 tags:
 - bu-auto
-technical_details:
-  Input resolution: 448 x 800
-  Model checkpoint: model-000025000.pth
-  Model size (float): 190 MB
-  Number of parameters: 49.7M
 use_case: Image Generation

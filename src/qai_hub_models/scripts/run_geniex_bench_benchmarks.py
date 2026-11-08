@@ -18,9 +18,11 @@ from qai_hub_models import Precision, QAIRTVersion, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.configs.tool_versions import ToolVersions
-from qai_hub_models.models.templates.llm.grader.grace import (
-    load_eval_prompts,
-    select_balanced,
+from qai_hub_models.datasets.device_eval import (
+    DEFAULT_DEVICE_EVAL_DATASET,
+    DeviceEvalItem,
+    label_eval_results,
+    load_device_eval_items,
 )
 from qai_hub_models.models.templates.llm.perf_collection import (
     load_release_assets_for_model,
@@ -79,14 +81,6 @@ ALL_GENIEX_DEVICES = (
 )
 LLAMACPP_DEVICE_ALIASES = ("cpu", "gpu", "npu")
 LLAMACPP_CONTEXT_LENGTHS = [512, 4096]
-
-# Prompt length the TTFT range's lower bound refers to: one QAIRT prefill chunk.
-# Unrelated to the bench's generation-token count, which happens to also be 128.
-_TTFT_BASELINE_PROMPT_TOKENS = 128
-
-# Number of accuracy-eval prompts to run (of the built-in 100-prompt set). A
-# smaller number is sampled evenly across the 10 categories, not sliced.
-_EVAL_NUM_PROMPTS = 100
 
 # Queued (not running) jobs allowed per device type: enough that a freed phone
 # picks up the next job immediately, small enough that nothing waits for hours.
@@ -315,7 +309,7 @@ def _print_job_banner(
     context_lengths: list[int],
     geniex_version: str | None,
     run_perf: bool = True,
-    eval_prompts: list[str] | None = None,
+    eval_items: list[DeviceEvalItem] | None = None,
     qairt_version: str | None = None,
 ) -> None:
     print(f"\n{'=' * 60}")
@@ -326,9 +320,9 @@ def _print_job_banner(
     print(f"Ctx:     {context_lengths}")
     print(f"GenieX:  {geniex_version or 'latest stable mirror'}")
     if plugin == "qairt":
-        print(f"QAIRT:   {qairt_version or 'bundled with geniex-bench'}")
+        print(f"QAIRT:   {qairt_version}")
     print(f"Perf:    {'on' if run_perf else 'off'}")
-    print(f"Eval:    {'on' if eval_prompts else 'off'}")
+    print(f"Eval:    {f'on ({len(eval_items)} prompts)' if eval_items else 'off'}")
     print(f"{'=' * 60}")
 
 
@@ -343,7 +337,7 @@ def _submit_one(
     precision: Precision,
     jobs_file: str,
     llamacpp_quant: str | None = None,
-    eval_prompts: list[str] | None = None,
+    eval_items: list[DeviceEvalItem] | None = None,
     run_perf: bool = True,
     qairt_version: str | None = None,
 ) -> str:
@@ -364,7 +358,7 @@ def _submit_one(
         context_lengths,
         geniex_version,
         run_perf,
-        eval_prompts,
+        eval_items,
         qairt_version,
     )
 
@@ -386,7 +380,7 @@ def _submit_one(
         job_name=job_name,
         geniex_version=geniex_version,
         llamacpp_quant=llamacpp_quant,
-        eval_prompts=eval_prompts,
+        eval_prompts=_prompt_texts(eval_items),
         run_perf=run_perf,
         qairt_bundle_urls=qairt_bundle_urls,
         qairt_version=qairt_version,
@@ -396,20 +390,24 @@ def _submit_one(
     return job_id
 
 
+def _prompt_texts(eval_items: list[DeviceEvalItem] | None) -> list[str] | None:
+    return [item.prompt for item in eval_items] if eval_items else None
+
+
 def _has_all_results(
     metrics: list[GenieXBenchMetrics],
     eval_results: list[dict],
     plugin: str,
     ctx_list: list[int],
-    eval_prompts: list[str] | None,
+    eval_items: list[DeviceEvalItem] | None,
     run_perf: bool,
 ) -> bool:
-    if not run_perf and not eval_prompts:
+    if not run_perf and not eval_items:
         return False
     expected = {(a, c) for a in _device_alias(plugin).split(",") for c in ctx_list}
     got = {(m.device_alias, m.context_length) for m in metrics}
     perf_ok = not run_perf or expected <= got
-    eval_ok = not eval_prompts or len(eval_results) >= len(eval_prompts)
+    eval_ok = not eval_items or len(eval_results) >= len(eval_items)
     return perf_ok and eval_ok
 
 
@@ -422,7 +420,7 @@ def _collect_attempt(
     job_id: str,
     save_dir_root: str,
     ctx_list: list[int],
-    eval_prompts: list[str] | None,
+    eval_items: list[DeviceEvalItem] | None,
     run_perf: bool,
 ) -> tuple[list[GenieXBenchMetrics], list[dict], JobOutcome, str | None, str | None]:
     """Collect one job. Returns ``(metrics, eval_results, outcome, reason, kept_failure)``.
@@ -438,14 +436,16 @@ def _collect_attempt(
         sd.reference_device_name,
         job_id,
         save_results_dir=os.path.join(save_dir_root, model_id, sd.name),
-        eval_prompts=eval_prompts,
+        eval_prompts=_prompt_texts(eval_items),
         run_perf=run_perf,
         save_logs_dir=logs_dir,
     )
+    if eval_items:
+        eval_results = label_eval_results(eval_results, eval_items)
     # e.g. geniex-bench segfaulting in teardown fails the job after every
     # result landed; a resubmit would crash the same way.
     if outcome is not JobOutcome.SUCCESS and _has_all_results(
-        metrics, eval_results, plugin, ctx_list, eval_prompts, run_perf
+        metrics, eval_results, plugin, ctx_list, eval_items, run_perf
     ):
         print(f"Keeping all results from failed job: {reason}")
         return metrics, eval_results, JobOutcome.SUCCESS, reason, reason
@@ -456,7 +456,7 @@ def _final_status(
     metrics: list[GenieXBenchMetrics],
     eval_results: list[dict],
     run_perf: bool,
-    eval_prompts: list[str] | None,
+    eval_items: list[DeviceEvalItem] | None,
 ) -> str:
     if metrics:
         return "success"
@@ -465,8 +465,8 @@ def _final_status(
     # per prompt sent; a short count means the run crashed or was truncated.
     if run_perf:
         return "no_metrics"
-    if eval_prompts and len(eval_results) != len(eval_prompts):
-        return f"eval_incomplete ({len(eval_results)}/{len(eval_prompts)})"
+    if eval_items and len(eval_results) != len(eval_items):
+        return f"eval_incomplete ({len(eval_results)}/{len(eval_items)})"
     return "eval_only"
 
 
@@ -478,7 +478,7 @@ def _collect_one(
     record: JobRecord,
     save_dir_root: str,
     ctx_list: list[int],
-    eval_prompts: list[str] | None = None,
+    eval_items: list[DeviceEvalItem] | None = None,
     run_perf: bool = True,
 ) -> tuple[list[GenieXBenchMetrics], list[dict], str, str | None]:
     """Poll a submitted geniex-bench job. A failed job whose logs hold every
@@ -504,7 +504,7 @@ def _collect_one(
             job_id,
             save_dir_root,
             ctx_list,
-            eval_prompts,
+            eval_items,
             run_perf,
         )
         job_failure = kept or job_failure
@@ -519,7 +519,7 @@ def _collect_one(
         )
         return [], [], "failed", None
 
-    status = _final_status(metrics, eval_results, run_perf, eval_prompts)
+    status = _final_status(metrics, eval_results, run_perf, eval_items)
     return metrics, eval_results, status, job_failure
 
 
@@ -563,12 +563,6 @@ def _rows_from_metrics(
                 if plugin == "qairt"
                 else ScorecardProfilePath.GENIEX_LLAMACPP
             )
-            assert m.prompt_tokens > 0, (
-                f"prompt_tokens must be > 0 for TTFT range scaling, "
-                f"got {m.prompt_tokens}"
-            )
-            ttft_min = m.ttft_ms * (_TTFT_BASELINE_PROMPT_TOKENS / m.prompt_tokens)
-            ttft_max = m.ttft_ms * (m.context_length / m.prompt_tokens)
             # report.c writes qairt_version unconditionally on every cell
             # regardless of --plugin, so it's only meaningful for qairt-plugin
             # cells -- an llama_cpp cell's qairt_version reflects whatever
@@ -587,9 +581,7 @@ def _rows_from_metrics(
                 precision=precision,
                 context_length=m.context_length,
                 tps=m.decode_tps,
-                ttft_ms=ttft_min,
                 prefill_tps=m.prefill_tps,
-                ttft_max_ms=ttft_max,
                 profile_path=profile_path,
                 desired_compute_unit=m.device_alias,
                 tool_versions=tool_versions,
@@ -772,9 +764,15 @@ def _add_shared_args(parser: argparse.ArgumentParser) -> None:
         "--run-eval",
         action="store_true",
         default=os.environ.get("QAIHM_RUN_EVAL", "").lower() == "true",
-        help="Also collect the 100-prompt accuracy eval (geniex-bench "
-        "--accuracy) and write *_eval.json for grading. Defaults to the "
+        help="Also collect the accuracy eval (geniex-bench --accuracy) on "
+        "--eval-dataset and write *_eval.json for grading. Defaults to the "
         "QAIHM_RUN_EVAL env var.",
+    )
+    parser.add_argument(
+        "--eval-dataset",
+        default=os.environ.get("QAIHM_EVAL_DATASET") or DEFAULT_DEVICE_EVAL_DATASET,
+        help="Device-eval dataset to run with --run-eval. Defaults to the "
+        "QAIHM_EVAL_DATASET env var, else %(default)s.",
     )
     parser.add_argument(
         "--no-run-perf",
@@ -787,23 +785,22 @@ def _add_shared_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _resolve_eval_prompts(run_eval: bool) -> list[str] | None:
-    """Load the eval prompt set, capped to _EVAL_NUM_PROMPTS across categories."""
-    if not run_eval:
+def _resolve_eval_items(args: argparse.Namespace) -> list[DeviceEvalItem] | None:
+    if not args.run_eval:
         return None
-    return [p.prompt for p in select_balanced(load_eval_prompts(), _EVAL_NUM_PROMPTS)]
+    return load_device_eval_items(args.eval_dataset)
 
 
 def _eval_prompts_for_device(
-    eval_prompts: list[str] | None, sd: ScorecardDevice, devices_setting: str
-) -> list[str] | None:
+    eval_items: list[DeviceEvalItem] | None, sd: ScorecardDevice, devices_setting: str
+) -> list[DeviceEvalItem] | None:
     """Restrict the accuracy eval to the run's single accuracy device.
 
     Shares ``resolve_llm_eval_device`` with the genie path, so both honor the
     same rule: cs_x_elite normally, or the one device the caller named when
     they named exactly one.
     """
-    return eval_prompts if sd == resolve_llm_eval_device(devices_setting) else None
+    return eval_items if sd == resolve_llm_eval_device(devices_setting) else None
 
 
 def _save_eval_results(
@@ -812,6 +809,7 @@ def _save_eval_results(
     sd: ScorecardDevice,
     precision: Precision,
     plugin: str,
+    dataset_name: str,
 ) -> None:
     if not eval_results:
         return
@@ -830,6 +828,7 @@ def _save_eval_results(
         str(precision),
         f"{base}.meta.json",
         path=profile_path,
+        dataset_name=dataset_name,
     )
 
 
@@ -840,14 +839,16 @@ def _add_output_args(parser: argparse.ArgumentParser) -> None:
 
 
 def _resolve_qairt_version(args: argparse.Namespace) -> str | None:
-    """Software Center SDK version to swap in on-device, or None to keep the bundled QAIRT."""
+    """Software Center SDK version to swap in on-device, or None for llama_cpp."""
     if args.plugin == "llama_cpp":
         return None
-    return QAIRTVersionEnvvar.get_on_device_sdk_version(args.qairt_version)
+    return QAIRTVersionEnvvar.get_on_device_sdk_version(
+        TargetRuntime.GENIEX_QAIRT, args.qairt_version
+    )
 
 
 def _cmd_submit(args: argparse.Namespace) -> int:
-    eval_prompts = _resolve_eval_prompts(args.run_eval)
+    eval_items = _resolve_eval_items(args)
     qairt_version = _resolve_qairt_version(args)
     if os.path.exists(args.jobs_file):
         os.unlink(args.jobs_file)
@@ -882,8 +883,8 @@ def _cmd_submit(args: argparse.Namespace) -> int:
                 precision,
                 args.jobs_file,
                 llamacpp_quant=llamacpp_quant,
-                eval_prompts=_eval_prompts_for_device(
-                    eval_prompts, _scorecard_device(device_token), args.devices
+                eval_items=_eval_prompts_for_device(
+                    eval_items, _scorecard_device(device_token), args.devices
                 ),
                 run_perf=args.run_perf,
                 qairt_version=qairt_version if plugin == "qairt" else None,
@@ -916,7 +917,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
     same _iter_work discovery the submit side used and look each
     (model, precision, plugin, device) tuple up in the jobs_file by key.
     """
-    eval_prompts = _resolve_eval_prompts(args.run_eval)
+    eval_items = _resolve_eval_items(args)
     rows: list[dict] = []
     records = load_jobs(args.jobs_file)
     for (
@@ -978,7 +979,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
                 record=record,
                 save_dir_root=args.results_dir,
                 ctx_list=ctx_list,
-                eval_prompts=_eval_prompts_for_device(eval_prompts, sd, args.devices),
+                eval_items=_eval_prompts_for_device(eval_items, sd, args.devices),
                 run_perf=args.run_perf,
             )
         except Exception as e:
@@ -1008,6 +1009,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
             status,
             job_failure,
             args.skip_perf_update,
+            args.eval_dataset,
         )
 
     return _write_final_outputs(rows, args.csv)
@@ -1036,9 +1038,10 @@ def _record_outcome(
     status: str,
     job_failure: str | None,
     skip_perf_update: bool,
+    eval_dataset: str,
 ) -> None:
     """Fold one finished (model, precision, device) into the output rows."""
-    _save_eval_results(eval_results, model_id, sd, precision, plugin)
+    _save_eval_results(eval_results, model_id, sd, precision, plugin, eval_dataset)
 
     # Its results are applied like any other, but the extra row keeps the
     # failed job red in the CSV, step summary, and exit code.
@@ -1069,7 +1072,7 @@ class _Case:
     model_ref: str
     ctx_list: list[int]
     llamacpp_quant: str | None
-    eval_prompts: list[str] | None
+    eval_items: list[DeviceEvalItem] | None
     job_id: str | None = None
 
     @property
@@ -1092,7 +1095,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     Shared-pool QDC jobs are further capped at ``QDC_MAX_UNFINISHED_JOBS``
     unfinished at once across the whole account.
     """
-    eval_prompts = _resolve_eval_prompts(args.run_eval)
+    eval_items = _resolve_eval_items(args)
     qairt_version = _resolve_qairt_version(args)
     if os.path.exists(args.jobs_file):
         os.unlink(args.jobs_file)
@@ -1116,7 +1119,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
                 model_ref,
                 ctx,
                 quant,
-                _eval_prompts_for_device(eval_prompts, sd, args.devices),
+                _eval_prompts_for_device(eval_items, sd, args.devices),
             )
         )
 
@@ -1139,7 +1142,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             case.precision,
             args.jobs_file,
             llamacpp_quant=case.llamacpp_quant,
-            eval_prompts=case.eval_prompts,
+            eval_items=case.eval_items,
             run_perf=args.run_perf,
             qairt_version=qairt_version if case.plugin == "qairt" else None,
         )
@@ -1179,6 +1182,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             status,
             kept,
             args.skip_perf_update,
+            args.eval_dataset,
         )
 
     def _collect(case: _Case) -> None:
@@ -1192,11 +1196,11 @@ def _cmd_run(args: argparse.Namespace) -> int:
             case.job_id,
             args.results_dir,
             case.ctx_list,
-            case.eval_prompts,
+            case.eval_items,
             args.run_perf,
         )
         if outcome is JobOutcome.SUCCESS:
-            status = _final_status(metrics, evals, args.run_perf, case.eval_prompts)
+            status = _final_status(metrics, evals, args.run_perf, case.eval_items)
             _finish(case, status, metrics, evals, kept)
         else:
             print(f"ERROR: {reason} for {case.name}", file=sys.stderr)

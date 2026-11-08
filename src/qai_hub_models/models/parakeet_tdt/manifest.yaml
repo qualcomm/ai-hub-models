@@ -1,0 +1,39 @@
+description: Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using TDT architecture with a FastConformer encoder and 2-layer LSTM predictor, split into Encoder, Decoder, and Joint components for efficient on-device inference across English and 25 European languages.
+disabled_paths:
+  float:
+    tflite:
+      scorecard_failure: 'Failing jobs: j57no0kvp'
+  mixed:
+    onnx:
+      scorecard_failure: 'Failing jobs: jprdxe8eg'
+    qnn_dlc:
+      scorecard_failure: 'Failing jobs: jpex6wm7g'
+  mixed_with_float:
+    tflite:
+      scorecard_failure: 'Failing jobs: jp8rj06kg'
+domain: Audio
+headline: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture.
+id: parakeet_tdt
+is_collection_model: true
+license: https://creativecommons.org/licenses/by/4.0/legalcode.en
+license_type: cc-by-4.0
+name: Parakeet-TDT-0.6B-v3
+numerics_benchmark:
+  dataset_name: libri_speech
+  metric_name: Word Error Rate
+  source: https://github.com/qcom-ai-hub/tetracode/issues/22220
+  unit: WER
+  value: 3.964
+post_pip_install_commands:
+- pip install transformers==5.15.0 soundfile==0.14.0 librosa==0.10.0
+research_paper: https://arxiv.org/abs/2509.14128
+research_paper_title: 'Canary-1B-v2 & Parakeet-TDT-0.6B-v3: Efficient and High-Performance Models for Multilingual ASR and AST'
+source_repo: https://github.com/NVIDIA/NeMo
+supported_precisions:
+- float
+- mixed_with_float
+- mixed
+tags:
+- foundation
+- real-time
+use_case: Speech Recognition

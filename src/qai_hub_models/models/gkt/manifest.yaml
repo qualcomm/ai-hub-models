@@ -1,7 +1,3 @@
-applicable_scenarios:
-- Object Detection
-dataset:
-- nuscene
 datasets:
 - nuscenes
 description: Geometry-guided Kernel Transformer is a machine learning model for generating a birds eye view represenation from the sensors(cameras) mounted on a vehicle.
@@ -12,14 +8,7 @@ external_repos:
     commit_sha: 104c27f66799f620e54eb0242509ee3b041ae426
     patches_filename: gkt_patches.diff
     repo_url: https://github.com/hustvl/GKT.git
-form_factors:
-- Phone
-- Tablet
-- IoT
-- Auto
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Construct a bird’s eye view from sensors mounted on a vehicle.
 id: gkt
 license: https://github.com/hustvl/GKT/blob/main/LICENSE
@@ -27,21 +16,13 @@ license_type: mit
 name: GKT
 pre_pip_install_commands:
 - pip install nuscenes-devkit==1.2.0 --no-deps
-related_models:
-- simple_bev_cam
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2206.04584
 research_paper_title: Efficient and Robust 2D-to-BEV Representation Learning via Geometry-guided Kernel Transformer
 source_repo: https://github.com/hustvl/GKT/
-status: published
 supported_precisions:
 - float
 - w8a16_mixed_fp16
-technical_details:
-  Input resolution: 1 x 6 x 3 x 224 x 480
-  Model checkpoint: map_segmentation_gkt_7x1_conv_setting2.ckpt
-  Model size: 4.66 MB
-  Number of parameters: 1.18M
 templates:
 - cvt_gkt
 use_case: Driver Assistance

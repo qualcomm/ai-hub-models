@@ -3,18 +3,24 @@ metrics:
   dataset_link: https://github.com/cvdfoundation/kinetics-dataset
   dataset_name: kinetics400
   dataset_split_description: part 0 of the validation split
-  device_metric:
-    Samsung Galaxy S25:
-      float:
-        onnx:
-          partial_metric: 70.0
-        tflite:
-          partial_metric: 70.0
-      w8a8:
-        onnx:
-          partial_metric: 70.0
-        tflite:
-          partial_metric: 70.0
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 70.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 70.0
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 70.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 70.0
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
   metric_description: Percentage of top 1 model predictions that are correct.
   metric_enablement_threshold: 10.0
   metric_name: Top-1 Accuracy

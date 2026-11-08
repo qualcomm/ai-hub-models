@@ -325,8 +325,8 @@ class YoloWorld(WorkbenchModelCollection):
     """YoloWorld collection model: image detector + CLIP text encoder.
 
     Component order puts the detector first so that component[0].get_input_spec()
-    returns an image spec, which is what the auto-generated evaluate.py and
-    export.py templates expect (they use [0] to configure the dataset/inference).
+    returns an image spec, which is what the evaluate pipeline and the export
+    pipeline expect (they use [0] to configure the dataset/inference).
         [0] detector      — input_spec: {"image": ..., "txt_feats": ...}
         [1] text_encoder  — input_spec: {"tokens": ...}
     """

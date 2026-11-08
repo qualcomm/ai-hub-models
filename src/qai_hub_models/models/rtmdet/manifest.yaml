@@ -1,10 +1,3 @@
-applicable_scenarios:
-- Factory Automation
-- Robotic Navigation
-- Camera
-- Security and Surveillance
-dataset:
-- COCO
 description: RTMDet is a highly efficient model for real-time object detection,capable of predicting both the bounding boxes and classes of objects within an image.It is highly optimized for real-time applications, making it reliable for industrial and commercial use
 disabled_paths:
   float:
@@ -14,17 +7,9 @@ disabled_paths:
     qnn_dlc:
       scorecard_failure: 'Failing jobs: jgzl0v145'
 domain: Computer Vision
-form_factors:
-- Phone
-- Tablet
-- IoT
-- XR
-has_animated_banner: true
 has_on_target_demo: true
-has_static_banner: true
 headline: Real-time object detection optimized for mobile and edge.
 id: rtmdet
-imsdk_supported: true
 license: https://github.com/open-mmlab/mmdetection/blob/3.x/LICENSE
 license_type: apache-2.0
 name: RTMDet
@@ -34,25 +19,15 @@ numerics_benchmark:
   source: https://github.com/open-mmlab/mmdetection/tree/3.x/configs/rtmdet
   unit: mAP
   value: 49.4
-related_models:
-- yolov6
-- yolov7
-- yolov8_det
 research_paper: https://github.com/open-mmlab/mmdetection/blob/3.x/README.md
 research_paper_title: 'RTMDet: An Empirical Study of Designing Real-Time Object Detectors'
 restrict_model_sharing: true
 source_repo: https://github.com/open-mmlab/mmdetection/tree/3.x/configs/rtmdet
-status: published
 supported_precisions:
 - float
 - w8a16
 tags:
 - real-time
-technical_details:
-  Input resolution: 640x640
-  Model checkpoint: RTMDet Medium
-  Model size (float): 105 MB
-  Number of parameters: 27.5M
 templates:
 - yolo
 use_case: Object Detection
