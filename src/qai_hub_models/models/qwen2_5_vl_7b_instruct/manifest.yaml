@@ -9,45 +9,6 @@ is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 license_type: apache-2.0
-lm_quantization_details:
-  w4a16:
-    precision:
-      activations: int16
-      blocks:
-        granularity: PCQ
-        qtype: int4
-      embedding: int16
-      kv_cache: int8
-      lm_head:
-        granularity: PCQ
-        qtype: int8
-      visual:
-        activations: int16
-        weight:
-          granularity: PCQ
-          qtype: int8
-    recipe:
-      backbone:
-      - dataset:
-          name: Wikitext
-          split: train
-        name: SeqMSE
-        num_iterations: 20
-      - dataset:
-          name: Interleaved
-          source_datasets:
-          - name: AOKVQA
-            split: train
-          - name: Wikitext
-            split: train
-        name: Calibration
-        num_iterations: 20
-      visual:
-      - dataset:
-          name: Imagenette
-          split: train
-        name: Calibration
-        num_iterations: 64
 local_device_deployment: true
 model_type_llm: true
 name: Qwen2.5-VL-7B-Instruct

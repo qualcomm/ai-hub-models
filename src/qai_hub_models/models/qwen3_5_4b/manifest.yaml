@@ -6,19 +6,6 @@ is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/Qwen/Qwen3.5-4B/blob/main/LICENSE
 license_type: apache-2.0
-lm_quantization_details:
-  w4a16:
-    recipe:
-    - dataset:
-        name: Wikitext
-        split: train
-      name: AdaScale
-      num_batches: 128
-      num_iterations: 2048
-    - dataset:
-        name: Wikitext
-        split: train
-      name: Calibration
 model_type_llm: true
 name: Qwen3.5-4B
 only_allow_orchestrator_runtimes: true

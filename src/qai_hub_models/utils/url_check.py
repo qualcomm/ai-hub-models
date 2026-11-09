@@ -108,6 +108,7 @@ def head_check_urls(urls: list[tuple[str, str]]) -> list[str]:
             # qwen.ai: 405). We also ignore those.
             if status not in [
                 requests.codes.ok,
+                requests.codes.no_content,
                 requests.codes.accepted,
                 requests.codes.too_many_requests,
                 requests.codes.method_not_allowed,

@@ -319,7 +319,7 @@ def run_llm_evaluate_test(
 
 
 # =============================================================================
-# Recipe-driven quantize path (lm_quantization_details). Pure/deterministic:
+# Recipe-driven quantize path (lm_recipe.yaml). Pure/deterministic:
 # recipe resolution, precision derivation, dataset resolution, and
 # quantize_from_steps dispatch. Prefill and the aimet _apply_* calls are mocked.
 # =============================================================================
@@ -361,11 +361,11 @@ class TestResolveQuantizeRecipe:
     def _patch_manifest(
         self, monkeypatch: pytest.MonkeyPatch, details_by_precision: dict
     ) -> None:
-        import qai_hub_models.configs.manifest_yaml as m
+        import qai_hub_models.configs.lm_recipe_yaml as m
 
-        fake_manifest = SimpleNamespace(lm_quantization_details=details_by_precision)
+        fake_recipe = SimpleNamespace(get=details_by_precision.get)
         monkeypatch.setattr(
-            m.QAIHMModelManifest, "from_model", staticmethod(lambda _mid: fake_manifest)
+            m.LMRecipe, "from_model", staticmethod(lambda _mid: fake_recipe)
         )
 
     def test_precision_name_reads_manifest(
@@ -384,7 +384,7 @@ class TestResolveQuantizeRecipe:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         self._patch_manifest(monkeypatch, {})
-        with pytest.raises(ValueError, match="No lm_quantization_details recipe"):
+        with pytest.raises(ValueError, match=r"No lm_recipe\.yaml recipe"):
             resolve_quantize_recipe("w4a16", "some_model")
 
     def test_garbage_arg_fails_loud(self) -> None:

@@ -186,6 +186,7 @@ MANUAL_EDGES = {
     "src/qai_hub_models/common.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/_info_yaml_enums.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/_info_yaml_llm_details.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/configs/lm_recipe_yaml.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/manifest_yaml.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/scorecard/devices_and_chipsets_yaml.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/model_disable_reasons.py": REPRESENTATIVE_MODEL_FILES,
@@ -343,6 +344,7 @@ def resolve_affected_models(
                 "demo.py",
                 "requirements.txt",
                 "manifest.yaml",
+                "lm_recipe.yaml",
             ]:
                 continue
             if not include_model and file_path.name == "model.py":
@@ -351,7 +353,10 @@ def resolve_affected_models(
                 continue
             if not include_demo and file_path.name == "demo.py":
                 continue
-            if not include_cj_yaml and file_path.name == "manifest.yaml":
+            if not include_cj_yaml and file_path.name in (
+                "manifest.yaml",
+                "lm_recipe.yaml",
+            ):
                 continue
 
             model_name = file_path.parent.name
@@ -527,7 +532,6 @@ class ValidateQuantizeInputsTask(Task):
             return False
 
         model_dir = Path(PY_PACKAGE_MODELS_ROOT, model_id)
-        manifest = (model_dir / "manifest.yaml").read_text(encoding="utf-8")
         ok = True
 
         if not check_manifest_field(model_id, "separate_quantize_script"):
@@ -539,12 +543,11 @@ class ValidateQuantizeInputsTask(Task):
 
         # quantize only runs a precision that has a recipe, which also implies it is
         # in supported_precisions; failing here saves claiming a GPU pod.
-        if (
-            not re.search(rf"^  {re.escape(precision)}:\s*$", manifest, re.MULTILINE)
-            or "lm_quantization_details:" not in manifest
-        ):
+        recipe_path = model_dir / "lm_recipe.yaml"
+        recipe = recipe_path.read_text(encoding="utf-8") if recipe_path.exists() else ""
+        if not re.search(rf"^{re.escape(precision)}:\s*$", recipe, re.MULTILINE):
             print(
-                f"::error::{model_id} has no lm_quantization_details recipe for "
+                f"::error::{model_id} has no lm_recipe.yaml recipe for "
                 f"precision {precision!r}, so quantize has nothing to run."
             )
             ok = False

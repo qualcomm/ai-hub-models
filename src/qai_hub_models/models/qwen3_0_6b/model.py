@@ -14,7 +14,7 @@ constants and the small concrete subclasses (Part classes + the Collection,
 whose ``parts`` mapping registers the Part classes).
 
 Quantization uses the SpinQuant (R2+R3) -> AdaScale -> Calibration recipe,
-authored in the model's ``manifest.yaml`` under ``lm_quantization_details``: AdaScale
+authored in the model's ``lm_recipe.yaml``: AdaScale
 weight-opt runs on Wikitext/train and the final calibration on an interleave of
 self-generated text + Wikitext/train. The interleave name in the recipe is mapped
 to this model's local loader via ``extra_interleaved_datasets``.

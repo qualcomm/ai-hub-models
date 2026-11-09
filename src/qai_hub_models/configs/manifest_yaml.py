@@ -23,11 +23,6 @@ from qai_hub_models.configs._info_yaml_enums import (
 )
 from qai_hub_models.configs.model_disable_reasons import ModelDisableReasonsMapping
 from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
-
-# configs normally does not import from models, but lm_schema is a self-contained,
-# dependency-light (pydantic-only) island -- not model code -- so the manifest can
-# validate its lm_quantization_details block against it without a real layer inversion.
-from qai_hub_models.models.templates.lm_schema import PrecisionSchema, Recipe
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import DEFAULT_EXPORT_DEVICE
@@ -47,7 +42,6 @@ __all__ = [
     "MODEL_TAG",
     "MODEL_USE_CASE",
     "ExternalRepoConfig",
-    "LMQuantizationDetails",
     "PipCommand",
     "PipCommandMachine",
     "QAIHMModelManifest",
@@ -212,30 +206,6 @@ class PipCommand(BaseQAIHMConfig):
 TechnicalDetails = dict[str, str | int | float]
 
 
-class LMQuantizationDetails(BaseQAIHMConfig):
-    """The ``precision:`` + ``recipe:`` pair that produced one precision's checkpoint.
-
-    Both halves are validated by the shared GenAI Lab schema (``lm_schema``):
-    ``precision`` is the bit config (defaults reproduce AIHM's W4A16 contract), and
-    ``recipe`` is the ordered technique chain (SeqMSE / AdaScale / Calibration / ...).
-    Copied verbatim from the GenAI Lab config that produced the checkpoint; see the
-    ``lm_quantization_details`` field on :class:`QAIHMModelManifest`.
-    """
-
-    # No default: a field that merely equals its default is stripped by
-    # exclude_defaults, and an omitted `precision:` means the W4A16 contract, not
-    # "nothing". _fill_precision supplies it so existing manifests still validate.
-    precision: PrecisionSchema
-    recipe: Recipe
-
-    @model_validator(mode="before")
-    @classmethod
-    def _fill_precision(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "precision" not in data:
-            return {**data, "precision": {}}
-        return data
-
-
 class QAIHMModelManifest(BaseQAIHMConfig):
     """Unified schema for manifest.yaml.
 
@@ -346,16 +316,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # - Scorecard runs by default each week for accuracy & performance tests
     supported_precisions: list[Precision] = Field(
         default_factory=lambda: [Precision.float]
-    )
-
-    # Portable GenAI Lab quant recipes, keyed by Hub precision name (a subset of
-    # supported_precisions). Each value is the precision: + recipe: block copied
-    # verbatim from the GenAI Lab config that produced that precision's checkpoint,
-    # validated by the shared lm_schema. Empty for models with no recorded recipe;
-    # LLM/VLM folders only (lm_ prefix mirrors lm_schema / lm_driver). See the RFC
-    # for the full design.
-    lm_quantization_details: dict[Precision, LMQuantizationDetails] = Field(
-        default_factory=dict
     )
 
     # aimet model can additionally specify num calibration samples to speed up
@@ -925,28 +885,6 @@ class QAIHMModelManifest(BaseQAIHMConfig):
             for p in self.supported_precisions
         ):
             raise ValueError("Only collection models can have mixed precisions")
-
-        # lm_quantization_details holds portable GenAI Lab recipes, which only exist
-        # for LLM/VLM folders. Both LLMs and VLMs set model_type_llm=true (verified
-        # on the VLM manifests), so gate on it: a non-LLM/VLM manifest can't carry a
-        # recipe section.
-        if self.lm_quantization_details and not self.model_type_llm:
-            raise ValueError(
-                "lm_quantization_details can only be set on LLM/VLM models "
-                "(model_type_llm must be true)."
-            )
-
-        # Every lm_quantization_details key must be a precision the model supports;
-        # a recipe for a precision that isn't in supported_precisions is unreachable.
-        unknown_precisions = set(self.lm_quantization_details) - set(
-            self.supported_precisions
-        )
-        if unknown_precisions:
-            raise ValueError(
-                f"lm_quantization_details has recipes for precision(s) "
-                f"{sorted(str(p) for p in unknown_precisions)} that are not in "
-                f"supported_precisions ({sorted(str(p) for p in self.supported_precisions)})."
-            )
 
         return self
 

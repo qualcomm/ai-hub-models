@@ -4245,7 +4245,7 @@ class LLMDynamic_AIMETOnnx(LLM_AIMETOnnx):
         if step.dataset is None:
             raise ValueError(
                 f"Recipe step {step.name!r} consumes calibration data but names no "
-                f"`dataset:`. Add one to this step in the recipe (manifest "
-                f"lm_quantization_details, or the --precision recipe file)."
+                f"`dataset:`. Add one to this step in the recipe (the model's "
+                f"lm_recipe.yaml, or the --precision recipe file)."
             )
         return step.dataset

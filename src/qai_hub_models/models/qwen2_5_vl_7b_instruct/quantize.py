@@ -115,7 +115,7 @@ def main() -> None:
         type=str,
         default=str(SUPPORTED_PRECISIONS[0]),
         help="Quantization precision: either a precision name (e.g. 'w4a16') present "
-        "in the model's lm_quantization_details, or a path to a recipe YAML "
+        "in the model's lm_recipe.yaml, or a path to a recipe YAML "
         "({precision:, recipe:}). Defaults to the model's first supported precision.",
     )
 
