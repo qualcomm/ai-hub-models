@@ -51,11 +51,15 @@ DEC_SEQ_LEN = MAX_DEC_SEQ_LEN + 2 * DEC_SEQ_OVERLAP
 UPSAMPLE_FACTOR = 256
 UPSAMPLED_MAX_SEQ_LEN = MAX_SEQ_LEN * 3
 
+# Pinned to the last commits before the 2026-11-09 retrain, which replaced checkpoints.
+PIPER_VOICES_REVISION = "e7229f7d33a10e145e109b886d661984201ac3c4"
+PIPER_CHECKPOINTS_REVISION = "f0a4c43d31b4e533feac35ae3ac25a56eebab8e8"
+
 VOICE_CHECKPOINTS = {
-    "paola": "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/paola/medium/it_IT-paola-medium.onnx",
-    "kusal": "https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/main/en/en_US/kusal/medium/epoch%3D2652-step%3D1953828.ckpt",
-    "thorsten": "https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/main/de/de_DE/thorsten/medium/epoch%3D3135-step%3D2702056.ckpt",
-    "amy": "https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/main/en/en_US/amy/medium/epoch%3D6679-step%3D1554200.ckpt",
+    "paola": f"https://huggingface.co/rhasspy/piper-voices/resolve/{PIPER_VOICES_REVISION}/it/it_IT/paola/medium/it_IT-paola-medium.onnx",
+    "kusal": f"https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/{PIPER_CHECKPOINTS_REVISION}/en/en_US/kusal/medium/epoch%3D2652-step%3D1953828.ckpt",
+    "thorsten": f"https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/{PIPER_CHECKPOINTS_REVISION}/de/de_DE/thorsten/medium/epoch%3D3135-step%3D2702056.ckpt",
+    "amy": f"https://huggingface.co/datasets/rhasspy/piper-checkpoints/resolve/{PIPER_CHECKPOINTS_REVISION}/en/en_US/amy/medium/epoch%3D6679-step%3D1554200.ckpt",
 }
 VOICE_SPEED = {
     "paola": 0.85,
@@ -77,6 +81,7 @@ def get_model(voice_id: str) -> SynthesizerTrn:
         config_path = hf_hub_download(
             repo_id="rhasspy/piper-voices",
             filename="it/it_IT/paola/medium/it_IT-paola-medium.onnx.json",
+            revision=PIPER_VOICES_REVISION,
         )
         model_g = build_model_from_onnx(model_path, config_path)
     else:
