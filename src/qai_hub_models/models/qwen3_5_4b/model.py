@@ -14,10 +14,6 @@ from qai_hub_models import Precision
 # inherited get_input_spec's "llm_io_type" annotation in this module.
 from qai_hub_models.models.templates.llm.common import LLMIOType  # noqa: F401
 from qai_hub_models.models.templates.llm.model import (
-    CollectionCompileO0Mixin,
-    CompileO0Mixin,
-    QuantizeFullTypeW8A16Mixin,
-    QuantizeFullTypeW8A16PartMixin,
     SplitForwardMixin,
 )
 from qai_hub_models.models.templates.qwen3_5.model import (
@@ -77,15 +73,7 @@ class Qwen3_5_4B_PreSplit(Qwen3_5DynamicBase):
         _verify_4b_config(self.llm_config)
 
 
-# TODO: remove the --quantize_full_type mixin; see
-# https://github.com/qcom-ai-hub/tetracode/issues/22269
-# TODO: remove the -O0 mixin; see
-# https://github.com/qcom-ai-hub/tetracode/issues/22094
-class Qwen3_5_4B_QuantizablePreSplit(  # type: ignore[misc]
-    QuantizeFullTypeW8A16Mixin,
-    CompileO0Mixin,
-    Qwen3_5QuantizableBase[Qwen3_5_4B_PreSplit],
-):
+class Qwen3_5_4B_QuantizablePreSplit(Qwen3_5QuantizableBase[Qwen3_5_4B_PreSplit]):
     """Qwen3.5-4B QuantSim model."""
 
     FPModel = Qwen3_5_4B_PreSplit
@@ -98,9 +86,7 @@ class Qwen3_5_4B_QuantizablePreSplit(  # type: ignore[misc]
     num_layers_per_split = NUM_LAYERS_PER_SPLIT
 
 
-# TODO: remove the --quantize_full_type mixin; see
-# https://github.com/qcom-ai-hub/tetracode/issues/22269
-class Qwen3_5_4B_PartBase(QuantizeFullTypeW8A16PartMixin, Qwen3_5PartBase):
+class Qwen3_5_4B_PartBase(Qwen3_5PartBase):
     """Unified Part base for Qwen3.5-4B."""
 
     num_splits = NUM_SPLITS
@@ -168,9 +154,7 @@ class FPSplitModelWrapper(SplitForwardMixin, Qwen3_5_4B_PreSplit):
         return _SPLIT_PART_CLASSES
 
 
-# TODO: remove the -O0 mixin; see
-# https://github.com/qcom-ai-hub/tetracode/issues/22094
-class Qwen3_5_4B_Collection(CollectionCompileO0Mixin, Qwen3_5CollectionBase):
+class Qwen3_5_4B_Collection(Qwen3_5CollectionBase):
     """Unified Collection with 5 Parts for Qwen3.5-4B."""
 
     hf_repo_name = HF_REPO_NAME
