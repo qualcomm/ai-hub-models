@@ -199,7 +199,9 @@ def evaluate_model(
             model=compiled_model,
             input_names=list(input_spec) if input_spec else None,
             device=device,
-            inference_options=inference_options,
+            inference_options=torch_model.get_hub_inference_options(
+                target_runtime, inference_options
+            ),
         )
         if not skip_device_accuracy:
             model_executors["on-device"] = on_device_model

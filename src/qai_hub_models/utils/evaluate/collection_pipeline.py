@@ -222,7 +222,9 @@ def evaluate_model(
             assert isinstance(compiled_result, list)
             compiled_model_list = compiled_result
 
-        for compiled_model in compiled_model_list:
+        for component_name, compiled_model in zip(
+            collection_model.component_names, compiled_model_list, strict=True
+        ):
             if compiled_model.get_producer() is None:
                 raise ValueError(
                     "Compiled models must be compiled with AI Hub Workbench; they cannot be uploaded manually."
@@ -232,7 +234,9 @@ def evaluate_model(
                     model=compiled_model,
                     input_names=None,
                     device=device,
-                    inference_options=inference_options,
+                    inference_options=collection_model.get_component_hub_inference_options(
+                        component_name, target_runtime, inference_options
+                    ),
                 )
             )
 
