@@ -25,6 +25,8 @@ post_pip_install_commands:
   machine: gpu
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: gpu
+python_version_less_than: '3.13'
+python_version_less_than_reason: onnx 1.17.0 has no Python 3.13 wheels
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2505.09388
 research_paper_title: Qwen3 Technical Report

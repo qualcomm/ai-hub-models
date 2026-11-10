@@ -5,13 +5,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 import ruamel.yaml
-from pydantic import Field
+from pydantic import Field, field_validator
 from qai_hub import JobType
 
 from qai_hub_models import Precision
@@ -59,6 +60,23 @@ class ToolVersionsByPathYaml(BaseQAIHMConfig):
     tool_versions: dict[ScorecardProfilePath, ToolVersions] = Field(
         default_factory=dict
     )
+
+    @field_validator("tool_versions", mode="before")
+    @classmethod
+    def _drop_unknown_paths(cls, value: Any) -> Any:
+        """Skip paths this code no longer knows, so old baselines still load."""
+        if not isinstance(value, dict):
+            return value
+        known = {path.value for path in ScorecardProfilePath}
+        kept = {}
+        for key, versions in value.items():
+            if str(getattr(key, "value", key)) in known:
+                kept[key] = versions
+            else:
+                logging.warning(
+                    "Ignoring unknown profile path %r in tool versions.", key
+                )
+        return kept
 
     @staticmethod
     def from_profile_paths(
