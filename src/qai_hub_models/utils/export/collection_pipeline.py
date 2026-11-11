@@ -19,6 +19,7 @@ import qai_hub as hub
 from qai_hub_models_cli.errors import CLIRuntimeError, CLIUserError
 
 from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.utils.ai_hub_access import can_access_qualcomm_ai_hub
 from qai_hub_models.utils.args import get_export_model_name, get_model_kwargs
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
@@ -287,8 +288,9 @@ def export_model(
 
     # 8. Download all components together.
     download_path: Path | None = None
+    metadata: ModelMetadata | None = None
     if not skip_downloading and tool_versions is not None:
-        download_path = download_collection_model_bundle(
+        download_path, metadata = download_collection_model_bundle(
             output_dir=output_path
             / ASSET_CONFIG.get_release_asset_name(
                 model_id, target_runtime, precision, chipset
@@ -346,4 +348,5 @@ def export_model(
         inference_jobs=inference_jobs,
         download_path=download_path,
         tool_versions=tool_versions,
+        metadata=metadata,
     )

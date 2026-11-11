@@ -20,6 +20,12 @@ import qai_hub as hub
 import torch
 from filelock import FileLock
 from mypy_boto3_s3.service_resource import Bucket
+from qai_hub_models_cli.proto_helpers._common import write_proto, write_proto_json
+from qai_hub_models_cli.proto_helpers.model_metadata import (
+    METADATA_JSON_SUFFIX,
+    METADATA_PROTO_SUFFIX,
+    metadata_url_for_asset,
+)
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -1498,6 +1504,7 @@ def export_test_e2e(
         tool_versions: ToolVersions = result.tool_versions
 
         if upload_to_s3:
+            assert result.metadata is not None
             assert s3_bucket is not None  # mypy
             assets_path = ScorecardArtifact.RELEASE_ASSETS.path
             chipset_key = (
@@ -1522,6 +1529,25 @@ def export_test_e2e(
                     key=s3_key,
                     local_file_path=download_path,
                 )
+
+                # aihm_version is intentionally left unset.
+                metadata_proto = result.metadata.to_proto("")
+                json_file = Path(tmpdir) / metadata_url_for_asset(
+                    download_path.name, METADATA_JSON_SUFFIX
+                )
+                proto_file = Path(tmpdir) / metadata_url_for_asset(
+                    download_path.name, METADATA_PROTO_SUFFIX
+                )
+                write_proto_json(metadata_proto, json_file)
+                write_proto(proto_file, metadata_proto)
+                for local_file in (json_file, proto_file):
+                    filename = local_file.name
+                    s3_multipart_upload(
+                        bucket=s3_bucket,
+                        key=str(S3ArtifactsDirEnvvar.get() / filename),
+                        local_file_path=local_file,
+                        disable_progress=True,
+                    )
                 with FileLock(f"{assets_path}.lock"):
                     assets_cache = ScorecardAssetYaml.from_yaml(
                         assets_path, create_empty_if_no_file=True

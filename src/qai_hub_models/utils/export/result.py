@@ -8,6 +8,7 @@ from typing import TypeVar
 
 import qai_hub as hub
 
+from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.configs.tool_versions import ToolVersions
 
 ValT = TypeVar("ValT")
@@ -50,6 +51,7 @@ class ExportResult:
     link_job: hub.LinkJob | None = None
     download_path: Path | None = None
     tool_versions: ToolVersions | None = None
+    metadata: ModelMetadata | None = None
 
 
 @dataclass
@@ -63,6 +65,7 @@ class MultiGraphExportResult:
     inference_jobs: MultiGraphGroup[hub.InferenceJob] | None = None
     download_path: Path | None = None
     tool_versions: ToolVersions | None = None
+    metadata: ModelMetadata | None = None
 
 
 @dataclass
@@ -76,6 +79,7 @@ class CollectionExportResult:
     inference_jobs: ComponentGroup[hub.InferenceJob] | None = None
     download_path: Path | None = None
     tool_versions: ToolVersions | None = None
+    metadata: ModelMetadata | None = None
 
 
 @dataclass
@@ -89,6 +93,7 @@ class MultiGraphCollectionExportResult:
     inference_jobs: MultiGraphComponentGroup[hub.InferenceJob] | None = None
     download_path: Path | None = None
     tool_versions: ToolVersions | None = None
+    metadata: ModelMetadata | None = None
 
 
 @dataclass
@@ -98,3 +103,4 @@ class LegacyCollectionExportResult:
     components: dict[str, ExportResult] = field(default_factory=dict)
     download_path: Path | None = None
     tool_versions: ToolVersions | None = None
+    metadata: ModelMetadata | None = None
