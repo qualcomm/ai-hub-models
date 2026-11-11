@@ -32,8 +32,8 @@ Get-ChildItem -Path $TC -Directory -Filter 'geniex-bench-windows-arm64-*' -Error
 if (Get-ChildItem -Path $TC -Directory -Filter 'geniex-bench-windows-arm64-*' -ErrorAction SilentlyContinue) {
     throw "Stale geniex-bench bundle under $TC could not be removed; device needs manual cleanup."
 }
-# Remove potentially stale files
-Remove-Item -Recurse -Force "$TC\geniex-bench.zip", "$TC\qairt", "$TC\qairt.zip" -ErrorAction SilentlyContinue
+# Best-effort sweep of SDKs left by killed jobs; a locked one is skipped, not fatal.
+Remove-Item -Recurse -Force "$TC\geniex-bench.zip", "$TC\qairt", "$TC\sdk_*", "$TC\qairt.zip" -ErrorAction SilentlyContinue
 
 # geniex-bench.exe writes informational lines to stderr even on success.
 # Called via the bare `&` operator, every such line becomes a NativeCommandError
@@ -138,12 +138,13 @@ $QAIRT_LIB_ARGS = @()
 if ($PLUGIN -eq "qairt" -and $QAIRT_VERSION) {
     Write-Output "=== Using QAIRT $QAIRT_VERSION ==="
     $QZIP = "$TC\qairt.zip"
-    # The SDK zip's top-level entry is qairt\<version>\; extract into its parent ($TC).
-    $QROOT = "$TC\qairt"
+    # Extract into a per-run dir so a stale/locked SDK from a killed job can't
+    # block or corrupt this run. The zip's top-level entry is qairt\<version>\.
+    $SDK_DIR = "$TC\sdk_$PID"
+    $QROOT = "$SDK_DIR\qairt"
     $QURL = "{QAIRT_SDK_URL}"
     Save-ZipWithRetry -Url $QURL -Dest $QZIP -MaxTime 3600
-    Remove-Item -Recurse -Force $QROOT -ErrorAction SilentlyContinue
-    Expand-Archive -Path $QZIP -DestinationPath $TC -Force
+    Expand-Archive -Path $QZIP -DestinationPath $SDK_DIR -Force
     Remove-Item $QZIP
     $SDK = "$QROOT\$QAIRT_VERSION"
     if (-not (Test-Path "$SDK\lib")) { throw "QAIRT SDK not extracted to $SDK" }
@@ -317,7 +318,7 @@ finally {
     Get-ChildItem -Path $TC -Directory -Filter 'geniex-bench-windows-arm64-*' -ErrorAction SilentlyContinue |
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Force "$TC\geniex-bench.zip" -ErrorAction SilentlyContinue
-    Remove-Item -Recurse -Force "$TC\qairt", "$TC\qairt.zip" -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force "$TC\qairt", "$TC\sdk_*", "$TC\qairt.zip" -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force "$TC\qairt_bundles", "$TC\prompts", "$TC\perf_prompts" -ErrorAction SilentlyContinue
     Remove-Item -Force "$TC\test.png", $PSCommandPath -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $MM_CACHE, $MATRIX_DIR -ErrorAction SilentlyContinue
