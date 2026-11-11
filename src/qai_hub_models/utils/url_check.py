@@ -33,6 +33,8 @@ URL_VALIDATION_SKIPLIST = {
     # llama research papers - blocked by the corporate firewall in CI
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/",
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2/",
+    # llama_v3_elyza_jp_8b research paper - 503 from note.com in CI
+    "https://note.com/elyza/n/n360b6084fdbd",
 }
 
 
