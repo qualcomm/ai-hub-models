@@ -210,6 +210,13 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 - Use the repo's standard methods for bringing in upstream code and for generated files.
 - Models may import shared code, but not each other.
 - No dead code or leftover files.
+- Code comments the PR adds can be understood by a teammate who has never seen this PR. Flag a comment that:
+  - uses a term the author made up while working, instead of saying the plain thing.
+  - only restates what the next line of code does.
+  - says how the code behaves but not what it means for the person editing it. "If you change `input_size`, the demo still resizes to 640" tells them more than "the demo hardcodes the size".
+  - gives a reason that only makes sense with the PR conversation open.
+
+  Quote the comment and give a rewrite. These are `low` unless the comment is wrong, in which case it is a false claim.
 
 ### Do not flag
 
@@ -233,6 +240,8 @@ Try to disprove every candidate finding before reporting it.
 Drop what does not hold. A finding you cannot verify from both ends is not `high`.
 
 ## Findings
+
+Write every finding for a reader who hasn't seen your working notes. Don't use shorthand or names you coined during the review (such as "the drift check" or "lens A thing"). Say what is wrong and what happens because of it, in plain words. If a finding suggests a comment or docstring, show its exact text.
 
 | Field | Content |
 |---|---|
