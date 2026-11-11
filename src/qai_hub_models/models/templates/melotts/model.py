@@ -275,9 +275,7 @@ class SDP(BaseModel):
         x: Tensor,
         x_mask: Tensor,
         g: Tensor,
-        sdp_ratio: Tensor,
         length_scale: Tensor,
-        noise_scale_w: Tensor,
     ) -> tuple[Tensor, Tensor]:
         """
         Predict the duration of audio.
@@ -290,12 +288,8 @@ class SDP(BaseModel):
             mask of x, shape of (1, 1, MAX_SEQ_LEN), i.e., [1, 1, 512]
         g
             embedding of speaker ID, shape of (1, SPEAKER_EMBED_DIM, 1), i.e., [1, 256, 1]
-        sdp_ratio
-            scalar, ratio of duration predictor
         length_scale
             scalar, scale of length
-        noise_scale_w
-            scalar, scale of noise
 
         Returns
         -------
@@ -307,10 +301,6 @@ class SDP(BaseModel):
         assert callable(self.dp)
         # logw_sdp = self.sdp_forward(x, x_mask, g, noise_scale_w)
         logw_dp = self.dp(x, x_mask, g=g)
-
-        # Dummy usage to force ONNX to include sdp_ratio as MeloTTS is currently using only duration predictor (DP) not SDP.
-        dummy = sdp_ratio * 0.0 + noise_scale_w * 0.0
-        logw_dp = logw_dp + dummy
 
         logw2 = logw_dp.clone()
 
@@ -484,9 +474,7 @@ class SDP(BaseModel):
             ),
             "x_mask": TensorSpec(shape=(1, 1, MAX_SEQ_LEN), dtype="float32"),
             "g": TensorSpec(shape=(1, SPEAKER_EMBED_DIM, 1), dtype="float32"),
-            "sdp_ratio": TensorSpec(shape=(1,), dtype="float32"),
             "length_scale": TensorSpec(shape=(1,), dtype="float32"),
-            "noise_scale_w": TensorSpec(shape=(1,), dtype="float32"),
         }
 
     def _sample_inputs_impl(
