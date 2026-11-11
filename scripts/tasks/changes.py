@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
+import argparse
 import difflib
 import functools
 import os
@@ -501,8 +502,8 @@ def get_all_models() -> list[str]:
 
 class ValidateQuantizeInputsTask(Task):
     """
-    Check the quantize_and_upload inputs (the QAIHM_QUANTIZE_MODEL_ID and
-    QAIHM_QUANTIZE_PRECISION env vars).
+    Check the quantize_and_upload inputs (the QAIHM_QUANTIZE_MODEL_ID,
+    QAIHM_QUANTIZE_PRECISION and QAIHM_QUANTIZE_ARGS env vars).
 
     Runs before a GPU pod is claimed. Both manifest fields are flat top-level
     keys, so they are matched as text and no venv is needed.
@@ -517,6 +518,16 @@ class ValidateQuantizeInputsTask(Task):
     def run_task(self) -> bool:
         model_id = os.environ.get("QAIHM_QUANTIZE_MODEL_ID", "").strip()
         precision = os.environ.get("QAIHM_QUANTIZE_PRECISION", "").strip()
+        quantize_args = os.environ.get("QAIHM_QUANTIZE_ARGS", "")
+
+        precision_parser = argparse.ArgumentParser(add_help=False)
+        precision_parser.add_argument("--precision", nargs="?", const="")
+        parsed, _ = precision_parser.parse_known_args(quantize_args.split())
+        if parsed.precision is not None:
+            raise ValueError(
+                "quantize_args must not contain --precision; set the precision "
+                "input instead."
+            )
 
         known = get_all_models()
         if model_id not in known:
