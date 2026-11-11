@@ -185,7 +185,8 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 - The parameter count and model sizes are plausible for the architecture, and not copied from another model. There is a size entry for each supported precision.
 
 **Title and description**
-- The name follows the repo's naming rules and matches how the upstream project names the model.
+- The `id` is identical to the recipe's folder name. A PR whose `id` and folder name differ fails to resolve, so this is `high`.
+- The `id` and `name` describe the same model: `id` is the snake_case form of `name`, with dashes and dots turned into underscores and everything lowercased (`DeepLabV3-ResNet50` -> `deeplabv3_resnet50`, `Qwen3-0.6B` -> `qwen3_0_6b`). Flag a mismatch where they drift apart or name different variants.
 - The headline is one short sentence that says what the model does.
 - The description is accurate. It names the right task, architecture and supported variants, doesn't promise anything the PR doesn't ship, and doesn't repeat the benchmark number.
 - Wording and format follow the closest similar model. Tags, use case and domain fit the task.
