@@ -27,6 +27,10 @@ qai-hub-models fetch Parakeet-TDT-0.6B-v3 --runtime qnn_dlc --precision float
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.
 
+## Deploying Parakeet-TDT-0.6B-v3 on-device
+
+This model is compatible with the Qualcomm Voice AI SDK. Download the SDK from the [Qualcomm Package Manager](https://qpm.qualcomm.com/#/main/tools/details/VoiceAI_ASR) to deploy this model on-device.
+
 ## Setup
 ### 1. Install the package
 Install the base package, then use the `qai-hub-models` CLI to install this

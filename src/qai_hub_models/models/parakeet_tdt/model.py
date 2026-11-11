@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import os
+
 # mypy: warn-unused-ignores=false
 import numpy as np
 import torch
@@ -14,8 +16,12 @@ from transformers import AutoModelForTDT  # type: ignore[attr-defined]
 from typing_extensions import Self
 
 from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.models.parakeet_tdt.dataset import LibriSpeechDataset
 from qai_hub_models.models.parakeet_tdt.evaluator import WEREvaluator
+from qai_hub_models.models.templates.parakeet_tdt.parakeet_tdt_metadata_json import (
+    write_parakeet_tdt_supplementary_files,
+)
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
@@ -475,6 +481,16 @@ class ParakeetTDT(WorkbenchModelCollection):
 
     def get_evaluator(self) -> BaseEvaluator:
         return WEREvaluator()
+
+    def write_supplementary_files(
+        self, output_dir: str | os.PathLike, metadata: ModelMetadata
+    ) -> None:
+        write_parakeet_tdt_supplementary_files(
+            output_dir,
+            metadata,
+            model_name="parakeet-tdt-0.6b-v3",
+            hf_model_id=HF_MODEL_ID,
+        )
 
     @classmethod
     def get_eval_dataset_classes(cls) -> list[type[BaseDataset]]:
