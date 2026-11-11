@@ -487,6 +487,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [Distil-Whisper](https://aihub.qualcomm.com/models/distil_whisper) | [qai_hub_models.models.distil_whisper](src/qai_hub_models/models/distil_whisper/README.md) |
 | [FunASR-Conformer-EN](https://aihub.qualcomm.com/models/funasr_conformer_en) | [qai_hub_models.models.funasr_conformer_en](src/qai_hub_models/models/funasr_conformer_en/README.md) |
 | [Parakeet-TDT-0.6B-v3](https://aihub.qualcomm.com/models/parakeet_tdt) | [qai_hub_models.models.parakeet_tdt](src/qai_hub_models/models/parakeet_tdt/README.md) |
+| [Qwen3-ASR-0.6B](https://aihub.qualcomm.com/models/qwen3_asr_0_6b) | [qai_hub_models.models.qwen3_asr_0_6b](src/qai_hub_models/models/qwen3_asr_0_6b/README.md) |
 | [Qwen3-ASR-1.7B](https://aihub.qualcomm.com/models/qwen3_asr_1_7b) | [qai_hub_models.models.qwen3_asr_1_7b](src/qai_hub_models/models/qwen3_asr_1_7b/README.md) |
 | [Wav2Vec2-Conformer-Large-960h](https://aihub.qualcomm.com/models/wav2vec2_conformer) | [qai_hub_models.models.wav2vec2_conformer](src/qai_hub_models/models/wav2vec2_conformer/README.md) |
 | [Whisper-Base](https://aihub.qualcomm.com/models/whisper_base) | [qai_hub_models.models.whisper_base](src/qai_hub_models/models/whisper_base/README.md) |
