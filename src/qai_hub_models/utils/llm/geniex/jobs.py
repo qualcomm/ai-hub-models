@@ -420,11 +420,17 @@ class GenieXBenchLinuxArtifactHandler(GenieXBenchArtifactHandler):
 
         with open(sh_src, encoding="utf-8") as f:
             script = f.read()
+        sdk_url = (
+            get_geniex_qairt_sdk_url(qairt_version)
+            if plugin == "qairt" and qairt_version
+            else ""
+        )
         script = self._apply_common_replacements(
             script.replace(
                 "{LINUX_BENCH_URL}",
                 _bench_url("linux-arm64", "tar.gz", geniex_version),
             )
+            .replace("{QAIRT_SDK_URL}", sdk_url)
             .replace("{CHIPSET}", chipset)
             .replace("{MODELS}", "\n".join(matrix_rows))
             .replace(

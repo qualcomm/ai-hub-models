@@ -63,8 +63,9 @@ if [ "$PLUGIN" = "qairt" ] && [ -n "$QAIRT_VERSION" ]; then
   QZIP=$TC/qairt.zip
   # The SDK zip's top-level entry is qairt/<version>/; extract into its parent.
   QROOT="$TC/qairt"
-  QURL="https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/$QAIRT_VERSION/v$QAIRT_VERSION.zip"
-  curl -fSL --max-time 3600 --retry 3 --retry-delay 5 -o "$QZIP" "$QURL" || { echo "FATAL: QAIRT SDK download failed: $QURL"; exit 1; }
+  QURL="{QAIRT_SDK_URL}"
+  # --retry-all-errors: curl 92 (HTTP/2 stream error) is not retried by --retry alone.
+  curl -fSL --max-time 3600 --retry 3 --retry-all-errors --retry-delay 5 -o "$QZIP" "$QURL" || { echo "FATAL: QAIRT SDK download failed: ${QURL%%\?*}"; exit 1; }
   rm -rf "$QROOT"
   # unzip can exit nonzero on a successful extract; verify the dir instead.
   unzip -q "$QZIP" -d "$TC" || true
