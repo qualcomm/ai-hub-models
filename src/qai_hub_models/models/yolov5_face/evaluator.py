@@ -10,12 +10,12 @@ from collections.abc import Collection
 import numpy as np
 import torch
 
-from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
     batched_nms,
     box_xywh_to_xyxy,
     get_bbox_iou_matrix,
 )
+from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.metrics import MEAN_AVERAGE_PRECISION_IOU_50, MetricMetadata
 
 # Number of confidence thresholds used to sweep the precision-recall curve.

@@ -9,6 +9,7 @@ from PIL.Image import Image
 
 from qai_hub_models.models.maskrcnn.app import MaskRCNNApp
 from qai_hub_models.models.maskrcnn.model import MODEL_ASSET_VERSION, MODEL_ID, MaskRCNN
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     add_output_dir_arg,
     demo_model_components_from_cli_args,
@@ -20,7 +21,6 @@ from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
 )
-from qai_hub_models.utils.display import display_or_save_image
 
 IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "image.jpg"

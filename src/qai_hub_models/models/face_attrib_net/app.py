@@ -12,7 +12,10 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

@@ -15,7 +15,10 @@ import torch
 from PIL import Image
 from torchvision import transforms
 
-from qai_hub_models.utils.image_processing import pil_resize_pad, undo_resize_pad
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pil_resize_pad,
+    undo_resize_pad,
+)
 
 
 class DepthEstimationApp:

@@ -7,6 +7,9 @@ import pytest
 import torch
 from torchvision import transforms
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    IMAGENET_TRANSFORM,
+)
 from qai_hub_models.models.templates.imagenet_classifier.app import (
     ImagenetClassifierApp,
     preprocess_image,
@@ -20,7 +23,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_numpy,
 )
-from qai_hub_models.utils.image_processing import IMAGENET_TRANSFORM
 from qai_hub_models.utils.test_helpers import assert_most_close
 
 GROUP_NAME = "imagenet_classifier"

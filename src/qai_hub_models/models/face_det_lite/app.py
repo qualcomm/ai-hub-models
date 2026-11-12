@@ -14,8 +14,10 @@ from PIL import Image
 from skimage.color import rgb2gray
 
 from qai_hub_models.models.face_det_lite.utils import detect
-from qai_hub_models.utils.draw import draw_box_from_xyxy
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 
 class FaceDetLiteApp:

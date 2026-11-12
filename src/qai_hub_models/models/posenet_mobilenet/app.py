@@ -16,8 +16,11 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 
-from qai_hub_models.utils.draw import draw_points
-from qai_hub_models.utils.image_processing import pil_resize_pad, pil_undo_resize_pad
+from qai_hub_models.models.templates.corevision.draw import draw_points
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pil_resize_pad,
+    pil_undo_resize_pad,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 # Most code here is from the source repo https://github.com/rwightman/posenet-pytorch

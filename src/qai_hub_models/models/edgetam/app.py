@@ -17,14 +17,16 @@ from sam2.modeling.sam2_base import SAM2Base as Sam2
 from torch.utils.data import DataLoader
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
+from qai_hub_models.models.templates.corevision.draw import create_color_map
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.sam2.model_patches import (
     mask_postprocessing,
 )
 from qai_hub_models.utils.base_app import CollectionAppQuantizeProtocol
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
-from qai_hub_models.utils.draw import create_color_map
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 

@@ -14,13 +14,15 @@ from ultralytics.nn.tasks import SegmentationModel
 
 from qai_hub_models import Precision, SampleInputsType
 from qai_hub_models.datasets.coco import CocoDataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.ultralytics.segmentation_model import (
     UltralyticsSingleClassSegmentor,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec
 
 

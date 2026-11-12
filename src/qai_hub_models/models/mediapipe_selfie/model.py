@@ -18,10 +18,12 @@ from qai_hub_models.models.mediapipe_selfie.utils import (
     get_convert,
     get_probable_names,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.selfie_segmentation.model import SelfieSegmentor
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 MODEL_ID = __name__.split(".")[-2]

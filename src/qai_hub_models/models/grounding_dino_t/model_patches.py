@@ -107,7 +107,7 @@ P8  ``WindowAttention``'s relative position bias: pre-index the bias table
 
 P9  Swin's window partition/reverse are rewritten to stay at rank<=5 (see
     ``window_partition_5d``/``window_unpartition_5d`` in
-    ``qai_hub_models.utils.window_partitioning``), since QNN doesn't support
+    ``qai_hub_models.models.templates.corevision.window_partitioning``), since QNN doesn't support
     the rank-6 reshape upstream's ``window_partition``/``window_reverse``
     produce. Applied via component-safe patched-forward functions
     (``SwinTransformerBlock_forward``, ``BasicLayer_forward``) assigned onto
@@ -195,7 +195,7 @@ from qai_hub_models.models.grounding_dino_t.external_repos.groundingdino.groundi
 from qai_hub_models.models.grounding_dino_t.external_repos.groundingdino.groundingdino.util.misc import (
     inverse_sigmoid as _inverse_sigmoid,
 )
-from qai_hub_models.utils.window_partitioning import (
+from qai_hub_models.models.templates.corevision.window_partitioning import (
     window_partition_5d,
     window_unpartition_5d,
 )

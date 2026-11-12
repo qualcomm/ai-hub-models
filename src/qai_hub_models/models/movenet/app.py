@@ -13,8 +13,11 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.draw import draw_connections, draw_points
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_connections,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     denormalize_coordinates,
     resize_pad,

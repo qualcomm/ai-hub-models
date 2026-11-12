@@ -16,6 +16,12 @@ from typing_extensions import Self
 from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.datasets.imagenet import ImagenetDataset
 from qai_hub_models.datasets.open_images import OpenImagesV7Dataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    IMAGENET_DIM,
+    IMAGENET_TRANSFORM,
+    normalize_image_torchvision,
+)
+from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.imagenet_classifier.classification_evaluator import (
     ClassificationEvaluator,
 )
@@ -23,11 +29,6 @@ from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import (
-    IMAGENET_DIM,
-    IMAGENET_TRANSFORM,
-    normalize_image_torchvision,
-)
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,
@@ -36,7 +37,6 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
-from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ASSET_VERSION = 1
 MODEL_ID = __name__.split(".")[-2]

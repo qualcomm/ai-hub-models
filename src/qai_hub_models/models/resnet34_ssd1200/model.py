@@ -20,6 +20,10 @@ from qai_hub_models.datasets.coco import Coco180Dataset
 from qai_hub_models.models.resnet34_ssd1200.external_repos.inference.vision.classification_and_detection.python.models.ssd_r34 import (
     SSD_R34,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.yolo.model import (
     Yolo,
 )
@@ -29,10 +33,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_torch,
 )
 from qai_hub_models.utils.base_dataset import BaseDataset
-from qai_hub_models.utils.image_processing import (
-    app_to_net_image_inputs,
-    normalize_image_torchvision,
-)
 from qai_hub_models.utils.input_spec import (
     BboxFormat,
     BboxMetadata,

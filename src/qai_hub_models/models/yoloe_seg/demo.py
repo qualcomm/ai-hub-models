@@ -9,6 +9,8 @@ from typing import Any
 from PIL import Image
 
 from qai_hub_models import TargetRuntime
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.yoloe_seg.app import (
     YoloESegmentationApp,
 )
@@ -31,8 +33,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
 )
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.display import display_or_save_image
-from qai_hub_models.utils.labels import get_class_names
 
 IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     "yoloe_seg", MODEL_ASSET_VERSION, "test_images/bus.jpg"

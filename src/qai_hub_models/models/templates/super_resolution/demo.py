@@ -8,6 +8,7 @@ from __future__ import annotations
 import sys
 
 from qai_hub_models import TargetRuntime
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.super_resolution.app import SuperResolutionApp
 from qai_hub_models.models.templates.super_resolution.model import IMAGE_ADDRESS
 from qai_hub_models.utils.args import (
@@ -20,7 +21,6 @@ from qai_hub_models.utils.args import (
 )
 from qai_hub_models.utils.asset_loaders import CachedWebAsset, load_image
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.display import display_or_save_image
 
 
 # Run Super Resolution end-to-end on a sample image.

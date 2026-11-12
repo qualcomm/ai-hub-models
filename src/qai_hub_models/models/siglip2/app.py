@@ -29,6 +29,9 @@ from qai_hub_models.datasets.open_images.open_images_zeroshot import (
 from qai_hub_models.models.protocols import ExecutableModelProtocol
 from qai_hub_models.models.siglip2.evaluator import SigLIP2Evaluator
 from qai_hub_models.models.siglip2.model import DEFAULT_WEIGHTS, TEXT_SEQ_LEN
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.utils.asset_loaders import load_image
 from qai_hub_models.utils.base_app import (
     CollectionAppEvaluateProtocol,
@@ -37,7 +40,6 @@ from qai_hub_models.utils.base_app import (
 )
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 from qai_hub_models.utils.inference import (
     AsyncOnDeviceModel,
     AsyncOnDeviceResult,

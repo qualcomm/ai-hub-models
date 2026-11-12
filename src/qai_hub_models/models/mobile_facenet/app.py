@@ -22,7 +22,7 @@ from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.
 from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.retinaface.detector import (
     detector,
 )
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     numpy_image_to_torch,
 )

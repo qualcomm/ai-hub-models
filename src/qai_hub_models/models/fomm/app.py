@@ -14,7 +14,7 @@ from scipy.spatial import ConvexHull
 from skimage.transform import resize
 
 from qai_hub_models.models.fomm.model import FOMM
-from qai_hub_models.utils.image_processing import pad_to_square
+from qai_hub_models.models.templates.corevision.image_processing import pad_to_square
 
 EXPECTED_SIZE = 256
 

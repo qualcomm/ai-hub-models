@@ -8,7 +8,9 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 
-from qai_hub_models.utils.bounding_box_processing import batched_nms
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

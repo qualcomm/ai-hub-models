@@ -13,10 +13,14 @@ import torch
 
 from qai_hub_models.datasets.coco.coco import COCO_VAL_DATASET
 from qai_hub_models.extern.xtcocotools.coco import COCO
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_cs,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pre_process_with_affine,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_cs
-from qai_hub_models.utils.image_processing import pre_process_with_affine
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 from qai_hub_models.utils.printing import suppress_stdout
 

@@ -10,9 +10,9 @@ from PIL import Image
 
 from qai_hub_models.models.dncnn.app import DnCNNApp
 from qai_hub_models.models.dncnn.model import DnCNN
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import get_model_cli_parser, model_from_cli_args
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def make_noisy_image(

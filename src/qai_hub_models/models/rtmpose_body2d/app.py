@@ -14,8 +14,10 @@ import torch
 from PIL.Image import Image, fromarray
 
 from qai_hub_models.extern.mmpose import patch_mmpose_no_build_deps
-from qai_hub_models.utils.draw import draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.draw import draw_points
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 with patch_mmpose_no_build_deps():
     from mmpose.codecs.utils import get_simcc_maximum

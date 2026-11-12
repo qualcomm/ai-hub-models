@@ -10,6 +10,7 @@ from PIL import Image
 
 from qai_hub_models.models.cvt.app import CVTApp
 from qai_hub_models.models.cvt.model import CVT, MODEL_ASSET_VERSION, MODEL_ID
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     add_output_dir_arg,
     demo_model_from_cli_args,
@@ -23,7 +24,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_json,
 )
-from qai_hub_models.utils.display import display_or_save_image
 
 # Sample 6-camera images for demo
 CAMERAS = {

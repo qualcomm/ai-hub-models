@@ -8,8 +8,10 @@ from __future__ import annotations
 import torch
 
 from qai_hub_models.datasets.coco.coco_keypoints import CocoKeypointsDataset
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
 from qai_hub_models.models.templates.pose.pose_evaluator import CocoBodyPoseEvaluator
-from qai_hub_models.utils.bounding_box_processing import batched_nms
 from qai_hub_models.utils.printing import suppress_stdout
 
 

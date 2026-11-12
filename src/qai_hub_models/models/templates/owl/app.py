@@ -12,9 +12,13 @@ import torch
 from PIL.Image import Image
 from transformers import AutoProcessor
 
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.draw import draw_box_from_xyxy
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 
 class OwlApp:

@@ -13,12 +13,12 @@ from ultralytics.nn.modules.block import BNContrastiveHead
 from ultralytics.nn.tasks import SegmentationModel
 
 from qai_hub_models.models.templates.common import replace_module_recursively
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.ultralytics.segmentation_model import (
     UltralyticsMulticlassSegmentor,
 )
 from qai_hub_models.models.templates.yolo.model import YoloSegEvalMixin
 from qai_hub_models.models.yoloe_seg.model_patches import BNContrastiveHeadInf
-from qai_hub_models.utils.labels import get_class_names
 
 MODEL_ASSET_VERSION = 1
 MODEL_ID = __name__.split(".")[-2]

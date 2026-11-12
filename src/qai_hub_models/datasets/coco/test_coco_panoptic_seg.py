@@ -15,13 +15,18 @@ import pytest
 import torch
 from PIL import Image
 
-from qai_hub_models.datasets.coco.coco import COCO_VAL_DATASET
-from qai_hub_models.datasets.coco.coco_panoptic_seg import (
+from qai_hub_models.test.mock_imports import install_mock_packages
+
+# cv2 is only needed to import the coco dataset modules, not by these tests.
+install_mock_packages(["cv2"])
+
+from qai_hub_models.datasets.coco.coco import COCO_VAL_DATASET  # noqa: E402
+from qai_hub_models.datasets.coco.coco_panoptic_seg import (  # noqa: E402
     COCO_ANNOTATIONS_ASSET,
     CocoPanopticSegmentationDataset,
 )
-from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.input_spec import TensorSpec
+from qai_hub_models.utils.base_dataset import DatasetSplit  # noqa: E402
+from qai_hub_models.utils.input_spec import TensorSpec  # noqa: E402
 
 # One synthetic image whose dimensions force math.floor rounding: 101x33
 # scaled into an 80x80 letterbox gives a non-integer scaled height/width, so a

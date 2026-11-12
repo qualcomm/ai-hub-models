@@ -13,11 +13,13 @@ import torch
 from PIL import Image
 from pyquaternion import Quaternion
 
-from qai_hub_models.utils.bounding_box_processing_3d import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
     compute_corners,
     draw_3d_bbox,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.optimization import optimized_cumsum
 
 OBJECT_CLASSES = {

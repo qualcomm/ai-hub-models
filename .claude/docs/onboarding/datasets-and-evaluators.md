@@ -24,7 +24,7 @@ Key requirements:
 
 **Fixed-size inputs**: All returned tensors must match the model's `input_spec` dimensions exactly. The calibration pipeline requires fixed-size inputs. Accept `input_spec` in `__init__()` and resize or center-crop each sample. Prefer resizing over cropping when applicable so the evaluator sees the full image content.
 
-**Use standard image utilities**: For image-based datasets, use the helpers in `qai_hub_models/utils/image_processing.py` rather than writing manual preprocessing:
+**Use standard image utilities**: For image-based datasets, use the helpers in `qai_hub_models/models/templates/corevision/image_processing.py` rather than writing manual preprocessing:
 - `pil_resize_pad()` — resize to target dimensions while preserving aspect ratio (preferred over manual crop/resize)
 - `preprocess_PIL_image()` — convert PIL image to float32 tensor in [0, 1]
 - `normalize_image_torchvision()` — apply ImageNet normalization if the model expects it

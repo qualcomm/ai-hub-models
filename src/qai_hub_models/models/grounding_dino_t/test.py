@@ -31,12 +31,12 @@ from qai_hub_models.models.grounding_dino_t.model import (
     MODEL_ID,
     GroundingDINOTCollection,
 )
-from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     letterbox_resize_pad_pil,
     normalize_image_torchvision,
     preprocess_PIL_image,
 )
+from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.inference import AsyncOnDeviceResult
 
 # Golden detections for the demo image/text (box_threshold/text_threshold/nms_threshold

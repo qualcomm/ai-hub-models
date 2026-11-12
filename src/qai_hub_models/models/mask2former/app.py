@@ -17,8 +17,10 @@ from transformers.models.mask2former.image_processing_mask2former import (
     remove_low_and_no_objects,
 )
 
-from qai_hub_models.utils.draw import create_color_map
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.draw import create_color_map
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 
 class Mask2FormerApp:

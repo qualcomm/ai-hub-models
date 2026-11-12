@@ -20,9 +20,11 @@ from qai_hub_models.datasets.common import DatasetMetadata, DatasetSplit
 from qai_hub_models.models.grounding_dino_t.external_repos.groundingdino.groundingdino.models.GroundingDINO.bertwarper import (
     generate_masks_with_special_tokens_and_transfer_map,
 )
-from qai_hub_models.utils.image_processing import letterbox_resize_pad_pil
+from qai_hub_models.models.templates.corevision.image_processing import (
+    letterbox_resize_pad_pil,
+)
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
-from qai_hub_models.utils.labels import get_class_names
 
 _LOGGER = logging.getLogger(__name__)
 

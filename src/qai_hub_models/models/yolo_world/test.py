@@ -10,6 +10,10 @@ import torch
 from ultralytics.models import YOLOWorld
 from ultralytics.nn.tasks import WorldModel
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.models.templates.yolo.model import yolo_detect_postprocess
 from qai_hub_models.models.yolo_world.app import YoloWorldDetectionApp
 from qai_hub_models.models.yolo_world.demo import IMAGE_ADDRESS
@@ -21,7 +25,6 @@ from qai_hub_models.models.yolo_world.model import (
     YoloWorld,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
 from qai_hub_models.utils.test_helpers import assert_most_close
 
 WEIGHTS = DEFAULT_WEIGHTS

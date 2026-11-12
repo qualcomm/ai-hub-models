@@ -13,9 +13,11 @@ import torch
 from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.facenet_utils import (
     align_face,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
 from qai_hub_models.utils.input_spec import InputSpec
 
 LFW_FOLDER_NAME = "lfw"

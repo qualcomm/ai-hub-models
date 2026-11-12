@@ -18,6 +18,9 @@ from qai_hub_models.models.deepbox.evaluator import Kitti3DDetectionEvaluator
 from qai_hub_models.models.deepbox.external_repos.boundingbox_3d.torch_lib import (
     Model as TorchLibModel,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.yolov3.model import YoloV3
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_torch
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
@@ -27,7 +30,6 @@ from qai_hub_models.utils.base_model import (
     BaseModel,
 )
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

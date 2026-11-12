@@ -9,6 +9,7 @@ from typing import Literal
 
 from PIL.Image import Image
 
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.nafnet.app import NAFNetApp
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
@@ -19,7 +20,6 @@ from qai_hub_models.utils.args import (
 )
 from qai_hub_models.utils.asset_loaders import CachedWebAsset, load_image
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def nafnet_demo(

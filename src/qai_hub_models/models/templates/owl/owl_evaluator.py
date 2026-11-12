@@ -11,8 +11,10 @@ from collections.abc import Collection
 import torch
 from podm.metrics import BoundingBox
 
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
 from qai_hub_models.models.templates.detection.detection_evaluator import mAPEvaluator
-from qai_hub_models.utils.bounding_box_processing import batched_nms
 from qai_hub_models.utils.input_spec import InputSpec
 
 

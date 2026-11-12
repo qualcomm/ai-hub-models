@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from qai_hub_models.utils.bounding_box_processing import get_iou
+from qai_hub_models.models.templates.corevision.bounding_box_processing import get_iou
 
 
 class BBox:

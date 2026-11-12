@@ -10,10 +10,12 @@ from typing import cast
 
 import torch
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    letterbox_geometry,
+)
 from qai_hub_models.models.templates.detection.coco_detection_evaluator import (
     COCODetectionEvaluator,
 )
-from qai_hub_models.utils.image_processing import letterbox_geometry
 
 # Matches GroundingDINO's own COCO eval pipeline (demo/test_ap_on_coco.py).
 # Caps predicted boxes post-inference -- distinct from dataset.py's max_boxes,

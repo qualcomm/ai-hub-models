@@ -3,12 +3,10 @@ numpydoc==1.9.0
 gdown==4.7.1
 gitpython==3.1.42
 huggingface_hub>=0.34.0,<2.0 # 0.34 contains a fix for long windows paths
-ipython==8.12.3
 numpy<=2.4.4
 onnx>=1.17,<=1.22.0 # aimet-onnx==2.20.0 requires onnx>=1.17
 onnxruntime>=1.19,<=1.22.1 # 1.19 is allowed for compatibility with AIMET-ONNX
 ai-edge-litert>=2.0.2,<=2.1.1; python_version<'3.13' and sys_platform != 'win32' # We use LiteRT instead of TF Lite because the equivalent TF Lite package is no longer maintained and does not have the TF Lite updates beyond 2023.
-opencv-python>4,<=4.13.0.92
 pandas>2,<=2.2.3
 prettytable==3.11.0
 requests_toolbelt==1.0.0
@@ -27,7 +25,6 @@ filelock>=3.16.1,<=3.29.0
 inputimeout>=1.0.4,<=1.0.4
 pydantic>=2,<=2.13.3
 pydantic_yaml==1.4.0
-scipy>=1.8.1,<=1.17.1 # required by all ImageNet models to load the ImageNet dataset. This is a dependency of torchvision that is only included in an extra. TODO: Figure out how we can remove this, since not all models need it.
 packaging>24.2,<=26.2.0
 coverage>=7.6.1,<=7.13.5
 boto3>=1.34,<=1.35.99

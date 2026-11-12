@@ -10,6 +10,9 @@ import torch
 from ultralytics.models import YOLO as ultralytics_YOLO
 from ultralytics.nn.tasks import SegmentationModel
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.app import YoloSegmentationApp
 from qai_hub_models.models.templates.yolo.model import yolo_segment_postprocess
 from qai_hub_models.models.yolov8_seg.demo import IMAGE_ADDRESS
@@ -20,7 +23,6 @@ from qai_hub_models.models.yolov8_seg.model import (
     YoloV8Segmentor,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 from qai_hub_models.utils.set_env import set_temp_env
 
 WEIGHTS = "yolov8n-seg.pt"

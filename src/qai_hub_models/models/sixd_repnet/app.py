@@ -16,10 +16,16 @@ import torch
 from PIL import Image
 
 from qai_hub_models.models.sixd_repnet.model import SCORE_THRESHOLD
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
+    rotation_matrix_to_euler,
+)
 from qai_hub_models.models.templates.imagenet_classifier.app import preprocess_image
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
-from qai_hub_models.utils.image_processing_3d import rotation_matrix_to_euler
 
 # RetinaFace MobileNet config (matches cfg_mnet in face_detection/alignment.py)
 _CFG_MNET: dict[str, Any] = {

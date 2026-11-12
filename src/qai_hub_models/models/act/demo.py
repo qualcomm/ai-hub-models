@@ -11,13 +11,15 @@ from qai_hub_models.models.act.model import (
     ACT,
     MODEL_ID,
 )
+from qai_hub_models.models.templates.corevision.display import (
+    generate_video_from_frames,
+)
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
     get_on_device_demo_parser,
     validate_on_device_demo_args,
 )
-from qai_hub_models.utils.display import generate_video_from_frames
 
 
 def main(is_test: bool = False) -> None:

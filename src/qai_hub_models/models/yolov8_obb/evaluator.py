@@ -12,8 +12,10 @@ import numpy as np
 import torch
 from ultralytics.utils.metrics import ap_per_class, batch_probiou
 
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    rotated_batched_nms,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing import rotated_batched_nms
 from qai_hub_models.utils.metrics import (
     MEAN_AVERAGE_PRECISION_IOU_5_95,
     MetricMetadata,

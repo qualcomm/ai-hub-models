@@ -10,8 +10,11 @@ import numpy as np
 import torch
 
 from qai_hub_models.datasets.coco.coco import CocoDatasetBase
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
 from qai_hub_models.utils.input_spec import InputSpec
 
 # Instances covering less than this fraction of the image are too small to click on.

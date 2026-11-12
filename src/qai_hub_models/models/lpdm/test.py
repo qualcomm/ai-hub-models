@@ -23,9 +23,11 @@ from qai_hub_models.models.lpdm.model import (
     SCORE_THRESHOLD,
     LicensePlateDetector,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.model import yolo_detect_postprocess
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 NUM_CLASSES = 51
 

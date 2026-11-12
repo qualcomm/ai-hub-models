@@ -16,6 +16,7 @@ from qai_hub_models.models.facemap_3dmm.model import (
     MODEL_ID,
     FaceMap_3DMM,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -23,7 +24,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def _parse_face_box(face_box_str: str) -> list[float]:

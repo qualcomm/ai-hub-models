@@ -19,6 +19,7 @@ from qai_hub_models.models.detectron2_panoptic_seg.model import (
     MODEL_ID,
     Detectron2PanopticSeg,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.detectron2.model import IMAGE_ADDRESS
 from qai_hub_models.utils.args import (
     add_output_dir_arg,
@@ -28,7 +29,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def main(is_test: bool = False) -> None:

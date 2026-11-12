@@ -16,13 +16,17 @@ import torch.nn.functional as F
 from rfdetr.models.ops.modules import MSDeformAttn
 from typing_extensions import Self
 
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.detection.detection_evaluator import (
     DetectionEvaluator,
 )
 from qai_hub_models.models.templates.detr.model import DETR
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_xyxy
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

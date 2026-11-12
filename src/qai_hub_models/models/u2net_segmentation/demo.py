@@ -5,6 +5,7 @@
 
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.u2net_segmentation.app import SegmentationU2NetApp
 from qai_hub_models.models.u2net_segmentation.model import (
     IMAGE_ADDRESS,
@@ -18,7 +19,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def main(is_test: bool = False) -> None:

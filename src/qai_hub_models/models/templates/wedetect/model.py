@@ -18,6 +18,7 @@ from qai_hub_models.extern.mmengine import (
     patch_mmengine_pkgresources,
     patch_mmengine_torch_load_no_weights_only,
 )
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.wedetect.app import tokenize_class_names
 from qai_hub_models.models.templates.wedetect.constants import (
     DEFAULT_MAX_SEQ_LEN,
@@ -34,7 +35,6 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
-from qai_hub_models.utils.labels import get_class_names
 
 with patch_mmdet_no_build_deps():
     from mmdet.apis import init_detector

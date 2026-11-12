@@ -16,13 +16,13 @@ from qai_hub_models.models.bevformer.model import (
     BEVFormer,
     load_frame_inputs,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
     get_on_device_demo_parser,
     validate_on_device_demo_args,
 )
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def main(is_test: bool = False) -> None:

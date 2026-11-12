@@ -11,8 +11,10 @@ from typing import Any
 import numpy as np
 import torch
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    denormalize_coordinates_affine,
+)
 from qai_hub_models.models.templates.pose.pose_evaluator import CocoBodyPoseEvaluator
-from qai_hub_models.utils.image_processing import denormalize_coordinates_affine
 from qai_hub_models.utils.printing import suppress_stdout
 
 # Visibility threshold for detection score filtering

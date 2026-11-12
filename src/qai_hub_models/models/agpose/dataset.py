@@ -22,9 +22,13 @@ from qai_hub_models.datasets.common import (
     DatasetSplit,
 )
 from qai_hub_models.models.agpose.model_patches import ag_pose_repo_paths
-from qai_hub_models.utils.depth_completion import fill_missing
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
-from qai_hub_models.utils.image_processing_3d import depth_to_full_pointcloud
+from qai_hub_models.models.templates.corevision.depth_completion import fill_missing
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
+    depth_to_full_pointcloud,
+)
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
 
 FPS_NPOINTS = [512, 256, 128, 64]

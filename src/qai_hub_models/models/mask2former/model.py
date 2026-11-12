@@ -32,10 +32,12 @@ from qai_hub_models.models.mask2former.model_patches import (
     PatchedSwinSelfAttention,
 )
 from qai_hub_models.models.templates.common import replace_module_recursively
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

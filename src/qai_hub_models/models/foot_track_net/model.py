@@ -23,6 +23,7 @@ from qai_hub_models.models.foot_track_net.layers import (
     Mbv3SmallFast,
     UpModule,
 )
+from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
@@ -35,7 +36,6 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
-from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 1

@@ -9,8 +9,10 @@ import numpy as np
 import torch
 
 from qai_hub_models.models.posenet_mobilenet.app import decode_multiple_poses
+from qai_hub_models.models.templates.corevision.image_processing import (
+    denormalize_coordinates_affine,
+)
 from qai_hub_models.models.templates.pose.pose_evaluator import CocoBodyPoseEvaluator
-from qai_hub_models.utils.image_processing import denormalize_coordinates_affine
 
 
 class PosenetMobilenetEvaluator(CocoBodyPoseEvaluator):

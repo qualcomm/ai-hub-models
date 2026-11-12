@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from PIL.Image import Image
 
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     pil_resize_pad,
     torch_tensor_to_PIL_image,

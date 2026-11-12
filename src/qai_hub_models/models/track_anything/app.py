@@ -12,11 +12,14 @@ import numpy as np
 import torch
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.draw import create_color_map
+from qai_hub_models.models.templates.corevision.image_processing import (
+    resize_pad,
+    undo_resize_pad,
+)
 from qai_hub_models.models.track_anything.external_repos.track_anything.tracker.inference.memory_manager import (
     MemoryManager,
 )
-from qai_hub_models.utils.draw import create_color_map
-from qai_hub_models.utils.image_processing import resize_pad, undo_resize_pad
 
 
 class TrackAnythingApp:

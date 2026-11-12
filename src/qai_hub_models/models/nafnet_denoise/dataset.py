@@ -12,12 +12,14 @@ import cv2
 import lmdb
 import torch
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
 from qai_hub_models.models.templates.nafnet.lmdb_helpers import (
     get_image_from_lmdb,
     paired_paths_from_lmdb,
 )
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
 

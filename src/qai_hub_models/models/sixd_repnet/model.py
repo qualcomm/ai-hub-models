@@ -17,11 +17,13 @@ from qai_hub_models.configs.tensor_spec import TensorSpec
 from qai_hub_models.models.sixd_repnet.external_repos.sixdrepnet.sixdrepnet.model import (
     SixDRepNet as UpstreamSixDRepNet,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
 
 MODEL_ID = __name__.split(".")[-2]

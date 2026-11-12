@@ -19,11 +19,11 @@ from qai_hub_models.models.lpdm.model import (
     SCORE_THRESHOLD,
     LicensePlateDetector,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
 from qai_hub_models.models.templates.yolo.app import YoloObjectDetectionApp
 from qai_hub_models.models.templates.yolo.demo import yolo_detection_demo
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.display import display_or_save_image
-from qai_hub_models.utils.draw import draw_box_from_xyxy
 
 IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "car.jpg"

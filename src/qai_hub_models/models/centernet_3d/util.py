@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from qai_hub_models.utils.image_processing import denormalize_coordinates_affine
-from qai_hub_models.utils.image_processing_3d import ddd2locrot
+from qai_hub_models.models.templates.corevision.image_processing import (
+    denormalize_coordinates_affine,
+)
+from qai_hub_models.models.templates.corevision.image_processing_3d import ddd2locrot
 
 
 def ddd_post_process(

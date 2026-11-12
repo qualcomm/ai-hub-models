@@ -14,6 +14,10 @@ from qai_hub_models import (
     Precision,
     TargetRuntime,
 )
+from qai_hub_models.models.templates.corevision.display import (
+    display_or_save_image,
+    to_uint8,
+)
 from qai_hub_models.models.templates.diffusion.app import (
     OUT_H,
     OUT_W,
@@ -37,7 +41,6 @@ from qai_hub_models.utils.args import (
     get_on_device_demo_parser,
     validate_on_device_demo_args,
 )
-from qai_hub_models.utils.display import display_or_save_image, to_uint8
 from qai_hub_models.utils.evaluate.helpers import EvalMode
 
 DEFAULT_PROMPT = "Painting - She Danced By The Light Of The Moon by Steve Henderson"

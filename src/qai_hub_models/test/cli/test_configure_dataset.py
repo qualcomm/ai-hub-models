@@ -15,14 +15,19 @@ from unittest.mock import patch
 import pytest
 from qai_hub_models_cli.errors import CLIUserError
 
-from qai_hub_models.cli.configure_dataset import _resolve_class, main
-from qai_hub_models.datasets.cityscapes.cityscapes import (
+from qai_hub_models.test.mock_imports import install_mock_packages
+
+# cv2 is only needed to import the dataset modules, not by these tests.
+install_mock_packages(["cv2"])
+
+from qai_hub_models.cli.configure_dataset import _resolve_class, main  # noqa: E402
+from qai_hub_models.datasets.cityscapes.cityscapes import (  # noqa: E402
     CITYSCAPES_CONFIGURE_FILES,
     CITYSCAPES_GT_ASSET,
     CITYSCAPES_IMAGES_ASSET,
     CityscapesDataset,
 )
-from qai_hub_models.utils.private_asset_loaders import (
+from qai_hub_models.utils.private_asset_loaders import (  # noqa: E402
     UnfetchableDatasetError,
     configure_dataset_command,
 )

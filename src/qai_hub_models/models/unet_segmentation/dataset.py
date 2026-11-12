@@ -14,13 +14,15 @@ from PIL import Image
 from torchvision.datasets.coco import CocoDetection
 
 from qai_hub_models.datasets.coco.coco import CocoDatasetBase
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
     DatasetMetadata,
     DatasetSplit,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
 

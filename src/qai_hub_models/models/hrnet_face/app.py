@@ -12,8 +12,10 @@ import numpy as np
 import torch
 from PIL.Image import Image, fromarray
 
-from qai_hub_models.utils.draw import draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.draw import draw_points
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 
 class HRNetFaceApp:

@@ -7,8 +7,10 @@ from __future__ import annotations
 import torch
 
 from qai_hub_models.datasets.coco.coco import CocoDatasetBase
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.base_dataset import DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import InputSpec
 
 

@@ -19,6 +19,10 @@ from typing_extensions import Self
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.sam.app import (
     ENCODER_IMG_SIZE,
     MASK_THRESHOLD,
@@ -34,10 +38,6 @@ from qai_hub_models.utils.base_app import (
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import (
-    numpy_image_to_torch,
-    preprocess_PIL_image,
-)
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries

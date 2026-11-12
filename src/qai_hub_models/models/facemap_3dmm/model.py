@@ -18,6 +18,9 @@ from qai_hub_models.models.facemap_3dmm.evaluator import (
     FaceMap3DMMEvaluator,
 )
 from qai_hub_models.models.facemap_3dmm.resnet_score_rgb import resnet18_wd2
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
@@ -26,7 +29,6 @@ from qai_hub_models.utils.asset_loaders import (
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

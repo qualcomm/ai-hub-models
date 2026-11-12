@@ -16,6 +16,10 @@ from qai_hub_models.models.bevdet.model import (
     BEVDetEncoder,
     BEVDetPooler,
 )
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    transform_to_matrix,
+)
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_components_from_cli_args,
     get_model_cli_parser,
@@ -27,8 +31,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_json,
 )
-from qai_hub_models.utils.bounding_box_processing_3d import transform_to_matrix
-from qai_hub_models.utils.display import display_or_save_image
 
 # These assets are source from the nuscene dataset correspond to
 # 'scene-0103' with sample_token '3e8750f331d7499e9b5123e9eb70f2e2'

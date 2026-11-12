@@ -11,6 +11,7 @@ import torch
 from transformers import AutoTokenizer
 
 from qai_hub_models.datasets.coco import CocoDataset
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.wedetect.app import tokenize_class_names
 from qai_hub_models.models.templates.wedetect.constants import (
     DEFAULT_MAX_SEQ_LEN,
@@ -18,7 +19,6 @@ from qai_hub_models.models.templates.wedetect.constants import (
 )
 from qai_hub_models.utils.base_dataset import DatasetSplit
 from qai_hub_models.utils.input_spec import InputSpec
-from qai_hub_models.utils.labels import get_class_names
 
 
 class WeDetectCocoDataset(CocoDataset):

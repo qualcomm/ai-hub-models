@@ -20,12 +20,14 @@ from qai_hub_models.models.hrnet_pose.external_repos.hrnet.lib.config import cfg
 from qai_hub_models.models.hrnet_pose.external_repos.hrnet.lib.models.pose_hrnet import (
     PoseHighResolutionNet,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.pose.pose_evaluator import MPIIPoseEvaluator
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_numpy
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

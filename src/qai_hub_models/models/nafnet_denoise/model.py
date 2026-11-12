@@ -11,6 +11,9 @@ from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
 from qai_hub_models.models.nafnet_denoise.dataset import SIDDDataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.nafnet.model import (
     NAFNetModel,
     _load_nafnet_source_model,
@@ -19,7 +22,6 @@ from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     InputSpec,
     OutputSpec,

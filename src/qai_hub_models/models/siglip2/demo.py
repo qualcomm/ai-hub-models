@@ -9,6 +9,7 @@ import numpy as np
 
 from qai_hub_models.models.siglip2.app import SigLIP2App
 from qai_hub_models.models.siglip2.model import MODEL_ASSET_VERSION, MODEL_ID, SigLIP2
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_components_from_cli_args,
     get_model_cli_parser,
@@ -16,7 +17,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 DEFAULT_DEMO_IMAGES = ["image1.jpg", "image2.jpg", "image3.jpg"]
 DEFAULT_TEXT_PROMPT = "camping under the stars"

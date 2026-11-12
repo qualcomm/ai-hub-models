@@ -7,7 +7,7 @@ import pytest
 import torch
 from torch import nn
 
-from qai_hub_models.utils.rnn import UnrolledLSTM
+from qai_hub_models.models.easyocr.rnn import UnrolledLSTM
 
 
 @pytest.mark.parametrize("bidirectional", [False, True])

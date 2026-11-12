@@ -19,6 +19,16 @@ from transformers import PreTrainedTokenizerBase
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+    transform_boxes_to_original_size,
+)
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.wedetect.constants import (
     DEFAULT_MAX_SEQ_LEN,
 )
@@ -28,22 +38,12 @@ from qai_hub_models.utils.base_app import (
     CollectionModelEvalGenerator,
 )
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
-from qai_hub_models.utils.bounding_box_processing import (
-    batched_nms,
-    transform_boxes_to_original_size,
-)
-from qai_hub_models.utils.draw import draw_box_from_xyxy
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import (
-    app_to_net_image_inputs,
-    resize_pad,
-)
 from qai_hub_models.utils.inference import (
     AsyncOnDeviceModel,
     AsyncOnDeviceResult,
 )
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
-from qai_hub_models.utils.labels import get_class_names
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 
 

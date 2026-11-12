@@ -18,8 +18,10 @@ from qai_hub_models.models.lightglue.postprocess import (
     extract_padded_features,
 )
 from qai_hub_models.models.superpoint.model import SuperPoint
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 
 
 def test_task() -> None:

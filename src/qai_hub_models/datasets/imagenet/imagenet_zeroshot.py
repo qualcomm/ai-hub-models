@@ -26,7 +26,7 @@ from transformers import AutoTokenizer
 
 from qai_hub_models.datasets.common import DatasetSplit
 from qai_hub_models.datasets.imagenet.imagenet import ImagenetDataset
-from qai_hub_models.utils.labels import get_class_names
+from qai_hub_models.models.templates.corevision.labels import get_class_names
 
 # Zero-shot prompt template applied to every ImageNet class name.
 PROMPT_TEMPLATE = "a photo of a {label}"

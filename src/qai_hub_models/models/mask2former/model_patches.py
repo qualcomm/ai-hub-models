@@ -15,7 +15,7 @@ from transformers.models.mask2former.modeling_mask2former import (
 )
 from transformers.models.swin.modeling_swin import SwinLayer, SwinSelfAttention
 
-from qai_hub_models.utils.window_partitioning import (
+from qai_hub_models.models.templates.corevision.window_partitioning import (
     window_partition_5d,
     window_unpartition_5d,
 )

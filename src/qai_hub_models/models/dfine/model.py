@@ -13,6 +13,12 @@ from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
 from qai_hub_models.datasets.coco import CocoDataset
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.detection.detection_evaluator import (
     DetectionEvaluator,
 )
@@ -20,8 +26,6 @@ from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_xyxy
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     BboxFormat,
     BboxMetadata,

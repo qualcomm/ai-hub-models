@@ -13,10 +13,17 @@ import torch
 from PIL import Image
 
 from qai_hub_models.models.centernet_3d.util import ddd_post_process
-from qai_hub_models.utils.bounding_box_processing_3d import compute_box_3d, draw_3d_bbox
-from qai_hub_models.utils.draw import draw_box_from_corners
-from qai_hub_models.utils.image_processing import pre_process_with_affine
-from qai_hub_models.utils.image_processing_3d import project_to_image
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    compute_box_3d,
+    draw_3d_bbox,
+)
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_corners
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pre_process_with_affine,
+)
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
+    project_to_image,
+)
 
 OBJECT_CLASSES = {
     1: (0, 0, 230),  # pedestrian

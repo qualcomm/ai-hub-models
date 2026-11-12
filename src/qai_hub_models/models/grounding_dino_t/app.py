@@ -32,18 +32,18 @@ from qai_hub_models.models.grounding_dino_t.model import (
     GroundingDINOTCollection,
     load_tokenizer,
 )
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
+from qai_hub_models.models.templates.corevision.image_processing import (
+    letterbox_resize_pad_pil,
+    preprocess_PIL_image,
+)
 from qai_hub_models.protocols import ExecutableModelProtocol
 from qai_hub_models.utils.base_app import (
     CollectionAppEvaluateProtocol,
     CollectionAppQuantizeProtocol,
     CollectionModelEvalGenerator,
 )
-from qai_hub_models.utils.draw import draw_box_from_xyxy
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import (
-    letterbox_resize_pad_pil,
-    preprocess_PIL_image,
-)
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
@@ -294,7 +294,7 @@ class GroundingDINOTCollectionApp(
             Per-detection bounding boxes in (x1, y1, x2, y2) format, in the
             letterboxed (IMG_WIDTH, IMG_HEIGHT) canvas's pixel coordinates --
             *not* unscaled back to `image`'s original resolution. Use
-            `qai_hub_models.utils.image_processing.letterbox_geometry` to map
+            `qai_hub_models.models.templates.corevision.image_processing.letterbox_geometry` to map
             these back to `image`'s coordinate space if needed (see
             evaluator.py's `add_batch` for the unscale math).
         """

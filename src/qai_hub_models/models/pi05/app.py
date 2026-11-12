@@ -24,10 +24,12 @@ from qai_hub_models.models.pi05.model import (
     Pi05PaliGemmaTokenEmbed,
     Pi05PaliGemmaVision,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    resize_and_normalize,
+)
 from qai_hub_models.protocols import ExecutableModelProtocol
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import resize_and_normalize
 from qai_hub_models.utils.inference import OnDeviceModel
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries

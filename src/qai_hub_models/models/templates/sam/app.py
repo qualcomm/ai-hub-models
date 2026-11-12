@@ -17,16 +17,16 @@ from typing_extensions import Self
 
 from qai_hub_models.datasets.coco.coco_sam_point import SAM_PIXEL_MEAN
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.sam.model_patches import (
     mask_postprocessing as upscale_masks,
 )
 from qai_hub_models.utils.base_app import (
     CollectionAppEvaluateProtocol,
     CollectionModelEvalGenerator,
-)
-from qai_hub_models.utils.image_processing import (
-    numpy_image_to_torch,
-    preprocess_PIL_image,
 )
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 

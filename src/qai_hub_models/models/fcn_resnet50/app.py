@@ -14,8 +14,11 @@ from PIL.Image import Image
 from torchvision import transforms
 
 from qai_hub_models.models.fcn_resnet50.model import NUM_CLASSES
-from qai_hub_models.utils.draw import create_color_map
-from qai_hub_models.utils.image_processing import pil_resize_pad, pil_undo_resize_pad
+from qai_hub_models.models.templates.corevision.draw import create_color_map
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pil_resize_pad,
+    pil_undo_resize_pad,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

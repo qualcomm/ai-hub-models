@@ -27,15 +27,18 @@ from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
 from qai_hub_models.models.easyocr.dataset import CocoTextCalibrationDataset
-from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
-from qai_hub_models.utils.draw import draw_box_from_corners, draw_box_from_xyxy
-from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_box_from_corners,
+    draw_box_from_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     denormalize_coordinates,
     numpy_image_to_torch,
     resize_pad,
 )
+from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
+from qai_hub_models.utils.evaluate.helpers import sample_dataset
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 

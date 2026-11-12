@@ -23,13 +23,15 @@ from qai_hub_models.models.mediapipe_face.model import (
     ROTATION_VECTOR_OFFSET_RADS,
     MediaPipeFace,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    torch_image_to_numpy,
+)
 from qai_hub_models.models.templates.mediapipe.app import MediaPipeApp
 from qai_hub_models.utils.base_collection_model import (
     CollectionModel,
     WorkbenchModelCollection,
 )
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.image_processing import torch_image_to_numpy
 from qai_hub_models.utils.input_spec import InputSpec
 
 

@@ -35,14 +35,14 @@ from qai_hub_models.models.sam3.model_patches import (
     patch_decoder_last_layer_only,
     patch_decoder_rpb_device,
 )
+from qai_hub_models.models.templates.corevision.window_partitioning import (
+    window_partition_5d,
+    window_unpartition_5d,
+)
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.export.result import ComponentGroup
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec, TensorSpec
-from qai_hub_models.utils.window_partitioning import (
-    window_partition_5d,
-    window_unpartition_5d,
-)
 
 DEFAULT_MODEL_DEVICE = "cpu"
 MODEL_ID = __name__.split(".")[-2]

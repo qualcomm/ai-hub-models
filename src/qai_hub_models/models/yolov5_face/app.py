@@ -12,9 +12,18 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.bounding_box_processing import batched_nms, box_xywh_to_xyxy
-from qai_hub_models.utils.draw import draw_box_from_xyxy, draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+    box_xywh_to_xyxy,
+)
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_box_from_xyxy,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 # Pad value (Neutral Gray) used by the YOLOv5-Face letterbox (must match model preprocessing)

@@ -10,8 +10,10 @@ import torch
 
 from qai_hub_models.datasets.kitti import KITTI_LABELS_ASSET
 from qai_hub_models.models.centernet_3d.kitti_utils import eval_class
+from qai_hub_models.models.templates.corevision.image_processing import (
+    denormalize_coordinates_affine,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.image_processing import denormalize_coordinates_affine
 from qai_hub_models.utils.metrics import (
     AVERAGE_PRECISION,
     MetricMetadata,

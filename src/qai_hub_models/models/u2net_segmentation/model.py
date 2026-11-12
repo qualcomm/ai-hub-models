@@ -11,6 +11,9 @@ from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
 from qai_hub_models.datasets.duts.duts import DUTSDataset, preprocess_image_for_u2net
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.u2net_segmentation.evaluator import (
     MeanAbsoluteErrorEvaluator,
 )
@@ -25,7 +28,6 @@ from qai_hub_models.utils.asset_loaders import (
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

@@ -14,10 +14,14 @@ from hdf5storage import loadmat
 from numpy.typing import NDArray
 
 from qai_hub_models.datasets.coco import CocoBodyDatasetBase
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_cs,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pre_process_with_affine,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_cs
-from qai_hub_models.utils.image_processing import pre_process_with_affine
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 COFW_VERSION = 2

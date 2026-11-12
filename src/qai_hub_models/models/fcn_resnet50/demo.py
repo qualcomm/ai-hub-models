@@ -12,6 +12,7 @@ from qai_hub_models.models.fcn_resnet50.model import (
     MODEL_ID,
     FCN_ResNet50,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -21,7 +22,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 # Demo image comes from https://github.com/pytorch/hub/raw/master/images/deeplab1.png
 # and has had alpha channel removed for use as input

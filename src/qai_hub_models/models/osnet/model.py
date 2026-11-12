@@ -22,12 +22,14 @@ from qai_hub_models.models.osnet.external_repos.deep_person_reid.torchreid.model
     osnet_x0_75,
     osnet_x1_0,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.reid.reid_evaluator import ReIDEvaluator
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec, TensorSpec
 
 MODEL_ID = __name__.split(".")[-2]

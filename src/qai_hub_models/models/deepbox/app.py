@@ -34,14 +34,18 @@ from qai_hub_models.models.deepbox.model import (
     Yolo2DDetection,
 )
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.base_app import CollectionModelEvalGenerator
 from qai_hub_models.utils.base_collection_model import (
     CollectionModel,
     WorkbenchModelCollection,
 )
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 from qai_hub_models.utils.input_spec import InputSpec
 

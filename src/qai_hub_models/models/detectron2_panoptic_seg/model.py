@@ -30,6 +30,9 @@ from qai_hub_models.models.detectron2_panoptic_seg.model_patches import (
     gather_roi_align,
     native_roi_align,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.detectron2.model import IMAGE_ADDRESS, Detectron2
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
@@ -40,7 +43,6 @@ from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     BboxFormat,
     BboxMetadata,

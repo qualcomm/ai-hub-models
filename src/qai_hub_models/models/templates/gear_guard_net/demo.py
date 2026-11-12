@@ -10,6 +10,7 @@ from collections.abc import Callable
 import numpy as np
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -18,7 +19,6 @@ from qai_hub_models.utils.args import (
 )
 from qai_hub_models.utils.asset_loaders import CachedWebAsset, load_image
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def gear_guard_demo(

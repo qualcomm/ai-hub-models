@@ -12,12 +12,12 @@ import numpy.typing as npt
 import torch
 from PIL.Image import Image, Resampling
 
-from qai_hub_models.models.templates.detr.coco_label_map import LABEL_MAP
-from qai_hub_models.utils.draw import draw_box_from_xyxy
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import draw_box_from_xyxy
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     preprocess_PIL_image,
 )
+from qai_hub_models.models.templates.detr.coco_label_map import LABEL_MAP
 
 
 class DETRApp:

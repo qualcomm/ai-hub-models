@@ -15,8 +15,11 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from qai_hub_models.datasets.coco.coco import COCO_ANNOTATIONS
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+    box_xywh_to_xyxy,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing import batched_nms, box_xywh_to_xyxy
 from qai_hub_models.utils.metrics import (
     MEAN_AVERAGE_PRECISION_IOU_5_95,
     MetricMetadata,

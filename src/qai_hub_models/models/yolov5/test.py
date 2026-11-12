@@ -10,6 +10,9 @@ import torch
 from ultralytics.models import YOLO as ultralytics_YOLO
 from ultralytics.nn.tasks import DetectionModel
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.ultralytics.detect_patches import (
     patch_ultralytics_detection_head,
 )
@@ -21,7 +24,6 @@ from qai_hub_models.models.yolov5.model import (
     YoloV5,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 
 def test_task() -> None:
