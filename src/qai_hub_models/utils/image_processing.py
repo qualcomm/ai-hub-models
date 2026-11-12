@@ -13,7 +13,8 @@ from typing import Literal, TypeVar
 import cv2
 import numpy as np
 import torch
-from PIL.Image import Image
+from PIL import Image as PILImageModule
+from PIL.Image import Image, Resampling
 from PIL.Image import fromarray as ImageFromArray
 from torch.nn.functional import interpolate, pad
 from torchvision import transforms
@@ -229,6 +230,88 @@ def normalize_image_transform() -> Callable[[torch.Tensor], torch.Tensor]:
     these specific constants, so this utility can be re-used across many models.
     """
     return functools.partial(normalize_image_torchvision, image_tensor_has_batch=False)
+
+
+def letterbox_geometry(
+    orig_h: float, orig_w: float, dst_h: int, dst_w: int
+) -> tuple[float, int, int, int, int]:
+    """
+    Compute the scale, resized size, and centered integer padding for a
+    letterbox resize to (dst_h, dst_w), preserving aspect ratio.
+
+    Uses round() for the resized size and floor division for padding
+    (not math.floor()-based resize_pad), matching GroundingDINO's own
+    preprocessing convention exactly so unscaling predictions stays exact.
+
+    Parameters
+    ----------
+    orig_h
+        Original image height.
+    orig_w
+        Original image width.
+    dst_h
+        Target (letterboxed) height.
+    dst_w
+        Target (letterboxed) width.
+
+    Returns
+    -------
+    scale : float
+        Scale factor applied to the original image.
+    new_h : int
+        Resized image height, before padding.
+    new_w : int
+        Resized image width, before padding.
+    pad_top : int
+        Padding added above the resized image.
+    pad_left : int
+        Padding added to the left of the resized image.
+    """
+    scale = min(dst_h / orig_h, dst_w / orig_w)
+    new_h = round(orig_h * scale)
+    new_w = round(orig_w * scale)
+    pad_top = (dst_h - new_h) // 2
+    pad_left = (dst_w - new_w) // 2
+    return scale, new_h, new_w, pad_top, pad_left
+
+
+def letterbox_resize_pad_pil(image: Image, dst_h: int, dst_w: int) -> Image:
+    """
+    Letterbox-resize `image` to (dst_h, dst_w) using letterbox_geometry's
+    convention (round-based resize, floor-divided centered padding),
+    zero-padding the remainder. RGB-converts first.
+
+    A single shared implementation for any caller that must stay pixel-exact
+    with letterbox_geometry's convention across both PIL and tensor outputs
+    (e.g. matching inference preprocessing to calibration/eval preprocessing)
+    -- callers needing a tensor can wrap this with e.g. torchvision's
+    to_tensor(). Not a generic resize_pad() replacement: resize_pad() uses a
+    different (floor-based) resize/padding convention.
+
+    Parameters
+    ----------
+    image
+        Source image, any mode/size.
+    dst_h
+        Target (letterboxed) height.
+    dst_w
+        Target (letterboxed) width.
+
+    Returns
+    -------
+    canvas : Image
+        RGB image of exact size (dst_w, dst_h), aspect-preserved and
+        zero-padded.
+    """
+    img = image.convert("RGB")
+    orig_w, orig_h = img.size
+    _scale, new_h, new_w, pad_top, pad_left = letterbox_geometry(
+        orig_h, orig_w, dst_h, dst_w
+    )
+    resized = img.resize((new_w, new_h), resample=Resampling.BILINEAR)
+    canvas = PILImageModule.new("RGB", (dst_w, dst_h))
+    canvas.paste(resized, (pad_left, pad_top))
+    return canvas
 
 
 def pad_to_square(frame: np.ndarray, pad_value: float = 255) -> np.ndarray:

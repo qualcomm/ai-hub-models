@@ -86,6 +86,19 @@ class COCODetectionEvaluator(BaseEvaluator):
         """Reset accumulated predictions."""
         self.predictions: list[dict] = []
 
+    def _letterbox_geometry(
+        self, orig_h: float, orig_w: float
+    ) -> tuple[float, float, float]:
+        """Return (scale, pad_x, pad_y) used to unletterbox predictions back to original image coordinates.
+
+        Override to match a model's own preprocessing convention (e.g. rounded
+        resize + floor-divided padding) instead of this unrounded float default.
+        """
+        scale = min(self.image_height / orig_h, self.image_width / orig_w)
+        pad_x = (self.image_width - orig_w * scale) / 2.0
+        pad_y = (self.image_height - orig_h * scale) / 2.0
+        return scale, pad_x, pad_y
+
     def add_batch(
         self,
         output: torch.Tensor
@@ -181,10 +194,7 @@ class COCODetectionEvaluator(BaseEvaluator):
             orig_h = float(img_info["height"])
             orig_w = float(img_info["width"])
 
-            # Letterbox scale and padding used during preprocessing
-            scale = min(self.image_height / orig_h, self.image_width / orig_w)
-            pad_x = (self.image_width - orig_w * scale) / 2.0
-            pad_y = (self.image_height - orig_h * scale) / 2.0
+            scale, pad_x, pad_y = self._letterbox_geometry(orig_h, orig_w)
 
             boxes = pred_boxes_list[i]
             scores = pred_scores_list[i]

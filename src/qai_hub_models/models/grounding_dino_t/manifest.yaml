@@ -1,0 +1,49 @@
+dataset:
+- O365
+- GoldG
+- Cap4M
+datasets:
+- coco
+description: GroundingDINO-T is a vision-language object detection model that predicts bounding boxes for objects in an image based on text prompts. This model is split into vision, BERT text-encoder, and fusion/decoder components, each compiled independently.
+disabled_paths:
+  float:
+    tflite:
+      scorecard_failure: Numeric drift pushes all detections below box_threshold on-device; demo yields zero boxes despite the job completing successfully. Root cause isolated to the fusion_decoder component under tflite - top class-confidence across all 900 queries collapses to ~0.30 sigmoid (vs. ~0.71 for the same query under qnn_context_binary/torch), and the highest-scoring query degenerates to a near full-image box (cx,cy,w,h ~= 0.50,0.50,1.00,1.00) rather than a real detection. Verified isolated to tflite; qnn_context_binary is unaffected (50.93 mAP on-device, see numerics_benchmark).
+  mixed_with_float:
+    tflite:
+      scorecard_failure: QuantizeLinear layer 'QcQuantizeOp_/Constant_1_output_0_q' cannot have output dtype 'uint16'.
+domain: Computer Vision
+external_repos:
+  groundingdino:
+    commit_sha: 856dde20aee659246248e20734ef9ba5214f5e44
+    repo_url: https://github.com/IDEA-Research/GroundingDINO.git
+form_factors:
+- Phone
+- Tablet
+- IoT
+- XR
+has_on_target_demo: true
+headline: Open-vocabulary object detection using vision-language grounding, split into independently-compiled vision, BERT text-encoder, and fusion/decoder components.
+id: grounding_dino_t
+is_collection_model: true
+license: https://github.com/IDEA-Research/GroundingDINO/blob/main/LICENSE
+license_type: apache-2.0
+name: GroundingDINO-T
+numerics_benchmark:
+  dataset_name: grounding_dino_coco
+  metric_name: Mean Average Precision
+  source: AI Hub Models Reference Eval
+  unit: mAP@0.5:0.95
+  value: 51.1
+research_paper: https://arxiv.org/abs/2303.05499
+research_paper_title: 'Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection'
+restrict_model_sharing: true
+source_repo: https://github.com/IDEA-Research/GroundingDINO
+supported_precisions:
+- float
+- mixed_with_float
+tags:
+- foundation
+templates:
+- detection
+use_case: Object Detection
