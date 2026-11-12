@@ -51,9 +51,13 @@ _TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 # GitHub caps issue bodies at 65,536 chars. On a bad night, summary.md (a
 # markdown table of every failing test) can exceed that alone, so clip it
-# before it goes into the template. Budget leaves ~5 KB of headroom for the
-# failures list, links, and triage-steps sections around it.
-_TEST_SUMMARY_MAX_CHARS = 60_000
+# before it goes into the template. Budget leaves ~20 KB of headroom for the
+# capped AI Hub job list, failures list, links, and triage-steps sections.
+_TEST_SUMMARY_MAX_CHARS = 45_000
+
+# On 2026-11-10, 980 AI Hub jobs failed and their links alone (~138 KB) blew the
+# cap. 100 links is <=16 KB; the full set stays in the run's artifact.
+_AIHUB_JOBS_MAX_LISTED = 100
 
 
 def clip_test_summary(
@@ -169,11 +173,15 @@ def main() -> None:
     failed_aihub_jobs = load_failed_jobs_json(args.failed_jobs_json)
     if workbench_failures and failed_aihub_jobs:
         title = f"[QAIHM Nightly] Workbench Job Failures - {today}"
+        listed_aihub_jobs = dict(
+            list(failed_aihub_jobs.items())[:_AIHUB_JOBS_MAX_LISTED]
+        )
         body = render_issue_body(
             "workbench_issue.j2",
             today=today,
             failures=workbench_failures,
-            failed_aihub_jobs=failed_aihub_jobs or None,
+            failed_aihub_jobs=listed_aihub_jobs,
+            omitted_aihub_jobs=len(failed_aihub_jobs) - len(listed_aihub_jobs),
             test_summary=clip_test_summary(
                 scope_test_summary(test_summary, workbench=True)
             ),

@@ -8,10 +8,13 @@ Date: {{ today }}
 {% endfor %}
 {%- if failed_aihub_jobs %}
 
-## Failed AI Hub Jobs
+## Failed AI Hub Jobs{% if omitted_aihub_jobs %} (first {{ failed_aihub_jobs|length }} of {{ failed_aihub_jobs|length + omitted_aihub_jobs }}){% endif %}
 {% for name, url in failed_aihub_jobs.items() -%}
 - **{{ name }}**: {{ url }}
 {% endfor %}
+{%- if omitted_aihub_jobs %}
+- _…and {{ omitted_aihub_jobs }} more; full list in the `nightly-test-results` artifact of the [workflow run]({{ run_url }})._
+{% endif %}
 {%- endif %}
 {% if test_summary %}
 
