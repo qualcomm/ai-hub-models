@@ -1,0 +1,30 @@
+# Moves tools.read_samples/yaml imports into the __main__ guard: they require
+# tools/ on sys.path, which plain `import modules.overlap_transformer` doesn't add.
+#
+diff --git a/modules/overlap_transformer.py b/modules/overlap_transformer.py
+index 083956c..cace391 100644
+--- a/modules/overlap_transformer.py
++++ b/modules/overlap_transformer.py
+@@ -16,8 +16,6 @@ import torch.nn as nn
+ 
+ from modules.netvlad import NetVLADLoupe
+ import torch.nn.functional as F
+-from tools.read_samples import read_one_need_from_seq
+-import yaml
+ 
+ """
+     Feature extracter of OverlapTransformer.
+@@ -136,6 +134,13 @@ class featureExtracter(nn.Module):
+ 
+ 
+ if __name__ == '__main__':
++    # Begin Qualcomm modification
++    # Only needed here: tools.read_samples requires tools/ on sys.path, which
++    # plain `import modules.overlap_transformer` doesn't add.
++    from tools.read_samples import read_one_need_from_seq
++    import yaml
++    # End Qualcomm modification
++
+     # load config ================================================================
+     config_filename = '../config/config.yml'
+     config = yaml.safe_load(open(config_filename))
