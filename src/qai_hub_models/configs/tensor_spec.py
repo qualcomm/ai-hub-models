@@ -115,6 +115,12 @@ _BBOX_FORMAT_TO_PROTO: dict[str, int] = {
 }
 
 
+_PROTO_TO_DTYPE = {v: k for k, v in _DTYPE_TO_PROTO.items()}
+_PROTO_TO_IO_TYPE = {v: k for k, v in _IO_TYPE_TO_PROTO.items()}
+_PROTO_TO_COLOR_FORMAT = {v: k for k, v in _COLOR_FORMAT_TO_PROTO.items()}
+_PROTO_TO_BBOX_FORMAT = {v: k for k, v in _BBOX_FORMAT_TO_PROTO.items()}
+
+
 class QuantizationParameters(BaseQAIHMConfig):
     """Quantization parameters for a tensor."""
 
@@ -126,6 +132,12 @@ class QuantizationParameters(BaseQAIHMConfig):
             scale=self.scale,
             zero_point=self.zero_point,
         )
+
+    @classmethod
+    def from_proto(
+        cls, proto: tensor_spec_pb2.QuantizationParameters
+    ) -> QuantizationParameters:
+        return cls(scale=proto.scale, zero_point=proto.zero_point)
 
 
 # ---------------------------------------------------------------------------
@@ -297,3 +309,51 @@ class TensorSpec(BaseQAIHMConfig):
             softmax_applied=self.softmax_applied,
             labels_file=self.labels_file,
         )
+
+    @classmethod
+    def from_proto(cls, proto: tensor_spec_pb2.TensorSpec) -> TensorSpec:
+        """Build a TensorSpec from its proto. The tensor name (``proto.name``) is left to the caller."""
+        kwargs: dict[str, Any] = {
+            "shape": tuple(proto.shape),
+            "dtype": _PROTO_TO_DTYPE.get(proto.dtype, ""),
+            "softmax_applied": proto.softmax_applied,
+        }
+        if proto.HasField("quantization_parameters"):
+            kwargs["quantization_parameters"] = QuantizationParameters.from_proto(
+                proto.quantization_parameters
+            )
+        if proto.HasField("description"):
+            kwargs["description"] = proto.description
+        if proto.HasField("labels_file"):
+            kwargs["labels_file"] = proto.labels_file
+        if proto.io_type in _PROTO_TO_IO_TYPE:
+            kwargs["io_type"] = IoType(_PROTO_TO_IO_TYPE[proto.io_type])
+        if proto.HasField("image_metadata"):
+            kwargs["image_metadata"] = ImageMetadata(
+                color_format=ColorFormat(
+                    _PROTO_TO_COLOR_FORMAT.get(
+                        proto.image_metadata.color_format, ColorFormat.RGB.value
+                    )
+                )
+            )
+        if proto.HasField("bbox_metadata"):
+            kwargs["bbox_metadata"] = BboxMetadata(
+                bbox_format=BboxFormat(
+                    _PROTO_TO_BBOX_FORMAT.get(
+                        proto.bbox_metadata.bbox_format, BboxFormat.XYXY.value
+                    )
+                )
+            )
+        if proto.HasField("value_range"):
+            kwargs["value_range"] = _value_range_from_proto(proto.value_range)
+        return cls(**kwargs)
+
+
+def _value_range_from_proto(proto: range_pb2.Range) -> tuple[float, float]:
+    which = proto.WhichOneof("type")
+    if which is None:
+        return (float("-inf"), float("inf"))
+    r = getattr(proto, which)
+    low = r.min if r.HasField("min") else float("-inf")
+    high = r.max if r.HasField("max") else float("inf")
+    return (float(low), float(high))
