@@ -24,7 +24,7 @@ from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.chipset_helpers import WEBSITE_CHIPSET_ORDER
 from qai_hub_models.scorecard.utils.fetch_static_assets import fetch_static_assets
-from qai_hub_models.scripts.generate_model_readme import get_shared_template_args
+from qai_hub_models.utils._readme_template_args import get_shared_template_args
 from qai_hub_models.utils.asset_loaders import (
     ASSET_CONFIG,
     QAIHM_WEB_ASSET,

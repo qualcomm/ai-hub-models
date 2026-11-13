@@ -32,6 +32,10 @@ from qai_hub_models_cli.registry import default_alias
 
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.utils._readme_template_args import (
+    get_shared_template_args,
+    has_machine_gated_entries,
+)
 from qai_hub_models.utils.asset_loaders import UNPUBLISHED_MODEL_WARNING
 from qai_hub_models.utils.export.context import (
     resolve_publish_status,
@@ -151,13 +155,6 @@ def write_readme(
     Path
         The README path written.
     """
-    # The scripts package (and its templates) is not available in release
-    # builds, so import here to avoid failures: generate-files is dev-only.
-    from qai_hub_models.scripts.generate_model_readme import (
-        _has_machine_gated_entries,
-        get_shared_template_args,
-    )
-
     if manifest.headline is None:
         raise CLIUserError(
             f"{folder}/manifest.yaml is missing required field for README "
@@ -195,7 +192,7 @@ def write_readme(
             "default_precision": str(manifest.default_precision),
             "supported_precisions": supported_precisions,
             "separate_quantize_script": manifest.separate_quantize_script,
-            "has_machine_gated_entries": _has_machine_gated_entries(manifest),
+            "has_machine_gated_entries": has_machine_gated_entries(manifest),
             "python_version_gte": manifest.python_version_greater_than_or_equal_to,
             "python_version_lt": manifest.python_version_less_than,
             "include_example_and_usage": not manifest.skip_example_usage,

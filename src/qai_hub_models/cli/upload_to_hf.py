@@ -94,6 +94,17 @@ _EXTERNAL_REPOS_DIR_NAME = "external_repos"
 
 _VERSION_TAG_RE = re.compile(r"^v(\d+)$")
 
+_BETA_WARNING = """
++------------------------------------------------------------------+
+|                                                                  |
+|  WARNING: RECIPES ARE IN BETA                                    |
+|                                                                  |
+|  AI Hub Models APIs are not yet stable. Your recipe's code may   |
+|  need to be updated until AI Hub Models v1.0 is released.        |
+|                                                                  |
++------------------------------------------------------------------+
+"""
+
 _COMMUNITY_ORG_ACCESS_HELP = """\
 Your token does not have permission to upload to the `qualcomm-ai-hub-community`
 organization on Hugging Face.
@@ -693,6 +704,8 @@ def upload_to_hf(
             "recipes; in-tree models are published to the `qualcomm` org by the release "
             "scripts."
         )
+
+    print(_BETA_WARNING, file=sys.stderr)
 
     # Resolved before staging so a missing token fails immediately. A dry run
     # needs no token, but still uses one if present so it can show the real id.
