@@ -22,7 +22,7 @@ qai-hub-models perf Wav2Vec2-Conformer-Large-960h
 qai-hub-models numerics Wav2Vec2-Conformer-Large-960h
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch Wav2Vec2-Conformer-Large-960h --runtime qnn_context_binary --precision float
+qai-hub-models fetch Wav2Vec2-Conformer-Large-960h --runtime precompiled_qnn_onnx --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.
