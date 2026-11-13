@@ -275,7 +275,9 @@ class SDP(BaseModel):
         x: Tensor,
         x_mask: Tensor,
         g: Tensor,
+        sdp_ratio: Tensor,
         length_scale: Tensor,
+        noise_scale_w: Tensor,
     ) -> tuple[Tensor, Tensor]:
         """
         Predict the duration of audio.
@@ -288,8 +290,12 @@ class SDP(BaseModel):
             mask of x, shape of (1, 1, MAX_SEQ_LEN), i.e., [1, 1, 512]
         g
             embedding of speaker ID, shape of (1, SPEAKER_EMBED_DIM, 1), i.e., [1, 256, 1]
+        sdp_ratio
+            scalar, ratio of duration predictor
         length_scale
             scalar, scale of length
+        noise_scale_w
+            scalar, scale of noise
 
         Returns
         -------
@@ -301,6 +307,10 @@ class SDP(BaseModel):
         assert callable(self.dp)
         # logw_sdp = self.sdp_forward(x, x_mask, g, noise_scale_w)
         logw_dp = self.dp(x, x_mask, g=g)
+
+        # Dummy usage to force ONNX to include sdp_ratio as MeloTTS is currently using only duration predictor (DP) not SDP.
+        dummy = sdp_ratio * 0.0 + noise_scale_w * 0.0
+        logw_dp = logw_dp + dummy
 
         logw2 = logw_dp.clone()
 
@@ -463,6 +473,22 @@ class SDP(BaseModel):
     def searchsorted(self, bin_locations: Tensor, inputs: Tensor) -> Tensor:
         return torch.sum(inputs.unsqueeze(-1) >= bin_locations, dim=-1) - 2
 
+    def get_hub_compile_options(
+        self,
+        target_runtime: TargetRuntime,
+        precision: Precision,
+        other_compile_options: str = "",
+        device: Device | None = None,
+        context_graph_name: str | None = None,
+    ) -> str:
+        if target_runtime.is_aot_compiled and "-O" not in other_compile_options:
+            # EP constant folding drops model inputs (sdp_ratio/noise_scale_w) that VoiceAI requires.
+            # https://github.com/qcom-ai-hub/tetracode/issues/22480
+            other_compile_options += " -O0"
+        return super().get_hub_compile_options(
+            target_runtime, precision, other_compile_options, device, context_graph_name
+        )
+
     def get_input_spec(self) -> InputSpec:
         """
         Returns the input specification (name -> (shape, type). This can be
@@ -474,7 +500,9 @@ class SDP(BaseModel):
             ),
             "x_mask": TensorSpec(shape=(1, 1, MAX_SEQ_LEN), dtype="float32"),
             "g": TensorSpec(shape=(1, SPEAKER_EMBED_DIM, 1), dtype="float32"),
+            "sdp_ratio": TensorSpec(shape=(1,), dtype="float32"),
             "length_scale": TensorSpec(shape=(1,), dtype="float32"),
+            "noise_scale_w": TensorSpec(shape=(1,), dtype="float32"),
         }
 
     def _sample_inputs_impl(
