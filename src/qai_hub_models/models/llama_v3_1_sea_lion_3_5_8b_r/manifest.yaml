@@ -23,7 +23,9 @@ orchestrator_runtimes:
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
   machine: gpu
-- command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
+- command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
+  machine: gpu
+- command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.31.0
   machine: gpu
 requires_aot_prepare: true
 restrict_model_sharing: true

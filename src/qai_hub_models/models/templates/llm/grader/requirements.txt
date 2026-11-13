@@ -1,15 +1,15 @@
 # Dependencies for the LLM response grader.
-# torch is pinned so the cu126 preinstall in InstallLLMGraderRequirementsTask
+# torch is pinned so the cu130 preinstall in InstallLLMGraderRequirementsTask
 # resolves to a fixed wheel; bump both together.
 torch==2.10.0
 transformers>=5.2
 accelerate
-# Prebuilt CUDA wheels (cu12 / torch 2.10 / cxx11abi, x86_64), so the pod does not need nvcc.
+# Prebuilt CUDA wheels (cu13 / torch 2.10 / cxx11abi, x86_64), so the pod does not need nvcc.
 # One line per supported Python; bump together with the torch pin.
-causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu12torch2.10cxx11abiTRUE-cp310-cp310-linux_x86_64.whl ; python_version == "3.10" and platform_machine == "x86_64"
-causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu12torch2.10cxx11abiTRUE-cp311-cp311-linux_x86_64.whl ; python_version == "3.11" and platform_machine == "x86_64"
-causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl ; python_version == "3.12" and platform_machine == "x86_64"
-causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu12torch2.10cxx11abiTRUE-cp313-cp313-linux_x86_64.whl ; python_version == "3.13" and platform_machine == "x86_64"
+causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu13torch2.10cxx11abiTRUE-cp310-cp310-linux_x86_64.whl ; python_version == "3.10" and platform_machine == "x86_64"
+causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu13torch2.10cxx11abiTRUE-cp311-cp311-linux_x86_64.whl ; python_version == "3.11" and platform_machine == "x86_64"
+causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl ; python_version == "3.12" and platform_machine == "x86_64"
+causal-conv1d @ https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.7.0/causal_conv1d-1.7.0+cu13torch2.10cxx11abiTRUE-cp313-cp313-linux_x86_64.whl ; python_version == "3.13" and platform_machine == "x86_64"
 flash-linear-attention
 packaging
 requests

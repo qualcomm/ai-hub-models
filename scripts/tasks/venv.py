@@ -269,14 +269,12 @@ class InstallLLMGraderRequirementsTask(RunCommandsWithVenvTask):
 
     def __init__(self, venv_path: str | None) -> None:
         commands = []
-        # A default-index torch resolves to a cu13 wheel, which the pods' CUDA
-        # 12.x driver can't load -- the grader then silently runs on CPU.
-        # Preinstall cu126 so the requirements install sees torch satisfied.
+        # Preinstall the cu130 torch so the requirements install sees it satisfied.
         if has_cuda_gpu():
             torch_version = get_package_version("torch", GRADER_REQUIREMENTS_PATH) or ""
             commands.append(
                 f"{get_pip()} install 'torch{torch_version}' --index-url "
-                "https://download.pytorch.org/whl/cu126"
+                "https://download.pytorch.org/whl/cu130"
             )
         commands += [
             f'{get_pip()} install -r "{GRADER_REQUIREMENTS_PATH}"',
