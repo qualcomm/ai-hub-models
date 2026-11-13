@@ -30,7 +30,6 @@ from qai_hub_models.models.lpdm.evaluator import (
 from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
 )
-from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.ultralytics.detect_patches import (
     patch_ultralytics_detection_head,
 )
@@ -42,6 +41,7 @@ from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec
+from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 1

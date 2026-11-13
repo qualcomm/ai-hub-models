@@ -16,10 +16,10 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     resize_pad,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
+from qai_hub_models.utils.labels import get_class_names
 
 DATASET_ID = "dota128"
 DATASET_ASSET_VERSION = 1

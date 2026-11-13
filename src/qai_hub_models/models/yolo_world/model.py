@@ -20,7 +20,6 @@ from qai_hub_models import Precision, SampleInputsType
 from qai_hub_models.datasets.coco import CocoDataset
 from qai_hub_models.models.openai_clip.model import patched_in_projection_packed
 from qai_hub_models.models.templates.common import replace_module_recursively
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.detection.detection_evaluator import (
     DetectionEvaluator,
 )
@@ -46,6 +45,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import get_class_names
 
 MODEL_ASSET_VERSION = 1
 MODEL_ID = __name__.split(".")[-2]

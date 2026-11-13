@@ -15,7 +15,6 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     resize_pad,
     transform_resize_pad_normalized_coordinates,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset, load_image
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
@@ -23,6 +22,7 @@ from qai_hub_models.utils.base_dataset import (
     DatasetSplit,
 )
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
+from qai_hub_models.utils.labels import get_class_names
 
 DATASET_ID = "roboflow_car_plate"
 DATASET_VERSION = 1

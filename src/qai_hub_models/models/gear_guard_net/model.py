@@ -15,7 +15,6 @@ from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.models.gear_guard_net.dataset_coco_ppe import CocoPPEDataset
 from qai_hub_models.models.gear_guard_net.dataset_gear_guard import GearGuardDataset
 from qai_hub_models.models.gear_guard_net.layers import build_gear_guard_net_model
-from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.detection.detection_evaluator import (
     DetectionEvaluator,
 )
@@ -32,6 +31,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 1

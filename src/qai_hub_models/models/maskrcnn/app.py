@@ -25,11 +25,11 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     resize_pad,
     undo_resize_pad,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.proposal_based_detection.app import (
     ProposalBasedDetectionApp,
 )
 from qai_hub_models.utils.input_spec import InputSpec
+from qai_hub_models.utils.labels import get_class_names
 
 
 class MaskRCNNApp(ProposalBasedDetectionApp):

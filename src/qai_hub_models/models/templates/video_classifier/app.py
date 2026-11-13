@@ -19,8 +19,8 @@ from qai_hub_models.datasets.kinetics400 import (
     sample_clips,
     sample_video,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.video_classifier.model import KineticsClassifier
+from qai_hub_models.utils.labels import get_class_names
 
 
 def recognize_action_kinetics_400(prediction: torch.Tensor) -> list[str]:

@@ -215,7 +215,7 @@ MANUAL_EDGES = {
     "src/qai_hub_models/utils/evaluate.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/utils/inference.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/utils/input_spec.py": REPRESENTATIVE_MODEL_FILES,
-    "src/qai_hub_models/models/templates/corevision/labels.py": [
+    "src/qai_hub_models/utils/labels.py": [
         "src/qai_hub_models/models/yamnet/model.py",
         "src/qai_hub_models/models/yolov8_det/model.py",
     ],

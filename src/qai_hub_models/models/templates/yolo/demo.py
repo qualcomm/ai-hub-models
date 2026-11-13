@@ -12,7 +12,6 @@ from PIL import Image
 
 from qai_hub_models import TargetRuntime
 from qai_hub_models.models.templates.corevision.display import display_or_save_image
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.models.templates.yolo.app import (
     YoloOBBApp,
     YoloObjectDetectionApp,
@@ -32,6 +31,7 @@ from qai_hub_models.utils.args import (
 from qai_hub_models.utils.asset_loaders import CachedWebAsset, load_image
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
+from qai_hub_models.utils.labels import get_class_names
 
 
 # Run Yolo end-to-end on a sample image.

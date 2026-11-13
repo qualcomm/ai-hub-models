@@ -20,7 +20,7 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     denormalize_coordinates_affine,
     pre_process_with_affine,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
+from qai_hub_models.utils.labels import get_class_names
 
 
 class CenterNet2DApp:

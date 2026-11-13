@@ -21,7 +21,6 @@ from qai_hub_models.datasets.imagenet.imagenet_zeroshot import (
 from qai_hub_models.models.siglip2.evaluator import (
     SigLIP2Evaluator,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.export.result import ComponentGroup
@@ -33,6 +32,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import get_class_names
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 1

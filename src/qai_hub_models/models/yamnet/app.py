@@ -12,8 +12,8 @@ import resampy
 import soundfile as sf
 import torch
 
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.protocols import ExecutableModelProtocol
+from qai_hub_models.utils.labels import get_class_names
 
 SAMPLE_RATE = 16000
 CHUNK_LENGTH = 0.98

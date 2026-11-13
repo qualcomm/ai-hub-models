@@ -16,7 +16,6 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     normalize_image_torchvision,
 )
-from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.segmentation.segmentation_evaluator import (
     SegmentationOutputEvaluator,
 )
@@ -32,6 +31,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ASSET_VERSION = 1
 MODEL_ID = __name__.split(".")[-2]

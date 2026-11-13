@@ -17,7 +17,7 @@ from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     preprocess_PIL_image,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
+from qai_hub_models.utils.labels import get_class_names
 
 
 class DFineApp:

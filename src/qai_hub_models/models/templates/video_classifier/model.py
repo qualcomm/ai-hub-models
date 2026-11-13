@@ -16,7 +16,6 @@ from qai_hub_models.datasets.kinetics400 import (
     preprocess_video_kinetics_400,
     read_video_per_second,
 )
-from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.video_classifier.video_classification_evaluator import (
     VideoClassificationEvaluator,
 )
@@ -32,6 +31,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import write_labels_file
 
 MODEL_ID = "video_classifier"
 MODEL_ASSET_VERSION = 1

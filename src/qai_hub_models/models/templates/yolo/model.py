@@ -20,7 +20,6 @@ from qai_hub_models.models.templates.corevision.bounding_box_processing import (
 from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
 )
-from qai_hub_models.models.templates.corevision.labels import write_labels_file
 from qai_hub_models.models.templates.detection.detection_evaluator import (
     DetectionEvaluator,
 )
@@ -44,6 +43,7 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
+from qai_hub_models.utils.labels import write_labels_file
 
 DEFAULT_YOLO_IMAGE_INPUT_HW = 640
 

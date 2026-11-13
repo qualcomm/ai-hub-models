@@ -26,10 +26,10 @@ from qai_hub_models.datasets.kinetics400.video_utils import (
     sample_clips,
     sample_video,
 )
-from qai_hub_models.models.templates.corevision.labels import get_class_names
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
 from qai_hub_models.utils.input_spec import InputSpec
+from qai_hub_models.utils.labels import get_class_names
 
 KINETICS400_FOLDER_NAME = "kinetics400"
 KINETICS400_VERSION = 2
