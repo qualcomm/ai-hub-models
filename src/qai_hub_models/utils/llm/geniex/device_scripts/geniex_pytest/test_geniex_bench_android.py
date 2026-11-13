@@ -10,6 +10,7 @@ retry per cell, and explicit on-device output check.
 
 from __future__ import annotations
 
+import http.client
 import io
 import os
 import re
@@ -17,7 +18,9 @@ import shutil
 import subprocess
 import tarfile
 import time
+import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -106,51 +109,60 @@ def adb(cmd: str, *, check: bool = True) -> subprocess.CompletedProcess:
     return result
 
 
-def _remote_size(url: str) -> int | None:
-    # Ranged GET, not HEAD: presigned S3 URLs reject HEAD.
-    out = adb(f"curl -sSL -i -r 0-0 --max-time 30 '{url}'", check=False).stdout
-    totals = re.findall(
-        r"^content-range:\s*bytes\s+\S+/(\d+)", out, re.IGNORECASE | re.MULTILINE
-    )
-    return int(totals[-1]) if totals else None
-
-
 def _device_file_size(path: str) -> int:
     out = adb(f"wc -c < {path}", check=False).stdout.strip()
     return int(out) if out.isdigit() else 0
 
 
-def download_zip_with_retry(url: str, dest: str, *, max_time: int) -> None:
-    """Download a zip on-device, resuming a short file and redoing a bad one.
+def _remote_size(url: str) -> int | None:
+    # Ranged GET, not HEAD: presigned S3 URLs reject HEAD.
+    req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            m = re.match(r"bytes\s+\S+/(\d+)", resp.headers.get("Content-Range", ""))
+            return int(m.group(1)) if m else None
+    except (urllib.error.URLError, http.client.HTTPException, OSError):
+        return None
 
-    The AWS devices' curl lacks -C, so resume is a ranged GET appended to the
-    partial file. A download is accepted when its size matches the server's
-    total and the zip's central directory is readable.
+
+def download_zip_with_retry(url: str, dest: str, *, max_time: int) -> None:
+    """Download a zip on the host, resuming a short file and redoing a bad one.
+
+    The host's network is stable where the phone's wifi drops mid-transfer, so
+    the zip is fetched here and pushed with adb. A download is accepted when its
+    size matches the server's total and the zip's central directory is readable.
     """
     expected = _remote_size(url)
     print(f"Expected size of {dest}: {expected}")
-    adb(f"rm -f {dest}")
+    if os.path.exists(dest):
+        os.remove(dest)
+    deadline = time.monotonic() + max_time
     size = 0
     for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
-        adb(
-            f"curl -sSL --fail --max-time {max_time} -r {size}- '{url}' >> {dest}",
-            check=False,
-        )
-        size = _device_file_size(dest)
-        if expected is None or size == expected:
-            valid = adb(f"unzip -l {dest} > /dev/null", check=False).returncode == 0
-        else:
-            valid = False
+        try:
+            req = urllib.request.Request(url, headers={"Range": f"bytes={size}-"})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                # A server that ignores Range replies 200 with the whole file.
+                mode = "ab" if resp.status == 206 else "wb"
+                with open(dest, mode) as out:
+                    shutil.copyfileobj(resp, out, length=1 << 20)
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
+            print(f"Download attempt {attempt} interrupted: {type(e).__name__}: {e}")
+        size = os.path.getsize(dest) if os.path.exists(dest) else 0
+        complete = expected is None or size == expected
+        valid = complete and zipfile.is_zipfile(dest)
         print(f"Download attempt {attempt}: size={size}, valid={valid}")
         if valid:
             return
-        if expected is None or size >= expected:
-            adb(f"rm -f {dest}")
+        if (expected is None or size >= expected) and os.path.exists(dest):
+            os.remove(dest)
             size = 0
+        if time.monotonic() > deadline:
+            break
         time.sleep(5 * attempt)
     pytest.fail(
-        f"Download of {url} failed after {DOWNLOAD_ATTEMPTS} attempts "
-        f"(size={size}, expected={expected})"
+        f"Download of {url.split('?', 1)[0]} failed after {DOWNLOAD_ATTEMPTS} "
+        f"attempts (size={size}, expected={expected})"
     )
 
 
@@ -196,10 +208,6 @@ def _preflight_url(url: str) -> None:
 
 def _preflight_network() -> None:
     _preflight_url(ANDROID_BENCH_URL)
-    if QAIRT_BUNDLE_URL:
-        _preflight_url(QAIRT_BUNDLE_URL)
-    if QAIRT_SDK_URL:
-        _preflight_url(QAIRT_SDK_URL)
 
 
 def stage_bundle() -> None:
@@ -252,7 +260,12 @@ def _download_and_unzip(
     on a fully successful extract, so success is judged by that directory
     existing, and the extract is retried once if it doesn't.
     """
-    download_zip_with_retry(url, zip_path, max_time=max_time)
+    os.makedirs(HOST_STAGE, exist_ok=True)
+    host_zip = os.path.join(HOST_STAGE, os.path.basename(zip_path))
+    download_zip_with_retry(url, host_zip, max_time=max_time)
+    subprocess.run(["adb", "push", host_zip, zip_path], check=True)
+    os.remove(host_zip)
+    assert _device_file_size(zip_path) > 0, f"adb push of {zip_path} left it empty"
     extracted = ""
     for _ in range(2):
         adb(f"rm -rf {extract_dir}")

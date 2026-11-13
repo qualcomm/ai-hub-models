@@ -10,6 +10,9 @@ import torch
 from ultralytics.models import YOLO as ultralytics_YOLO
 from ultralytics.nn.tasks import DetectionModel
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.model import yolo_detect_postprocess
 from qai_hub_models.models.yolov8_det.app import YoloV8DetectionApp
 from qai_hub_models.models.yolov8_det.demo import IMAGE_ADDRESS
@@ -20,7 +23,6 @@ from qai_hub_models.models.yolov8_det.model import (
     YoloV8Detector,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 from qai_hub_models.utils.set_env import set_temp_env
 
 OUTPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(

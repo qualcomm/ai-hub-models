@@ -26,11 +26,13 @@ from qai_hub_models.models.bevformer.model import (
     BEV_W,
     EMBED_DIMS,
 )
-from qai_hub_models.utils.bounding_box_processing_3d import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
     compute_corners,
     draw_3d_bbox,
 )
-from qai_hub_models.utils.image_processing_3d import project_to_image
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
+    project_to_image,
+)
 
 # point_cloud_range from the BEVFormer-tiny model config (line 21):
 # https://github.com/fundamentalvision/BEVFormer/blob/master/projects/configs/bevformer/bevformer_tiny.py

@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.wedetect import WeDetectApp
 from qai_hub_models.utils.args import (
     demo_model_components_from_cli_args,
@@ -20,7 +21,6 @@ from qai_hub_models.utils.args import (
 )
 from qai_hub_models.utils.asset_loaders import CachedWebAsset, load_image
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
-from qai_hub_models.utils.display import display_or_save_image
 from qai_hub_models.utils.path_helpers import QAIHM_PACKAGE_ROOT
 
 from .app import resolve_class_labels

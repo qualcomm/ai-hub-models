@@ -9,6 +9,7 @@ from typing import cast
 
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.fastsam.app import FastSAMApp
 from qai_hub_models.models.templates.fastsam.model import Fast_SAM
 from qai_hub_models.utils.args import (
@@ -21,7 +22,6 @@ from qai_hub_models.utils.asset_loaders import (
     CachedWebAsset,
     load_image,
 )
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def fastsam_demo(

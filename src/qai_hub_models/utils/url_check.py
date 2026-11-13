@@ -37,12 +37,15 @@ URL_VALIDATION_SKIPLIST = {
     # llama research papers - blocked by the corporate firewall in CI
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/",
     "https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2/",
+    # llama_v3_elyza_jp_8b research paper - 503 from note.com in CI
+    "https://note.com/elyza/n/n360b6084fdbd",
 }
 
 # HEAD statuses that mean the resource is reachable. 202 is what IEEE returns
 # to HEAD; 429 is treated as reachable so a rate limit is not a missing asset.
 _REACHABLE_STATUSES = (
     requests.codes.ok,
+    requests.codes.no_content,
     requests.codes.accepted,
     requests.codes.too_many_requests,
 )
@@ -88,10 +91,10 @@ def head_check_urls(urls: list[tuple[str, str]]) -> list[str]:
     skipped, as are URLs on the validation skiplist. Returns the list of
     failure messages (empty on success).
 
-    HEAD 200, 202, and 429 are accepted as reachable. HEAD 403 and 405 are
+    HEAD 200, 202, 204, and 429 are accepted as reachable. HEAD 403 and 405 are
     not final: the same session then issues a streaming GET with the same
     headers, redirects, 10-second timeout, and 502/503/504 retry policy.
-    The GET body is never read. GET 200, 202, and 429 are accepted for
+    The GET body is never read. GET 200, 202, 204, and 429 are accepted for
     compatibility with hosts that reject HEAD; GET 403, 405, any other
     status, and GET request exceptions fail. HEAD request exceptions do
     not fall back to GET. Only a successful final outcome is cached.

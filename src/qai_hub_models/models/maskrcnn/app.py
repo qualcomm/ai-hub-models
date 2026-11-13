@@ -12,16 +12,21 @@ import torch
 from PIL import Image
 from torchvision.models.detection.roi_heads import paste_masks_in_image
 
-from qai_hub_models.models.templates.proposal_based_detection.app import (
-    ProposalBasedDetectionApp,
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
 )
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.draw import create_color_map, draw_box_from_xyxy
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import (
+    create_color_map,
+    draw_box_from_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     denormalize_coordinates,
     resize_pad,
     undo_resize_pad,
+)
+from qai_hub_models.models.templates.proposal_based_detection.app import (
+    ProposalBasedDetectionApp,
 )
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.labels import get_class_names

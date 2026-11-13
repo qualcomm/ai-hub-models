@@ -175,7 +175,7 @@ index 18a3b12..2beda63 100644
 -    boxes[:, -1] = -boxes[:, -1] - np.pi /2
 -
 -    order = scores.sort(0, descending=True)[1]
-+    from qai_hub_models.utils.bounding_box_processing_3d import compute_iou_3d_rotated
++    from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import compute_iou_3d_rotated
 +    boxes_np = boxes.clone().cpu().numpy()
 +    scores_np = scores.clone().cpu().numpy()
 +    boxes_np = boxes_np[:, [0, 1, 2, 4, 3, 5, 6]]

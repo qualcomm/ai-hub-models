@@ -9,11 +9,13 @@ import torchvision.models as tv_models
 
 from qai_hub_models.models.swin_base.demo import main as demo_main
 from qai_hub_models.models.swin_base.model import MODEL_ID, SwinBase
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.imagenet_classifier.test_utils import (  # noqa: F401
     imagenet_sample_torch,
     run_imagenet_classifier_test,
 )
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 
 
 def test_numerical(imagenet_sample_torch: torch.Tensor) -> None:  # noqa: F811

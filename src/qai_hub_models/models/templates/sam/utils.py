@@ -14,7 +14,10 @@ import numpy as np
 import torch
 from PIL.Image import Image
 
-from qai_hub_models.utils.display import is_headless, is_running_in_notebook
+from qai_hub_models.models.templates.corevision.display import (
+    is_headless,
+    is_running_in_notebook,
+)
 
 
 def copy_configs(

@@ -1,0 +1,189 @@
+diff --git a/gr00t/configs/model/__init__.py b/gr00t/configs/model/__init__.py
+index 743f651..be211a4 100644
+--- a/gr00t/configs/model/__init__.py
++++ b/gr00t/configs/model/__init__.py
+@@ -17,7 +17,11 @@ import importlib
+ from pathlib import Path
+ import typing
+
+-import tyro
++try:
++    # Training CLI dependency; inference only needs the config dataclasses.
++    import tyro
++except ImportError:
++    tyro = None
+
+
+ MODEL_CONFIG_TYPES: dict[str, type] = {}
+@@ -39,6 +43,8 @@ for file in Path(__file__).parent.glob("*.py"):
+ 
+
+ def create_model_union_type():
++    if tyro is None:
++        raise ImportError("Install tyro to build the GR00T training CLI.")
+     if not MODEL_CONFIG_TYPES:
+         # A Union of no types is invalid, so just return None
+         return None
+diff --git a/gr00t/model/__init__.py b/gr00t/model/__init__.py
+index 1ba425e..825e89c 100755
+--- a/gr00t/model/__init__.py
++++ b/gr00t/model/__init__.py
+@@ -13,5 +13,9 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+
+-from .gr00t_n1d7.setup import Gr00tN1d7Pipeline
++try:
++    # The training pipeline imports dependencies not needed for AI Hub export.
++    from .gr00t_n1d7.setup import Gr00tN1d7Pipeline
++except ImportError:
++    Gr00tN1d7Pipeline = None
+ from .registry import MODEL_REGISTRY
+diff --git a/gr00t/model/gr00t_n1d7/image_augmentations.py b/gr00t/model/gr00t_n1d7/image_augmentations.py
+index be73215..36cef06 100755
+--- a/gr00t/model/gr00t_n1d7/image_augmentations.py
++++ b/gr00t/model/gr00t_n1d7/image_augmentations.py
+@@ -379,6 +379,7 @@ def build_image_transformations_albumentations(
+     shortest_image_edge,
+     crop_fraction,
+     extra_augmentation_config: dict | None = None,
++    letter_box_transform: bool = False,
+ ):
+     """
+     Build albumentations-based image transformations equivalent to the torchvision version.
+@@ -388,6 +389,7 @@ def build_image_transformations_albumentations(
+         image_crop_size: Size for cropping (list of [height, width])
+         random_rotation_angle: Maximum rotation angle in degrees (0 for no rotation)
+         color_jitter_params: Dictionary with color jitter parameters (brightness, contrast, saturation, hue)
++        letter_box_transform: Whether to pad rectangular camera images to a square.
+         shortest_image_edge: Shortest edge size for resizing
+         crop_fraction: Fraction of image to crop
+         extra_augmentation_config: Optional dict for additional augmentations. Supported keys:
+@@ -418,7 +420,7 @@ def build_image_transformations_albumentations(
+     # Training transforms (using ReplayCompose for consistent augmentation across views)
+     # Use SmallestMaxSize to preserve aspect ratios, with INTER_AREA for antialiasing
+     train_transform_list = [
+-        LetterBoxPad(),
++        *([LetterBoxPad()] if letter_box_transform else []),
+         A.SmallestMaxSize(max_size=max_size, interpolation=cv2.INTER_AREA),
+         FractionalRandomCrop(crop_fraction=fraction_to_use),
+         A.SmallestMaxSize(max_size=max_size, interpolation=cv2.INTER_AREA),
+@@ -479,7 +481,7 @@ def build_image_transformations_albumentations(
+     # Use SmallestMaxSize to preserve aspect ratios, with INTER_AREA for antialiasing
+     eval_transform = A.Compose(
+         [
+-            LetterBoxPad(),
++            *([LetterBoxPad()] if letter_box_transform else []),
+             A.SmallestMaxSize(max_size=max_size, interpolation=cv2.INTER_AREA),
+             FractionalCenterCrop(crop_fraction=fraction_to_use),
+             A.SmallestMaxSize(max_size=max_size, interpolation=cv2.INTER_AREA),
+@@ -549,7 +551,8 @@ class LetterBoxTransform:
+
+
+ def build_image_transformations(
+-    image_target_size, image_crop_size, random_rotation_angle, color_jitter_params
++    image_target_size, image_crop_size, random_rotation_angle, color_jitter_params,
++    letter_box_transform: bool = False,
+ ):
+     """
+     Build torchvision-based image transformations.
+@@ -565,7 +568,7 @@ def build_image_transformations(
+     """
+     transform_list = [
+         transforms.ToImage(),
+-        LetterBoxTransform(),
++        *([LetterBoxTransform()] if letter_box_transform else []),
+         # transforms.ToDtype(torch.get_default_dtype(), scale=True),
+         transforms.Resize(size=image_target_size),
+         transforms.RandomCrop(size=image_crop_size),
+@@ -582,7 +585,7 @@ def build_image_transformations(
+         [
+             transforms.ToImage(),
+             # transforms.ToDtype(torch.get_default_dtype(), scale=True),
+-            LetterBoxTransform(),
++            *([LetterBoxTransform()] if letter_box_transform else []),
+             transforms.Resize(size=image_target_size),
+             transforms.CenterCrop(size=image_crop_size),
+             transforms.Resize(size=image_target_size),
+diff --git a/gr00t/model/gr00t_n1d7/processing_gr00t_n1d7.py b/gr00t/model/gr00t_n1d7/processing_gr00t_n1d7.py
+index 30155dc..14f5323 100644
+--- a/gr00t/model/gr00t_n1d7/processing_gr00t_n1d7.py
++++ b/gr00t/model/gr00t_n1d7/processing_gr00t_n1d7.py
+@@ -78,7 +78,11 @@
+             "Qwen3VLProcessor is not available. "
+             "Please upgrade transformers: pip install transformers>=4.52.0"
+         )
+-    return Qwen3VLProcessor.from_pretrained(model_name, **transformers_loading_kwargs)
++    from qai_hub_models.models.grootn17.model import get_cosmos_path
++
++    loading_kwargs = dict(transformers_loading_kwargs)
++    loading_kwargs["local_files_only"] = True
++    return Qwen3VLProcessor.from_pretrained(get_cosmos_path(), **loading_kwargs)
+ 
+ 
+ class Gr00tN1d7DataCollator:
+@@ -168,7 +172,7 @@
+         state_dropout_prob: float = 0.0,
+         # Normalization
+         use_mean_std: bool = False,
+-        # Backward-compat params (stored but not actively used)
++        # Image padding policy from the checkpoint.
+         letter_box_transform: bool = False,
+     ):
+         self.modality_configs = parse_modality_configs(modality_configs)
+@@ -237,6 +241,7 @@
+                     shortest_image_edge,
+                     crop_fraction,
+                     extra_augmentation_config=self.extra_augmentation_config,
++                    letter_box_transform=self.letter_box_transform,
+                 )
+             )
+         else:
+@@ -245,6 +250,7 @@
+                 image_crop_size,
+                 random_rotation_angle,
+                 color_jitter_params,
++                letter_box_transform=self.letter_box_transform,
+             )
+         self._collator = self.data_collator_class(
+             model_name=model_name,
+diff --git a/gr00t/model/modules/qwen3_backbone.py b/gr00t/model/modules/qwen3_backbone.py
+--- a/gr00t/model/modules/qwen3_backbone.py
++++ b/gr00t/model/modules/qwen3_backbone.py
+@@ -16,5 +16,6 @@
+ import logging
+
+ import torch
++from transformers import AutoConfig
+ from transformers.feature_extraction_utils import BatchFeature
+
+@@ -74,16 +75,17 @@
+                 )
+                 extra_kwargs["attn_implementation"] = "sdpa"
++        from qai_hub_models.models.grootn17.model import get_cosmos_path
++
++        config = AutoConfig.from_pretrained(
++            get_cosmos_path(), local_files_only=True
++        )
++        config.text_config.num_hidden_layers = min(
++            select_layer, config.text_config.num_hidden_layers
++        )
++        if "attn_implementation" in extra_kwargs:
++            config._attn_implementation = extra_kwargs["attn_implementation"]
++        self.model = Qwen3VLForConditionalGeneration(config).eval()
+         if load_bf16:
+-            extra_kwargs["torch_dtype"] = torch.bfloat16
+-
+-        self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+-            model_name,
+-            **extra_kwargs,
+-            **transformers_loading_kwargs,
+-        ).eval()
+-
+-        # needed since we don't use these layers. Also saves compute
+-        while len(self.model.language_model.layers) > select_layer:
+-            self.model.language_model.layers.pop(-1)
++            self.model.to(dtype=torch.bfloat16)
+
+         self.select_layer = select_layer
+         self.set_trainable_parameters(tune_llm, tune_visual, tune_top_llm_layers)

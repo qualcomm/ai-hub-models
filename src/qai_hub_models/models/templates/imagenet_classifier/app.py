@@ -9,11 +9,11 @@ import torch
 from PIL.Image import Image
 from torchvision import transforms
 
-from qai_hub_models.protocols import ExecutableModelProtocol
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     IMAGENET_TRANSFORM,
     normalize_image_transform,
 )
+from qai_hub_models.protocols import ExecutableModelProtocol
 
 
 def preprocess_image(

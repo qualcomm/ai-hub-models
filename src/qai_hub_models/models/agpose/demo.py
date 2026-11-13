@@ -19,6 +19,7 @@ from qai_hub_models.models.agpose.model import (
     MODEL_ID,
     AGPoseCollection,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     add_output_dir_arg,
     demo_model_components_from_cli_args,
@@ -27,7 +28,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.display import display_or_save_image
 
 DEMO_SCENE_ASSET = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "agpose_demo_scene.tar.gz"

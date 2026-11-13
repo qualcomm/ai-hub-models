@@ -1,0 +1,25 @@
+default_device: Samsung Galaxy S25 (Family)
+description: |
+  GR00T N1.7 is a vision-language-action (VLA) model for generalist robot control. The model uses a Qwen3-VL (Cosmos-Reason2-2B) backbone with mRoPE and DeepStack visual injection, and a 32-layer flow-matching DiT action head, for dexterous, long-horizon manipulation tasks.
+disabled_paths: {}
+domain: Multimodal
+external_repos:
+  gr00t:
+    commit_sha: 23ace64f17aa5015259b8609d371eb61a357c776
+    patches_filename: gr00t_patches.diff
+    repo_url: https://github.com/NVIDIA/Isaac-GR00T.git
+has_on_target_demo: true
+headline: State-of-the-art vision-language-action model for dexterous robot manipulation, enabling zero-shot generalization across diverse embodiments via diffusion-based action generation.
+id: grootn17
+is_collection_model: true
+license: https://github.com/NVIDIA/Isaac-GR00T/blob/23ace64f17aa5015259b8609d371eb61a357c776/LICENSE
+license_type: apache-2.0
+name: GR00TN1.7
+requires_aot_prepare: true
+research_paper: https://arxiv.org/abs/2503.14734
+research_paper_title: 'GR00T N1: An Open Foundation Model for Generalist Humanoid Robots'
+source_repo: https://github.com/NVIDIA/Isaac-GR00T/tree/23ace64f17aa5015259b8609d371eb61a357c776
+tags:
+- generative-ai
+- robotics
+use_case: Robotics

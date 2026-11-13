@@ -43,6 +43,8 @@ class Intern3_5VLVisionEncoder(BaseModel):
     - full_attention_mask: attention mask for all layers
     """
 
+    pass_output_names_to_compile = False
+
     _pos_emb_cos: torch.Tensor
     _pos_emb_sin: torch.Tensor
     _window_attention_mask: torch.Tensor

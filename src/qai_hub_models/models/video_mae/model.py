@@ -16,6 +16,9 @@ from qai_hub_models.datasets.kinetics400 import (
     preprocess_video_224,
     read_video_per_second,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.video_classifier.model import (
     INPUT_VIDEO_PATH,
     KineticsClassifier,
@@ -25,7 +28,6 @@ from qai_hub_models.models.video_mae.external_repos.videomae.modeling_finetune i
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_torch
 from qai_hub_models.utils.base_dataset import BaseDataset
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

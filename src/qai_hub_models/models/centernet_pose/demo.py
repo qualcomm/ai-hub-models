@@ -9,6 +9,7 @@ from PIL import Image
 
 from qai_hub_models.models.centernet_pose.app import CenterNetPoseApp
 from qai_hub_models.models.centernet_pose.model import IMAGE, MODEL_ID, CenterNetPose
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -17,7 +18,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 def main(is_test: bool = False) -> None:

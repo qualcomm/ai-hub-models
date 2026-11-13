@@ -22,6 +22,10 @@ from sam2.modeling.sam2_utils import MLP as SAM2MaskDecoderMLP
 from sam2.modeling.sam2_utils import LayerNorm2d
 
 from qai_hub_models import Precision
+from qai_hub_models.models.templates.corevision.window_partitioning import (
+    window_partition_5d,
+    window_unpartition_5d,
+)
 from qai_hub_models.models.templates.sam.model_patches import (
     Conv2DInplaceLinearSAMMaskDecoderMLP,
     SplitHeadSAMDecoderAttention,
@@ -41,10 +45,6 @@ from qai_hub_models.utils.input_spec import (
     IoType,
     OutputSpec,
     TensorSpec,
-)
-from qai_hub_models.utils.window_partitioning import (
-    window_partition_5d,
-    window_unpartition_5d,
 )
 
 if TYPE_CHECKING:

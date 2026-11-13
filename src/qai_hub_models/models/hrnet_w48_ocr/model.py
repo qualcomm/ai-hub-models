@@ -18,8 +18,10 @@ from qai_hub_models.models.hrnet_w48_ocr.external_repos.hrnet_semantic_seg.lib.m
 from qai_hub_models.models.templates.cityscapes_segmentation.model import (
     CityscapesSegmentor,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 
 MODEL_ID = __name__.split(".")[-2]
 DEFAULT_WEIGHTS = "hrnet_ocr_cs_8162_torch11.pth"

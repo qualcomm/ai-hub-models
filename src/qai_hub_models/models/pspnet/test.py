@@ -12,12 +12,12 @@ from qai_hub_models.models.pspnet.model import (
     MODEL_ID,
     PSPNet,
 )
-from qai_hub_models.models.templates.segmentation.app import SegmentationApp
-from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     pil_resize_pad,
     pil_undo_resize_pad,
 )
+from qai_hub_models.models.templates.segmentation.app import SegmentationApp
+from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.test_helpers import (
     assert_most_same,
 )

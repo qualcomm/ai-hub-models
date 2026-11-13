@@ -13,11 +13,13 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
     DatasetSplit,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
 
 FOOTTRACK_DATASET_VERSION = 4

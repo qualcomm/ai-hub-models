@@ -13,24 +13,20 @@ import numpy as np
 import torch
 from PIL.Image import Image
 
-from qai_hub_models.models.templates.mediapipe.utils import (
-    mediapipe_detector_postprocess,
-)
-from qai_hub_models.utils.base_app import RUN_MODEL_RETURN_TYPE, BaseCollectionApp
-from qai_hub_models.utils.bounding_box_processing import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
     apply_directional_box_offset,
     batched_nms,
     box_xyxy_to_xywh,
     compute_box_affine_crop_resize_matrix,
     compute_box_corners_with_rotation,
 )
-from qai_hub_models.utils.draw import (
+from qai_hub_models.models.templates.corevision.draw import (
     draw_box_from_corners,
     draw_box_from_xyxy,
     draw_connections,
     draw_points,
 )
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     apply_affine_to_coordinates,
     apply_batched_affines_to_frame,
@@ -40,6 +36,10 @@ from qai_hub_models.utils.image_processing import (
     resize_pad,
     torch_image_to_numpy,
 )
+from qai_hub_models.models.templates.mediapipe.utils import (
+    mediapipe_detector_postprocess,
+)
+from qai_hub_models.utils.base_app import RUN_MODEL_RETURN_TYPE, BaseCollectionApp
 
 
 class MediaPipeApp(BaseCollectionApp):

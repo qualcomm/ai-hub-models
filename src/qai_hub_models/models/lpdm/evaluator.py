@@ -15,8 +15,10 @@ from qai_hub_models.models.lpdm.dataset import (
     EMIRATE_CLASS_IDS,
     PLATE_CLASS_ID,
 )
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing import batched_nms
 from qai_hub_models.utils.metrics import PLATE_STRING_ACCURACY, MetricMetadata
 
 # Character classes: digits 0-9 and letters A-Z only (not plate/exp/emirate)

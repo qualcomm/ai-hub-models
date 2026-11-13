@@ -12,9 +12,11 @@ from typing_extensions import Self
 
 from qai_hub_models.datasets.imagenet import ImagenetDataset
 from qai_hub_models.datasets.open_images import OpenImagesV7Dataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    make_imagenet_transform,
+)
 from qai_hub_models.models.templates.imagenet_classifier.model import ImagenetClassifier
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetSplit
-from qai_hub_models.utils.image_processing import make_imagenet_transform
 
 MODEL_ID = __name__.split(".")[-2]
 DEFAULT_WEIGHTS = "apple/mobilevit-small"

@@ -9,6 +9,7 @@ from qai_hub_models.models.rtmpose_body2d.model import (
     MODEL_ID,
     RTMPosebody2d,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -17,7 +18,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 IA_HELP_MSG = "More inferencer architectures for litehrnet can be found at https://github.com/open-mmlab/mmpose/tree/main/configs/body_2d_keypoint/topdown_heatmap/coco"
 IMAGE_LOCAL_PATH = "rtmpose_demo_2.png"

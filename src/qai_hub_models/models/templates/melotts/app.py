@@ -171,8 +171,6 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
         output_path: str,
         noise_scale: float = 0.667,
         length_scale: float = 1.0,
-        noise_scale_w: float = 0.8,
-        sdp_ratio: float = 0.2,
     ) -> None:
         """
         Synthesize audio from text.
@@ -189,10 +187,6 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
             the noise scale of the synthesized audio
         length_scale
             the length scale of the synthesized audio
-        noise_scale_w
-            the weight noise scale of the synthesized audio
-        sdp_ratio
-            the sdp ratio of the synthesized audio
         """
         # Encoder input
         phones, tones, lang_ids, bert, ja_bert, phone_len = self.preprocess_text(
@@ -205,9 +199,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
         language_ids = lang_ids.unsqueeze(0)
         bert = bert.unsqueeze(0)
         ja_bert = ja_bert.unsqueeze(0)
-        sdp_ratio_pt = torch.tensor([sdp_ratio], dtype=torch.float32)
         length_scale_pt = torch.tensor([length_scale], dtype=torch.float32)
-        noise_scale_w_pt = torch.tensor([noise_scale_w], dtype=torch.float32)
         x_encoded, m_p, logs_p, x_mask, g = self.encoder(
             x,
             x_lengths,
@@ -217,9 +209,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
             bert,
             ja_bert,
         )
-        y_lengths, w_ceil = self.sdp(
-            x_encoded, x_mask, g, sdp_ratio_pt, length_scale_pt, noise_scale_w_pt
-        )
+        y_lengths, w_ceil = self.sdp(x_encoded, x_mask, g, length_scale_pt)
 
         # Flow input
         y_mask = torch.unsqueeze(
@@ -299,8 +289,6 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
         t5_tokenizer = ByT5Tokenizer()
         noise_scale = 0.667
         length_scale = 1.0
-        noise_scale_w = 0.8
-        sdp_ratio = 0.2
 
         calibration_dataset_cls = collection_model.get_calibration_dataset_cls()
         assert calibration_dataset_cls is not None
@@ -349,9 +337,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                 language_ids = lang_ids.unsqueeze(0)
                 bert = bert.unsqueeze(0)
                 ja_bert = ja_bert.unsqueeze(0)
-                sdp_ratio_pt = torch.tensor([sdp_ratio], dtype=torch.float32)
                 length_scale_pt = torch.tensor([length_scale], dtype=torch.float32)
-                noise_scale_w_pt = torch.tensor([noise_scale_w], dtype=torch.float32)
                 x_encoded, m_p, logs_p, x_mask, g = encoder_fpm(
                     x,
                     x_lengths,
@@ -364,9 +350,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                 inputs[0].append(x_encoded)
                 inputs[1].append(x_mask)
                 inputs[2].append(g)
-                inputs[3].append(sdp_ratio_pt)
-                inputs[4].append(length_scale_pt)
-                inputs[5].append(noise_scale_w_pt)
+                inputs[3].append(length_scale_pt)
             elif component_name == "flow":
                 phones, tones, lang_ids, bert, ja_bert, phone_len = cls.preprocess_text(
                     tts_object, text=text
@@ -378,9 +362,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                 language_ids = lang_ids.unsqueeze(0)
                 bert = bert.unsqueeze(0)
                 ja_bert = ja_bert.unsqueeze(0)
-                sdp_ratio_pt = torch.tensor([sdp_ratio], dtype=torch.float32)
                 length_scale_pt = torch.tensor([length_scale], dtype=torch.float32)
-                noise_scale_w_pt = torch.tensor([noise_scale_w], dtype=torch.float32)
 
                 x_encoded, m_p, logs_p, x_mask, g = encoder_fpm(
                     x,
@@ -395,9 +377,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                     x_encoded,
                     x_mask,
                     g,
-                    sdp_ratio_pt,
                     length_scale_pt,
-                    noise_scale_w_pt,
                 )
 
                 y_mask = torch.unsqueeze(
@@ -430,9 +410,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                 language_ids = lang_ids.unsqueeze(0)
                 bert = bert.unsqueeze(0)
                 ja_bert = ja_bert.unsqueeze(0)
-                sdp_ratio_pt = torch.tensor([sdp_ratio], dtype=torch.float32)
                 length_scale_pt = torch.tensor([length_scale], dtype=torch.float32)
-                noise_scale_w_pt = torch.tensor([noise_scale_w], dtype=torch.float32)
 
                 x_encoded, m_p, logs_p, x_mask, g = encoder_fpm(
                     x,
@@ -447,9 +425,7 @@ class MeloTTSApp(CollectionAppQuantizeProtocol):
                     x_encoded,
                     x_mask,
                     g,
-                    sdp_ratio_pt,
                     length_scale_pt,
-                    noise_scale_w_pt,
                 )
 
                 y_mask = torch.unsqueeze(

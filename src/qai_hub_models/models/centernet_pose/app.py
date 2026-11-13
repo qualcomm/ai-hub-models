@@ -12,8 +12,12 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.draw import draw_box_from_xyxy, draw_connections, draw_points
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_box_from_xyxy,
+    draw_connections,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     denormalize_coordinates_affine,
     pre_process_with_affine,
 )

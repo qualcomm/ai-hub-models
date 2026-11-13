@@ -7,7 +7,9 @@ import math
 
 import numpy as np
 
-from qai_hub_models.utils.image_processing import denormalize_coordinates_affine
+from qai_hub_models.models.templates.corevision.image_processing import (
+    denormalize_coordinates_affine,
+)
 
 BODY_SIGMAS = [
     0.026,

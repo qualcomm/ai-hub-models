@@ -1,0 +1,27 @@
+description: Qwen3-ASR is a speech recognition model from the Qwen team, built on the audio understanding of Qwen3-Omni. It supports language identification and transcription for 30 languages and 22 Chinese dialects, and stays robust on noisy audio, singing voice, and songs with background music. The 0.6B version trades a small amount of accuracy for much higher throughput.
+domain: Audio
+headline: Multilingual 0.6B speech recognition model covering 30 languages and 22 Chinese dialects.
+id: qwen3_asr_0_6b
+license: https://www.apache.org/licenses/LICENSE-2.0
+license_type: apache-2.0
+model_type_llm: true
+name: Qwen3-ASR-0.6B
+orchestrator_runtimes:
+- geniex_llamacpp
+research_paper: https://arxiv.org/abs/2601.21337
+research_paper_title: Qwen3-ASR Technical Report
+runtime_technical_details:
+  geniex_llamacpp:
+    Model Size: 0.80 GB (Q8_0 GGUF weights only; excludes the audio encoder).
+    Quantization Type: Q8_0 (GGUF)
+    Supported Input Modalities: audio
+    Supported Output Modalities: text
+    model_infer_id: unslothai/Qwen3-ASR-0.6B-GGUF
+skip_example_usage: true
+source_repo: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
+supported_precisions:
+- q8_0
+tags:
+- llm
+- generative-ai
+use_case: Speech Recognition

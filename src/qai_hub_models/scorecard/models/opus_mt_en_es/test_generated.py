@@ -305,7 +305,8 @@ def cached_serialize_for_export(
             output_dir: str | os.PathLike,
             input_spec: InputSpec | None = None,
         ) -> Path:
-            model_key = component_name + str(input_spec)
+            component_cls = type(self.components[component_name])
+            model_key = f"{component_name}|{component_cls.__qualname__}|{input_spec}"
             cached = model_cache.get(model_key)
             if not cached:
                 cached = serialize_component(

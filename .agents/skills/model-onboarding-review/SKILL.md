@@ -185,7 +185,8 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 - The parameter count and model sizes are plausible for the architecture, and not copied from another model. There is a size entry for each supported precision.
 
 **Title and description**
-- The name follows the repo's naming rules and matches how the upstream project names the model.
+- The `id` is identical to the recipe's folder name. A PR whose `id` and folder name differ fails to resolve, so this is `high`.
+- The `id` and `name` describe the same model: `id` is the snake_case form of `name`, with dashes and dots turned into underscores and everything lowercased (`DeepLabV3-ResNet50` -> `deeplabv3_resnet50`, `Qwen3-0.6B` -> `qwen3_0_6b`). Flag a mismatch where they drift apart or name different variants.
 - The headline is one short sentence that says what the model does.
 - The description is accurate. It names the right task, architecture and supported variants, doesn't promise anything the PR doesn't ship, and doesn't repeat the benchmark number.
 - Wording and format follow the closest similar model. Tags, use case and domain fit the task.
@@ -210,6 +211,13 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 - Use the repo's standard methods for bringing in upstream code and for generated files.
 - Models may import shared code, but not each other.
 - No dead code or leftover files.
+- Code comments the PR adds can be understood by a teammate who has never seen this PR. Flag a comment that:
+  - uses a term the author made up while working, instead of saying the plain thing.
+  - only restates what the next line of code does.
+  - says how the code behaves but not what it means for the person editing it. "If you change `input_size`, the demo still resizes to 640" tells them more than "the demo hardcodes the size".
+  - gives a reason that only makes sense with the PR conversation open.
+
+  Quote the comment and give a rewrite. These are `low` unless the comment is wrong, in which case it is a false claim.
 
 ### Do not flag
 
@@ -233,6 +241,8 @@ Try to disprove every candidate finding before reporting it.
 Drop what does not hold. A finding you cannot verify from both ends is not `high`.
 
 ## Findings
+
+Write every finding for a reader who hasn't seen your working notes. Don't use shorthand or names you coined during the review (such as "the drift check" or "lens A thing"). Say what is wrong and what happens because of it, in plain words. If a finding suggests a comment or docstring, show its exact text.
 
 | Field | Content |
 |---|---|

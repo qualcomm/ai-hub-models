@@ -14,7 +14,7 @@ constants and the small concrete subclasses (Part classes + the Collection,
 whose ``parts`` mapping registers the Part classes).
 
 Quantization uses the SpinQuant (R1+R3) -> AdaScale -> Calibration recipe,
-authored in the model's ``manifest.yaml`` under ``lm_quantization_details`` (or
+authored in the model's ``lm_recipe.yaml`` (or
 supplied as a ``--precision`` recipe YAML on the quantize CLI).
 """
 
@@ -146,7 +146,7 @@ class Qwen3_1_7B_QuantizablePreSplit(  # type: ignore[misc]
 
     # AdaScale config (16 attn heads + 8 KV heads + 1).
     ada_scale_num_rmsnorm_per_blk = NUM_ATTN_HEADS + NUM_KEY_VALUE_HEADS + 1
-    # SpinQuant (R1+R3) is a pre-sim step in the quant recipe (lm_quantization_details).
+    # SpinQuant (R1+R3) is a pre-sim step in the quant recipe (lm_recipe.yaml).
     supports_thinking = True
     int8_param_names = INT8_PARAM_NAMES
 

@@ -48,7 +48,7 @@ jobs:
   check-jira-title:
     if: github.event_name == 'pull_request' && !endsWith(github.event.pull_request.user.login, '[bot]')
     name: Check JIRA in PR Title
-    runs-on: aihub-models-ubuntu-2404-ec2
+    runs-on: [tetra-ubuntu-2204, self-hosted]
     steps:
       - uses: actions/checkout@v7
         with:

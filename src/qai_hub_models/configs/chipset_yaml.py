@@ -49,6 +49,17 @@ _WEBSITE_WORLD_TO_PROTO: dict[str, int] = {
 }
 
 
+_PROTO_TO_WEBSITE_WORLD: dict[int, str] = {
+    v: k for k, v in _WEBSITE_WORLD_TO_PROTO.items()
+}
+
+
+def website_world_from_proto(value: int) -> WebsiteWorld:
+    if value not in _PROTO_TO_WEBSITE_WORLD:
+        raise ValueError(f"Unknown website world proto value: {value}")
+    return WebsiteWorld(_PROTO_TO_WEBSITE_WORLD[value])
+
+
 class ChipsetYaml(BaseQAIHMConfig):
     aliases: list[str]
     marketing_name: str

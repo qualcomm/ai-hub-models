@@ -11,6 +11,7 @@ from qai_hub_models.models.centerpoint.model import (
     MODEL_ID,
     CenterPoint,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -18,7 +19,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.display import display_or_save_image
 
 BIN_PATH = "data/n008-2018-08-01-15-16-36-0400__LIDAR_TOP__1533151603547590.pcd.bin"
 INPUT_ASSET = CachedWebModelAsset.from_asset_store(

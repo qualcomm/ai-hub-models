@@ -159,6 +159,9 @@ class AIMETOnnxQuantizableMixin(WorkbenchModel):
     Inheritor must implement WorkbenchModel for this mixin to function.
     """
 
+    # AI Hub rejects --output_names for AIMET ONNX models.
+    pass_output_names_to_compile: bool = False
+
     # For pre-calibrated asset lookup
     model_id: str = ""
     model_asset_version: int = -1
@@ -326,14 +329,25 @@ class AIMETOnnxQuantizableMixin(WorkbenchModel):
             raise ValueError("AdaScale is not supported for this model.")
         assert self.quant_sim is not None
         ensure_min_aimet_onnx_version("2.26.0")
-        from aimet_onnx.experimental.adascale.adascale_optimizer import (
-            AdaScale,
-            adascale_model_config_dict,
-        )
+        aimet_version = version.Version(aimet_onnx.__version__)
+        if aimet_version >= version.Version("2.42.0"):
+            from aimet_onnx.adascale.adascale_optimizer import (
+                AdaScale,
+                adascale_model_config_dict,
+            )
+        else:
+            from aimet_onnx.experimental.adascale.adascale_optimizer import (
+                AdaScale,
+                adascale_model_config_dict,
+            )
 
         restore_value: int | None = None
-        if num_rmsnorm_per_blk is not None:
-            from aimet_onnx.graph_passes.passes.decoder_block import DecoderBlockQwen3
+        if num_rmsnorm_per_blk is not None and aimet_version < version.Version(
+            "2.36.0"
+        ):
+            from aimet_onnx.graph_passes.passes.decoder_block import (
+                DecoderBlockQwen3,
+            )
 
             restore_value = DecoderBlockQwen3.NUM_RMSNORM_PER_BLK
             DecoderBlockQwen3.NUM_RMSNORM_PER_BLK = num_rmsnorm_per_blk

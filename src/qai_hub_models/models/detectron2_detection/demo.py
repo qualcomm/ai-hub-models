@@ -12,6 +12,7 @@ from qai_hub_models.models.detectron2_detection.model import (
     MODEL_ID,
     Detectron2Detection,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.detectron2.model import IMAGE_ADDRESS
 from qai_hub_models.utils.args import (
     add_output_dir_arg,
@@ -21,7 +22,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 
 # Run Detectron2 app end-to-end on a sample image.

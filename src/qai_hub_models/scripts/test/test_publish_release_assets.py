@@ -139,3 +139,66 @@ def test_overwrite_flag_requires_envvar(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(SystemExit):
         publish_release_assets.main()
     get_qaihm_s3_mock.assert_not_called()
+
+
+def _release_asset(
+    monkeypatch: pytest.MonkeyPatch,
+    private_key: str,
+    existing_keys: set[tuple[str, str]],
+    public_key: str = "qai-hub-models/models/fake_model/releases/v0.67.0/m-tflite-float.zip",
+) -> MagicMock:
+    s3_copy_mock = MagicMock()
+    monkeypatch.setattr(publish_release_assets, "s3_copy", s3_copy_mock)
+    monkeypatch.setattr(
+        publish_release_assets,
+        "s3_file_exists",
+        lambda bucket, key: (bucket.name, key) in existing_keys,
+    )
+    monkeypatch.setattr(
+        ASSET_CONFIG, "get_release_asset_s3_key", lambda **_: public_key
+    )
+    sc_path = MagicMock()
+    sc_path.is_published = True
+    asset_details = MagicMock()
+    asset_details.s3_key = private_key
+    asset_details.download_url = None
+    private, public = MagicMock(), MagicMock()
+    private.name, public.name = "private", "public"
+
+    publish_release_assets.release_asset(
+        s3_private_bucket=private,
+        s3_public_bucket=public,
+        qaihm_version="v0.67.0",
+        model_id="fake_model",
+        precision=MagicMock(),
+        chipset=None,
+        sc_path=sc_path,
+        asset_details=asset_details,
+        replace_existing=False,
+    )
+    return s3_copy_mock
+
+
+def test_release_asset_copies_metadata_beside_zip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_zip = "artifacts/run1/m-tflite-float.zip"
+    s3_copy_mock = _release_asset(
+        monkeypatch,
+        private_zip,
+        existing_keys={
+            ("private", "artifacts/run1/m-tflite-float_metadata.proto"),
+            ("private", "artifacts/run1/m-tflite-float_metadata.json"),
+        },
+    )
+
+    copied = {
+        c.kwargs["src_key"]: c.kwargs["dst_key"] for c in s3_copy_mock.call_args_list
+    }
+    base = "qai-hub-models/models/fake_model/releases/v0.67.0/m-tflite-float"
+    assert copied == {
+        private_zip: f"{base}.zip",
+        "artifacts/run1/m-tflite-float_metadata.proto": f"{base}_metadata.proto",
+        "artifacts/run1/m-tflite-float_metadata.json": f"{base}_metadata.json",
+    }
+    assert all(c.kwargs["make_dst_public"] for c in s3_copy_mock.call_args_list)

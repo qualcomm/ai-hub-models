@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------
 
 
+from qai_hub_models.models.templates.corevision.bounding_box_processing import get_iou
 from qai_hub_models.models.yolox.app import YoloXDetectionApp
 from qai_hub_models.models.yolox.demo import IMAGE_ADDRESS
 from qai_hub_models.models.yolox.demo import main as demo_main
@@ -13,7 +14,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_numpy,
 )
-from qai_hub_models.utils.bounding_box_processing import get_iou
 
 GT_BOXES = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "yolo_boxes_s.npy"

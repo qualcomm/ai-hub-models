@@ -9,8 +9,12 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.bounding_box_processing_3d import transform_to_matrix
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    transform_to_matrix,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 CAM_NAMES = [
     "CAM_FRONT_LEFT",

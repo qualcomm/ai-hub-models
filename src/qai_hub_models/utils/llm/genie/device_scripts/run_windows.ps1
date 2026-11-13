@@ -64,10 +64,8 @@ Start-Sleep -Seconds 2
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:\Temp\{DEVICE_LOGS_DIR}"
 New-Item -ItemType Directory -Force -Path "C:\Temp\{DEVICE_LOGS_DIR}" | Out-Null
 
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:\Temp\TestContent\qairt"
-if (Test-Path "C:\Temp\TestContent\qairt") {
-    throw "Stale QAIRT SDK at C:\Temp\TestContent\qairt could not be removed; device needs manual cleanup."
-}
+# Best-effort sweep of SDKs left by killed jobs; a locked one is skipped, not fatal.
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:\Temp\TestContent\qairt", "C:\Temp\TestContent\sdk_*", "C:\Temp\TestContent\qairt.zip"
 
 try {
 
@@ -77,9 +75,10 @@ Write-Host "Pinging google.com before QAIRT SDK download..."
 $prePing = Test-Connection -ComputerName google.com -Count 1 -Quiet
 if ($prePing) { Write-Host "Pre-download ping: SUCCESS" } else { Write-Host "Pre-download ping: FAILED" }
 
-# Always re-download (the stale SDK was removed above) so a partial extract
-# from a previous job can't silently corrupt this run.
-$qairtHome = "C:\Temp\TestContent\qairt\{QAIRT_VERSION}"
+# Extract into a per-run dir so a stale/locked SDK from a killed job can't
+# block or corrupt this run.
+$sdkDir = "C:\Temp\TestContent\sdk_$PID"
+$qairtHome = "$sdkDir\qairt\{QAIRT_VERSION}"
 $source = "{QAIRT_SDK_URL}"
 $output = "C:\Temp\TestContent\qairt.zip"
 (New-Object System.Net.WebClient).DownloadFile($source, $output)
@@ -88,7 +87,7 @@ Write-Host "=== Post-download connectivity check ==="
 Write-Host "Pinging google.com after QAIRT SDK download..."
 $postPing = Test-Connection -ComputerName google.com -Count 1 -Quiet
 if ($postPing) { Write-Host "Post-download ping: SUCCESS (WiFi active)" } else { Write-Host "Post-download ping: FAILED (WiFi down)" }
-Expand-Archive -Path "C:\Temp\TestContent\qairt.zip" -DestinationPath "C:\Temp\TestContent\"
+Expand-Archive -Path "C:\Temp\TestContent\qairt.zip" -DestinationPath $sdkDir
 $env:QAIRT_HOME = $qairtHome
 $env:Path = "$env:QAIRT_HOME\bin\aarch64-windows-msvc;" + $env:Path
 $env:Path = "$env:QAIRT_HOME\lib\aarch64-windows-msvc;" + $env:Path

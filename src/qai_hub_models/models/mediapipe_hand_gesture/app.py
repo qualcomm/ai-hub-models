@@ -28,6 +28,20 @@ from qai_hub_models.models.mediapipe_hand_gesture.model import (
     GESTURE_LABELS,
     MediaPipeHandGesture,
 )
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    compute_box_affine_crop_resize_matrix,
+)
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_box_from_xyxy,
+    draw_connections,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    apply_affine_to_coordinates,
+    apply_batched_affines_to_frame,
+    numpy_image_to_torch,
+    torch_image_to_numpy,
+)
 from qai_hub_models.models.templates.mediapipe.app import MediaPipeApp
 from qai_hub_models.models.templates.mediapipe.utils import preprocess_hand_x64
 from qai_hub_models.utils.base_collection_model import (
@@ -35,16 +49,6 @@ from qai_hub_models.utils.base_collection_model import (
     WorkbenchModelCollection,
 )
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.bounding_box_processing import (
-    compute_box_affine_crop_resize_matrix,
-)
-from qai_hub_models.utils.draw import draw_box_from_xyxy, draw_connections, draw_points
-from qai_hub_models.utils.image_processing import (
-    apply_affine_to_coordinates,
-    apply_batched_affines_to_frame,
-    numpy_image_to_torch,
-    torch_image_to_numpy,
-)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

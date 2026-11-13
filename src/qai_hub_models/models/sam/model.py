@@ -26,6 +26,10 @@ from qai_hub_models.datasets.coco import CocoSamPointDataset
 from qai_hub_models.models.sam.model_patches import (
     SplitHeadSAMEncoderAttention,
 )
+from qai_hub_models.models.templates.corevision.window_partitioning import (
+    window_partition_5d,
+    window_unpartition_5d,
+)
 from qai_hub_models.models.templates.sam.evaluator import SAMMaskIoUEvaluator
 from qai_hub_models.models.templates.sam.model_patches import (
     Conv2DInplaceLinearSAMMaskDecoderMLP,
@@ -46,10 +50,6 @@ from qai_hub_models.utils.input_spec import (
     IoType,
     OutputSpec,
     TensorSpec,
-)
-from qai_hub_models.utils.window_partitioning import (
-    window_partition_5d,
-    window_unpartition_5d,
 )
 
 MODEL_ID = __name__.split(".")[-2]

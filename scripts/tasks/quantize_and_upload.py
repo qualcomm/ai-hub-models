@@ -19,19 +19,15 @@ from .task import (
 )
 from .util import check_manifest_field, get_manifest_str_field
 
-# Only wikitext runs its whole split (0). The task is free text, so everything
-# else is capped: the mmlu/mmmlu family is thousands of questions per language.
-WHOLE_SPLIT_EVAL_PREFIX = "wikitext"
-CAPPED_EVAL_SAMPLES = 1000
+# (task, num_samples, metric line prefix) run on both the quantized checkpoint and
+# the unquantized model; 0 runs the whole split.
+EVAL_TASKS = (("wikitext", 0, "PPL"), ("mmlu", 1000, "MMLU:"))
 FAILURE_LOG_TAIL_LINES = 40
 
 # Profile ci-setup writes when given aws-role-arn.
 AWS_PROFILE = "qaihm"
 PRIVATE_BUCKET = "qai-hub-models-private-assets"
 EPHEMERAL_QUANTIZE_ASSETS_PREFIX = "ephemeral_quantize_assets/gh_actions"
-# Lifecycle rule on the ephemeral_* prefixes; reported so the reader knows their
-# deadline to copy.
-EPHEMERAL_RETENTION_DAYS = 7
 
 SHARING_RESTRICTED_FILENAME = "SHARING_RESTRICTED.txt"
 # The exported graph and its weights: the model itself, as opposed to the
@@ -40,14 +36,31 @@ WEIGHT_FILENAMES = ("model_dynamic.onnx", "model.data")
 
 
 def format_eval_logs(checkpoint_dir: Path) -> str:
-    """The last line of each eval_<label>.log: the metric, or the error if it failed."""
-    lines = []
-    for log_path in sorted(checkpoint_dir.glob("eval_*.log")):
-        text = log_path.read_text(encoding="utf-8", errors="replace")
-        last = next((x.strip() for x in reversed(text.splitlines()) if x.strip()), "")
-        label = log_path.stem.removeprefix("eval_")
-        lines.append(f"- **{label}**: `{last or '(empty log)'}`")
-    return "\n".join(lines)
+    """Task x checkpoint table of each eval log's metric line, else its last line."""
+    if not any(checkpoint_dir.glob("eval_*.log")):
+        return ""
+    rows = ["| Task | Quantized | Unquantized |", "|---|---|---|"]
+    for task, _, metric_prefix in EVAL_TASKS:
+        cells = []
+        for label in ("quantized", "unquantized"):
+            log_path = checkpoint_dir / f"eval_{label}_{task}.log"
+            text = (
+                log_path.read_text(encoding="utf-8", errors="replace")
+                if log_path.exists()
+                else ""
+            )
+            lines = [x.strip() for x in reversed(text.splitlines()) if x.strip()]
+            # Last line is the error when eval failed.
+            last = next(
+                (x for x in lines if x.startswith(metric_prefix)),
+                lines[0] if lines else "",
+            )
+            # A | in an error message would split the cell.
+            cells.append(
+                f"`{last.replace('|', chr(92) + '|')}`" if last else "(no output)"
+            )
+        rows.append(f"| {task} | {' | '.join(cells)} |")
+    return "\n".join(rows)
 
 
 def archive_checkpoint(
@@ -74,12 +87,16 @@ def build_upload_report(
     s3_key: str,
     eval_logs: str,
     restriction: str | None,
+    local_commands: list[str],
 ) -> str:
     """Markdown report for the run summary: where the zip is and how to use it."""
     s3_url = f"s3://{PRIVATE_BUCKET}/{s3_key}"
     sections = [f"## Quantized `{model_id}` {precision}"]
     if eval_logs:
         sections.append(f"### Evaluation\n\n{eval_logs}")
+    sections.append(
+        "### Reproduce locally\n\n```bash\n" + "\n".join(local_commands) + "\n```"
+    )
     sections.append(f"### Asset\n\n```\n{s3_url}\n```")
     sections.append(
         "### Run scorecard on it\n\nDispatch the scorecard workflow with "
@@ -94,13 +111,7 @@ def build_upload_report(
             "archive above: it carries the encodings, configs and tokenizer "
             "only. A consumer re-exports the ONNX from the source weights under "
             "its own license acceptance. The archive must still not be copied to "
-            f"the public asset store, and is purged {EPHEMERAL_RETENTION_DAYS} "
-            "days after upload."
-        )
-    else:
-        sections.append(
-            f"**Purged {EPHEMERAL_RETENTION_DAYS} days after upload** by the "
-            "bucket's lifecycle rule."
+            "the public asset store."
         )
     return "\n\n".join(sections)
 
@@ -125,19 +136,16 @@ class QuantizeAndUploadTask(CompositeTask):
     Quantize a model, evaluate the checkpoint and upload it to S3.
 
     Configured by the quantize_and_upload workflow's QAIHM_QUANTIZE_* env vars:
-    MODEL_ID, PRECISION, UNQUANTIZED_CHECKPOINT, ARGS, EVALUATE, EVAL_TASK and
-    CHECKPOINT_DIR. Evaluation never fails the task: the checkpoint is the
+    MODEL_ID, PRECISION, ARGS, EVALUATE and CHECKPOINT_DIR, plus
+    QAIHM_UNQUANTIZED_CHECKPOINT. Evaluation never fails the task: the checkpoint is the
     deliverable, and quantizing it may have taken many hours.
     """
 
     def __init__(self, venv: str | None) -> None:
         model_id = os.environ["QAIHM_QUANTIZE_MODEL_ID"]
         precision = os.environ["QAIHM_QUANTIZE_PRECISION"]
-        unquantized = os.environ["QAIHM_QUANTIZE_UNQUANTIZED_CHECKPOINT"]
+        unquantized_checkpoint = os.environ["QAIHM_UNQUANTIZED_CHECKPOINT"]
         out_dir = os.environ["QAIHM_QUANTIZE_CHECKPOINT_DIR"]
-        eval_task = os.environ.get("QAIHM_QUANTIZE_EVAL_TASK", "wikitext")
-        whole_split = eval_task.startswith(WHOLE_SPLIT_EVAL_PREFIX)
-        num_samples = 0 if whole_split else CAPPED_EVAL_SAMPLES
         # shlex.quote keeps every value inert: none of them is parsed as shell.
         q = shlex.quote
         extra_args = shlex.join(shlex.split(os.environ.get("QAIHM_QUANTIZE_ARGS", "")))
@@ -148,18 +156,37 @@ class QuantizeAndUploadTask(CompositeTask):
         self.model_id = model_id
         self.precision = precision
 
-        def evaluate(checkpoint: str, label: str) -> Task:
+        def quantize_cmd(output_dir: str) -> str:
+            return (
+                f"python -m qai_hub_models.models.{model_id}.quantize "
+                f"--precision {q(precision)} --checkpoint {q(unquantized_checkpoint)} "
+                f"-o {q(output_dir)} {extra_args}"
+            ).rstrip()
+
+        def evaluate_cmd(checkpoint: str, task: str, num_samples: int) -> str:
+            return (
+                f"qai-hub-models evaluate {q(model_id)} --checkpoint {q(checkpoint)} "
+                f"--task {q(task)} --num-samples {num_samples}"
+            )
+
+        def evaluate(checkpoint: str, label: str, task: str, num_samples: int) -> Task:
             # No pipefail: a failed metric is ignored, and the log it wrote is
             # what the upload report reads.
             return RunCommandsWithVenvTask(
-                group_name=f"Evaluate {label} ({eval_task})",
+                group_name=f"Evaluate {label} ({task})",
                 venv=venv,
-                commands=f"qai-hub-models evaluate {q(model_id)} "
-                f"--checkpoint {q(checkpoint)} --task {q(eval_task)} "
-                f"--num-samples {num_samples} 2>&1 "
-                f"| tee {q(os.path.join(out_dir, f'eval_{label}.log'))}",
+                commands=f"{evaluate_cmd(checkpoint, task, num_samples)} 2>&1 "
+                f"| tee {q(os.path.join(out_dir, f'eval_{label}_{task}.log'))}",
                 raise_on_failure=False,
             )
+
+        # The summary's copy of the commands, with a local output dir in place of
+        # the runner's.
+        local_out = "./quantized_checkpoint"
+        local_commands = [
+            f"qai-hub-models install {q(model_id)}",
+            quantize_cmd(local_out),
+        ]
 
         tasks: list[Task] = [
             RunCommandsWithVenvTask(
@@ -172,17 +199,28 @@ class QuantizeAndUploadTask(CompositeTask):
             RunCommandsWithVenvTask(
                 "Quantize",
                 venv,
-                f"set -o pipefail && qai-hub-models quantize {q(model_id)} "
-                f"--precision {q(precision)} --checkpoint {q(unquantized)} "
-                f"-o {q(out_dir)} {extra_args} 2>&1 | tee {q(self.quantize_log)}",
+                f"set -o pipefail && {quantize_cmd(out_dir)} 2>&1 "
+                f"| tee {q(self.quantize_log)}",
             ),
         ]
         if os.environ.get("QAIHM_QUANTIZE_EVALUATE", "").lower() == "true":
-            # Quantized first: if the baseline dies, the number that matters survives.
+            local_commands += [
+                evaluate_cmd(checkpoint, task, num_samples)
+                for checkpoint in (local_out, unquantized_checkpoint)
+                for task, num_samples, _ in EVAL_TASKS
+            ]
+            # Quantized first: if the baseline dies, the numbers that matter survive.
             tasks.append(
                 CompositeTask(
                     "Evaluate checkpoint",
-                    [evaluate(out_dir, "quantized"), evaluate(unquantized, "float")],
+                    [
+                        evaluate(checkpoint, label, task, num_samples)
+                        for checkpoint, label in (
+                            (out_dir, "quantized"),
+                            (unquantized_checkpoint, "unquantized"),
+                        )
+                        for task, num_samples, _ in EVAL_TASKS
+                    ],
                     continue_after_single_task_failure=True,
                     raise_on_failure=False,
                 )
@@ -220,6 +258,7 @@ class QuantizeAndUploadTask(CompositeTask):
                     s3_key,
                     format_eval_logs(checkpoint_dir),
                     restriction,
+                    local_commands,
                 )
             )
 

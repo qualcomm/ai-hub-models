@@ -30,8 +30,10 @@ from nuscenes.utils.data_classes import Box as NuScenesBox
 from pyquaternion import Quaternion
 
 from qai_hub_models.datasets.nuscenes import NuscenesDataset
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    circle_nms,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing_3d import circle_nms
 from qai_hub_models.utils.metrics import (
     MEAN_AVERAGE_PRECISION,
     MetricMetadata,

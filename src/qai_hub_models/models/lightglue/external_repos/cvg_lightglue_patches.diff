@@ -1,0 +1,53 @@
+diff --git a/lightglue/__init__.py b/lightglue/__init__.py
+index b84d285..f168bca 100644
+--- a/lightglue/__init__.py
++++ b/lightglue/__init__.py
+@@ -1,7 +1 @@
+-from .aliked import ALIKED  # noqa
+-from .disk import DISK  # noqa
+-from .dog_hardnet import DoGHardNet  # noqa
+ from .lightglue import LightGlue  # noqa
+-from .sift import SIFT  # noqa
+-from .superpoint import SuperPoint  # noqa
+-from .utils import match_pair  # noqa
+diff --git a/lightglue/lightglue.py b/lightglue/lightglue.py
+index 0000000..0000000 100644
+--- a/lightglue/lightglue.py
++++ b/lightglue/lightglue.py
+@@ -107,8 +107,10 @@ class Attention(nn.Module):
+         self.has_sdp = hasattr(F, "scaled_dot_product_attention")
+         if allow_flash and FlashCrossAttention:
+             self.flash_ = FlashCrossAttention()
+-        if self.has_sdp:
+-            torch.backends.cuda.enable_flash_sdp(allow_flash)
++        # Begin Qualcomm modification
++        # Removed: enable_flash_sdp is a process-wide CUDA backend flag that
++        # would override other code's setting just by constructing this model.
++        # End Qualcomm modification
+ 
+     def forward(self, q, k, v, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+         if q.shape[-2] == 0 or k.shape[-2] == 0:
+@@ -270,10 +272,19 @@
+     certainties = F.logsigmoid(z0) + F.logsigmoid(z1).transpose(1, 2)
+     scores0 = F.log_softmax(sim, 2)
+     scores1 = F.log_softmax(sim.transpose(-1, -2).contiguous(), 2).transpose(-1, -2)
+-    scores = sim.new_full((b, m + 1, n + 1), 0)
+-    scores[:, :m, :n] = scores0 + scores1 + certainties
+-    scores[:, :-1, -1] = F.logsigmoid(-z0.squeeze(-1))
+-    scores[:, -1, :-1] = F.logsigmoid(-z1.squeeze(-1))
++    # Begin Qualcomm modification
++    # Rewritten from upstream's in-place slice assignment into this
++    # (b, m, n) / (b, m, 1) / (b, 1, n+1) construction via concatenation:
++    # mathematically identical, but slice-assignment into a tensor lowers to
++    # a dynamic SCATTER_ND op that fails to invoke on several TFLite device
++    # delegates, while concatenation lowers to a plain CONCATENATION op.
++    core = scores0 + scores1 + certainties
++    col = F.logsigmoid(-z0.squeeze(-1))
++    row = F.logsigmoid(-z1.squeeze(-1))
++    top = torch.cat([core, col.unsqueeze(-1)], dim=2)
++    bottom_row = torch.cat([row, row.new_zeros(b, 1)], dim=1)
++    scores = torch.cat([top, bottom_row.unsqueeze(1)], dim=1)
++    # End Qualcomm modification
+     return scores
+ 
+ 

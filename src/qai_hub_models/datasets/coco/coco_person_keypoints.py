@@ -18,9 +18,13 @@ from qai_hub_models.datasets.coco import COCO_VAL_DATASET
 from qai_hub_models.datasets.coco.coco import COCO_ANNOTATIONS
 from qai_hub_models.datasets.coco.cocobody import CocoBodyDataset
 from qai_hub_models.datasets.common import DatasetMetadata, DatasetSplit
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_cs,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pre_process_with_affine,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_cs
-from qai_hub_models.utils.image_processing import pre_process_with_affine
 from qai_hub_models.utils.input_spec import InputSpec
 
 DATASET_ASSET_VERSION = 1

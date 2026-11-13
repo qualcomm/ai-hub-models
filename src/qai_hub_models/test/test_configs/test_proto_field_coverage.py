@@ -232,7 +232,6 @@ class TestInfoFieldCoverage:
                 "is_aimet",
                 "is_collection_model",
                 "is_precompiled",
-                "lm_quantization_details",
                 "local_device_deployment",
                 "models",
                 "num_calibration_samples",

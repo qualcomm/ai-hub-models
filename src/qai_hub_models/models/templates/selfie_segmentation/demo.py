@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------
 
 
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.models.templates.selfie_segmentation.app import (
     SelfieSegmentationApp,
 )
@@ -15,7 +16,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.display import display_or_save_image
 from qai_hub_models.utils.kwarg_helpers import filter_kwargs
 
 

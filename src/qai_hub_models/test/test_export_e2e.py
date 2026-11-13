@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -30,22 +32,47 @@ FAST_SKIPS = [
 
 COMPILE_MARKER = "Optimizing model"
 
+# Not needed to submit a compile job, so they are mocked rather than installed.
+MOCK_PACKAGES = ["cv2"]
+
+MOCK_IMPORTS_PATH = Path(__file__).parent / "mock_imports.py"
+
+SITECUSTOMIZE = f"""
+import importlib.util
+
+spec = importlib.util.spec_from_file_location("_qaihm_mock_imports", {str(MOCK_IMPORTS_PATH)!r})
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.install_mock_packages({MOCK_PACKAGES!r})
+"""
+
 
 def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
     """Invoke the ``qai-hub-models`` binary and return the completed process.
 
     Uses ``QAIHM_CLI_VERBOSE_EXCEPTIONS=1`` so parser/validator failures produce
-    a real traceback instead of the sanitized support-email message.
+    a real traceback instead of the sanitized support-email message. The
+    subprocess mocks ``MOCK_PACKAGES`` via a temporary ``sitecustomize.py``,
+    the same way ``test_args`` mocks them in-process.
     """
-    env = {**os.environ, "QAIHM_CLI_VERBOSE_EXCEPTIONS": "1"}
-    return subprocess.run(
-        [CLI, *args],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=env,
-        timeout=300,
-    )
+    with tempfile.TemporaryDirectory() as site_dir:
+        (Path(site_dir) / "sitecustomize.py").write_text(SITECUSTOMIZE)
+        python_path = os.pathsep.join(
+            [site_dir, *filter(None, [os.environ.get("PYTHONPATH")])]
+        )
+        env = {
+            **os.environ,
+            "QAIHM_CLI_VERBOSE_EXCEPTIONS": "1",
+            "PYTHONPATH": python_path,
+        }
+        return subprocess.run(
+            [CLI, *args],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=300,
+        )
 
 
 @pytest.mark.parametrize(

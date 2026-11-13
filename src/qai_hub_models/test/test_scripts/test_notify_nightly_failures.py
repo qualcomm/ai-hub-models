@@ -126,6 +126,36 @@ def test_issue_job_lists_scope_breeze_comments(tmp_path: Path) -> None:
     assert (out / "general_jobs.txt").read_text() == f"{_WEBSITE}; {_VERIFY}"
 
 
+def test_issue_bodies_fit_github_cap_on_mass_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GitHub rejects bodies over 65,536 chars, which silences the Slack alert.
+
+    On 2026-11-10, 980 failed LLM compile jobs pushed the workbench body to ~198 KB.
+    """
+    summary_dir = tmp_path / "build" / "nightly-test-results"
+    summary_dir.mkdir(parents=True)
+    (summary_dir / "summary.md").write_text("## Nightly Test Summary\n" + "x" * 400_000)
+    monkeypatch.chdir(tmp_path)
+
+    # Names slightly longer than that night's longest (~104 chars).
+    aihub = tmp_path / "failed.json"
+    aihub.write_text(
+        json.dumps(
+            {
+                f"compile/{'qwen3_4b_instruct_w4a16_PRECOMPILED_QNN_ONNX' * 2}_cs_8_elite_{i}": f"https://workbench.aihub.qualcomm.com/jobs/j{i:08d}/"
+                for i in range(980)
+            }
+        )
+    )
+    out = _run_main(tmp_path, aihub)
+    workbench = (out / "workbench_issue.md").read_text()
+    assert len(workbench) <= 65_536
+    assert "## Failed AI Hub Jobs (first 100 of 980)" in workbench
+    assert "and 880 more" in workbench
+    assert len((out / "general_issue.md").read_text()) <= 65_536
+
+
 def test_issue_summaries_show_only_own_failure_traces(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -14,12 +14,14 @@ from PIL.Image import Image, fromarray
 
 from qai_hub_models.extern.mmengine import patch_mmengine_pkgresources
 from qai_hub_models.extern.mmpose import patch_mmpose_no_build_deps
+from qai_hub_models.models.templates.corevision.draw import draw_points
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.mmpose.silence import (
     set_mmpose_inferencer_show_progress,
 )
 from qai_hub_models.models.templates.pose.pose_utils import get_final_preds
-from qai_hub_models.utils.draw import draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 
 with patch_mmpose_no_build_deps(), patch_mmengine_pkgresources():
     from mmpose.apis import MMPoseInferencer

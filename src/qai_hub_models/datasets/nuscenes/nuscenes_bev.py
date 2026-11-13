@@ -14,9 +14,11 @@ import torch
 from PIL import Image
 
 from qai_hub_models.datasets.nuscenes.nuscenes import NuscenesDatasetBase
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    transform_to_matrix,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.bounding_box_processing_3d import transform_to_matrix
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 NUSCENE_ID = "nuscenes"

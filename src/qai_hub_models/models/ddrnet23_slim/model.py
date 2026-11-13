@@ -17,8 +17,10 @@ from qai_hub_models.models.ddrnet23_slim.external_repos.ddrnet_pytorch.lib.model
 from qai_hub_models.models.templates.cityscapes_segmentation.model import (
     CityscapesSegmentor,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

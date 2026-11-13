@@ -13,6 +13,7 @@ from qai_hub_models.models.statetransformer.model import (
     MODEL_PATH,
     StateTransformer,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_from_cli_args,
     get_model_cli_parser,
@@ -20,7 +21,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.display import display_or_save_image
 
 MAP_PATH = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "nuplan-maps-v1.0.zip"

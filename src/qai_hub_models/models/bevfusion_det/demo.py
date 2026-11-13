@@ -15,6 +15,7 @@ from qai_hub_models.models.bevfusion_det.model import (
     BEVFusionEncoder2,
     BEVFusionEncoder3,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_components_from_cli_args,
     get_model_cli_parser,
@@ -26,7 +27,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_json,
 )
-from qai_hub_models.utils.display import display_or_save_image
 
 # Asset definitions
 CAMERAS = {

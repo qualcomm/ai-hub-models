@@ -12,8 +12,10 @@ import numpy as np
 import torch
 from PIL.Image import Image
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    torch_tensor_to_PIL_image,
+)
 from qai_hub_models.models.templates.repaint.utils import preprocess_inputs
-from qai_hub_models.utils.image_processing import torch_tensor_to_PIL_image
 
 
 class RepaintMaskApp:

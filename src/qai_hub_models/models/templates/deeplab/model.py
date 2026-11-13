@@ -13,6 +13,10 @@ import torch
 from qai_hub_models import SampleInputsType
 from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.datasets.pascal_voc import VOCSegmentationDataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.deeplab.dataset import CocoVocSegDataset
 from qai_hub_models.models.templates.segmentation.segmentation_evaluator import (
     SegmentationOutputEvaluator,
@@ -21,10 +25,6 @@ from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import (
-    app_to_net_image_inputs,
-    normalize_image_torchvision,
-)
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

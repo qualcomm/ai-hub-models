@@ -14,8 +14,10 @@ from torchvision.transforms import InterpolationMode
 from torchvision.transforms import functional as F
 
 from qai_hub_models.datasets.coco import CocoDatasetBase
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.utils.base_dataset import DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 # VOC class index -> COCO category id.

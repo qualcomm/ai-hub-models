@@ -21,8 +21,11 @@ from qai_hub_models.models.templates.cityscapes_segmentation.model import (
     MODEL_ASSET_VERSION,
     MODEL_ID,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pil_resize_pad,
+    pil_undo_resize_pad,
+)
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
-from qai_hub_models.utils.image_processing import pil_resize_pad, pil_undo_resize_pad
 from qai_hub_models.utils.input_spec import InputSpec
 
 

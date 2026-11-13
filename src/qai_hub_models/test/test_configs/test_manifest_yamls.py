@@ -9,13 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from qai_hub_models import Precision, TargetRuntime
+from qai_hub_models import TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import MODEL_DOMAIN_USE_CASES
 from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
 from qai_hub_models.configs.manifest_yaml import (
     MODEL_DOMAIN,
     MODEL_USE_CASE,
-    LMQuantizationDetails,
     QAIHMModelManifest,
     TechnicalDetails,
 )
@@ -268,108 +267,6 @@ def test_export_paths_include_aot_on_jit() -> None:
     assert not any(
         TargetRuntime.QNN_CONTEXT_BINARY in rts for rts in testing_paths.values()
     )
-
-
-# ---------------------------------------------------------------------------
-# lm_quantization_details validation (QAIHMModelManifest.check_fields):
-#   1. the section is LLM/VLM-only (requires model_type_llm)
-#   2. every recipe key must be in supported_precisions
-# These are template-shaped manifests (id=None) so the website-facing
-# checks are skipped and only the build/export invariants run.
-# ---------------------------------------------------------------------------
-def _lm_details() -> LMQuantizationDetails:
-    """A minimal valid recipe (contract W4A16 precision + a single Calibration)."""
-    # model_validate, not the constructor: an omitted `precision` is filled by
-    # _fill_precision, which is the path manifests take.
-    return LMQuantizationDetails.model_validate({"recipe": [{"name": "Calibration"}]})
-
-
-class TestLMQuantizationDetailsValidation:
-    def test_llm_with_supported_precision_is_valid(self) -> None:
-        manifest = QAIHMModelManifest(
-            model_type_llm=True,
-            supported_precisions=[Precision.w4a16],
-            lm_quantization_details={Precision.w4a16: _lm_details()},
-        )
-        assert manifest.lm_quantization_details[Precision.w4a16].recipe.backbone
-
-    def test_non_llm_with_recipe_rejected(self) -> None:
-        with pytest.raises(ValueError, match="can only be set on LLM/VLM models"):
-            QAIHMModelManifest(
-                model_type_llm=False,
-                supported_precisions=[Precision.w4a16],
-                lm_quantization_details={Precision.w4a16: _lm_details()},
-            )
-
-    def test_recipe_for_unsupported_precision_rejected(self) -> None:
-        # A recipe keyed by a precision absent from supported_precisions is
-        # unreachable, so it must fail loud (and name the offending precision).
-        with pytest.raises(ValueError, match="are not in"):
-            QAIHMModelManifest(
-                model_type_llm=True,
-                supported_precisions=[Precision.w4],
-                lm_quantization_details={Precision.w4a16: _lm_details()},
-            )
-
-    def test_omitted_precision_is_re_emitted_in_full(self) -> None:
-        # The scorecard rewrites manifest.yaml wholesale (collect_scorecard_results
-        # --sync-code-gen) with exclude_defaults=True, which deletes any field that
-        # merely equals its default -- and in lm_schema the defaults *are* the
-        # W4A16 contract. The schema fills the contract at validation instead, so a
-        # section that omits `precision:` re-emits it fully fleshed out.
-        details = _lm_details()
-        dumped = details.model_dump(exclude_defaults=True)
-
-        assert dumped["precision"]["activations"] == "int16"
-        assert dumped["precision"]["kv_cache"] == "int8"
-        assert dumped["precision"]["embedding"] == "int16"
-        assert dumped["precision"]["lm_head"] == {"qtype": "int8", "granularity": "PCQ"}
-        # Sugar forms the lm_schema before-validators widen are re-narrowed.
-        assert dumped["precision"]["blocks"] == {"qtype": "int4", "granularity": "PCQ"}
-        assert dumped["recipe"] == [{"name": "Calibration"}]
-        assert LMQuantizationDetails.model_validate(dumped) == details
-
-    def test_partial_precision_is_re_emitted_in_full(self) -> None:
-        # A partially written block keeps what was authored and gains the rest.
-        details = LMQuantizationDetails.model_validate(
-            {
-                "precision": {"lm_head": {"qtype": "int16"}},
-                "recipe": [{"name": "Calibration"}],
-            }
-        )
-        dumped = details.model_dump(exclude_defaults=True)
-
-        assert dumped["precision"]["lm_head"] == {
-            "qtype": "int16",
-            "granularity": "PCQ",
-        }
-        assert dumped["precision"]["kv_cache"] == "int8"
-
-    def test_serialization_keeps_components_for_vlms(self) -> None:
-        # A recipe with a visual chain has to keep the component form; only the
-        # single-component case collapses to the bare list.
-        details = LMQuantizationDetails.model_validate(
-            {
-                "recipe": {
-                    "backbone": [{"name": "Calibration"}],
-                    "visual": [{"name": "Calibration"}],
-                }
-            }
-        )
-        dumped = details.model_dump(exclude_defaults=True)
-
-        assert dumped["recipe"]["backbone"] == [{"name": "Calibration"}]
-        assert dumped["recipe"]["visual"] == [{"name": "Calibration"}]
-        assert LMQuantizationDetails.model_validate(dumped) == details
-
-    def test_empty_recipe_section_is_valid_for_non_llm(self) -> None:
-        # An empty section must not trip the LLM-only guard (the guard is on a
-        # non-empty section only), so ordinary non-LLM manifests still validate.
-        manifest = QAIHMModelManifest(
-            model_type_llm=False,
-            supported_precisions=[Precision.float],
-        )
-        assert manifest.lm_quantization_details == {}
 
 
 # ---------------------------------------------------------------------------

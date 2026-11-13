@@ -12,7 +12,9 @@ import torch
 
 from qai_hub_models.models.act.external_repos.act.sim_env import BOX_POSE, make_sim_env
 from qai_hub_models.models.act.external_repos.act.utils import sample_box_pose, set_seed
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
 
 """
 The below value for stats can be obtained by following the below steps

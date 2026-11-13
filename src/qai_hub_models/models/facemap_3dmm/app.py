@@ -19,7 +19,9 @@ from qai_hub_models.models.facemap_3dmm.utils import (
     project_landmark,
     transform_landmark_coordinates,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 
 
 class FaceMap_3DMMApp:

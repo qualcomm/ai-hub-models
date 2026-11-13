@@ -8,6 +8,9 @@ import torch
 from torchvision import transforms
 
 from qai_hub_models import TargetRuntime
+from qai_hub_models.models.templates.corevision.image_processing import (
+    IMAGENET_TRANSFORM,
+)
 from qai_hub_models.models.templates.imagenet_classifier.app import (
     ImagenetClassifierApp,
 )
@@ -27,7 +30,6 @@ from qai_hub_models.utils.asset_loaders import (
     load_image,
     load_json,
 )
-from qai_hub_models.utils.image_processing import IMAGENET_TRANSFORM
 
 IMAGENET_LABELS_ASSET = CachedWebModelAsset(
     "https://raw.githubusercontent.com/anishathalye/imagenet-simple-labels/master/imagenet-simple-labels.json",

@@ -17,8 +17,10 @@ from ultralytics.utils.metrics import box_iou
 from ultralytics.utils.ops import crop_mask
 from ultralytics.utils.plotting import Annotator, colors
 
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
     denormalize_coordinates,
     resize_pad,

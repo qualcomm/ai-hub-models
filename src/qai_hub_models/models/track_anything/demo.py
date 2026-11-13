@@ -14,6 +14,9 @@ from qai_hub_models.models.mobilesam.model import (
     DEFAULT_MODEL_TYPE,
     MobileSAM,
 )
+from qai_hub_models.models.templates.corevision.display import (
+    generate_video_from_frames,
+)
 from qai_hub_models.models.templates.sam.app import SAMApp, SAMInputImageLayout
 from qai_hub_models.models.track_anything.app import TrackAnythingApp
 from qai_hub_models.models.track_anything.model import (
@@ -28,7 +31,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-from qai_hub_models.utils.display import generate_video_from_frames
 
 VIDEO_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "demo.mp4"

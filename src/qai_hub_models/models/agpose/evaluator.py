@@ -17,11 +17,13 @@ import numpy as np
 import torch
 
 from qai_hub_models.models.agpose.dataset import CATEGORY_NAMES
-from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.bounding_box_processing_3d import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
     get_3d_bbox,
 )
-from qai_hub_models.utils.image_processing_3d import transform_coordinates_3d
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
+    transform_coordinates_3d,
+)
+from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.metrics import MEAN_AVERAGE_PRECISION_5DEG_2CM, MetricMetadata
 
 

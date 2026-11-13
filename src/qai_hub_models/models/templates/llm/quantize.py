@@ -16,10 +16,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 import torch
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import (
-    LMQuantizationDetails,
-    QAIHMModelManifest,
-)
+from qai_hub_models.configs.lm_recipe_yaml import LMQuantizationDetails, LMRecipe
 from qai_hub_models.models.templates.llm.common import (
     TORCH_DYNAMIC_SHAPE_BELOW_VERSION,
     TORCH_DYNAMIC_SHAPE_MIN_VERSION,
@@ -153,7 +150,7 @@ def qtype_ref_to_qtype(ref: QTypeRef) -> QType | None:
 def assert_realizable_precision(
     precision: Precision, schema: PrecisionSchema | None
 ) -> None:
-    """Fail loud unless the manifest ``precision:`` block resolves to what AIHM
+    """Fail loud unless the ``lm_recipe.yaml`` ``precision:`` block resolves to what AIHM
     realizes for its ``Precision`` key (the block is documentation, not the source of
     truth). ``None`` (synthesized recipe, no authored block) is a no-op.
     """
@@ -161,7 +158,7 @@ def assert_realizable_precision(
         return
     if precision not in _REALIZABLE_PRECISION_PATTERNS:
         raise ValueError(
-            f"lm_quantization_details has a recipe for precision {precision!s}, but "
+            f"lm_recipe.yaml has a recipe for precision {precision!s}, but "
             f"AI Hub Models can only realize {sorted(str(p) for p in _REALIZABLE_PRECISION_PATTERNS)} "
             f"for LLM/VLM quantization today. Remove the entry or add support in "
             f"_configure_quant_sim."
@@ -199,10 +196,10 @@ def assert_realizable_precision(
             )
     if mismatches:
         raise ValueError(
-            f"The precision: block under lm_quantization_details[{precision!s}] is "
+            f"The precision: block under lm_recipe.yaml[{precision!s}] is "
             f"inconsistent with the {precision!s} pattern AI Hub Models realizes: "
             + "; ".join(mismatches)
-            + ". Fix the manifest precision block to match the Precision key."
+            + ". Fix the lm_recipe.yaml precision block to match the Precision key."
         )
 
 
@@ -234,12 +231,12 @@ def resolve_quantize_recipe(
     """Resolve ``--precision`` (a precision name or a recipe file path) to this
     run's ``(precision, recipe, precision_schema)``.
 
-    * A precision name (e.g. ``w4a16``) selects the model's manifest
-      ``lm_quantization_details`` entry; the dict key *is* the ``Precision``.
+    * A precision name (e.g. ``w4a16``) selects the model's
+      ``lm_recipe.yaml`` entry; the dict key *is* the ``Precision``.
     * A path loads a user-authored ``{precision:, recipe:}`` file; its ``Precision``
       is derived from the file's precision block (:func:`derive_precision`).
 
-    Fails loud when the name has no manifest recipe or the path does not exist --
+    Fails loud when the name has no recipe or the path does not exist --
     there is no implicit default recipe.
     """
     if os.path.exists(recipe_arg):
@@ -253,25 +250,24 @@ def resolve_quantize_recipe(
         )
         return precision, details.recipe, details.precision
 
-    # Not a file -> treat as a precision name and look it up in the manifest.
+    # Not a file -> treat as a precision name and look it up in lm_recipe.yaml.
     try:
         precision = Precision.parse(recipe_arg)
     except Exception as e:
         raise ValueError(
             f"--precision {recipe_arg!r} is neither an existing file nor a valid "
             f"precision name. Pass a precision name (e.g. 'w4a16') present in the "
-            f"model's lm_quantization_details, or a path to a recipe YAML."
+            f"model's lm_recipe.yaml, or a path to a recipe YAML."
         ) from e
 
-    manifest = QAIHMModelManifest.from_model(model_id)
-    manifest_details = manifest.lm_quantization_details.get(precision)
-    if manifest_details is None:
+    recipe_details = LMRecipe.from_model(model_id).get(precision)
+    if recipe_details is None:
         raise ValueError(
-            f"No lm_quantization_details recipe for {model_id} at precision "
-            f"{precision}. Author one in the model's manifest.yaml, or pass a recipe "
+            f"No lm_recipe.yaml recipe for {model_id} at precision "
+            f"{precision}. Author one in the model's lm_recipe.yaml, or pass a recipe "
             f"file path to --precision."
         )
-    return precision, manifest_details.recipe, manifest_details.precision
+    return precision, recipe_details.recipe, recipe_details.precision
 
 
 def save_command_args(
@@ -480,7 +476,7 @@ def llm_quantize(
         type=str,
         default=str(supported_precisions[0]),
         help="Quantization precision: either a precision name (e.g. 'w4a16') present "
-        "in the model's lm_quantization_details, or a path to a recipe YAML "
+        "in the model's lm_recipe.yaml, or a path to a recipe YAML "
         "({precision:, recipe:}). Defaults to the model's first supported precision.",
     )
     cli_args = sys.argv[1:]

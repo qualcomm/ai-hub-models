@@ -57,6 +57,9 @@ class MultiGraphWorkbenchModel(ABC, FromPretrainedProtocol):
     The `get_*` methods auto-build dicts from the per-graph `get_graph_*` getters.
     """
 
+    # Whether to pass --output_names to AI Hub compile jobs.
+    pass_output_names_to_compile: bool = True
+
     # -- Subclasses must implement these --
     @property
     @abstractmethod
@@ -163,6 +166,7 @@ class MultiGraphWorkbenchModel(ABC, FromPretrainedProtocol):
             self.get_graph_output_spec(graph_name),
             graph_name,
             other_compile_options,
+            self.pass_output_names_to_compile,
         )
 
     def get_hub_link_options(

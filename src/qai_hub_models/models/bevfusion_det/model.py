@@ -30,26 +30,28 @@ from qai_hub_models.models.bevfusion_det.model_patch import (
     patched_lss_forward,
     patched_topk,
 )
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    circle_nms as patched_circle_nms,
+)
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    onnx_atan2,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
+from qai_hub_models.models.templates.corevision.window_partitioning import (
+    WindowMSA_forward_optimized,
+    window_partition_optimized,
+    window_reverse_optimized,
+)
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_torch,
 )
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.bounding_box_processing_3d import (
-    circle_nms as patched_circle_nms,
-)
-from qai_hub_models.utils.bounding_box_processing_3d import onnx_atan2
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import (
-    normalize_image_torchvision,
-)
 from qai_hub_models.utils.input_spec import InputSpec, IoType, TensorSpec
-from qai_hub_models.utils.window_partitioning import (
-    WindowMSA_forward_optimized,
-    window_partition_optimized,
-    window_reverse_optimized,
-)
 
 with patch_mmdet_no_build_deps():
     from mmdet.models.backbones.swin import ShiftWindowMSA, WindowMSA

@@ -862,6 +862,7 @@ class CachedWebModelAsset(CachedWebAsset):
         asset_config: ModelZooAssetConfig = ASSET_CONFIG,
         model_downloader: Callable[[str, str, int], str] | None = None,
         downloader_num_retries: int = 4,
+        private_s3_key: str | None = None,
     ) -> None:
         local_cache_path = asset_config.get_local_store_model_path(
             model_id, model_asset_version, filename
@@ -872,6 +873,7 @@ class CachedWebModelAsset(CachedWebAsset):
             asset_config,
             model_downloader,
             downloader_num_retries,
+            private_s3_key,
         )
         self.model_id = model_id
         self.model_version = model_asset_version
@@ -926,6 +928,7 @@ class CachedWebModelAsset(CachedWebAsset):
         filename: str,
         num_retries: int = 4,
         asset_config: ModelZooAssetConfig = ASSET_CONFIG,
+        private_s3_key: str | None = None,
     ) -> CachedWebModelAsset:
         """
         File from google drive.
@@ -945,6 +948,10 @@ class CachedWebModelAsset(CachedWebAsset):
             Number of retries when downloading thie file.
         asset_config
             Asset config to use to save this file.
+        private_s3_key
+            If set, the asset will be fetched from the private S3 bucket
+            using this key on CI or when the user has valid AWS credentials.
+            Falls back to Google Drive otherwise (e.g. external users).
 
         Returns
         -------
@@ -959,6 +966,7 @@ class CachedWebModelAsset(CachedWebAsset):
             asset_config,
             download_and_cache_google_drive,
             num_retries,
+            private_s3_key,
         )
 
 

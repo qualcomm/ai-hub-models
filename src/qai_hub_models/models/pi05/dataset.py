@@ -10,12 +10,14 @@ from lerobot.configs.types import FeatureType
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.policies.pi05 import make_pi05_pre_post_processors
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    resize_and_normalize,
+)
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
     DatasetMetadata,
     DatasetSplit,
 )
-from qai_hub_models.utils.image_processing import resize_and_normalize
 from qai_hub_models.utils.input_spec import InputSpec
 
 DATASET_REPO_ID = "HuggingFaceVLA/libero"

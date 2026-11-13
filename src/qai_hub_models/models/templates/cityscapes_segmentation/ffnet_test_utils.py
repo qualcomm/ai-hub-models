@@ -14,12 +14,12 @@ from qai_hub_models.models.templates.cityscapes_segmentation.ffnet_model import 
 from qai_hub_models.models.templates.cityscapes_segmentation.model import (
     TEST_CITYSCAPES_LIKE_IMAGE_ASSET,
 )
-from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     normalize_image_torchvision,
     preprocess_PIL_image,
 )
+from qai_hub_models.utils.asset_loaders import load_image
+from qai_hub_models.utils.base_model import BaseModel
 
 
 def run_test_off_target_numerical(

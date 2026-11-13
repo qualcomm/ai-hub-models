@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import torch
 
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_xyxy
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_xyxy,
+)
 
 
 def make_grid(

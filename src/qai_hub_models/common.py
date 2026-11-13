@@ -747,7 +747,7 @@ class TargetRuntime(Enum):
             or self == TargetRuntime.GENIEX_QAIRT
             or self == TargetRuntime.GENIEX_LLAMACPP
         ):
-            return QAIRTVersion("2.50")
+            return QAIRTVersion("2.51")
         return self.inference_engine.default_qairt_version
 
     @property

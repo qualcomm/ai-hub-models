@@ -14,9 +14,11 @@ from qai_hub_models.models.nafnet_denoise.model import (
     MODEL_ID,
     NafNetDeNoise,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.nafnet.app import NAFNetApp
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 OUTPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "test_images/denoise_img.png"

@@ -9,6 +9,9 @@ from ultralytics.nn.modules.head import Segment, Segment26, YOLOESegment
 from ultralytics.nn.tasks import SegmentationModel
 
 from qai_hub_models import Precision
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    box_xywh_to_xyxy,
+)
 from qai_hub_models.models.templates.ultralytics.segment_patches import (
     patch_ultralytics_segmentation_head,
     patch_ultralytics_segmentation_head_26,
@@ -18,7 +21,6 @@ from qai_hub_models.models.templates.yolo.utils import (
     get_most_likely_score,
 )
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.bounding_box_processing import box_xywh_to_xyxy
 from qai_hub_models.utils.input_spec import (
     BboxFormat,
     BboxMetadata,

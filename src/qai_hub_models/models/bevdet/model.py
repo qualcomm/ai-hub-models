@@ -38,6 +38,9 @@ from qai_hub_models.models.bevdet.model_patches import (
     CenterHead,
     LSSViewTransformerOptimized,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_numpy,
@@ -47,7 +50,6 @@ from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import InputSpec, IoType, OutputSpec, TensorSpec
 
 with patch_mmdet_no_build_deps():

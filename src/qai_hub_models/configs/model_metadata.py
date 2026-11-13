@@ -12,18 +12,33 @@ exported model.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
 import qai_hub as hub
 from qai_hub_models_cli.proto import model_metadata_pb2, platform_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    read_proto_json,
+    read_proto_yaml,
+    write_proto_json,
+    write_proto_yaml,
+)
 
+import qai_hub_models._version as pkg_version
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import MODEL_USE_CASE
-from qai_hub_models.configs.chipset_yaml import ChipsetYaml, WebsiteWorld
+from qai_hub_models.configs.chipset_yaml import (
+    ChipsetYaml,
+    WebsiteWorld,
+    website_world_from_proto,
+)
 from qai_hub_models.configs.proto_helpers import (
+    precision_from_proto,
     precision_to_proto,
+    runtime_from_proto,
     runtime_to_proto,
+    use_case_from_proto,
     use_case_to_proto,
 )
 from qai_hub_models.configs.tensor_spec import (
@@ -130,6 +145,16 @@ class ModelFileMetadata(BaseQAIHMConfig):
             outputs=[spec.to_proto(name) for name, spec in self.outputs.items()],
         )
 
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.ModelFileMetadata
+    ) -> ModelFileMetadata:
+        """Build from the proto. The file name (``proto.filename``) is left to the caller."""
+        return cls(
+            inputs={s.name: TensorSpec.from_proto(s) for s in proto.inputs},
+            outputs={s.name: TensorSpec.from_proto(s) for s in proto.outputs},
+        )
+
 
 class GenieChatTemplate(BaseQAIHMConfig):
     """Chat template tokens and defaults for Genie SDK."""
@@ -165,6 +190,26 @@ class GenieChatTemplate(BaseQAIHMConfig):
             think_header=self.think_header,
         )
 
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.GenieChatTemplate
+    ) -> GenieChatTemplate:
+        return cls(
+            global_prefix=proto.global_prefix,
+            system_prefix=proto.system_prefix,
+            system_suffix=proto.system_suffix,
+            user_prefix=proto.user_prefix,
+            user_suffix=proto.user_suffix,
+            assistant_prefix=proto.assistant_prefix,
+            assistant_suffix=proto.assistant_suffix,
+            vision_start=proto.vision_start,
+            vision_end=proto.vision_end,
+            default_system_prompt=proto.default_system_prompt,
+            think_start=proto.think_start,
+            think_end=proto.think_end,
+            think_header=proto.think_header,
+        )
+
 
 class GeniePipelineConnection(BaseQAIHMConfig):
     """A connection between two nodes in a Genie pipeline."""
@@ -184,6 +229,18 @@ class GeniePipelineConnection(BaseQAIHMConfig):
             consumer_node_io=self.consumer_node_io,
         )
 
+    @classmethod
+    def from_proto(
+        cls,
+        proto: model_metadata_pb2.GenieMetadata.GeniePipeline.GeniePipelineConnection,
+    ) -> GeniePipelineConnection:
+        return cls(
+            producer_node=proto.producer_node,
+            producer_node_io=proto.producer_node_io,
+            consumer_node=proto.consumer_node,
+            consumer_node_io=proto.consumer_node_io,
+        )
+
 
 class GenieSampleInput(BaseQAIHMConfig):
     """A sample input binding for a Genie pipeline node."""
@@ -199,6 +256,12 @@ class GenieSampleInput(BaseQAIHMConfig):
             file=self.file,
         )
 
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.GenieMetadata.GenieSampleInput
+    ) -> GenieSampleInput:
+        return cls(node=proto.node, node_io=proto.node_io, file=proto.file)
+
 
 class GeniePipeline(BaseQAIHMConfig):
     """Pipeline topology for Genie SDK."""
@@ -210,6 +273,17 @@ class GeniePipeline(BaseQAIHMConfig):
         return model_metadata_pb2.GenieMetadata.GeniePipeline(
             nodes=self.nodes,
             connections=[c.to_proto() for c in self.connections],
+        )
+
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.GenieMetadata.GeniePipeline
+    ) -> GeniePipeline:
+        return cls(
+            nodes=dict(proto.nodes),
+            connections=[
+                GeniePipelineConnection.from_proto(c) for c in proto.connections
+            ],
         )
 
 
@@ -233,6 +307,20 @@ class GenieVisionPreprocessing(BaseQAIHMConfig):
             spatial_merge_size=self.spatial_merge_size,
             normalize_mean=self.normalize_mean,
             normalize_std=self.normalize_std,
+        )
+
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.GenieMetadata.GenieVisionPreprocessing
+    ) -> GenieVisionPreprocessing:
+        return cls(
+            image_width=proto.image_width,
+            image_height=proto.image_height,
+            patch_size=proto.patch_size,
+            temporal_patch_size=proto.temporal_patch_size,
+            spatial_merge_size=proto.spatial_merge_size,
+            normalize_mean=list(proto.normalize_mean),
+            normalize_std=list(proto.normalize_std),
         )
 
 
@@ -264,6 +352,28 @@ class GenieMetadata(BaseQAIHMConfig):
             else None,
         )
 
+    @classmethod
+    def from_proto(cls, proto: model_metadata_pb2.GenieMetadata) -> GenieMetadata:
+        return cls(
+            chat_template=GenieChatTemplate.from_proto(proto.chat_template),
+            context_lengths=list(proto.context_lengths),
+            supports_streaming=proto.supports_streaming,
+            supports_vision=proto.supports_vision,
+            supports_thinking=proto.supports_thinking,
+            pipeline=(
+                GeniePipeline.from_proto(proto.pipeline)
+                if proto.HasField("pipeline")
+                else None
+            ),
+            sample_inputs=[GenieSampleInput.from_proto(s) for s in proto.sample_inputs]
+            or None,
+            vision_preprocessing=(
+                GenieVisionPreprocessing.from_proto(proto.vision_preprocessing)
+                if proto.HasField("vision_preprocessing")
+                else None
+            ),
+        )
+
 
 class ChipsetAttributes(ChipsetYaml):
     """Chipset attributes for model metadata - adds name field to ChipsetYaml."""
@@ -272,6 +382,20 @@ class ChipsetAttributes(ChipsetYaml):
 
     def to_proto(self) -> platform_pb2.ChipsetInfo:  # type: ignore[override]
         return super().to_proto(self.name)
+
+    @classmethod
+    def from_proto(cls, proto: platform_pb2.ChipsetInfo) -> ChipsetAttributes:
+        return cls(
+            name=proto.name,
+            aliases=list(proto.aliases),
+            marketing_name=proto.marketing_name,
+            world=website_world_from_proto(proto.world),
+            supports_fp16=proto.supports_fp16,
+            htp_version=proto.htp_version,
+            soc_model=proto.soc_model,
+            reference_device=proto.reference_device,
+            supports_weight_sharing=proto.supports_weight_sharing,
+        )
 
     @staticmethod
     def from_hub_device(hub_device: hub.Device | None) -> ChipsetAttributes | None:
@@ -316,6 +440,25 @@ class TokenizerMetadata(BaseQAIHMConfig):
     type: str
     max_length: int
     do_lower_case: bool
+
+    def to_proto(self) -> model_metadata_pb2.TokenizerMetadata:
+        return model_metadata_pb2.TokenizerMetadata(
+            vocab_file=self.vocab_file,
+            type=self.type,
+            max_length=self.max_length,
+            do_lower_case=self.do_lower_case,
+        )
+
+    @classmethod
+    def from_proto(
+        cls, proto: model_metadata_pb2.TokenizerMetadata
+    ) -> TokenizerMetadata:
+        return cls(
+            vocab_file=proto.vocab_file,
+            type=proto.type,
+            max_length=proto.max_length,
+            do_lower_case=proto.do_lower_case,
+        )
 
 
 class ModelMetadata(BaseQAIHMConfig):
@@ -378,30 +521,57 @@ class ModelMetadata(BaseQAIHMConfig):
     tokenizer: TokenizerMetadata | None = None
     use_case: MODEL_USE_CASE | None = None
 
-    def to_yaml(
-        self,
-        path: str | Path,
-        write_if_empty: bool = False,
-        delete_if_empty: bool = True,
-        flow_lists: bool = True,
-        exclude_defaults: bool = True,
-        **kwargs: Any,
-    ) -> bool:
-        """
-        Override to_yaml for metadata files:
-        - flow_lists=True for readable shapes (e.g., [1, 3, 224, 224])
-        - exclude_unset=True (instead of exclude_defaults) so that fields
-          explicitly set by merge_input_metadata (like io_type) are preserved
-          even when they match the default value.
-        """
-        return super().to_yaml(
-            path=path,
-            write_if_empty=write_if_empty,
-            delete_if_empty=delete_if_empty,
-            flow_lists=flow_lists,
-            exclude_defaults=False,
-            exclude_unset=True,
-            **kwargs,
+    def to_json(self, path: str | os.PathLike, **kwargs: Any) -> None:  # type: ignore[override]
+        """Write this metadata to ``path`` as the JSON form of a ``ModelMetadata`` proto."""
+        write_proto_json(self.to_proto(pkg_version.__version__), path)
+
+    @classmethod
+    def from_json(cls, path: str | os.PathLike) -> ModelMetadata:
+        """Read a metadata.json written by ``to_json``."""
+        return cls.from_proto(read_proto_json(path, model_metadata_pb2.ModelMetadata))
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Write this metadata to ``path`` as the YAML form of a ``ModelMetadata`` proto."""
+        write_proto_yaml(self.to_proto(pkg_version.__version__), path)
+        return True
+
+    @classmethod
+    def from_yaml(
+        cls, path: str | os.PathLike, create_empty_if_no_file: bool = False
+    ) -> ModelMetadata:
+        """Read a metadata YAML written by ``to_yaml``."""
+        return cls.from_proto(read_proto_yaml(path, model_metadata_pb2.ModelMetadata))
+
+    @classmethod
+    def from_proto(cls, proto: model_metadata_pb2.ModelMetadata) -> ModelMetadata:
+        return cls(
+            model_id=proto.model_id,
+            model_name=proto.model_name,
+            runtime=runtime_from_proto(proto.runtime),
+            precision=precision_from_proto(proto.precision),
+            tool_versions=ToolVersions.from_proto(proto.tool_versions),
+            model_files={
+                f.filename: ModelFileMetadata.from_proto(f) for f in proto.model_files
+            },
+            supplementary_files={
+                f.filename: f.description for f in proto.supplementary_files
+            },
+            genie=(
+                GenieMetadata.from_proto(proto.genie)
+                if proto.HasField("genie")
+                else None
+            ),
+            chipset_attributes=(
+                ChipsetAttributes.from_proto(proto.chipset_attributes)
+                if proto.HasField("chipset_attributes")
+                else None
+            ),
+            tokenizer=(
+                TokenizerMetadata.from_proto(proto.tokenizer)
+                if proto.HasField("tokenizer")
+                else None
+            ),
+            use_case=use_case_from_proto(proto.use_case) if proto.use_case else None,
         )
 
     def to_proto(self, aihm_version: str) -> model_metadata_pb2.ModelMetadata:
@@ -428,6 +598,7 @@ class ModelMetadata(BaseQAIHMConfig):
             chipset_attributes=self.chipset_attributes.to_proto()
             if self.chipset_attributes
             else None,
+            tokenizer=self.tokenizer.to_proto() if self.tokenizer else None,
             use_case=use_case_to_proto(self.use_case) if self.use_case else 0,
         )
 

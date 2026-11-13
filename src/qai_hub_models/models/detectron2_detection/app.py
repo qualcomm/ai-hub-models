@@ -15,6 +15,17 @@ from torch.utils.data import DataLoader
 
 from qai_hub_models.datasets import DatasetSplit, instantiate_dataset
 from qai_hub_models.models.protocols import ExecutableModelProtocol
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    batched_nms,
+)
+from qai_hub_models.models.templates.corevision.draw import (
+    create_color_map,
+    draw_box_from_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.models.templates.proposal_based_detection.app import (
     ProposalBasedDetectionApp,
 )
@@ -24,10 +35,7 @@ from qai_hub_models.utils.base_app import (
     CollectionModelEvalGenerator,
 )
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
-from qai_hub_models.utils.bounding_box_processing import batched_nms
-from qai_hub_models.utils.draw import create_color_map, draw_box_from_xyxy
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.labels import get_class_names

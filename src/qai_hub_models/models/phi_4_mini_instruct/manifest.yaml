@@ -7,32 +7,6 @@ is_aimet: true
 is_collection_model: true
 license: https://huggingface.co/microsoft/Phi-4-mini-instruct/blob/main/LICENSE
 license_type: mit
-lm_quantization_details:
-  w4a16:
-    precision:
-      activations: int16
-      blocks:
-        granularity: PCQ
-        qtype: int4
-      embedding: int16
-      kv_cache: int8
-      lm_head:
-        granularity: PCQ
-        qtype: int8
-    recipe:
-    - enable_r1: true
-      enable_r2: true
-      enable_r3: true
-      name: SpinQuant
-    - dataset:
-        name: Wikitext
-        split: train
-      name: SeqMSE
-    - dataset:
-        name: Wikitext
-        split: train
-      name: Calibration
-      num_iterations: 128
 model_type_llm: true
 name: Phi-4-Mini-Instruct
 numerics_benchmark:

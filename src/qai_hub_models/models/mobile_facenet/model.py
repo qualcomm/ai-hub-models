@@ -15,6 +15,9 @@ from qai_hub_models.models.mobile_facenet.evaluator import (
 from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.mobilefacenet import (
     MobileFaceNet as SourceMobileFaceNet,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_torch,
@@ -22,7 +25,6 @@ from qai_hub_models.utils.asset_loaders import (
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

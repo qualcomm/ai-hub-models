@@ -21,6 +21,9 @@ from qai_hub_models.models.superpoint.evaluator import HPatchesEvaluator
 from qai_hub_models.models.superpoint.external_repos.superpoint.superpoint_pytorch import (
     SuperPoint as SourceSuperPoint,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
@@ -28,7 +31,6 @@ from qai_hub_models.utils.asset_loaders import (
 )
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

@@ -15,11 +15,11 @@ import torch
 from numpy.typing import NDArray
 from scipy.io import loadmat
 
-from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
-from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     pre_process_with_affine,
 )
+from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
+from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 MPII_FOLDER_NAME = "mpii"

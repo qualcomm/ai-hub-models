@@ -20,7 +20,7 @@ JIRA_TOKEN="$1"
 TICKET="$2"
 JIRA_BASE_URL="${JIRA_BASE_URL:-https://jira-dc-tools.qualcomm.com/jira/rest/api/2}"
 
-RESPONSE=$(curl -s -w "\n%{http_code}" \
+RESPONSE=$(curl -sS -w "\n%{http_code}" \
   -H "Authorization: Bearer ${JIRA_TOKEN}" \
   -H "Content-Type: application/json" \
   "${JIRA_BASE_URL}/issue/${TICKET}?fields=status,issuetype,labels,customfield_32716")

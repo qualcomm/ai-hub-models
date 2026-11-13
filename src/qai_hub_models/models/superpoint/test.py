@@ -14,8 +14,10 @@ from qai_hub_models.models.superpoint.dataset import (
 )
 from qai_hub_models.models.superpoint.demo import main as demo_main
 from qai_hub_models.models.superpoint.model import SuperPoint
+from qai_hub_models.models.templates.corevision.image_processing import (
+    numpy_image_to_torch,
+)
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.image_processing import numpy_image_to_torch
 
 
 def test_task() -> None:

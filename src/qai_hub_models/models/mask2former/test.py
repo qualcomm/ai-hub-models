@@ -17,11 +17,11 @@ from qai_hub_models.models.mask2former.model import (
     MODEL_ID,
     Mask2Former,
 )
-from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     normalize_image_torchvision,
     preprocess_PIL_image,
 )
+from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 
 WEIGHTS = "facebook/mask2former-swin-tiny-coco-panoptic"
 OUTPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(

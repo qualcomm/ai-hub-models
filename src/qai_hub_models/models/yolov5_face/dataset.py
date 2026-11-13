@@ -14,11 +14,14 @@ import torch
 from PIL import Image
 from scipy.io import loadmat
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.models.yolov5_face.app import PAD_VALUE
 from qai_hub_models.models.yolov5_face.external_repos import EXTERNAL_REPO_PATHS
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 
 # WIDER FACE is loaded directly from its archives rather than through the

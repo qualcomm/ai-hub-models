@@ -17,8 +17,13 @@ from qai_hub_models.models.superpoint.postprocess import (
     extract_keypoints,
     match_descriptors,
 )
-from qai_hub_models.utils.draw import draw_connections, draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_connections,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 DEFAULT_DETECTION_THRESHOLD = 0.001

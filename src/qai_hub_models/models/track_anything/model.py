@@ -8,6 +8,9 @@ from __future__ import annotations
 import torch
 from typing_extensions import Self
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.track_anything.external_repos import EXTERNAL_REPO_PATHS
 from qai_hub_models.models.track_anything.external_repos.track_anything.tracker.model.network import (
     XMem,
@@ -18,7 +21,6 @@ from qai_hub_models.utils.base_model import (
     BaseModel,
 )
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

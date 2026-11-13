@@ -12,7 +12,9 @@ import torch
 from PIL import Image
 
 from qai_hub_models.datasets.duts.duts import preprocess_image_for_u2net
-from qai_hub_models.utils.image_processing import torch_tensor_to_PIL_image
+from qai_hub_models.models.templates.corevision.image_processing import (
+    torch_tensor_to_PIL_image,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

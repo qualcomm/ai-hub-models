@@ -68,7 +68,7 @@ def _assert_realizable_visual_precision(
         )
     if mismatches:
         raise ValueError(
-            f"The precision.visual block under lm_quantization_details[{precision!s}] "
+            f"The precision.visual block under lm_recipe.yaml[{precision!s}] "
             f"is inconsistent with what the VEG realizes: "
             + "; ".join(mismatches)
             + "."
@@ -228,7 +228,7 @@ def quantize_vlm(
         type=str,
         default=str(supported_precisions[0]),
         help="Quantization precision: either a precision name (e.g. 'w4a16') present "
-        "in the model's lm_quantization_details, or a path to a recipe YAML "
+        "in the model's lm_recipe.yaml, or a path to a recipe YAML "
         "({precision:, recipe:}). Defaults to the model's first supported precision.",
     )
     parser.add_argument(

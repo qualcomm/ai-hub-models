@@ -49,6 +49,9 @@ class MultiGraphCollectionModel(ABC, FromPretrainedProtocol):
     by (component_name, graph_name).
     """
 
+    # Whether to pass --output_names to AI Hub compile jobs.
+    pass_output_names_to_compile: bool = True
+
     # -- Subclasses must implement these --
     @property
     @abstractmethod
@@ -160,6 +163,7 @@ class MultiGraphCollectionModel(ABC, FromPretrainedProtocol):
             self.get_component_graph_input_spec(component_name, graph_name),
             self.get_component_graph_output_spec(component_name, graph_name),
             graph_name,
+            pass_output_names=self.pass_output_names_to_compile,
         )
 
     def get_component_hub_link_options(

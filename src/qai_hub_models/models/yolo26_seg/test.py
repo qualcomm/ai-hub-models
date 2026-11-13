@@ -10,13 +10,15 @@ import torch
 from ultralytics.models import YOLO as ultralytics_YOLO
 from ultralytics.nn.tasks import SegmentationModel
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.app import YoloSegmentationApp
 from qai_hub_models.models.templates.yolo.model import yolo_segment_postprocess
 from qai_hub_models.models.yolo26_seg.demo import IMAGE_ADDRESS
 from qai_hub_models.models.yolo26_seg.demo import main as demo_main
 from qai_hub_models.models.yolo26_seg.model import Yolo26Segmentor
 from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 WEIGHTS = "yolo26n-seg.pt"
 

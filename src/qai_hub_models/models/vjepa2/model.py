@@ -13,10 +13,12 @@ from torch import nn
 from transformers import VJEPA2Config, VJEPA2Model
 from typing_extensions import Self
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.vjepa2.model_patch import _patch_vjepa2_rope
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     InputSpec,
     IoType,

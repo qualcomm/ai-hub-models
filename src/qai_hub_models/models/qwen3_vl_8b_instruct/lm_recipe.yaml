@@ -1,0 +1,39 @@
+w4a16:
+  precision:
+    activations: int16
+    blocks:
+      granularity: PCQ
+      qtype: int4
+    embedding: int16
+    kv_cache: int8
+    lm_head:
+      granularity: PCQ
+      qtype: int8
+    visual:
+      activations: int16
+      weight:
+        granularity: PCQ
+        qtype: int8
+  recipe:
+    backbone:
+    - dataset:
+        name: Wikitext
+        split: train
+      name: AdaScale
+      num_batches: 128
+      num_iterations: 2048
+    - dataset:
+        name: Interleaved
+        source_datasets:
+        - name: AOKVQA
+          split: train
+        - name: Wikitext
+          split: train
+      name: Calibration
+      num_iterations: 20
+    visual:
+    - dataset:
+        name: Imagenette
+        split: train
+      name: Calibration
+      num_iterations: 64

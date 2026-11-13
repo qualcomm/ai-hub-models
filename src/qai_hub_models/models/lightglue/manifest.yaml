@@ -1,0 +1,32 @@
+description: LightGlue is a deep neural network that matches sparse local features across image pairs. It replaces the traditional combination of nearest-neighbour matching and robust geometric fitting with a fast, lightweight attention-based model, performing both matching and a learned pruning of non-matchable points in a single forward pass. LightGlue consumes keypoints and descriptors already produced by a separate feature extractor (SuperPoint) and outputs point correspondences between the two images. This recipe pairs LightGlue's official checkpoint (trained against Magic-Leap's SuperPoint) with this repo's MIT-licensed SuperPoint port, so reported accuracy is directionally meaningful but not a direct reproduction of the paper's figures.
+domain: Computer Vision
+external_repos:
+  cvg_lightglue:
+    commit_sha: eb42fee2d71449efb0aa5c10549752b5d75384d8
+    patches_filename: cvg_lightglue_patches.diff
+    repo_url: https://github.com/cvg/LightGlue.git
+has_on_target_demo: true
+headline: Lightweight attention-based matcher for sparse local image features.
+id: lightglue
+is_collection_model: true
+license: https://github.com/cvg/LightGlue/blob/main/LICENSE
+license_type: apache-2.0
+models:
+- superpoint
+name: LightGlue
+numerics_benchmark:
+  dataset_name: hpatches
+  metric_name: Homography Estimation @3px
+  source: AI Hub Models Reference Eval
+  unit: correctness@3px
+  value: 77.0
+research_paper: https://arxiv.org/abs/2306.13643
+research_paper_title: 'LightGlue: Local Feature Matching at Light Speed'
+source_repo: https://github.com/cvg/LightGlue
+supported_precisions:
+- float
+tags:
+- real-time
+templates:
+- corevision
+use_case: Pose Estimation

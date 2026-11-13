@@ -11,7 +11,10 @@ from typing import Any, cast
 import torch
 
 from qai_hub_models.extern.mmdet import patch_mmdet_no_build_deps
-from qai_hub_models.utils.bounding_box_processing_3d import nms_cpu, xywhr2xyxyr
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    nms_cpu,
+    xywhr2xyxyr,
+)
 
 with patch_mmdet_no_build_deps():
     from mmdet.models.layers import PatchMerging

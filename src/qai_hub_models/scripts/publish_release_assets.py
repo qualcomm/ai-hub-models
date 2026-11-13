@@ -11,6 +11,11 @@ import threading
 from botocore.exceptions import ClientError
 from mypy_boto3_s3.service_resource import Bucket
 from packaging.version import Version
+from qai_hub_models_cli.proto_helpers.model_metadata import (
+    METADATA_JSON_SUFFIX,
+    METADATA_PROTO_SUFFIX,
+    metadata_url_for_asset,
+)
 
 from qai_hub_models import Precision
 from qai_hub_models._version import __version__
@@ -33,6 +38,7 @@ from qai_hub_models.utils.aws import (
 )
 from qai_hub_models.utils.version_helpers import QAIHMVersion
 
+METADATA_SUFFIXES = (METADATA_PROTO_SUFFIX, METADATA_JSON_SUFFIX)
 LATEST_MIRROR_PREFIX = "qai-hub-models/releases/latest/"
 OVERWRITE_ASSETS_ENVVAR = "QAIHM_ALLOW_ASSET_OVERWRITE"
 
@@ -184,21 +190,54 @@ def release_asset(
         chipset=chipset,
     )
 
-    if not replace_existing and s3_file_exists(s3_public_bucket, s3_key):
+    _copy_to_public(
+        s3_private_bucket,
+        s3_public_bucket,
+        asset_details.s3_key,
+        s3_key,
+        replace_existing,
+    )
+
+    # The export test uploads metadata beside each asset; publish it beside the released asset.
+    for suffix in METADATA_SUFFIXES:
+        src_metadata_key = metadata_url_for_asset(asset_details.s3_key, suffix)
+        if not s3_file_exists(s3_private_bucket, src_metadata_key):
+            print(
+                f"    NO METADATA: s3://{s3_private_bucket.name}/{src_metadata_key} not found"
+            )
+            continue
+        _copy_to_public(
+            s3_private_bucket,
+            s3_public_bucket,
+            src_metadata_key,
+            metadata_url_for_asset(s3_key, suffix),
+            replace_existing,
+        )
+
+
+def _copy_to_public(
+    s3_private_bucket: Bucket,
+    s3_public_bucket: Bucket,
+    src_key: str,
+    dst_key: str,
+    replace_existing: bool,
+) -> None:
+    """Copy one object from the private to the public bucket, unless it exists and we aren't replacing."""
+    if not replace_existing and s3_file_exists(s3_public_bucket, dst_key):
         print(
-            f"    SKIPPED: s3://{s3_private_bucket.name}/{asset_details.s3_key}; asset exists already at s3://{s3_public_bucket.name}/{s3_key}"
+            f"    SKIPPED: s3://{s3_private_bucket.name}/{src_key}; asset exists already at s3://{s3_public_bucket.name}/{dst_key}"
         )
-    else:
-        print(
-            f"    COPYING: s3://{s3_private_bucket.name}/{asset_details.s3_key} to s3://{s3_public_bucket.name}/{s3_key}"
-        )
-        s3_copy(
-            src_bucket=s3_private_bucket,
-            src_key=asset_details.s3_key,
-            dst_bucket=s3_public_bucket,
-            dst_key=s3_key,
-            make_dst_public=True,
-        )
+        return
+    print(
+        f"    COPYING: s3://{s3_private_bucket.name}/{src_key} to s3://{s3_public_bucket.name}/{dst_key}"
+    )
+    s3_copy(
+        src_bucket=s3_private_bucket,
+        src_key=src_key,
+        dst_bucket=s3_public_bucket,
+        dst_key=dst_key,
+        make_dst_public=True,
+    )
 
 
 def release_assets_for_model(

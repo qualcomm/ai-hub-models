@@ -12,8 +12,11 @@ import numpy as np
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.draw import create_color_map, draw_box_from_xyxy
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.draw import (
+    create_color_map,
+    draw_box_from_xyxy,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
     denormalize_coordinates_affine,
     pre_process_with_affine,
 )

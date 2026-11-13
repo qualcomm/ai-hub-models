@@ -12,15 +12,15 @@ import numpy as np
 import torch
 from PIL import Image
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    get_post_rot_and_tran,
+)
 from qai_hub_models.utils.asset_loaders import load_json
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
     DatasetMetadata,
     DatasetSplit,
-)
-from qai_hub_models.utils.image_processing import (
-    app_to_net_image_inputs,
-    get_post_rot_and_tran,
 )
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset

@@ -28,14 +28,17 @@ from qai_hub_models.models.agpose.model import (
     AGPoseRotationHead,
 )
 from qai_hub_models.models.protocols import ExecutableModelProtocol
-from qai_hub_models.utils.base_app import CollectionModelEvalGenerator
-from qai_hub_models.utils.bounding_box_processing_3d import draw_3d_bbox, get_3d_bbox
-from qai_hub_models.utils.depth_completion import fill_missing
-from qai_hub_models.utils.image_processing_3d import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    draw_3d_bbox,
+    get_3d_bbox,
+)
+from qai_hub_models.models.templates.corevision.depth_completion import fill_missing
+from qai_hub_models.models.templates.corevision.image_processing_3d import (
     build_camera_projection_matrix,
     depth_to_full_pointcloud,
     project_to_image,
 )
+from qai_hub_models.utils.base_app import CollectionModelEvalGenerator
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, AsyncOnDeviceResult
 
 

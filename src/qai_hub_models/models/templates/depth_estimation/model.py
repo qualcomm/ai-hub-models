@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from qai_hub_models import SampleInputsType
 from qai_hub_models.datasets.nyuv2 import NYUV2Dataset
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+)
 from qai_hub_models.models.templates.depth_estimation.depth_evaluator import (
     DepthEvaluator,
 )
@@ -14,7 +17,6 @@ from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs
 from qai_hub_models.utils.input_spec import (
     InputSpec,
     IoType,

@@ -14,12 +14,12 @@ from qai_hub_models.models.foot_track_net.model import (
     MODEL_ID,
     FootTrackNet,
 )
+from qai_hub_models.models.templates.corevision.image_processing import pil_resize_pad
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
     load_path,
 )
-from qai_hub_models.utils.image_processing import pil_resize_pad
 from qai_hub_models.utils.test_helpers import (
     assert_most_close,
 )

@@ -22,10 +22,12 @@ from qai_hub_models.models.templates.centernet.external_repos.centernet.src.lib.
     ctdet_decode,
 )
 from qai_hub_models.models.templates.centernet.model import CenterNet
+from qai_hub_models.models.templates.corevision.image_processing import (
+    pre_process_with_affine,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.image_processing import pre_process_with_affine
 from qai_hub_models.utils.input_spec import (
     InputSpec,
     OutputSpec,

@@ -23,11 +23,13 @@ from qai_hub_models.models.hrnet_face.external_repos.hrnet_facial_landmark_detec
 from qai_hub_models.models.hrnet_face.external_repos.hrnet_facial_landmark_detection.lib.models.hrnet import (
     get_face_alignment_net,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_torch
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

@@ -15,13 +15,15 @@ from qai_hub_models.datasets.open_images import OpenImagesV7Dataset
 from qai_hub_models.models.repvit.external_repos.repvit.model.repvit import (
     repvit_m2_3,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    make_imagenet_transform,
+)
 from qai_hub_models.models.templates.imagenet_classifier.model import (
     TEST_IMAGENET_IMAGE,
     ImagenetClassifier,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetSplit
-from qai_hub_models.utils.image_processing import make_imagenet_transform
 from qai_hub_models.utils.input_spec import (
     InputSpec,
 )

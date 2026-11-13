@@ -17,8 +17,10 @@ from qai_hub_models.models.nafssr.model import (
     NAFSSR,
     SCALING_FACTOR,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 SR_IMAGE_L = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "test_images/sr_img_l.png"

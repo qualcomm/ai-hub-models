@@ -25,19 +25,19 @@ from qai_hub_models.models.mediapipe_pose.model import (
     ROTATION_VECTOR_OFFSET_RADS,
     MediaPipePose,
 )
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    compute_box_corners_with_rotation,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    compute_vector_rotation,
+    torch_image_to_numpy,
+)
 from qai_hub_models.models.templates.mediapipe.app import MediaPipeApp
 from qai_hub_models.utils.base_collection_model import (
     CollectionModel,
     WorkbenchModelCollection,
 )
 from qai_hub_models.utils.base_dataset import DatasetSplit
-from qai_hub_models.utils.bounding_box_processing import (
-    compute_box_corners_with_rotation,
-)
-from qai_hub_models.utils.image_processing import (
-    compute_vector_rotation,
-    torch_image_to_numpy,
-)
 from qai_hub_models.utils.input_spec import InputSpec
 
 

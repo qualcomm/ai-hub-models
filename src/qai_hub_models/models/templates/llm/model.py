@@ -1276,6 +1276,8 @@ class LLMPartBase:
       input arrives pre-embedded as float32 ``inputs_embeds``.
     """
 
+    pass_output_names_to_compile = False
+
     # Provided by the concrete Part base.
     hidden_size: int
     num_attention_heads: int
@@ -1827,6 +1829,8 @@ class CollectionCompileO0Mixin:
 
 class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
     """Collection base shared by every LLM / VLM."""
+
+    pass_output_names_to_compile = False
 
 
 class DynamicSplitCollectionBase(LLMCollectionBase):
@@ -3631,6 +3635,8 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
 
 
 class LLM_QNN(LLMConfigEditor, BaseModel, ABC):
+    pass_output_names_to_compile = False
+
     # Embedding subclass
     FPModel: type[LLMBase] | None = None
     EmbeddingClass: type[Embedding] | None = None
@@ -4245,7 +4251,7 @@ class LLMDynamic_AIMETOnnx(LLM_AIMETOnnx):
         if step.dataset is None:
             raise ValueError(
                 f"Recipe step {step.name!r} consumes calibration data but names no "
-                f"`dataset:`. Add one to this step in the recipe (manifest "
-                f"lm_quantization_details, or the --precision recipe file)."
+                f"`dataset:`. Add one to this step in the recipe (the model's "
+                f"lm_recipe.yaml, or the --precision recipe file)."
             )
         return step.dataset

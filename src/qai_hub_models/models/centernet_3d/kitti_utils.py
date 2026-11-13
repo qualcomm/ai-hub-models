@@ -7,8 +7,12 @@ from __future__ import annotations
 import numpy as np
 
 from qai_hub_models.extern.numba import njit
-from qai_hub_models.utils.bounding_box_processing import get_bbox_iou_matrix
-from qai_hub_models.utils.bounding_box_processing_3d import get_bev_iou_matrix
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
+    get_bbox_iou_matrix,
+)
+from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
+    get_bev_iou_matrix,
+)
 
 
 @njit

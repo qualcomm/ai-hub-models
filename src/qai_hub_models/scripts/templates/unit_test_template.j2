@@ -489,7 +489,12 @@ def cached_serialize_for_export(tmp_path_factory: pytest.TempPathFactory) -> Gen
             output_dir: str | os.PathLike,
             input_spec: InputSpec | None = None,
         ) -> Path:
+            {%- if is_aimet %}
+            component_cls = type(self.components[component_name])
+            model_key = f"{component_name}|{component_cls.__qualname__}|{input_spec}"
+            {%- else %}
             model_key = component_name + str(input_spec)
+            {%- endif %}
             cached = model_cache.get(model_key, None)
             if not cached:
                 cached = serialize_component(self, component_name, cache_dir, input_spec)

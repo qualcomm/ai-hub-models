@@ -52,7 +52,7 @@ def download_model_bundle(
     zip_assets: bool,
     hub_device: hub.Device | None = None,
     use_case: MODEL_USE_CASE | None = None,
-) -> Path:
+) -> tuple[Path, ModelMetadata]:
     """Download the compiled hub model and write semantic + file metadata alongside it."""
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
@@ -97,7 +97,7 @@ def download_model_bundle(
         model_metadata.to_json(dst_path / "metadata.json")
 
         if zip_assets:
-            return Path(
+            archive = Path(
                 shutil.make_archive(
                     str(output_path),
                     "zip",
@@ -105,8 +105,9 @@ def download_model_bundle(
                     base_dir=output_folder_name,
                 )
             )
+            return archive, model_metadata
         shutil.move(dst_path, output_path)
-    return output_path
+    return output_path, model_metadata
 
 
 def save_precompiled_model(
@@ -150,7 +151,7 @@ def download_collection_model_bundle(
     zip_assets: bool,
     hub_device: hub.Device | None = None,
     use_case: MODEL_USE_CASE | None = None,
-) -> Path:
+) -> tuple[Path, ModelMetadata]:
     """Download each component's hub model and write combined semantic metadata."""
     output_folder_name = os.path.basename(output_dir)
     output_path = get_next_free_path(output_dir)
@@ -210,7 +211,7 @@ def download_collection_model_bundle(
         model_metadata.to_json(dst_path / "metadata.json")
 
         if zip_assets:
-            return Path(
+            archive = Path(
                 shutil.make_archive(
                     str(output_path),
                     "zip",
@@ -218,8 +219,9 @@ def download_collection_model_bundle(
                     base_dir=output_folder_name,
                 )
             )
+            return archive, model_metadata
         shutil.move(dst_path, output_path)
-    return output_path
+    return output_path, model_metadata
 
 
 def download_multi_graph_collection_model_bundle(
@@ -234,7 +236,7 @@ def download_multi_graph_collection_model_bundle(
     zip_assets: bool,
     hub_device: hub.Device | None = None,
     use_case: MODEL_USE_CASE | None = None,
-) -> Path:
+) -> tuple[Path, ModelMetadata]:
     """
     Download each component's hub model and merge metadata across every graph
     of that component into a single ``ModelFileMetadata``.
@@ -290,7 +292,7 @@ def download_multi_graph_collection_model_bundle(
         model_metadata.to_json(dst_path / "metadata.json")
 
         if zip_assets:
-            return Path(
+            archive = Path(
                 shutil.make_archive(
                     str(output_path),
                     "zip",
@@ -298,8 +300,9 @@ def download_multi_graph_collection_model_bundle(
                     base_dir=output_folder_name,
                 )
             )
+            return archive, model_metadata
         shutil.move(dst_path, output_path)
-    return output_path
+    return output_path, model_metadata
 
 
 def download_multi_graph_model_bundle(
@@ -314,7 +317,7 @@ def download_multi_graph_model_bundle(
     zip_assets: bool,
     hub_device: hub.Device | None = None,
     use_case: MODEL_USE_CASE | None = None,
-) -> Path:
+) -> tuple[Path, ModelMetadata]:
     """
     Download the linked context binary and merge metadata across every graph
     into a single ``ModelFileMetadata``.
@@ -355,7 +358,7 @@ def download_multi_graph_model_bundle(
         model_metadata.to_json(dst_path / "metadata.json")
 
         if zip_assets:
-            return Path(
+            archive = Path(
                 shutil.make_archive(
                     str(output_path),
                     "zip",
@@ -363,8 +366,9 @@ def download_multi_graph_model_bundle(
                     base_dir=output_folder_name,
                 )
             )
+            return archive, model_metadata
         shutil.move(dst_path, output_path)
-    return output_path
+    return output_path, model_metadata
 
 
 def save_precompiled_collection_models(

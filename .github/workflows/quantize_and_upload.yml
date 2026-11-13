@@ -13,34 +13,28 @@ on:
         type: string
 
       precision:
-        description: Quantization precision, e.g. w4a16. Must have a recipe under lm_quantization_details in the model's manifest.yaml.
+        description: Quantization precision, e.g. w4a16. Must have a recipe in the model's lm_recipe.yaml.
         required: false
         default: w4a16
         type: string
 
       unquantized_checkpoint:
-        description: 'DEFAULT_UNQUANTIZED uses the public pretrained weights. Anything else must be a directory that already exists on the runner.'
-        required: false
+        description: 'Weights to quantize. When evaluate is on, they are also evaluated to set the baseline the quantized metrics are compared against. DEFAULT_UNQUANTIZED uses the HF_REPO_NAME in the model''s model.py; pass a Hugging Face repo ID to use different weights.'
+        required: true
         default: DEFAULT_UNQUANTIZED
         type: string
 
       quantize_args:
-        description: 'Extra quantize.py args, e.g. --context-length. Usually empty.'
+        description: 'Extra quantize.py args, e.g. --context-length. Usually empty. Must not include --precision; use the precision input.'
         required: false
         default: ''
         type: string
 
       evaluate:
-        description: Evaluate the checkpoint against the unquantized weights.
+        description: Evaluate wikitext (full split) and mmlu (1000 samples) on the quantized checkpoint and unquantized_checkpoint.
         required: false
         default: true
         type: boolean
-
-      eval_metric:
-        description: 'Evaluation task passed to qai-hub-models evaluate --task, e.g. wikitext, mmlu, mmmlu_fr, mmmu. Anything except wikitext is capped at 1000 samples.'
-        required: false
-        default: wikitext
-        type: string
 
 env:
   VENV_PATH: build/ci-envs/qaihm-build
@@ -70,6 +64,7 @@ jobs:
         env:
           QAIHM_QUANTIZE_MODEL_ID: ${{ inputs.model_id }}
           QAIHM_QUANTIZE_PRECISION: ${{ inputs.precision }}
+          QAIHM_QUANTIZE_ARGS: ${{ inputs.quantize_args }}
         run: python3 scripts/build_and_test.py validate_quantize_inputs
 
       - id: check
@@ -95,9 +90,8 @@ jobs:
       # block, so their contents are never parsed as shell.
       QAIHM_QUANTIZE_MODEL_ID: ${{ inputs.model_id }}
       QAIHM_QUANTIZE_PRECISION: ${{ inputs.precision }}
-      QAIHM_QUANTIZE_UNQUANTIZED_CHECKPOINT: ${{ inputs.unquantized_checkpoint }}
+      QAIHM_UNQUANTIZED_CHECKPOINT: ${{ inputs.unquantized_checkpoint }}
       QAIHM_QUANTIZE_ARGS: ${{ inputs.quantize_args }}
-      QAIHM_QUANTIZE_EVAL_TASK: ${{ inputs.eval_metric }}
       QAIHM_QUANTIZE_EVALUATE: ${{ inputs.evaluate }}
       # Job-level so the ownership-restore step at the end can read them too.
       DOCKER_USER_ID: 4552456

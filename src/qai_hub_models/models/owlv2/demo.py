@@ -16,6 +16,7 @@ from qai_hub_models.models.owlv2.model import (
     MODEL_ID,
     OwlV2,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
     demo_model_components_from_cli_args,
     get_model_cli_parser,
@@ -23,7 +24,6 @@ from qai_hub_models.utils.args import (
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.display import display_or_save_image
 
 DEFAULT_TEXT_QUERIES = ["a photo of a cup"]
 IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(

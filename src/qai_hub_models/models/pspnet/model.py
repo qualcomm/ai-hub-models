@@ -20,6 +20,10 @@ from qai_hub_models.models.pspnet.external_repos.semseg.util import (
 from qai_hub_models.models.templates.cityscapes_segmentation.model import (
     CityscapesSegmentor,
 )
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    normalize_image_torchvision,
+)
 from qai_hub_models.models.templates.segmentation.segmentation_evaluator import (
     SegmentationOutputEvaluator,
 )
@@ -30,10 +34,6 @@ from qai_hub_models.utils.asset_loaders import (
 )
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
-from qai_hub_models.utils.image_processing import (
-    app_to_net_image_inputs,
-    normalize_image_torchvision,
-)
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,

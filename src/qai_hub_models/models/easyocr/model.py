@@ -19,13 +19,16 @@ from typing_extensions import Self
 from qai_hub_models.models.easyocr.dataset import (
     CocoTextCalibrationDataset,
 )
+from qai_hub_models.models.easyocr.rnn import UnrolledLSTM
+from qai_hub_models.models.templates.corevision.image_processing import (
+    normalize_image_torchvision,
+)
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_model import (
     BaseModel,
 )
 from qai_hub_models.utils.export.result import ComponentGroup
-from qai_hub_models.utils.image_processing import normalize_image_torchvision
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,
@@ -34,7 +37,6 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
-from qai_hub_models.utils.rnn import UnrolledLSTM
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 2

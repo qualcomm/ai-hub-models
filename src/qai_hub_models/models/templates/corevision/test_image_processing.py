@@ -10,7 +10,7 @@ import pytest
 import torch
 from PIL import Image
 
-from qai_hub_models.utils.image_processing import (
+from qai_hub_models.models.templates.corevision.image_processing import (
     IMAGENET_DIM,
     IMAGENET_TRANSFORM,
     app_to_net_image_inputs,

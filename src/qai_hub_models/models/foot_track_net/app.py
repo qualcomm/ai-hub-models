@@ -14,9 +14,15 @@ import torch
 from PIL.Image import Image
 from PIL.Image import fromarray as pil_image_from_array
 
-from qai_hub_models.utils.bounding_box_processing import get_iou
-from qai_hub_models.utils.draw import draw_box_from_xyxy, draw_points
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
+from qai_hub_models.models.templates.corevision.bounding_box_processing import get_iou
+from qai_hub_models.models.templates.corevision.draw import (
+    draw_box_from_xyxy,
+    draw_points,
+)
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.labels import get_class_names
 

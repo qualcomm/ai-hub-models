@@ -583,7 +583,7 @@ class Qwen3_5PartBase(DynamicSplitPartBase):
             graph_name,
             target_runtime,
             precision,
-            other_compile_options + " --force_qdq_conversion -O2",
+            other_compile_options + " --force_qdq_conversion",
             device,
         )
 

@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import torch
 
-from qai_hub_models.utils.draw import create_color_map
+from qai_hub_models.models.templates.corevision.draw import create_color_map
 
 
 def save_raster(

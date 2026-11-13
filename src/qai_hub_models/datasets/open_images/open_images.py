@@ -15,9 +15,11 @@ import torch
 from PIL import Image
 
 from qai_hub_models.datasets.common import BaseDataset, DatasetMetadata, DatasetSplit
+from qai_hub_models.models.templates.corevision.image_processing import (
+    IMAGENET_TRANSFORM,
+)
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, download_file
 from qai_hub_models.utils.download import download_many_urls
-from qai_hub_models.utils.image_processing import IMAGENET_TRANSFORM
 from qai_hub_models.utils.input_spec import InputSpec
 
 # Open Images V7 images are hosted on the public CVDF S3 mirror, keyed by split

@@ -6,12 +6,12 @@
 from qai_hub_models.models.rtmdet.app import RTMDetApp
 from qai_hub_models.models.rtmdet.demo import main as demo_main
 from qai_hub_models.models.rtmdet.model import MODEL_ASSET_VERSION, MODEL_ID, RTMDet
+from qai_hub_models.models.templates.corevision.bounding_box_processing import get_iou
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_image,
     load_numpy,
 )
-from qai_hub_models.utils.bounding_box_processing import get_iou
 
 IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store("yolov7", 1, "yolov7_demo_640.jpg")
 

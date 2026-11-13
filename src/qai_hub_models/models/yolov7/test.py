@@ -6,6 +6,9 @@
 import numpy as np
 import torch
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.utils import detect_postprocess
 from qai_hub_models.models.yolov7.app import YoloV7DetectionApp
 from qai_hub_models.models.yolov7.demo import IMAGE_ADDRESS
@@ -17,7 +20,6 @@ from qai_hub_models.models.yolov7.model import (
     _load_yolov7_source_model_from_weights,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 OUTPUT_IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "yolov7_demo_640_output.png"

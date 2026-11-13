@@ -6,6 +6,9 @@
 import numpy as np
 import torch
 
+from qai_hub_models.models.templates.corevision.image_processing import (
+    preprocess_PIL_image,
+)
 from qai_hub_models.models.templates.yolo.utils import detect_postprocess
 from qai_hub_models.models.yolov6.demo import IMAGE_ADDRESS
 from qai_hub_models.models.yolov6.demo import main as demo_main
@@ -18,7 +21,6 @@ from qai_hub_models.models.yolov6.model import (
     _load_yolov6_source_model_from_weights,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.image_processing import preprocess_PIL_image
 
 
 def test_task() -> None:

@@ -15,19 +15,22 @@ from PIL import Image
 from torchvision.transforms import Resize
 
 from qai_hub_models.datasets.coco import COCO_SKELETON
-from qai_hub_models.models.templates.yolo.utils import detect_postprocess
-from qai_hub_models.utils.bounding_box_processing import (
+from qai_hub_models.models.templates.corevision.bounding_box_processing import (
     batched_nms,
     rotated_batched_nms,
 )
-from qai_hub_models.utils.draw import (
+from qai_hub_models.models.templates.corevision.draw import (
     create_color_map,
     draw_box_from_xyxy,
     draw_connections,
     draw_obb_on_image,
     draw_points,
 )
-from qai_hub_models.utils.image_processing import app_to_net_image_inputs, resize_pad
+from qai_hub_models.models.templates.corevision.image_processing import (
+    app_to_net_image_inputs,
+    resize_pad,
+)
+from qai_hub_models.models.templates.yolo.utils import detect_postprocess
 from qai_hub_models.utils.input_spec import InputSpec
 
 

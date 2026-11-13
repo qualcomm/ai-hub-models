@@ -97,6 +97,8 @@ class Qwen2VLVisionEncoder(BaseModel):
     Reference: Tutorial_for_Qwen2_5_VL_7B_IoT/example1/Example1A/veg.ipynb
     """
 
+    pass_output_names_to_compile = False
+
     def __init__(
         self,
         visual: Any,  # Qwen2_5_VisionTransformerPretrainedModel (HF dynamic attrs)
