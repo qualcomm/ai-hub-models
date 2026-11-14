@@ -45,7 +45,7 @@
         List of supported precisions.
     has_on_target_demo : bool, optional
         Whether the model supports on-device demo.
-    has_machine_gated_entries : bool, optional
+    has_gpu_gated_entries : bool, optional
         If True, renders the GPU-requirement note in the install section.
     python_version_gte : str, optional
         Minimum Python version.
@@ -84,7 +84,7 @@
     model_package=None,
     supported_precisions=None,
     has_on_target_demo=False,
-    has_machine_gated_entries=False,
+    has_gpu_gated_entries=False,
     python_version_gte=None,
     python_version_lt=None,
     readme_install_system_deps=None,
@@ -140,7 +140,7 @@ This model is compatible with the Qualcomm Voice AI SDK. Download the SDK from t
 {% endif %}
 {% if include_example_and_usage %}
 
-{{ example_and_usage(model_id, model_package, supported_precisions, has_on_target_demo, has_machine_gated_entries, python_version_gte, python_version_lt, readme_install_system_deps, local_device_deployment=local_device_deployment, default_precision=default_precision, separate_quantize_script=separate_quantize_script, is_external=is_external, hf_register_cmd=hf_register_cmd) }}
+{{ example_and_usage(model_id, model_package, supported_precisions, has_on_target_demo, has_gpu_gated_entries, python_version_gte, python_version_lt, readme_install_system_deps, local_device_deployment=local_device_deployment, default_precision=default_precision, separate_quantize_script=separate_quantize_script, is_external=is_external, hf_register_cmd=hf_register_cmd) }}
 {% endif %}
 
 {{ license(model_name, license_url) }}

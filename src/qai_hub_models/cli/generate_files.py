@@ -34,7 +34,7 @@ from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.utils._readme_template_args import (
     get_shared_template_args,
-    has_machine_gated_entries,
+    has_gpu_gated_entries,
 )
 from qai_hub_models.utils.asset_loaders import UNPUBLISHED_MODEL_WARNING
 from qai_hub_models.utils.export.context import (
@@ -192,7 +192,7 @@ def write_readme(
             "default_precision": str(manifest.default_precision),
             "supported_precisions": supported_precisions,
             "separate_quantize_script": manifest.separate_quantize_script,
-            "has_machine_gated_entries": has_machine_gated_entries(manifest),
+            "has_gpu_gated_entries": has_gpu_gated_entries(manifest),
             "python_version_gte": manifest.python_version_greater_than_or_equal_to,
             "python_version_lt": manifest.python_version_less_than,
             "include_example_and_usage": not manifest.skip_example_usage,

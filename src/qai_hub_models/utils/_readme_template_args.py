@@ -12,7 +12,7 @@ from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 GENIEX_RUNTIMES = (TargetRuntime.GENIEX_QAIRT, TargetRuntime.GENIEX_LLAMACPP)
 
 
-def has_machine_gated_entries(manifest: QAIHMModelManifest) -> bool:
+def has_gpu_gated_entries(manifest: QAIHMModelManifest) -> bool:
     """True when the manifest declares any GPU-specific pre/post pip command.
 
     The README-side effect is a note telling the reader the recipe has GPU
@@ -20,7 +20,7 @@ def has_machine_gated_entries(manifest: QAIHMModelManifest) -> bool:
     the ``qai-hub-models install`` CLI, which auto-detects CUDA.
     """
     return any(
-        c.machine != "any"
+        c.machine == "gpu"
         for c in manifest.pre_pip_install_commands + manifest.post_pip_install_commands
     )
 

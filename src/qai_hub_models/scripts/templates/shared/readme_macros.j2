@@ -61,7 +61,7 @@ Qualcomm AI Hub Models uses [Qualcomm AI Hub Workbench](https://workbench.aihub.
     target : str
         Argument passed to ``qai-hub-models install`` — bare id for internal
         recipes, folder path (``./<id>/``) for external.
-    has_machine_gated_entries : bool, optional
+    has_gpu_gated_entries : bool, optional
         If True, emits the GPU-requirement note.
     python_version_gte : str, optional
         Minimum Python version (default: "3.10").
@@ -71,7 +71,7 @@ Qualcomm AI Hub Models uses [Qualcomm AI Hub Workbench](https://workbench.aihub.
 {%- macro package_instructions(
     model_id,
     target,
-    has_machine_gated_entries=False,
+    has_gpu_gated_entries=False,
     python_version_gte=None,
     python_version_lt=None,
     hf_register_cmd=None
@@ -96,7 +96,7 @@ qai-hub-models install {{ target }}
 `register` downloads the recipe and names it `{{ target }}`, which is how every
 command below refers to it.
 {%- endif %}
-{%- if has_machine_gated_entries %}
+{%- if has_gpu_gated_entries %}
 
 For {{ model_id }}, some additional functionality can be faster or is available
 only with a GPU on the host machine.
@@ -191,7 +191,7 @@ Navigate to [docs](https://workbench.aihub.qualcomm.com/docs/) for more informat
         List of supported precisions (e.g., ["float", "int8"]).
     has_on_target_demo : bool
         Whether the model supports on-device demo.
-    has_machine_gated_entries : bool, optional
+    has_gpu_gated_entries : bool, optional
         If True, emits the GPU-requirement note in the install section.
     python_version_gte : str, optional
         Minimum Python version (default: "3.10").
@@ -223,7 +223,7 @@ Navigate to [docs](https://workbench.aihub.qualcomm.com/docs/) for more informat
     model_package,
     supported_precisions,
     has_on_target_demo,
-    has_machine_gated_entries=False,
+    has_gpu_gated_entries=False,
     python_version_gte=None,
     python_version_lt=None,
     readme_install_system_deps=None,
@@ -259,7 +259,7 @@ Navigate to [docs](https://workbench.aihub.qualcomm.com/docs/) for more informat
 {% endif %}
 {{ h_step }} {{ step.num }}. Install the package
 {% set step.num = step.num + 1 %}
-{{ package_instructions(model_id, cli_target, has_machine_gated_entries, python_version_gte, python_version_lt, hf_register_cmd=hf_register_cmd) }}
+{{ package_instructions(model_id, cli_target, has_gpu_gated_entries, python_version_gte, python_version_lt, hf_register_cmd=hf_register_cmd) }}
 
 {{ h_step }} {{ step.num }}. Configure Qualcomm® AI Hub Workbench
 {{ configure_aihub() }}
