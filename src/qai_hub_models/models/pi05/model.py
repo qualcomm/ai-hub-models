@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
+import onnx
 import onnxruntime
 import torch
 from aimet_onnx.common.defs import QuantScheme
@@ -400,6 +401,10 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
     Token embeding step. Separate it out because it has large embedding /
     model size.
 
+    camera_mask ([B, NUM_CAMERAS] float in {0, 1}) marks active camera slots
+    so zero-padded streams stay masked in exported graphs. Optional in eager
+    mode when only real cameras are passed.
+
     Float mask convention used here and throughout:
       - Additive masks use 0.0 for allowed and -1e4 for blocked entries.
 
@@ -483,6 +488,7 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
         # 1.0 means active/visible; 0.0 means masked out.
         lang_mask: torch.Tensor,  # [B, T] float in {0,1}
         *img_embeds: torch.Tensor,  # each [B, Si, D], up to 3 streams
+        camera_mask: torch.Tensor | None = None,  # [B, NUM_CAMERAS] float in {0,1}
     ) -> tuple[
         torch.Tensor,  # prefix_embs
         torch.Tensor,  # prefix_att_2d (additive: 0 allowed, -1e4 blocked)
@@ -492,6 +498,12 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
         torch.Tensor,  # suffix_cos
         torch.Tensor,  # full_att_4d (additive: 0 allowed, -1e4 blocked)
     ]:
+        # ONNX export passes (img_embed1..N, camera_mask) positionally via *img_embeds.
+        if len(img_embeds) == NUM_CAMERAS + 1:
+            if camera_mask is not None:
+                raise ValueError("camera_mask was provided twice.")
+            img_embeds, camera_mask = img_embeds[:-1], img_embeds[-1]
+
         # Language embedding + normalization.
         paligemma = self.model.paligemma_with_expert
         assert isinstance(paligemma, PaliGemmaWithExpertModel)
@@ -527,6 +539,17 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
         base_device = img_embeds[0].device
         base_dtype = img_embeds[0].dtype
 
+        if camera_mask is None:
+            camera_mask = torch.ones(bsize, NUM_CAMERAS, device=base_device)
+        if not torch.is_floating_point(camera_mask):
+            raise TypeError("camera_mask must be a float tensor in {0,1}.")
+        if not torch.jit.is_tracing():
+            if camera_mask.shape != (bsize, NUM_CAMERAS):
+                raise ValueError("camera_mask must be shaped [B, NUM_CAMERAS].")
+            if not torch.all((camera_mask == 0) | (camera_mask == 1)).item():
+                raise ValueError("camera_mask values must be 0 or 1.")
+        camera_mask = camera_mask.to(device=base_device, dtype=torch.float32)
+
         img_list: list[torch.Tensor] = list(img_embeds)
         pad_list_f: list[torch.Tensor] = []
 
@@ -539,13 +562,11 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
             )
             img_list.append(zero_img)
 
-        # Build per-stream float masks: 1.0 for provided, 0.0 for padded.
+        # Per-stream token masks from camera_mask (0.0 for streams padded above).
         for i, emb in enumerate(img_list):
             n_i = emb.shape[1]
             if i < len(img_embeds):
-                pad_mask_i = torch.ones(
-                    bsize, n_i, dtype=torch.float32, device=emb.device
-                )
+                pad_mask_i = camera_mask[:, i : i + 1].expand(bsize, n_i)
             else:
                 pad_mask_i = torch.zeros(
                     bsize, n_i, dtype=torch.float32, device=emb.device
@@ -634,6 +655,12 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
                 io_type=IoType.TENSOR,
             )
 
+        spec["camera_mask"] = TensorSpec(
+            shape=(batch_size, NUM_CAMERAS),
+            dtype="float32",
+            io_type=IoType.TENSOR,
+        )
+
         return spec
 
     def get_input_spec(
@@ -651,7 +678,7 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
         result: dict[str, list[Any]] = {}
         for i, name in enumerate(input_spec.keys()):
             arr = inputs[i].numpy()
-            if name == "lang_mask":
+            if name in ("lang_mask", "camera_mask"):
                 arr = np.ones_like(arr)
             result[name] = [arr]
         return result
@@ -680,9 +707,17 @@ class Pi05PaliGemmaTokenEmbed(LoadPolicyMixin, BaseModel):
         path = Path(output_dir) / f"{class_name}.onnx"
         assert input_spec is not None
         sample_inputs = make_torch_inputs(input_spec)
-        # Override lang_mask to 0/1 tensors
-        sample_inputs[1] = torch.ones(input_spec["lang_mask"][0])
+        # Override mask inputs to 0/1 tensors for tracing.
+        for i, name in enumerate(input_spec):
+            if name in ("lang_mask", "camera_mask"):
+                sample_inputs[i] = torch.ones(input_spec[name][0])
         if path.exists():
+            cached = onnx.load(path, load_external_data=False)
+            if [tensor.name for tensor in cached.graph.input] != list(input_spec):
+                raise ValueError(
+                    f"Existing {path.name} inputs do not match input_spec. "
+                    "Re-export into a fresh output directory."
+                )
             return path
         return Path(
             export_torch_to_onnx_zip(
