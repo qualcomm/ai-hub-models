@@ -503,6 +503,9 @@ jobs:
       - name: Smoke - qai-hub-models info ${{ env.SMOKE_MODEL }}
         run: qai-hub-models info "${SMOKE_MODEL}"
 
+      - name: Smoke - qai-hub-models install ${{ env.SMOKE_MODEL }}
+        run: qai-hub-models install -y "${SMOKE_MODEL}"
+
       - name: Smoke - qai-hub-models export ${{ env.SMOKE_MODEL }} (external-repo clone + compile submit)
         env:
           QAIHM_CLI_VERBOSE_EXCEPTIONS: 1

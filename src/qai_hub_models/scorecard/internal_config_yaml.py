@@ -68,6 +68,8 @@ class TestRunnerSplit(Enum):
         """
         if self is TestRunnerSplit.LLM:
             return {"group": "GPU"}
+        if self is TestRunnerSplit.PI0_5:
+            return {"labels": ["tetra-ubuntu-2204", "self-hosted"]}
         return None
 
     @property

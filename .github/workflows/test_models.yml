@@ -126,7 +126,7 @@ jobs:
 
     steps:
       - name: Setup container environment (Kube/GPU node only)
-        if: ${{ !contains(runner.name, 'aihub-models') }}
+        if: ${{ !contains(runner.name, 'aihub-models') && !contains(runner.name, 'tetra') }}
         run: |
           # GPU node container: create qaihm_bot user, pin to GPU 7, and
           # persist HOME/TMPDIR on /local to match run_gpu_tests on the
@@ -145,7 +145,7 @@ jobs:
           fi
 
       - name: Install git (Kube/container only)
-        if: ${{ !contains(runner.name, 'aihub-models') }}
+        if: ${{ !contains(runner.name, 'aihub-models') && !contains(runner.name, 'tetra') }}
         run: |
           if ! command -v git &>/dev/null; then
             if [ "$(id -u)" -eq 0 ]; then
@@ -171,7 +171,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install system dependencies (Kube/container only)
-        if: ${{ !contains(runner.name, 'aihub-models') }}
+        if: ${{ !contains(runner.name, 'aihub-models') && !contains(runner.name, 'tetra') }}
         env:
           QAIHM_POD_PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
         run: bash src/qai_hub_models/scripts/kube/setup_pod.sh
@@ -193,7 +193,7 @@ jobs:
         id: ci_setup
         uses: ./.github/actions/ci-setup
         with:
-          python-version: ${{ contains(runner.name, 'aihub-models') && env.PYTHON_VERSION || 'USE_EXISTING_INSTALL' }}
+          python-version: ${{ (contains(runner.name, 'aihub-models') || contains(runner.name, 'tetra')) && env.PYTHON_VERSION || 'USE_EXISTING_INSTALL' }}
           venv-path: ${{ env.VENV_PATH }}
           aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }},prod
