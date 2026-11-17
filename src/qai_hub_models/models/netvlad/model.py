@@ -34,6 +34,8 @@ ENCODER_DIM = 512
 # Default canonical input shape (H, W).
 DEFAULT_HEIGHT = 480
 DEFAULT_WIDTH = 640
+# Added to each cluster's sum of squares before intra-normalization.
+INTRA_NORM_EPS = 1e-3
 
 DEFAULT_WEIGHTS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "vgg16_netvlad_checkpoint.zip"
@@ -50,6 +52,9 @@ class _NetVLADLayer(nn.Module):
     * ``False`` (default, float): bmm — no 4-D intermediate, faster on NPU.
     * ``True`` (quantization): original 4-D residual — bmm causes large-value
       cancellation under quantization; 4-D form subtracts before weighting.
+
+    ``use_intra_norm_eps`` (float only) adds an eps to each cluster's sum of
+    squares so fp16 inference doesn't amplify near-empty clusters.
     """
 
     def __init__(
@@ -58,12 +63,14 @@ class _NetVLADLayer(nn.Module):
         dim: int,
         normalize_input: bool = True,
         use_4d_vlad: bool = False,
+        use_intra_norm_eps: bool = False,
     ) -> None:
         super().__init__()
         self.num_clusters = num_clusters
         self.dim = dim
         self.normalize_input = normalize_input
         self.use_4d_vlad = use_4d_vlad
+        self.use_intra_norm_eps = use_intra_norm_eps
         # 1x1 conv maps descriptor dim to soft cluster assignments.
         self.conv = nn.Conv2d(dim, num_clusters, kernel_size=(1, 1), bias=False)
         self.centroids = nn.Parameter(torch.rand(num_clusters, dim))
@@ -105,8 +112,13 @@ class _NetVLADLayer(nn.Module):
                 dim=-1, keepdim=True
             ) * self.centroids.unsqueeze(0)
 
-        # Intra-normalization, flatten, final L2 normalize.
-        vlad = F.normalize(vlad, p=2, dim=2)
+        if self.use_intra_norm_eps:
+            # The eps keeps near-empty clusters from blowing up in fp16, where
+            # their sum of squares underflows to zero. It hurts quantization.
+            sumsq = vlad.pow(2).sum(dim=2, keepdim=True)
+            vlad = vlad * torch.rsqrt(sumsq + INTRA_NORM_EPS)
+        else:
+            vlad = F.normalize(vlad, p=2, dim=2)
         return F.normalize(vlad.view(N, -1), p=2, dim=1)
 
 
@@ -145,7 +157,7 @@ class NetVLAD(BaseModel):
         num_clusters
             Number of VLAD cluster centroids.
         precision
-            Target precision; selects the VLAD formulation used at export.
+            Target precision; selects the VLAD formulation and intra-norm eps.
 
         Returns
         -------
@@ -161,6 +173,7 @@ class NetVLAD(BaseModel):
             num_clusters=num_clusters,
             dim=ENCODER_DIM,
             use_4d_vlad=(precision != Precision.float),
+            use_intra_norm_eps=(precision == Precision.float),
         )
 
         model = cls(encoder=encoder, pool=pool)
