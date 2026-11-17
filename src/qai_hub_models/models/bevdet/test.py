@@ -9,6 +9,7 @@ import importlib.metadata
 import numpy as np
 from packaging.version import parse as parse_version
 
+from qai_hub_models.datasets.pandaset import PandaSetBevDataset
 from qai_hub_models.models.bevdet.app import BEVDetApp
 from qai_hub_models.models.bevdet.demo import (
     CAM_BACK,
@@ -20,7 +21,14 @@ from qai_hub_models.models.bevdet.demo import (
     INPUTS,
 )
 from qai_hub_models.models.bevdet.demo import main as demo_main
-from qai_hub_models.models.bevdet.model import MODEL_ASSET_VERSION, MODEL_ID, BEVDet
+from qai_hub_models.models.bevdet.model import (
+    MODEL_ASSET_VERSION,
+    MODEL_ID,
+    BEVDet,
+    BEVDetDecoder,
+    BEVDetEncoder,
+    BEVDetPooler,
+)
 from qai_hub_models.models.templates.corevision.bounding_box_processing_3d import (
     transform_to_matrix,
 )
@@ -40,6 +48,29 @@ OUTPUT_PYTORCH_35PLUS = CachedWebModelAsset.from_asset_store(
 OUTPUT_PYTORCH_211PLUS = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "corners_pt211_plus.npy"
 )
+
+
+def test_calibration_dataset() -> None:
+    assert (
+        BEVDetEncoder.__new__(BEVDetEncoder).get_calibration_dataset_cls()
+        is PandaSetBevDataset
+    )
+    assert (
+        BEVDetDecoder.__new__(BEVDetDecoder).get_calibration_dataset_cls()
+        is PandaSetBevDataset
+    )
+
+    encoder_spec = BEVDetEncoder.__new__(BEVDetEncoder).get_input_spec()
+    pooler_spec = BEVDetPooler.__new__(BEVDetPooler).get_input_spec()
+
+    images, sensor2keyegos, inv_intrins, inv_post_rots, post_trans = (
+        PandaSetBevDataset()[0][0]
+    )
+    assert images.shape == encoder_spec["image"].shape[1:]
+    assert sensor2keyegos.shape == pooler_spec["sensor2keyegos"].shape[1:]
+    assert inv_intrins.shape == pooler_spec["inv_intrins"].shape[1:]
+    assert inv_post_rots.shape == pooler_spec["inv_post_rots"].shape[1:]
+    assert post_trans.shape == pooler_spec["post_trans"].shape[1:]
 
 
 def _get_expected_output() -> np.ndarray:

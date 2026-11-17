@@ -14,7 +14,7 @@ from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
 from qai_hub_models.configs.tensor_spec import TensorSpec
-from qai_hub_models.datasets.pandaset import PandaSetDataset
+from qai_hub_models.datasets.pandaset import PandaSetLidarDataset
 from qai_hub_models.datasets.semantic_kitti import SemanticKittiDataset
 from qai_hub_models.models.rangenet_plus_plus.external_repos.lidar_bonnetal.train.tasks.semantic.modules.segmentator import (
     Segmentator,
@@ -179,4 +179,4 @@ class RangeNetPlusPlus(BaseModel):
         return [SemanticKittiDataset]
 
     def get_calibration_dataset_cls(self) -> type[BaseDataset]:
-        return PandaSetDataset
+        return PandaSetLidarDataset

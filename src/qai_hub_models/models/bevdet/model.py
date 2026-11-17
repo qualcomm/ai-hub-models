@@ -17,6 +17,7 @@ from typing_extensions import Self
 
 from qai_hub_models import Precision, SampleInputsType, TargetRuntime
 from qai_hub_models.datasets.nuscenes import NuscenesDataset
+from qai_hub_models.datasets.pandaset import PandaSetBevDataset
 from qai_hub_models.extern.mmdet import patch_mmdet_no_build_deps
 from qai_hub_models.models.bevdet.evaluator import (
     NuscenesObjectDetectionEvaluator,
@@ -185,7 +186,7 @@ class BEVDetEncoder(BaseModel):
         return compile_options
 
     def get_calibration_dataset_cls(self) -> type[BaseDataset]:
-        return NuscenesDataset
+        return PandaSetBevDataset
 
     def component_precision(self) -> Precision:
         return Precision.w8a8_mixed_int16
@@ -454,7 +455,7 @@ class BEVDetDecoder(BaseModel):
         return [NuscenesDataset]
 
     def get_calibration_dataset_cls(self) -> type[BaseDataset]:
-        return NuscenesDataset
+        return PandaSetBevDataset
 
     def component_precision(self) -> Precision:
         return Precision.w8a16_mixed_fp16
