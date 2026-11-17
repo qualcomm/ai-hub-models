@@ -1,0 +1,41 @@
+diff --git a/neutts/neutts.py b/neutts/neutts.py
+index e3e758d..06ee608 100644
+--- a/neutts/neutts.py
++++ b/neutts/neutts.py
+@@ -5,14 +5,12 @@ import sys
+ import unicodedata
+ from typing import Generator
+ from pathlib import Path
+-import librosa
+ import numpy as np
+ import torch
+ import re
+ import warnings
+ from neucodec import NeuCodec, DistillNeuCodec
+ from transformers import AutoTokenizer, AutoModelForCausalLM
+-from .phonemizers import BasePhonemizer, CUSTOM_PHONEMIZERS
+ 
+ BACKBONE_LANGUAGE_MAP = {
+     # en models
+@@ -183,6 +181,10 @@ class NeuTTS:
+         return result
+ 
+     def _load_phonemizer(self, language, backbone_repo):
++        # Imported on use so that a BPE-format model, which never
++        # phonemizes, does not require the espeak-ng shared library.
++        from .phonemizers import BasePhonemizer, CUSTOM_PHONEMIZERS
++
+         if not language:
+             if BACKBONE_LANGUAGE_MAP.get(backbone_repo) is not None:
+                 language = BACKBONE_LANGUAGE_MAP[backbone_repo]
+@@ -392,6 +394,10 @@ class NeuTTS:
+         return emotion
+ 
+     def encode_reference(self, ref_audio_path: str | Path):
++        # Imported on use: NeuTTS-2E ships pre-encoded speaker references and
++        # never reaches this path, so librosa (and numba) stay optional.
++        import librosa
++
+         wav, _ = librosa.load(ref_audio_path, sr=16000, mono=True)
+         wav_tensor = torch.from_numpy(wav).float().unsqueeze(0).unsqueeze(0)  # [1, 1, T]
+         with torch.no_grad():

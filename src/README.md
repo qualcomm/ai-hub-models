@@ -509,6 +509,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [MeloTTS-JA](https://aihub.qualcomm.com/models/melotts_ja) | `qai_hub_models.models.melotts_ja` |
 | [MeloTTS-KO](https://aihub.qualcomm.com/models/melotts_ko) | `qai_hub_models.models.melotts_ko` |
 | [MeloTTS-ZH](https://aihub.qualcomm.com/models/melotts_zh) | `qai_hub_models.models.melotts_zh` |
+| [NeuTTS-2E](https://aihub.qualcomm.com/models/neutts_2e) | `qai_hub_models.models.neutts_2e` |
 | [PiperTTS-DE](https://aihub.qualcomm.com/models/pipertts_de) | `qai_hub_models.models.pipertts_de` |
 | [PiperTTS-EN](https://aihub.qualcomm.com/models/pipertts_en) | `qai_hub_models.models.pipertts_en` |
 | [PiperTTS-EN-Amy](https://aihub.qualcomm.com/models/pipertts_en_amy) | `qai_hub_models.models.pipertts_en_amy` |

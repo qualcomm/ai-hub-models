@@ -648,7 +648,7 @@ def replace_component(model: WhisperModel, component_type: str) -> None:
     if component_type == "encoder":
         orig_encoder_module: type[WhisperEncoder] = WhisperEncoder
         qc_encoder_module: type[QcWhisperEncoder] = QcWhisperEncoder
-        get_module = model.get_encoder
+        module = model.get_encoder()
         # Check if the decoder has been updated to QcWhisperDecoder
         if not isinstance(model.get_decoder(), QcWhisperDecoder):
             raise ValueError(
@@ -657,11 +657,9 @@ def replace_component(model: WhisperModel, component_type: str) -> None:
     elif component_type == "decoder":
         orig_decoder_module: type[WhisperDecoder] = WhisperDecoder
         qc_decoder_module: type[QcWhisperDecoder] = QcWhisperDecoder
-        get_module = model.get_decoder
+        module = model.get_decoder()
     else:
         raise ValueError(f"Unknown component_type: {component_type}")
-    # Get the specified module (encoder or decoder)
-    module = get_module()
 
     # Replace the top-level module with its optimized counterpart
     for name, submodule in model.named_children():
