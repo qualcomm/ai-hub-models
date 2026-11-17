@@ -7,15 +7,12 @@ from __future__ import annotations
 
 import torch
 
+from qai_hub_models.datasets.kitti_lidar_place_recognition.kitti_lidar_place_recognition import (
+    REVISIT_DISTANCE_M,
+    REVISIT_FRAME_GAP,
+)
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.metrics import RECALL_AT_1, MetricMetadata
-
-# Deviates from the paper's point-cloud-overlap ground truth: a revisit is "close in
-# space, far apart in time" -- distance threshold is our own choice (upstream's actual
-# positive label is overlap ratio > 0.3, which we don't compute); frame gap of 100
-# matches upstream's own ground-truth generation (tools/utils/gen_gt_data.py: `(i-idx) > 100`).
-REVISIT_DISTANCE_M = 3.0
-REVISIT_FRAME_GAP = 100
 
 
 class LidarPlaceRecognitionEvaluator(BaseEvaluator):

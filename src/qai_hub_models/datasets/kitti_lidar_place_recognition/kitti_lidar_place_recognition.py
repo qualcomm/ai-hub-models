@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
@@ -19,10 +20,18 @@ from qai_hub_models.utils.base_dataset import (
 )
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
+from qai_hub_models.utils.samplers import EveryNSampler
 
 KITTI_LPR_FOLDER_NAME = "kitti_lidar_place_recognition"
 KITTI_LPR_VERSION = 1
 SEQUENCE = "00"
+
+# Deviates from the paper's point-cloud-overlap ground truth: a revisit is "close in
+# space, far apart in time" -- distance threshold is our own choice (upstream's actual
+# positive label is overlap ratio > 0.3, which we don't compute); frame gap of 100
+# matches upstream's own ground-truth generation (tools/utils/gen_gt_data.py: `(i-idx) > 100`).
+REVISIT_DISTANCE_M = 3.0
+REVISIT_FRAME_GAP = 100
 
 KITTI_LPR_INSTALLATION_STEPS = [
     "Open http://www.cvlibs.net/download.php?file=data_odometry_velodyne.zip, provide your email, and click the request download link button",
@@ -138,6 +147,40 @@ class LidarPlaceRecognitionDataset(BaseDataset):
         # True revisits are sparse even in the dense VAL split, so 100
         # evenly-spaced samples yields too few valid queries for a stable Recall@1.
         return 1000
+
+    def _revisit_candidates(self, index: int, others: np.ndarray) -> np.ndarray:
+        gap = np.abs(self.frame_ids[others] - self.frame_ids[index])
+        dist = np.linalg.norm(self.positions[others] - self.positions[index], axis=1)
+        return (gap > REVISIT_FRAME_GAP) & (dist < REVISIT_DISTANCE_M)
+
+    def _has_revisit(self, indices: list[int]) -> bool:
+        subset = np.asarray(indices)
+        return any(self._revisit_candidates(i, subset).any() for i in indices)
+
+    def _find_revisit_pair(self) -> tuple[int, int]:
+        everything = np.arange(len(self))
+        for i in range(len(self)):
+            matches = np.flatnonzero(self._revisit_candidates(i, everything))
+            if len(matches):
+                return i, int(matches[0])
+        raise ValueError("Dataset contains no revisit pair.")
+
+    def get_dataloader(
+        self, num_samples: int, samples_per_job: int | None = None
+    ) -> DataLoader:
+        """Evenly spaced samples, with a revisit pair swapped in if they have none.
+
+        Without one, Recall@1 is undefined for small samples (e.g. the 2-sample smoke test).
+        """
+        n = max(1, len(self) // max(1, num_samples))
+        indices = list(EveryNSampler(n=n, num_samples=min(num_samples, len(self))))
+        if len(indices) >= 2 and not self._has_revisit(indices):
+            indices[:2] = self._find_revisit_pair()
+        return DataLoader(
+            Subset(self, indices),
+            batch_size=samples_per_job or num_samples,
+            collate_fn=self.collate_fn,
+        )
 
 
 class KittiLidarPlaceRecognitionDataset(LidarPlaceRecognitionDataset):

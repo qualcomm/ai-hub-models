@@ -13,6 +13,7 @@ import pytest
 import torch
 
 from qai_hub_models.datasets.kitti_lidar_place_recognition.kitti_lidar_place_recognition import (
+    LidarPlaceRecognitionDataset,
     lidar_scan_to_range_image,
 )
 from qai_hub_models.datasets.nclt_lidar_place_recognition.nclt_lidar_place_recognition import (
@@ -97,6 +98,40 @@ def test_lidar_place_recognition_evaluator() -> None:
     evaluator = LidarPlaceRecognitionEvaluator()
     evaluator.add_batch(descriptors, (positions, frame_indices))
     assert evaluator.get_accuracy_score() == pytest.approx(50.0)
+
+
+class _SyntheticLidarDataset(LidarPlaceRecognitionDataset):
+    def __init__(self, positions: np.ndarray) -> None:
+        self.positions = positions
+        self.frame_ids = np.arange(len(positions))
+        self.scan_paths = [Path(f"{i}.bin") for i in range(len(positions))]
+
+    def _download_data(self) -> None:
+        pass
+
+    def _load_range_image(self, scan_path: Path) -> np.ndarray:
+        return np.zeros((2, 2), dtype=np.float32)
+
+
+@pytest.mark.parametrize("num_samples", [2, 4])
+def test_lidar_dataloader_guarantees_revisit_pair(num_samples: int) -> None:
+    # A straight line never revisits, then frame 500 returns to frame 0's position.
+    positions = np.zeros((501, 3))
+    positions[:500, 0] = np.arange(500) * 10.0
+    dataset = _SyntheticLidarDataset(positions)
+
+    evenly_spaced = list(range(0, 500 // num_samples * num_samples, 500 // num_samples))
+    assert not dataset._has_revisit(evenly_spaced[:num_samples])
+
+    dataloader = dataset.get_dataloader(num_samples)
+    assert len(dataloader.dataset) == num_samples  # type: ignore[arg-type]
+    indices = list(dataloader.dataset.indices)  # type: ignore[attr-defined]
+    assert dataset._has_revisit(indices)
+
+    evaluator = LidarPlaceRecognitionEvaluator()
+    for range_image, gt in dataloader:
+        evaluator.add_batch(torch.zeros(len(range_image), 4), gt)
+    assert 0.0 <= evaluator.get_accuracy_score() <= 100.0
 
 
 def test_lidar_scan_to_range_image_projects_known_point() -> None:
