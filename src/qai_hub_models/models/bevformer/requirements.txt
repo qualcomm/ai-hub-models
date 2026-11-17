@@ -1,41 +1,11 @@
-# torch/torchvision/torchaudio are pinned to the exact versions the published
-# BEVFormer checkpoint + mmdet3d 1.0.0rc4 stack was validated against. They sit
-# inside global_requirements' torch>=2.4,<=2.11.0 range, but the mmcv 1.7.0 /
-# mmdet 2.27.0 ops were built against 2.4.1.
-torch==2.4.1
-torchvision==0.19.1
-torchaudio==2.4.1
-# mmcv is pinned to 1.7.0 (the max mmdet3d 1.0.0rc4 supports, mmcv<=1.7.0), so
-# `import mmdet3d` passes its version assert without any runtime version spoof.
-mmcv==1.7.0
-mmsegmentation==0.30.0
-mmdet==2.27.0
+mmdet==3.3.0
+mmdet3d==1.4.0
+mmcv-lite==2.1.0
 mmengine==0.10.7
-# numba is held at 0.59.1 (vs global_requirements' 0.62.1): mmdet3d 1.0.0rc4 and
-# this numpy pin need an older numba, and 0.59.1 requires numpy<1.27 -- which is
-# also why numpy is pinned <2 below rather than following global's numpy<=2.4.4.
-# Bumping either one drags in numpy>=2 and breaks the mmdet3d/mmcv build.
-numba==0.59.1
-numpy==1.26.4
-lyft-dataset-sdk==0.0.8
-nuscenes-devkit==1.2.0
-plyfile
-scikit-image==0.22.0
-trimesh==2.35.39
+numba==0.62.1
+numpy<=2.4.4
+scikit-image>=0.25,<=0.25.2
 # einops is intentionally newer than global_requirements' einops==0.3.2: the
 # BEVFormer patch uses einops.rearrange APIs that need >=0.6.0. Permitted by
 # global_requirements_incompatible: true in scorecard-config.yaml.
 einops>=0.6.0
-# mmdet3d is installed via pip_pre_build_reqs (--no-deps) because its declared
-# numba==0.53.0 pin conflicts with our numba 0.59.1. Its real runtime deps are
-# the pins listed above (numba, numpy, lyft-dataset-sdk, nuscenes-devkit,
-# plyfile, scikit-image, trimesh). Do NOT list mmdet3d here or the resolver
-# re-enforces the bad pin.
-# setuptools must stay <82 at RUNTIME, not just at build time: trimesh 2.35.39
-# does `from pkg_resources import resource_string` at import time (and mmdet3d
-# imports trimesh unconditionally), and setuptools 82.0.0 removed pkg_resources.
-# global_requirements allows up to 82.0.1, so without this cap the resolver
-# installs 82.0.1 and the model import crashes with ModuleNotFoundError:
-# No module named 'pkg_resources'. Upper bound is <82; 81.0.0 is the last
-# release that still ships pkg_resources.
-setuptools>=80,<82

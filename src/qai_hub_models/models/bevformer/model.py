@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from mmcv import Config
+from mmengine.config import Config
 from torch import nn
 from typing_extensions import Self
 
@@ -117,8 +117,7 @@ class BEVFormer(BaseModel):
         # in a torchvision NMS fallback.
         with patch_mmcv_no_extensions():
             import mmcv.ops  # noqa: F401
-
-        from mmdet3d.models import build_model
+            from mmdet3d.registry import MODELS
         from mmengine.runner import load_checkpoint
 
         with patch_mmcv_no_extensions():
@@ -134,10 +133,11 @@ class BEVFormer(BaseModel):
                 str(
                     EXTERNAL_REPO_PATHS["bevformer"]
                     / "projects/configs/bevformer/bevformer_tiny_baseline_optimized.py"
-                )
+                ),
+                lazy_import=False,
             )
             cfg.model.train_cfg = None
-            model = build_model(cfg.model)
+            model = MODELS.build(cfg.model)
             # The patched detector's forward() branches on
             # self.export_model: when True it routes to forward_export
             # (the trace-friendly img/use_prev_bev/prev_bev/can_bus/
