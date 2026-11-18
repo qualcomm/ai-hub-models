@@ -243,7 +243,6 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [Qwen3-VL-8B-Instruct](https://aihub.qualcomm.com/models/qwen3_vl_8b_instruct) | [qai_hub_models.models.qwen3_vl_8b_instruct](src/qai_hub_models/models/qwen3_vl_8b_instruct/README.md) |
 | [Qwen3.5-0.8B](https://aihub.qualcomm.com/models/qwen3_5_0_8b) | [qai_hub_models.models.qwen3_5_0_8b](src/qai_hub_models/models/qwen3_5_0_8b/README.md) |
 | [Qwen3.5-2B](https://aihub.qualcomm.com/models/qwen3_5_2b) | [qai_hub_models.models.qwen3_5_2b](src/qai_hub_models/models/qwen3_5_2b/README.md) |
-| [SmolLM2-1.7B-Instruct](https://aihub.qualcomm.com/models/smollm2_1_7b_it) | [qai_hub_models.models.smollm2_1_7b_it](src/qai_hub_models/models/smollm2_1_7b_it/README.md) |
 | [SmolVLM2-2.2B-Instruct](https://aihub.qualcomm.com/models/smolvlm2_2_2b_instruct) | [qai_hub_models.models.smolvlm2_2_2b_instruct](src/qai_hub_models/models/smolvlm2_2_2b_instruct/README.md) |
 
 ### Computer Vision
