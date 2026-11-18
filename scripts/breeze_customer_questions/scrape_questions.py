@@ -39,7 +39,9 @@ Filtering rules:
     the broader exclude-list approach in _common.py — the agent path is
     narrower on purpose.
   - Dependabot PRs are skipped.
-  - GitHub items are pulled from GITHUB_REPOS.
+  - GitHub items are pulled from GITHUB_REPOS with a longer lookback than
+    Slack, so an unanswered issue keeps being reminded instead of aging out
+    after the Slack window.
 
 Usage:
     export SLACK_BOT_TOKEN=xoxb-***
@@ -372,7 +374,13 @@ def main() -> None:
         "--lookback-days",
         type=int,
         default=1,
-        help="How many days back to scrape. Default: 1",
+        help="How many days back to scrape Slack. Default: 1",
+    )
+    parser.add_argument(
+        "--github-lookback-days",
+        type=int,
+        default=30,
+        help="How many days back to scrape open GitHub issues/PRs. Default: 30",
     )
     parser.add_argument(
         "--max-questions",
@@ -427,7 +435,7 @@ def main() -> None:
 
     if not args.skip_github and len(questions) < args.max_questions:
         since = (
-            datetime.now(timezone.utc) - timedelta(days=args.lookback_days)
+            datetime.now(timezone.utc) - timedelta(days=args.github_lookback_days)
         ).strftime("%Y-%m-%d")
         gh_questions = _scrape_github(since, args.max_questions - len(questions))
         questions.extend(gh_questions)

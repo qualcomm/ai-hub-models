@@ -33,7 +33,8 @@
 ##    ack-only threads. When false, drafts are omitted entirely (all
 ##    draft fields null in the JSON, no threaded replies posted). Flip
 ##    to true once the KB quality bar is met.
-##  - lookback_days (default 2) — overlap covers weekend gaps.
+##  - lookback_days (default 2) — Slack only; overlap covers weekend gaps.
+##    GitHub uses the script's --github-lookback-days (default 30).
 ##  - max_questions (default 50) — hard cap to prevent channel spam.
 ##  - skip_slack — emergency lever for Slack-token issues; runs GitHub-only.
 ##
@@ -47,7 +48,7 @@ on:
     workflow_dispatch:
       inputs:
         lookback_days:
-          description: How many days back to scrape
+          description: How many days back to scrape Slack (GitHub uses a 30-day window)
           required: false
           type: number
           default: 2
