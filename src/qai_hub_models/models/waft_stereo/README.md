@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [WAFT-Stereo: Warping-based iterative stereo matching network that avoids constructing a cost volume](https://aihub.qualcomm.com/models/waft_stereo)
 
 WAFT-Stereo estimates per-pixel disparity from a rectified stereo pair using warping-based iterative refinement instead of a 4D cost volume.
@@ -25,7 +22,7 @@ qai-hub-models perf WAFT-Stereo
 qai-hub-models numerics WAFT-Stereo
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch WAFT-Stereo --runtime qnn_dlc --precision float
+qai-hub-models fetch WAFT-Stereo --runtime onnx --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

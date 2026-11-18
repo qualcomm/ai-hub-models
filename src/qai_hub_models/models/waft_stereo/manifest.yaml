@@ -1,23 +1,23 @@
 description: WAFT-Stereo estimates per-pixel disparity from a rectified stereo pair using warping-based iterative refinement instead of a 4D cost volume.
 disabled_paths:
   float:
+    qnn_dlc:
+      scorecard_failure: 'Failing jobs: j5wr0oj6p'
     tflite:
-      scorecard_accuracy_failure: "On-device D1-all 51.17% on 40 KITTI-2015 samples vs torch baseline 12.96% (~38.2pp gap, well outside the 10pp threshold)"
+      scorecard_accuracy_failure: On-device D1-all 51.17% on 40 KITTI-2015 samples vs torch baseline 12.96% (~38.2pp gap, well outside the 10pp threshold)
   mixed_with_float:
     onnx:
-      scorecard_failure: "Workbench renames the ONNX outputs of an AIMET_ONNX source to output_0..output_2 (compile job jp2zzj1qp), so get_output_spec() names fmap1, fmap2, net no longer match. QNN_DLC keeps the names (j5mll479g)"
+      scorecard_failure: 'Failing jobs: jp2zq6krp'
+    qnn_dlc:
+      scorecard_failure: 'Failing jobs: j56096l05'
     tflite:
-      scorecard_failure: "Compile failed on encoder component: QuantizeLinear layer 'img1_q' cannot have output dtype 'uint16' when targeting TF-Lite. Encoder is quantized at w8a16, whose uint16 activations TFLite's QuantizeLinear op does not support — not investigated further"
+      scorecard_failure: 'Failing jobs: jp3rlk7zp'
 domain: Computer Vision
 external_repos:
   waft_stereo:
     commit_sha: c534320860f4bbb2c0df896e3ccb95de49284aec
     patches_filename: waft_stereo_patches.diff
     repo_url: https://github.com/princeton-vl/WAFT-Stereo.git
-form_factors:
-- Phone
-- Tablet
-- IoT
 has_on_target_demo: true
 headline: Warping-based iterative stereo matching network that avoids constructing a cost volume.
 id: waft_stereo

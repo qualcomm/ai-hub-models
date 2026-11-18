@@ -435,6 +435,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [Depth-Anything-V3](https://aihub.qualcomm.com/models/depth_anything_v3) | [qai_hub_models.models.depth_anything_v3](src/qai_hub_models/models/depth_anything_v3/README.md) |
 | [Midas-V2](https://aihub.qualcomm.com/models/midas) | [qai_hub_models.models.midas](src/qai_hub_models/models/midas/README.md) |
 | [StereoNet](https://aihub.qualcomm.com/models/stereonet) | [qai_hub_models.models.stereonet](src/qai_hub_models/models/stereonet/README.md) |
+| [WAFT-Stereo](https://aihub.qualcomm.com/models/waft_stereo) | [qai_hub_models.models.waft_stereo](src/qai_hub_models/models/waft_stereo/README.md) |
 | | |
 | **Driver Assistance**
 | [BEVDet](https://aihub.qualcomm.com/models/bevdet) | [qai_hub_models.models.bevdet](src/qai_hub_models/models/bevdet/README.md) |
