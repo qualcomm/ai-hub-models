@@ -1,0 +1,40 @@
+metrics:
+- benchmark_value: 97.04
+  dataset_link: https://www.cvlibs.net/datasets/kitti/eval_odometry.php
+  dataset_name: kitti_lidar_place_recognition
+  dataset_split_description: all of sequence 00 -- every scan serves as both query and database entry, per the standard LiDAR place-recognition protocol
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 96.9
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 96.9
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 96.9
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 96.4
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 96.9
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 96.9
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
+  metric_description: Fraction of query scans whose nearest retrieved database scan (excluding frames within 100 of the query) is a true revisit (pose within 3.0m). Computed only over the frames sampled for a given run, not the full database -- not directly comparable to the paper's full-sequence 0.906.
+  metric_enablement_threshold: 10.0
+  metric_name: Recall@1
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: '%'
+  num_partial_samples: 1000
+  partial_torch_metric: 96.9

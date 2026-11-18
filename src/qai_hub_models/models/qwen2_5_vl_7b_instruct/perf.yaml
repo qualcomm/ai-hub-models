@@ -574,67 +574,69 @@ performance_metrics:
   tool_versions:
     qairt: 2.50.0.260828221209
 - component: Qwen2.5-VL-7B-Instruct
+  device: Dragonwing IQ-9075 EVK
+  llm_metrics:
+  - context_length: 4096
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 36.497232
+    tokens_per_second: 8.19086
+  - context_length: 512
+    desired_compute_unit: cpu
+    prefill_tokens_per_second: 44.805152
+    tokens_per_second: 10.949875
+  - context_length: 4096
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 33.292818
+    tokens_per_second: 4.271424
+  - context_length: 512
+    desired_compute_unit: gpu
+    prefill_tokens_per_second: 42.172397
+    tokens_per_second: 5.33242
+  - context_length: 4096
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 278.824717
+    tokens_per_second: 6.803962
+  - context_length: 512
+    desired_compute_unit: npu
+    prefill_tokens_per_second: 314.632887
+    tokens_per_second: 7.453951
+  precision: PRECISION_Q4_0
+  runtime: RUNTIME_GENIEX_LLAMACPP
+  tool_versions:
+    geniex: v0.11.0
+- component: Qwen2.5-VL-7B-Instruct
   device: Dragonwing IQ-X7181
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 74.562578
-    tokens_per_second: 16.452347
+    prefill_tokens_per_second: 67.962284
+    tokens_per_second: 11.966078
   - context_length: 512
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 166.64439
-    tokens_per_second: 22.916878
+    prefill_tokens_per_second: 118.41067
+    tokens_per_second: 19.61076
   - context_length: 4096
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 116.681002
-    tokens_per_second: 12.889943
+    prefill_tokens_per_second: 112.085716
+    tokens_per_second: 8.88348
   - context_length: 512
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 169.413683
-    tokens_per_second: 15.950237
+    prefill_tokens_per_second: 151.298031
+    tokens_per_second: 12.827658
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 356.333934
-    tokens_per_second: 6.08296
+    prefill_tokens_per_second: 370.831036
+    tokens_per_second: 9.166484
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 429.266111
-    tokens_per_second: 8.290492
+    prefill_tokens_per_second: 434.560211
+    tokens_per_second: 10.035837
   precision: PRECISION_Q4_0
   runtime: RUNTIME_GENIEX_LLAMACPP
   tool_versions:
-    geniex: v0.8.0
+    geniex: v0.11.0
 - component: Qwen2.5-VL-7B-Instruct
   device: Dragonwing Q-8750
-  llm_metrics:
-  - context_length: 4096
-    desired_compute_unit: cpu
-    prefill_tokens_per_second: 36.852206
-    tokens_per_second: 9.37211
-  - context_length: 512
-    desired_compute_unit: cpu
-    prefill_tokens_per_second: 60.802498
-    tokens_per_second: 12.254739
-  - context_length: 4096
-    desired_compute_unit: gpu
-    prefill_tokens_per_second: 87.65481
-    tokens_per_second: 5.25139
-  - context_length: 512
-    desired_compute_unit: gpu
-    prefill_tokens_per_second: 123.332007
-    tokens_per_second: 11.94599
-  - context_length: 4096
-    desired_compute_unit: npu
-    prefill_tokens_per_second: 474.924114
-    tokens_per_second: 8.198756
-  - context_length: 512
-    desired_compute_unit: npu
-    prefill_tokens_per_second: 588.529198
-    tokens_per_second: 11.125704
-  precision: PRECISION_Q4_0
-  runtime: RUNTIME_GENIEX_LLAMACPP
-- component: Qwen2.5-VL-7B-Instruct
-  device: Samsung Galaxy S25
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: cpu
@@ -667,92 +669,94 @@ performance_metrics:
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 35.404927
-    tokens_per_second: 8.044786
+    prefill_tokens_per_second: 45.082144
+    tokens_per_second: 8.33469
   - context_length: 512
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 55.690641
-    tokens_per_second: 12.913607
+    prefill_tokens_per_second: 80.825991
+    tokens_per_second: 13.233613
   - context_length: 4096
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 91.720231
-    tokens_per_second: 8.949429
+    prefill_tokens_per_second: 121.482722
+    tokens_per_second: 10.644601
   - context_length: 512
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 156.158945
-    tokens_per_second: 12.552504
+    prefill_tokens_per_second: 161.451924
+    tokens_per_second: 13.288085
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 696.370153
-    tokens_per_second: 8.766121
+    prefill_tokens_per_second: 663.281058
+    tokens_per_second: 11.082205
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 747.637349
-    tokens_per_second: 12.022623
+    prefill_tokens_per_second: 656.258812
+    tokens_per_second: 14.125542
   precision: PRECISION_Q4_0
   runtime: RUNTIME_GENIEX_LLAMACPP
+  tool_versions:
+    geniex: v0.11.0
 - component: Qwen2.5-VL-7B-Instruct
   device: Snapdragon X Elite CRD
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 74.562578
-    tokens_per_second: 16.452347
+    prefill_tokens_per_second: 67.962284
+    tokens_per_second: 11.966078
   - context_length: 512
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 166.64439
-    tokens_per_second: 22.916878
+    prefill_tokens_per_second: 118.41067
+    tokens_per_second: 19.61076
   - context_length: 4096
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 116.681002
-    tokens_per_second: 12.889943
+    prefill_tokens_per_second: 112.085716
+    tokens_per_second: 8.88348
   - context_length: 512
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 169.413683
-    tokens_per_second: 15.950237
+    prefill_tokens_per_second: 151.298031
+    tokens_per_second: 12.827658
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 356.333934
-    tokens_per_second: 6.08296
+    prefill_tokens_per_second: 370.831036
+    tokens_per_second: 9.166484
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 429.266111
-    tokens_per_second: 8.290492
+    prefill_tokens_per_second: 434.560211
+    tokens_per_second: 10.035837
   precision: PRECISION_Q4_0
   runtime: RUNTIME_GENIEX_LLAMACPP
   tool_versions:
-    geniex: v0.8.0
+    geniex: v0.11.0
 - component: Qwen2.5-VL-7B-Instruct
   device: Snapdragon X2 Elite CRD
   llm_metrics:
   - context_length: 4096
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 233.369154
-    tokens_per_second: 18.740196
+    prefill_tokens_per_second: 233.523238
+    tokens_per_second: 19.541755
   - context_length: 512
     desired_compute_unit: cpu
-    prefill_tokens_per_second: 335.287138
-    tokens_per_second: 24.717759
+    prefill_tokens_per_second: 338.12669
+    tokens_per_second: 23.626253
   - context_length: 4096
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 231.088779
-    tokens_per_second: 17.164276
+    prefill_tokens_per_second: 277.733274
+    tokens_per_second: 13.350643
   - context_length: 512
     desired_compute_unit: gpu
-    prefill_tokens_per_second: 326.639214
-    tokens_per_second: 15.183837
+    prefill_tokens_per_second: 377.068723
+    tokens_per_second: 14.276963
   - context_length: 4096
     desired_compute_unit: npu
-    prefill_tokens_per_second: 836.830673
-    tokens_per_second: 10.011227
+    prefill_tokens_per_second: 938.486336
+    tokens_per_second: 15.378054
   - context_length: 512
     desired_compute_unit: npu
-    prefill_tokens_per_second: 925.490763
-    tokens_per_second: 12.602904
+    prefill_tokens_per_second: 1067.758153
+    tokens_per_second: 19.929422
   precision: PRECISION_Q4_0
   runtime: RUNTIME_GENIEX_LLAMACPP
   tool_versions:
-    geniex: v0.8.0
+    geniex: v0.11.0
 supported_chipsets:
 - qualcomm-snapdragon-8-elite-gen5-for-galaxy
 - qualcomm-snapdragon-8-elite-for-galaxy

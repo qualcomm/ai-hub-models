@@ -22,7 +22,7 @@ qai-hub-models perf First-Order-Motion-Model
 qai-hub-models numerics First-Order-Motion-Model
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch First-Order-Motion-Model --runtime onnx --precision float
+qai-hub-models fetch First-Order-Motion-Model --runtime tflite --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

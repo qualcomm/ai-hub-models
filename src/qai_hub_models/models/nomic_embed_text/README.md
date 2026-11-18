@@ -1,3 +1,6 @@
+> [!WARNING]
+> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
+
 # [Nomic-Embed-Text: Resizable Production Embeddings](https://aihub.qualcomm.com/models/nomic_embed_text)
 
 A text encoder that surpasses OpenAI text-embedding-ada-002 and text-embedding-3-small performance on short and long context tasks.
@@ -22,7 +25,7 @@ qai-hub-models perf Nomic-Embed-Text
 qai-hub-models numerics Nomic-Embed-Text
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch Nomic-Embed-Text --runtime tflite --precision float
+qai-hub-models fetch Nomic-Embed-Text --runtime qnn_context_binary --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

@@ -2,22 +2,19 @@ description: Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using 
 disabled_paths:
   float:
     tflite:
-      scorecard_failure: 'Failing jobs: j57no0kvp'
+      scorecard_failure: 'Failing jobs: jp42j2nvg'
   mixed:
     onnx:
-      scorecard_failure: 'Failing jobs: jprdxe8eg'
+      scorecard_failure: 'Failing jobs: jp3rxx7zp'
     qnn_dlc:
-      scorecard_failure: 'Failing jobs: jpex6wm7g'
+      scorecard_failure: 'Failing jobs: j5mloo0qg'
   mixed_with_float:
     tflite:
-      scorecard_failure: 'Failing jobs: jp8rj06kg'
+      scorecard_failure: 'Failing jobs: jp3rqrvlp'
 domain: Audio
 headline: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture.
 id: parakeet_tdt
 is_collection_model: true
-orchestrator_runtimes:
-- voice_ai
-voice_ai_sdk: asr
 license: https://creativecommons.org/licenses/by/4.0/legalcode.en
 license_type: cc-by-4.0
 name: Parakeet-TDT-0.6B-v3
@@ -27,6 +24,8 @@ numerics_benchmark:
   source: https://github.com/qcom-ai-hub/tetracode/issues/22220
   unit: WER
   value: 3.964
+orchestrator_runtimes:
+- voice_ai
 post_pip_install_commands:
 - pip install transformers==5.15.0 soundfile==0.14.0 librosa==0.10.0
 research_paper: https://arxiv.org/abs/2509.14128
@@ -40,3 +39,4 @@ tags:
 - foundation
 - real-time
 use_case: Speech Recognition
+voice_ai_sdk: asr

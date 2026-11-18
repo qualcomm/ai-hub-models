@@ -278,7 +278,6 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [MobileNet-v3-Small](https://aihub.qualcomm.com/models/mobilenet_v3_small) | [qai_hub_models.models.mobilenet_v3_small](src/qai_hub_models/models/mobilenet_v3_small/README.md) |
 | [MobileNet-v4](https://aihub.qualcomm.com/models/mobilenet_v4) | [qai_hub_models.models.mobilenet_v4](src/qai_hub_models/models/mobilenet_v4/README.md) |
 | [NASNet](https://aihub.qualcomm.com/models/nasnet) | [qai_hub_models.models.nasnet](src/qai_hub_models/models/nasnet/README.md) |
-| [NetVLAD](https://aihub.qualcomm.com/models/netvlad) | [qai_hub_models.models.netvlad](src/qai_hub_models/models/netvlad/README.md) |
 | [RegNet](https://aihub.qualcomm.com/models/regnet) | [qai_hub_models.models.regnet](src/qai_hub_models/models/regnet/README.md) |
 | [RegNet-Y-800MF](https://aihub.qualcomm.com/models/regnet_y_800mf) | [qai_hub_models.models.regnet_y_800mf](src/qai_hub_models/models/regnet_y_800mf/README.md) |
 | [RepViT](https://aihub.qualcomm.com/models/repvit) | [qai_hub_models.models.repvit](src/qai_hub_models/models/repvit/README.md) |
@@ -306,6 +305,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [NAFNet-DeNoise](https://aihub.qualcomm.com/models/nafnet_denoise) | [qai_hub_models.models.nafnet_denoise](src/qai_hub_models/models/nafnet_denoise/README.md) |
 | | |
 | **Super Resolution**
+| [BasicVSR-PlusPlus](https://aihub.qualcomm.com/models/basicvsr_pp) | [qai_hub_models.models.basicvsr_pp](src/qai_hub_models/models/basicvsr_pp/README.md) |
 | [ESRGAN](https://aihub.qualcomm.com/models/esrgan) | [qai_hub_models.models.esrgan](src/qai_hub_models/models/esrgan/README.md) |
 | [NAFSSR](https://aihub.qualcomm.com/models/nafssr) | [qai_hub_models.models.nafssr](src/qai_hub_models/models/nafssr/README.md) |
 | [QuickSRNetLarge](https://aihub.qualcomm.com/models/quicksrnetlarge) | [qai_hub_models.models.quicksrnetlarge](src/qai_hub_models/models/quicksrnetlarge/README.md) |
@@ -413,6 +413,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [CenterNet-Pose](https://aihub.qualcomm.com/models/centernet_pose) | [qai_hub_models.models.centernet_pose](src/qai_hub_models/models/centernet_pose/README.md) |
 | [Facial-Landmark-Detection](https://aihub.qualcomm.com/models/facemap_3dmm) | [qai_hub_models.models.facemap_3dmm](src/qai_hub_models/models/facemap_3dmm/README.md) |
 | [HRNetPose](https://aihub.qualcomm.com/models/hrnet_pose) | [qai_hub_models.models.hrnet_pose](src/qai_hub_models/models/hrnet_pose/README.md) |
+| [LightGlue](https://aihub.qualcomm.com/models/lightglue) | [qai_hub_models.models.lightglue](src/qai_hub_models/models/lightglue/README.md) |
 | [LiteHRNet](https://aihub.qualcomm.com/models/litehrnet) | [qai_hub_models.models.litehrnet](src/qai_hub_models/models/litehrnet/README.md) |
 | [MediaPipe-Pose-Estimation](https://aihub.qualcomm.com/models/mediapipe_pose) | [qai_hub_models.models.mediapipe_pose](src/qai_hub_models/models/mediapipe_pose/README.md) |
 | [Movenet](https://aihub.qualcomm.com/models/movenet) | [qai_hub_models.models.movenet](src/qai_hub_models/models/movenet/README.md) |
@@ -448,6 +449,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | **Robotics**
 | [ACT](https://aihub.qualcomm.com/models/act) | [qai_hub_models.models.act](src/qai_hub_models/models/act/README.md) |
 | [HFNet](https://aihub.qualcomm.com/models/hfnet) | [qai_hub_models.models.hfnet](src/qai_hub_models/models/hfnet/README.md) |
+| [OverlapTransformer](https://aihub.qualcomm.com/models/overlap_transformer) | [qai_hub_models.models.overlap_transformer](src/qai_hub_models/models/overlap_transformer/README.md) |
 
 ### Multimodal
 
@@ -457,7 +459,6 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [EasyOCR](https://aihub.qualcomm.com/models/easyocr) | [qai_hub_models.models.easyocr](src/qai_hub_models/models/easyocr/README.md) |
 | [GR00TN1.5](https://aihub.qualcomm.com/models/grootn15) | [qai_hub_models.models.grootn15](src/qai_hub_models/models/grootn15/README.md) |
 | [MiniLM-v2](https://aihub.qualcomm.com/models/minilm_v2) | [qai_hub_models.models.minilm_v2](src/qai_hub_models/models/minilm_v2/README.md) |
-| [Nomic-Embed-Text](https://aihub.qualcomm.com/models/nomic_embed_text) | [qai_hub_models.models.nomic_embed_text](src/qai_hub_models/models/nomic_embed_text/README.md) |
 | [OpenAI-Clip](https://aihub.qualcomm.com/models/openai_clip) | [qai_hub_models.models.openai_clip](src/qai_hub_models/models/openai_clip/README.md) |
 | [OpusMT-De-En](https://aihub.qualcomm.com/models/opus_mt_de_en) | [qai_hub_models.models.opus_mt_de_en](src/qai_hub_models/models/opus_mt_de_en/README.md) |
 | [OpusMT-En-De](https://aihub.qualcomm.com/models/opus_mt_en_de) | [qai_hub_models.models.opus_mt_en_de](src/qai_hub_models/models/opus_mt_en_de/README.md) |
@@ -512,7 +513,6 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [NeuTTS-2E](https://aihub.qualcomm.com/models/neutts_2e) | [qai_hub_models.models.neutts_2e](src/qai_hub_models/models/neutts_2e/README.md) |
 | [PiperTTS-DE](https://aihub.qualcomm.com/models/pipertts_de) | [qai_hub_models.models.pipertts_de](src/qai_hub_models/models/pipertts_de/README.md) |
 | [PiperTTS-EN](https://aihub.qualcomm.com/models/pipertts_en) | [qai_hub_models.models.pipertts_en](src/qai_hub_models/models/pipertts_en/README.md) |
-| [PiperTTS-EN-Amy](https://aihub.qualcomm.com/models/pipertts_en_amy) | [qai_hub_models.models.pipertts_en_amy](src/qai_hub_models/models/pipertts_en_amy/README.md) |
 | [PiperTTS-IT](https://aihub.qualcomm.com/models/pipertts_it) | [qai_hub_models.models.pipertts_it](src/qai_hub_models/models/pipertts_it/README.md) |
 | | |
 | **Voice Activity Detection**

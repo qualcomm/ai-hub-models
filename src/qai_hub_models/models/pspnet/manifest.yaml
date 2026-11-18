@@ -3,8 +3,12 @@ datasets:
 description: PSPNet (Pyramid Scene Parsing Network) is a semantic segmentation model that captures global context information by applying pyramid pooling modules. It is designed to improve scene understanding by aggregating contextual features at multiple scales.
 disabled_paths:
   w8a8:
+    onnx:
+      scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
+    qnn_dlc:
+      scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
     tflite:
-      scorecard_accuracy_failure: 'Device accuracy (28.6 mIOU) deviates from benchmark (17.5 mIOU) by 11.100 mIOU, threshold: 10.0 mIOU'
+      scorecard_accuracy_failure: 'Device accuracy (27.9 mIOU) deviates from benchmark (17.5 mIOU) by 10.400 mIOU, threshold: 10.0 mIOU'
 domain: Computer Vision
 external_repos:
   semseg:

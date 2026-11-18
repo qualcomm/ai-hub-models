@@ -1,0 +1,35 @@
+metrics:
+- dataset_link: https://www.nuscenes.org/nuscenes
+  dataset_name: nuscenes_bev_cvt
+  dataset_split_description: v1.0-mini validation scenes
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 0.374
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 0.376
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 0.374
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 0.332
+    precision: PRECISION_W8A16_MIXED_INT16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 0.295
+    precision: PRECISION_W8A16_MIXED_INT16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
+  metric_description: Overlap of predicted and expected segmentation divided by the union size.
+  metric_enablement_threshold: 10.0
+  metric_name: Mean Intersection Over Union
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: mIOU
+  num_partial_samples: 50
+  partial_torch_metric: 0.377

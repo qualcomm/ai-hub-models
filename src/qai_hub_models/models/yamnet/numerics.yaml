@@ -1,0 +1,47 @@
+metrics:
+- dataset_link: https://research.google.com/audioset/
+  dataset_name: audio_set
+  dataset_split_description: eval segments subset
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 25.8
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 25.8
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 25.8
+    precision: PRECISION_FLOAT
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 22.8
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_TFLITE
+  - device: Samsung Galaxy S25
+    partial_metric: 22.8
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 22.8
+    precision: PRECISION_W8A8
+    runtime: RUNTIME_ONNX
+  - device: Samsung Galaxy S25
+    partial_metric: 25.5
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_QNN_DLC
+  - device: Samsung Galaxy S25
+    partial_metric: 25.5
+    precision: PRECISION_W8A16
+    runtime: RUNTIME_ONNX
+  higher_is_better: true
+  metric_description: Mean Average Precision (across predicted audio classes).
+  metric_enablement_threshold: 10.0
+  metric_name: Mean Average Precision
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: mAP
+  num_partial_samples: 1000
+  partial_torch_metric: 25.8

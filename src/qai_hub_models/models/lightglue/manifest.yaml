@@ -1,4 +1,8 @@
 description: LightGlue is a deep neural network that matches sparse local features across image pairs. It replaces the traditional combination of nearest-neighbour matching and robust geometric fitting with a fast, lightweight attention-based model, performing both matching and a learned pruning of non-matchable points in a single forward pass. LightGlue consumes keypoints and descriptors already produced by a separate feature extractor (SuperPoint) and outputs point correspondences between the two images. This recipe pairs LightGlue's official checkpoint (trained against Magic-Leap's SuperPoint) with this repo's MIT-licensed SuperPoint port, so reported accuracy is directionally meaningful but not a direct reproduction of the paper's figures.
+disabled_paths:
+  float:
+    qnn_dlc:
+      scorecard_failure: 'Failing jobs: jp0xd1o6p'
 domain: Computer Vision
 external_repos:
   cvg_lightglue:
@@ -23,8 +27,6 @@ numerics_benchmark:
 research_paper: https://arxiv.org/abs/2306.13643
 research_paper_title: 'LightGlue: Local Feature Matching at Light Speed'
 source_repo: https://github.com/cvg/LightGlue
-supported_precisions:
-- float
 tags:
 - real-time
 templates:

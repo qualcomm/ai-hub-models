@@ -721,6 +721,9 @@ def process_e2e_recipe_model(
             merged.drop_entries_in_scope(
                 _scope_from_test_config(test_params), only_components=owned_components
             )
+            merged.drop_entries_with_mismatched_aot(
+                manifest.requires_aot_prepare, only_components=owned_components
+            )
             for summary in summaries:
                 params = summary.params
                 assert params.precision is not None and params.device is not None

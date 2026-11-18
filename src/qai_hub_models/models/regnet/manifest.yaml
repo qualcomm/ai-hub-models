@@ -1,4 +1,12 @@
 description: RegNet is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
+disabled_paths:
+  w8a8:
+    onnx:
+      scorecard_accuracy_failure: 'Device accuracy (31.5 %) deviates from benchmark (78.4 %) by -46.900 %, threshold: 10.0 %'
+    qnn_dlc:
+      scorecard_accuracy_failure: 'Device accuracy (31.5 %) deviates from benchmark (78.4 %) by -46.900 %, threshold: 10.0 %'
+    tflite:
+      scorecard_accuracy_failure: 'Device accuracy (32.1 %) deviates from benchmark (78.4 %) by -46.300 %, threshold: 10.0 %'
 domain: Computer Vision
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.

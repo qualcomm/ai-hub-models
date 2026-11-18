@@ -1,0 +1,23 @@
+metrics:
+- dataset_link: https://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d
+  dataset_name: kitti
+  dataset_split_description: val split (held-out images from the 7,481 labeled training images)
+  device_metrics:
+  - device: Samsung Galaxy S25
+    partial_metric: 89.9
+    precision: PRECISION_W8A16_MIXED_FP16
+    runtime: RUNTIME_QNN_CONTEXT_BINARY
+  - device: Samsung Galaxy S25
+    partial_metric: 89.9
+    precision: PRECISION_W8A16_MIXED_FP16
+    runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  higher_is_better: true
+  metric_description: Area under the precision-recall curve for a single class.
+  metric_enablement_threshold: 10.0
+  metric_name: Average Precision
+  metric_range:
+    max: 100.0
+    min: 0.0
+  metric_unit: AP
+  num_partial_samples: 100
+  partial_torch_metric: 99.0

@@ -22,7 +22,7 @@ qai-hub-models perf HRNet-W48-OCR
 qai-hub-models numerics HRNet-W48-OCR
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch HRNet-W48-OCR --runtime onnx --precision float
+qai-hub-models fetch HRNet-W48-OCR --runtime qnn_dlc --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

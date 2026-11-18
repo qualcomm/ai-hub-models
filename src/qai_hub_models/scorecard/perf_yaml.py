@@ -402,6 +402,42 @@ class QAIHMModelPerf(BaseQAIHMConfig):
             if not precision_details.components:
                 self.precisions.pop(precision, None)
 
+    def drop_entries_with_mismatched_aot(
+        self,
+        requires_aot_prepare: bool,
+        only_components: set[str] | None = None,
+    ) -> None:
+        """
+        Delete entries for runtimes the scorecard never tests given ``requires_aot_prepare``.
+
+        The scoped merge preserves entries outside this run's scope, so flipping the
+        flag would otherwise leave the old family's numbers in perf.yaml forever.
+        Orchestrator runtimes are exempt: they are gated by ``orchestrator_runtimes``.
+
+        Parameters
+        ----------
+        requires_aot_prepare
+            The model's manifest flag. If set, non-AOT entries are dropped; otherwise AOT entries are.
+        only_components
+            Restrict the drop to these component names (see ``drop_entries_in_scope``).
+        """
+        scope: set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]] = set()
+        for precision, precision_details in self.precisions.items():
+            for name, component_details in precision_details.components.items():
+                if only_components is not None and name not in only_components:
+                    continue
+                for (
+                    device,
+                    perf_by_path,
+                ) in component_details.performance_metrics.items():
+                    scope.update(
+                        (precision, path, device)
+                        for path in perf_by_path
+                        if not path.runtime.is_orchestrator_runtime
+                        and path.runtime.is_aot_compiled != requires_aot_prepare
+                    )
+        self.drop_entries_in_scope(scope, only_components=only_components)
+
     def drop_chipsets_without_assets(self, model_id: str) -> None:
         """
         Drop claimed chipsets this model ships no context binary for.

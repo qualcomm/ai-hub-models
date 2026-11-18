@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [BasicVSR-PlusPlus: Sharpen and upscale low-resolution video frames 4x using temporal context](https://aihub.qualcomm.com/models/basicvsr_pp)
 
 BasicVSR++ is a video super-resolution model that upscales low-resolution video frames by 4x using bidirectional temporal propagation, second-order deformable alignment, and SPyNet optical flow estimation (CVPR 2022).
@@ -25,7 +22,7 @@ qai-hub-models perf BasicVSR-PlusPlus
 qai-hub-models numerics BasicVSR-PlusPlus
 
 # Download a ready-to-deploy asset
-qai-hub-models fetch BasicVSR-PlusPlus --runtime tflite --precision float
+qai-hub-models fetch BasicVSR-PlusPlus --runtime qnn_dlc --precision float
 ```
 See the [CLI README](../../../../cli/README.md)
 for the full list of commands and filters.

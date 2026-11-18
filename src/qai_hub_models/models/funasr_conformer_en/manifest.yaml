@@ -1,12 +1,6 @@
 datasets:
 - librispeech
 description: FunASR Conformer-EN is a large-scale English ASR model from Alibaba DAMO Academy, trained on ~50,000 hours of English speech. It uses a 32-block Conformer encoder(512 hidden dim, 16 attention heads) with a CTC head for decoding. The model accepts raw 16kHz audio and outputs transcribed text via CTC greedy decoding.
-disabled_paths:
-  w8a16:
-    onnx:
-      scorecard_failure: Some expected profile jobs were missing.
-    qnn_dlc:
-      scorecard_failure: Some expected profile jobs were missing.
 domain: Audio
 has_on_target_demo: true
 headline: English speech recognition with Conformer encoder and CTC decoder.

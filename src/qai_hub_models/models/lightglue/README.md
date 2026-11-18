@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [LightGlue: Lightweight attention-based matcher for sparse local image features](https://aihub.qualcomm.com/models/lightglue)
 
 LightGlue is a deep neural network that matches sparse local features across image pairs. It replaces the traditional combination of nearest-neighbour matching and robust geometric fitting with a fast, lightweight attention-based model, performing both matching and a learned pruning of non-matchable points in a single forward pass. LightGlue consumes keypoints and descriptors already produced by a separate feature extractor (SuperPoint) and outputs point correspondences between the two images. This recipe pairs LightGlue's official checkpoint (trained against Magic-Leap's SuperPoint) with this repo's MIT-licensed SuperPoint port, so reported accuracy is directionally meaningful but not a direct reproduction of the paper's figures.

@@ -1,18 +1,18 @@
 description: BasicVSR++ is a video super-resolution model that upscales low-resolution video frames by 4x using bidirectional temporal propagation, second-order deformable alignment, and SPyNet optical flow estimation (CVPR 2022).
-domain: Computer Vision
 disabled_paths:
+  float:
+    tflite:
+      scorecard_failure: 'Failing jobs: jpr7949vg jpyyn4nrp jp0xk1k2p jgkkdldyg'
   w8a8:
     tflite:
-      scorecard_failure: Scatter_nd and Gather ops are incompatible with QNN HTP execution via TFLite
+      scorecard_failure: 'Failing jobs: jp3rqryxp'
+domain: Computer Vision
 external_repos:
   BasicVSR_PlusPlus:
     commit_sha: bbd417c6ac3b995148e98960f4b7458900774889
     patches_filename: BasicVSR_PlusPlus_patches.diff
     repo_url: https://github.com/ckkelvinchan/BasicVSR_PlusPlus.git
 has_on_target_demo: true
-form_factors:
-- Phone
-- Tablet
 headline: Sharpen and upscale low-resolution video frames 4x using temporal context.
 id: basicvsr_pp
 is_collection_model: true

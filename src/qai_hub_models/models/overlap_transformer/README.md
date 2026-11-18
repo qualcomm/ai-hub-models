@@ -1,6 +1,3 @@
-> [!WARNING]
-> This model is not published. Use with caution; it may not meet performance/accuracy standards and may not support some runtimes or chipsets/devices. We do not provide support for unpublished models. If this model was previously published, use earlier releases.
-
 # [OverlapTransformer: Yaw-angle-invariant LiDAR place-recognition descriptor for loop-closure detection](https://aihub.qualcomm.com/models/overlap_transformer)
 
 OverlapTransformer is a lightweight LiDAR place-recognition network. It projects a point cloud into a spherical range image and produces a yaw-angle-invariant 256-d global descriptor for nearest-neighbor loop-closure retrieval.
