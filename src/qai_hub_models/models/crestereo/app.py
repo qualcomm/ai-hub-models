@@ -15,6 +15,7 @@ from PIL import Image
 
 from qai_hub_models.models.templates.corevision.image_processing import (
     app_to_net_image_inputs,
+    colorize_disparity,
     numpy_image_to_torch,
 )
 from qai_hub_models.utils.input_spec import InputSpec
@@ -39,37 +40,6 @@ class CREStereoApp:
         raw_output: bool = False,
     ) -> np.ndarray | Image.Image:
         return self.predict_disparity(left, right, raw_output)
-
-    @staticmethod
-    def _disp_to_pil(
-        disp_np: np.ndarray, colormap: int = cv2.COLORMAP_INFERNO
-    ) -> Image.Image:
-        """Min-max normalize a float32 disparity array and apply a colormap.
-
-        Parameters
-        ----------
-        disp_np
-            Float32 disparity array of shape ``(H, W)``.
-        colormap
-            OpenCV colormap constant (default: ``COLORMAP_INFERNO``).
-
-        Returns
-        -------
-        Image.Image
-            RGB PIL image with the colormap applied.
-        """
-        d_min, d_max = disp_np.min(), disp_np.max()
-        if d_max <= d_min:
-            norm = np.zeros_like(disp_np, dtype=np.uint8)
-        else:
-            norm = (
-                ((disp_np - d_min) / (d_max - d_min) * 255)
-                .clip(0, 255)
-                .astype(np.uint8)
-            )
-        colored_bgr = cv2.applyColorMap(norm, colormap)
-        colored_rgb = cv2.cvtColor(colored_bgr, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(colored_rgb)
 
     def check_image_size(self) -> None:
         """Verify that the input spatial dimensions are both divisible by 8.
@@ -160,4 +130,4 @@ class CREStereoApp:
         if raw_output:
             return disp_np
 
-        return self._disp_to_pil(disp_np)
+        return colorize_disparity(disp_np)

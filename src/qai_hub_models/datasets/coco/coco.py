@@ -175,8 +175,13 @@ class CocoDatasetBase(BaseDataset, CocoDetection):
             return False
 
         if self.split == DatasetSplit.TRAIN:
-            # Ensure there are enough training samples
-            return len(os.listdir(self.root)) >= self.max_train_samples
+            # train2017/ is shared across datasets with different sample
+            # counts, so check this instance's resolved files individually.
+            self._resolve_train_samples()
+            return all(
+                (self.root / sample["file_name"]).exists()
+                for sample in self.train_samples
+            )
         return len(os.listdir(self.root)) == TOTAL_VAL_SAMPLES
 
     def _download_data(self) -> None:

@@ -184,6 +184,33 @@ def torch_tensor_to_PIL_image(data: torch.Tensor) -> Image:
     return ImageFromArray(np_out)
 
 
+def colorize_disparity(
+    disp_np: np.ndarray, colormap: int = cv2.COLORMAP_INFERNO
+) -> Image:
+    """Min-max normalize a float32 disparity array and apply a colormap.
+
+    Parameters
+    ----------
+    disp_np
+        Float32 disparity array of shape ``(H, W)``.
+    colormap
+        OpenCV colormap constant (default: ``COLORMAP_INFERNO``).
+
+    Returns
+    -------
+    Image
+        RGB PIL image with the colormap applied.
+    """
+    d_min, d_max = disp_np.min(), disp_np.max()
+    if d_max <= d_min:
+        norm = np.zeros_like(disp_np, dtype=np.uint8)
+    else:
+        norm = ((disp_np - d_min) / (d_max - d_min) * 255).clip(0, 255).astype(np.uint8)
+    colored_bgr = cv2.applyColorMap(norm, colormap)
+    colored_rgb = cv2.cvtColor(colored_bgr, cv2.COLOR_BGR2RGB)
+    return ImageFromArray(colored_rgb)
+
+
 def normalize_image_torchvision(
     image_tensor: torch.Tensor,
     image_tensor_has_batch: bool = True,

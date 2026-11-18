@@ -106,11 +106,11 @@ def quantize_eval(
         gt_tensor = np.concatenate(
             [eval_outputs[out_name][i : i + 1] for i in range(num_samples)]
         )
-        qt_tensor = np.concatenate(
+        qt_array = np.concatenate(
             [all_qt_outputs[out_name][i] for i in range(num_samples)]
         )
-        sqnr_db, _, _ = get_sqnr(gt_tensor, qt_tensor)
-        cossim = get_cossim(gt_tensor.ravel(), qt_tensor.ravel())
+        sqnr_db, _, _ = get_sqnr(gt_tensor, qt_array)
+        cossim = get_cossim(gt_tensor.ravel(), qt_array.ravel())
         all_sqnr.append(sqnr_db)
         all_cossim.append(cossim)
         print(f"  {out_name}:")

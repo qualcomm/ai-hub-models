@@ -1,0 +1,43 @@
+description: WAFT-Stereo estimates per-pixel disparity from a rectified stereo pair using warping-based iterative refinement instead of a 4D cost volume.
+disabled_paths:
+  float:
+    tflite:
+      scorecard_accuracy_failure: "On-device D1-all 51.17% on 40 KITTI-2015 samples vs torch baseline 12.96% (~38.2pp gap, well outside the 10pp threshold)"
+  mixed_with_float:
+    onnx:
+      scorecard_failure: "Workbench renames the ONNX outputs of an AIMET_ONNX source to output_0..output_2 (compile job jp2zzj1qp), so get_output_spec() names fmap1, fmap2, net no longer match. QNN_DLC keeps the names (j5mll479g)"
+    tflite:
+      scorecard_failure: "Compile failed on encoder component: QuantizeLinear layer 'img1_q' cannot have output dtype 'uint16' when targeting TF-Lite. Encoder is quantized at w8a16, whose uint16 activations TFLite's QuantizeLinear op does not support — not investigated further"
+domain: Computer Vision
+external_repos:
+  waft_stereo:
+    commit_sha: c534320860f4bbb2c0df896e3ccb95de49284aec
+    patches_filename: waft_stereo_patches.diff
+    repo_url: https://github.com/princeton-vl/WAFT-Stereo.git
+form_factors:
+- Phone
+- Tablet
+- IoT
+has_on_target_demo: true
+headline: Warping-based iterative stereo matching network that avoids constructing a cost volume.
+id: waft_stereo
+is_aimet: true
+is_collection_model: true
+license: https://github.com/princeton-vl/WAFT-Stereo/blob/main/LICENSE
+license_type: bsd-3-clause
+name: WAFT-Stereo
+numerics_benchmark:
+  dataset_name: kitti_2015_scene_flow
+  metric_name: D1
+  source: AI Hub Models Reference Eval
+  unit: D1-all
+  value: 12.96
+research_paper: https://arxiv.org/abs/2603.24836
+research_paper_title: 'WAFT-Stereo: Warping-Alone Field Transforms for Stereo Matching'
+source_repo: https://github.com/princeton-vl/WAFT-Stereo
+supported_precisions:
+- float
+- mixed_with_float
+templates:
+- corevision
+use_case: Depth Estimation

@@ -1,0 +1,18 @@
+# timm.create_model(..., pretrained=True) downloads ImageNet weights that are
+# immediately overwritten by the WAFT checkpoint's load_state_dict(strict=False)
+# call in from_pretrained. Skip the network dependency since the weights are
+# discarded anyway.
+diff --git a/model/iterative/vit.py b/model/iterative/vit.py
+--- a/model/iterative/vit.py
++++ b/model/iterative/vit.py
+@@ -26,7 +26,9 @@ class VitIter(nn.Module):
+         self.out_c = [(int)(self.dim * (2 ** (i - self.n_idx + 1))) for i in range(self.n_idx)]
+         vit = timm.create_model(
+             self.dpt_configs[model_name]['encoder'],
++            # --- Begin Qualcomm modification ---
+-            pretrained=True
++            pretrained=False
++            # --- End Qualcomm modification ---
+         )
+         if r is not None:
+             self.blks = nn.ModuleList()

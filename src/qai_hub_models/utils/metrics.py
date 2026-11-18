@@ -355,5 +355,21 @@ MEAN_AVERAGE_PRECISION_5DEG_2CM = _register_metric(
     )
 )
 
+
+D1_ALL = _register_metric(
+    MetricMetadata(
+        name="D1",
+        unit="D1-all",
+        description=(
+            "Percentage of valid pixels (occluded pixels included) that are "
+            "stereo outliers: disparity error exceeds both 3 px and 5% of "
+            "ground-truth disparity (KITTI D1-all)."
+        ),
+        range=(0.0, 100.0),
+        float_vs_device_threshold=10.0,
+        higher_is_better=False,
+    )
+)
+
 # Freeze the valid pairs set now that all metrics are registered.
 VALID_METRIC_PAIRS: frozenset[tuple[str, str]] = frozenset(_VALID_METRIC_PAIRS)
