@@ -1,14 +1,14 @@
 description: ESRGAN is a machine learning model that upscales an image with minimal loss in quality.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  esrgan:
-    commit_sha: 73e9b634cf987f5996ac2dd33f4050922398a921
-    repo_url: https://github.com/xinntao/ESRGAN.git
+- commit_sha: 73e9b634cf987f5996ac2dd33f4050922398a921
+  name: esrgan
+  repo_url: https://github.com/xinntao/ESRGAN.git
 has_on_target_demo: true
 headline: Upscale images and remove image noise.
 id: esrgan
-license: https://github.com/xinntao/ESRGAN/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/xinntao/ESRGAN/blob/master/LICENSE
 name: ESRGAN
 numerics_benchmark:
   dataset_name: bsd100
@@ -20,8 +20,8 @@ research_paper: https://arxiv.org/abs/1809.00219
 research_paper_title: 'ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks'
 source_repo: https://github.com/xinntao/ESRGAN/
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 templates:
 - super_resolution
-use_case: Super Resolution
+use_case: MODEL_USE_CASE_SUPER_RESOLUTION

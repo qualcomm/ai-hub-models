@@ -1,18 +1,18 @@
 description: ResNet34-SSD is a single-stage object detection model that integrates the ResNet34 backbone with the SSD (Single Shot MultiBox Detector) framework. It is optimized for real-time detection tasks and supports multiple deployment backends including PyTorch, TensorFlow, and ONNX.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  inference:
-    commit_sha: 33894a19c4af6207f7cfdda75f84570f04836de5
-    patches_filename: inference_patches.diff
-    repo_url: https://github.com/mlcommons/inference.git
+- commit_sha: 33894a19c4af6207f7cfdda75f84570f04836de5
+  name: inference
+  patches_filename: inference_patches.diff
+  repo_url: https://github.com/mlcommons/inference.git
 has_on_target_demo: true
 headline: Object detection model combining ResNet34 backbone with SSD architecture.
 id: resnet34_ssd1200
-license: https://github.com/mlcommons/inference/blob/33894a19c4af6207f7cfdda75f84570f04836de5/LICENSE.md
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/mlcommons/inference/blob/33894a19c4af6207f7cfdda75f84570f04836de5/LICENSE.md
 name: ResNet34-SSD
 source_repo: https://github.com/mlcommons/inference/tree/33894a19c4af6207f7cfdda75f84570f04836de5/vision/classification_and_detection
 templates:
 - corevision
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

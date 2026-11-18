@@ -1,15 +1,15 @@
 description: YoloR is a machine learning model that predicts bounding boxes and classes of objects in an image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  yolor:
-    commit_sha: 3ca250ae2247ca13911fa498cbe8e2c9b6bab5b0
-    patches_filename: yolor_patches.diff
-    repo_url: https://github.com/WongKinYiu/yolor.git
+- commit_sha: 3ca250ae2247ca13911fa498cbe8e2c9b6bab5b0
+  name: yolor
+  patches_filename: yolor_patches.diff
+  repo_url: https://github.com/WongKinYiu/yolor.git
 has_on_target_demo: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolor
-license: https://github.com/WongKinYiu/yolor/blob/main/LICENSE
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/WongKinYiu/yolor/blob/main/LICENSE
 name: Yolo-R
 numerics_benchmark:
   dataset_name: coco
@@ -22,11 +22,11 @@ research_paper_title: 'You Only Learn One Representation: Unified Network for Mu
 restrict_model_sharing: true
 source_repo: https://github.com/WongKinYiu/yolor
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- bu-auto
-- real-time
+- MODEL_TAG_BU_AUTO
+- MODEL_TAG_REAL_TIME
 templates:
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

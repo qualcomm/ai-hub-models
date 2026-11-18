@@ -1,29 +1,29 @@
 description: SwinV2Base is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-17.400 %) above threshold (10.0 %)
-  w8a16:
-    onnx:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-19.000 %) above threshold (10.0 %)
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-17.400 %) above threshold (10.0 %)
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-19.000 %) above threshold (10.0 %)
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: swinv2_base
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: SwinV2-Base
 research_paper: https://arxiv.org/abs/2111.09883
 research_paper_title: 'Swin Transformer V2: Scaling Up Capacity and Resolution'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/swin_transformer.py
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- backbone
-- bu-auto
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - imagenet_classifier
 - swin
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

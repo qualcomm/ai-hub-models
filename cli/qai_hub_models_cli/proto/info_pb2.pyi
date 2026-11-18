@@ -19,6 +19,7 @@ import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
 from qai_hub_models_cli.proto import numerics_pb2
 from qai_hub_models_cli.proto import platform_pb2
+import shared.precision_pb2
 import shared.runtime_pb2
 import sys
 import typing
@@ -258,9 +259,140 @@ global___ModelUseCase = ModelUseCase
 
 @typing.final
 class ModelInfo(google.protobuf.message.Message):
-    """Schema for model info.yaml."""
+    """Everything known about a model: how it is presented, how it is built and
+    exported, and which precision / runtime paths it supports.
+
+    Field numbers are stable and not in declaration order; fields are grouped by
+    topic below. Fields at their default may be omitted when authoring a model's
+    config, but released info always fills in every field.
+    """
 
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    @typing.final
+    class OutputsToSkipValidationEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.int
+        value: builtins.str
+        def __init__(
+            self,
+            *,
+            key: builtins.int = ...,
+            value: builtins.str = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+    @typing.final
+    class ExternalRepo(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        NAME_FIELD_NUMBER: builtins.int
+        REPO_URL_FIELD_NUMBER: builtins.int
+        COMMIT_SHA_FIELD_NUMBER: builtins.int
+        PATCHES_FILENAME_FIELD_NUMBER: builtins.int
+        name: builtins.str
+        """Import name of the repo."""
+        repo_url: builtins.str
+        commit_sha: builtins.str
+        patches_filename: builtins.str
+        def __init__(
+            self,
+            *,
+            name: builtins.str = ...,
+            repo_url: builtins.str = ...,
+            commit_sha: builtins.str = ...,
+            patches_filename: builtins.str | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["_patches_filename", b"_patches_filename", "patches_filename", b"patches_filename"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_patches_filename", b"_patches_filename", "commit_sha", b"commit_sha", "name", b"name", "patches_filename", b"patches_filename", "repo_url", b"repo_url"]) -> None: ...
+        def WhichOneof(self, oneof_group: typing.Literal["_patches_filename", b"_patches_filename"]) -> typing.Literal["patches_filename"] | None: ...
+
+    @typing.final
+    class PipCommand(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        class _Machine:
+            ValueType = typing.NewType("ValueType", builtins.int)
+            V: typing_extensions.TypeAlias = ValueType
+
+        class _MachineEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelInfo.PipCommand._Machine.ValueType], builtins.type):
+            DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+            MACHINE_UNSPECIFIED: ModelInfo.PipCommand._Machine.ValueType  # 0
+            """Runs on every host."""
+            MACHINE_GPU: ModelInfo.PipCommand._Machine.ValueType  # 1
+            """Runs only when a CUDA GPU is detected."""
+            MACHINE_CPU: ModelInfo.PipCommand._Machine.ValueType  # 2
+            """Runs only when no CUDA GPU is detected."""
+
+        class Machine(_Machine, metaclass=_MachineEnumTypeWrapper):
+            """Which hosts the command runs on."""
+
+        MACHINE_UNSPECIFIED: ModelInfo.PipCommand.Machine.ValueType  # 0
+        """Runs on every host."""
+        MACHINE_GPU: ModelInfo.PipCommand.Machine.ValueType  # 1
+        """Runs only when a CUDA GPU is detected."""
+        MACHINE_CPU: ModelInfo.PipCommand.Machine.ValueType  # 2
+        """Runs only when no CUDA GPU is detected."""
+
+        COMMAND_FIELD_NUMBER: builtins.int
+        MACHINE_FIELD_NUMBER: builtins.int
+        command: builtins.str
+        machine: global___ModelInfo.PipCommand.Machine.ValueType
+        def __init__(
+            self,
+            *,
+            command: builtins.str = ...,
+            machine: global___ModelInfo.PipCommand.Machine.ValueType = ...,
+        ) -> None: ...
+        def ClearField(self, field_name: typing.Literal["command", b"command", "machine", b"machine"]) -> None: ...
+
+    @typing.final
+    class DisabledPath(google.protobuf.message.Message):
+        """Why a precision + runtime path is disabled."""
+
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        PRECISION_FIELD_NUMBER: builtins.int
+        RUNTIME_FIELD_NUMBER: builtins.int
+        SCORECARD_FAILURE_FIELD_NUMBER: builtins.int
+        SCORECARD_ACCURACY_FAILURE_FIELD_NUMBER: builtins.int
+        ISSUE_FIELD_NUMBER: builtins.int
+        CAUSES_TIMEOUT_FIELD_NUMBER: builtins.int
+        DISABLE_DEVICES_FIELD_NUMBER: builtins.int
+        precision: shared.precision_pb2.Precision.ValueType
+        runtime: shared.runtime_pb2.Runtime.ValueType
+        scorecard_failure: builtins.str
+        """Set by scorecard; removed automatically when the path works again."""
+        scorecard_accuracy_failure: builtins.str
+        issue: builtins.str
+        """Link to an issue explaining the failure."""
+        causes_timeout: builtins.bool
+        @property
+        def disable_devices(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+            """If set, issue and causes_timeout only apply to these device names."""
+
+        def __init__(
+            self,
+            *,
+            precision: shared.precision_pb2.Precision.ValueType = ...,
+            runtime: shared.runtime_pb2.Runtime.ValueType = ...,
+            scorecard_failure: builtins.str | None = ...,
+            scorecard_accuracy_failure: builtins.str | None = ...,
+            issue: builtins.str | None = ...,
+            causes_timeout: builtins.bool = ...,
+            disable_devices: collections.abc.Iterable[builtins.str] | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["_issue", b"_issue", "_scorecard_accuracy_failure", b"_scorecard_accuracy_failure", "_scorecard_failure", b"_scorecard_failure", "issue", b"issue", "scorecard_accuracy_failure", b"scorecard_accuracy_failure", "scorecard_failure", b"scorecard_failure"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_issue", b"_issue", "_scorecard_accuracy_failure", b"_scorecard_accuracy_failure", "_scorecard_failure", b"_scorecard_failure", "causes_timeout", b"causes_timeout", "disable_devices", b"disable_devices", "issue", b"issue", "precision", b"precision", "runtime", b"runtime", "scorecard_accuracy_failure", b"scorecard_accuracy_failure", "scorecard_failure", b"scorecard_failure"]) -> None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_issue", b"_issue"]) -> typing.Literal["issue"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_scorecard_accuracy_failure", b"_scorecard_accuracy_failure"]) -> typing.Literal["scorecard_accuracy_failure"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_scorecard_failure", b"_scorecard_failure"]) -> typing.Literal["scorecard_failure"] | None: ...
 
     @typing.final
     class TechnicalDetail(google.protobuf.message.Message):
@@ -365,6 +497,7 @@ class ModelInfo(google.protobuf.message.Message):
     RELATED_MODELS_FIELD_NUMBER: builtins.int
     FORM_FACTORS_FIELD_NUMBER: builtins.int
     TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
+    RUNTIME_TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
     LICENSE_TYPE_FIELD_NUMBER: builtins.int
     MODEL_MAKER_ID_FIELD_NUMBER: builtins.int
     DATASET_FIELD_NUMBER: builtins.int
@@ -376,12 +509,40 @@ class ModelInfo(google.protobuf.message.Message):
     HAS_ANIMATED_BANNER_FIELD_NUMBER: builtins.int
     IMSDK_SUPPORTED_FIELD_NUMBER: builtins.int
     RESTRICT_MODEL_SHARING_FIELD_NUMBER: builtins.int
-    NUMERICS_BENCHMARK_FIELD_NUMBER: builtins.int
+    VOICE_AI_SDK_FIELD_NUMBER: builtins.int
+    PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
     MODEL_TYPE_LLM_FIELD_NUMBER: builtins.int
     LLM_DETAILS_FIELD_NUMBER: builtins.int
-    PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
-    RUNTIME_TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
-    VOICE_AI_SDK_FIELD_NUMBER: builtins.int
+    TEMPLATES_FIELD_NUMBER: builtins.int
+    DATASETS_FIELD_NUMBER: builtins.int
+    MODELS_FIELD_NUMBER: builtins.int
+    EXTERNAL_REPOS_FIELD_NUMBER: builtins.int
+    PRE_PIP_INSTALL_COMMANDS_FIELD_NUMBER: builtins.int
+    POST_PIP_INSTALL_COMMANDS_FIELD_NUMBER: builtins.int
+    README_INSTALL_SYSTEM_DEPS_FIELD_NUMBER: builtins.int
+    PYTHON_VERSION_GREATER_THAN_OR_EQUAL_TO_FIELD_NUMBER: builtins.int
+    PYTHON_VERSION_GREATER_THAN_OR_EQUAL_TO_REASON_FIELD_NUMBER: builtins.int
+    PYTHON_VERSION_LESS_THAN_FIELD_NUMBER: builtins.int
+    PYTHON_VERSION_LESS_THAN_REASON_FIELD_NUMBER: builtins.int
+    IS_COLLECTION_MODEL_FIELD_NUMBER: builtins.int
+    HAS_MULTI_GRAPH_FIELD_NUMBER: builtins.int
+    IS_PRECOMPILED_FIELD_NUMBER: builtins.int
+    SUPPORTED_PRECISIONS_FIELD_NUMBER: builtins.int
+    ORCHESTRATOR_RUNTIMES_FIELD_NUMBER: builtins.int
+    ONLY_ALLOW_ORCHESTRATOR_RUNTIMES_FIELD_NUMBER: builtins.int
+    REQUIRES_AOT_PREPARE_FIELD_NUMBER: builtins.int
+    DISABLED_PATHS_FIELD_NUMBER: builtins.int
+    IS_AIMET_FIELD_NUMBER: builtins.int
+    NUM_CALIBRATION_SAMPLES_FIELD_NUMBER: builtins.int
+    SEPARATE_QUANTIZE_SCRIPT_FIELD_NUMBER: builtins.int
+    DEFAULT_DEVICE_FIELD_NUMBER: builtins.int
+    HAS_ON_TARGET_DEMO_FIELD_NUMBER: builtins.int
+    NUMERICS_BENCHMARK_FIELD_NUMBER: builtins.int
+    INFERENCE_METRICS_FIELD_NUMBER: builtins.int
+    OUTPUTS_TO_SKIP_VALIDATION_FIELD_NUMBER: builtins.int
+    ADDITIONAL_README_SECTION_FIELD_NUMBER: builtins.int
+    SKIP_EXAMPLE_USAGE_FIELD_NUMBER: builtins.int
+    LOCAL_DEVICE_DEPLOYMENT_FIELD_NUMBER: builtins.int
     aihm_version: builtins.str
     id: builtins.str
     """---------------------------------------------------------------------------
@@ -441,13 +602,17 @@ class ModelInfo(google.protobuf.message.Message):
     """Whether the model has an animated asset uploaded in S3. This is optional."""
     imsdk_supported: builtins.bool
     """---------------------------------------------------------------------------
-    Features & deployment
+    Distribution & integrations
     ---------------------------------------------------------------------------
 
     Whether the model is compatible with the IMSDK Plugin for IOT devices.
     """
     restrict_model_sharing: builtins.bool
     """If set, model assets shouldn't be distributed."""
+    voice_ai_sdk: global___VoiceAISdk.ValueType
+    """Which Qualcomm Voice AI SDK variant the model is compatible with.
+    Unset means the model has no Voice AI SDK integration.
+    """
     model_type_llm: builtins.bool
     """---------------------------------------------------------------------------
     LLM-specific
@@ -455,10 +620,60 @@ class ModelInfo(google.protobuf.message.Message):
 
     Whether it is a large language model (LLM) or not.
     """
-    voice_ai_sdk: global___VoiceAISdk.ValueType
-    """Which Qualcomm Voice AI SDK variant the model is compatible with.
-    Unset means the model has no Voice AI SDK integration.
+    readme_install_system_deps: builtins.str
+    """Instructions for installing system-level dependencies before pip install."""
+    python_version_greater_than_or_equal_to: builtins.str
+    """Supported python versions: >= greater_than_or_equal_to, < less_than.
+    Each bound requires its reason.
     """
+    python_version_greater_than_or_equal_to_reason: builtins.str
+    python_version_less_than: builtins.str
+    python_version_less_than_reason: builtins.str
+    is_collection_model: builtins.bool
+    """---------------------------------------------------------------------------
+    Model structure
+    ---------------------------------------------------------------------------
+
+    True for collection models made of components (e.g. encoder + decoder).
+    """
+    has_multi_graph: builtins.bool
+    """If set, the model returns multiple (input_spec, graph_name) pairs that are
+    compiled separately and linked into a single context binary.
+    """
+    is_precompiled: builtins.bool
+    """Whether the model uses the pre-compiled pattern."""
+    only_allow_orchestrator_runtimes: builtins.bool
+    """If set, only runtimes in orchestrator_runtimes are supported."""
+    requires_aot_prepare: builtins.bool
+    """If set, only AOT-prepared (context binary) paths are enabled."""
+    is_aimet: builtins.bool
+    """---------------------------------------------------------------------------
+    Quantization & export
+    ---------------------------------------------------------------------------
+
+    Whether the model is quantized with aimet.
+    """
+    num_calibration_samples: builtins.int
+    """Number of calibration samples used to speed up compilation (aimet models)."""
+    separate_quantize_script: builtins.bool
+    """If set, the model has a separate quantize.py script."""
+    default_device: builtins.str
+    """Default device for `qai-hub-models export`."""
+    has_on_target_demo: builtins.bool
+    """Whether the model's demo supports `--eval-mode on-device`."""
+    inference_metrics: builtins.str
+    """Comma separated metrics printed in the export inference summary."""
+    additional_readme_section: builtins.str
+    """---------------------------------------------------------------------------
+    README
+    ---------------------------------------------------------------------------
+
+    Extra README content for the model.
+    """
+    skip_example_usage: builtins.bool
+    """If set, omits "Example Usage" from the HuggingFace readme."""
+    local_device_deployment: builtins.bool
+    """If set, the README groups Setup / Demo / Export under one "## Export"."""
     @property
     def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[global___ModelTag.ValueType]:
         """A list of applicable tags to add to the model."""
@@ -497,10 +712,67 @@ class ModelInfo(google.protobuf.message.Message):
         """
 
     @property
+    def runtime_technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.RuntimeTechnicalDetails]:
+        """Technical details that only apply to specific runtimes, e.g. a model size
+        that differs per runtime. One entry per runtime that has such details.
+        """
+
+    @property
     def dataset(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """A list of datasets for which the model has pre-trained checkpoints
         available as options in `model.py`. Typically only has one entry.
         """
+
+    @property
+    def private_perf_form_factors(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[platform_pb2.FormFactor.ValueType]:
+        """Device form factors for which we don't publish performance data."""
+
+    @property
+    def llm_details(self) -> global___ModelInfo.LLMDetails: ...
+    @property
+    def templates(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """---------------------------------------------------------------------------
+        Dependencies
+        ---------------------------------------------------------------------------
+
+        Names of other templates/ folders this model depends on.
+        """
+
+    @property
+    def datasets(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Names of datasets/ folders this model depends on."""
+
+    @property
+    def models(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Direct dependencies on other model folders under qai_hub_models/models/."""
+
+    @property
+    def external_repos(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.ExternalRepo]:
+        """External repository dependencies, imported as external_repos.<name>."""
+
+    @property
+    def pre_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.PipCommand]:
+        """pip commands to run before / after `pip install -r requirements.txt`."""
+
+    @property
+    def post_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.PipCommand]: ...
+    @property
+    def supported_precisions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[shared.precision_pb2.Precision.ValueType]:
+        """---------------------------------------------------------------------------
+        Precision & runtime support
+        ---------------------------------------------------------------------------
+
+        Precisions enabled via the CLI and run by scorecard. Always populated in
+        released info; an empty list in a source file means [float].
+        """
+
+    @property
+    def orchestrator_runtimes(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[shared.runtime_pb2.Runtime.ValueType]:
+        """Runtimes that need extra orchestration steps beyond running the model."""
+
+    @property
+    def disabled_paths(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.DisabledPath]:
+        """Precision + runtime paths that are disabled, with the reason."""
 
     @property
     def numerics_benchmark(self) -> numerics_pb2.NumericsAccuracyBenchmark:
@@ -513,16 +785,8 @@ class ModelInfo(google.protobuf.message.Message):
         """
 
     @property
-    def llm_details(self) -> global___ModelInfo.LLMDetails: ...
-    @property
-    def private_perf_form_factors(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[platform_pb2.FormFactor.ValueType]:
-        """Device form factors for which we don't publish performance data."""
-
-    @property
-    def runtime_technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.RuntimeTechnicalDetails]:
-        """Technical details that only apply to specific runtimes, e.g. a model size
-        that differs per runtime. One entry per runtime that has such details.
-        """
+    def outputs_to_skip_validation(self) -> google.protobuf.internal.containers.ScalarMap[builtins.int, builtins.str]:
+        """Output index -> reason its PSNR should not be printed by export."""
 
     def __init__(
         self,
@@ -541,6 +805,7 @@ class ModelInfo(google.protobuf.message.Message):
         related_models: collections.abc.Iterable[builtins.str] | None = ...,
         form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
         technical_details: collections.abc.Iterable[global___ModelInfo.TechnicalDetail] | None = ...,
+        runtime_technical_details: collections.abc.Iterable[global___ModelInfo.RuntimeTechnicalDetails] | None = ...,
         license_type: global___ModelLicense.ValueType = ...,
         model_maker_id: builtins.str | None = ...,
         dataset: collections.abc.Iterable[builtins.str] | None = ...,
@@ -552,15 +817,43 @@ class ModelInfo(google.protobuf.message.Message):
         has_animated_banner: builtins.bool = ...,
         imsdk_supported: builtins.bool = ...,
         restrict_model_sharing: builtins.bool = ...,
-        numerics_benchmark: numerics_pb2.NumericsAccuracyBenchmark | None = ...,
+        voice_ai_sdk: global___VoiceAISdk.ValueType = ...,
+        private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
         model_type_llm: builtins.bool = ...,
         llm_details: global___ModelInfo.LLMDetails | None = ...,
-        private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
-        runtime_technical_details: collections.abc.Iterable[global___ModelInfo.RuntimeTechnicalDetails] | None = ...,
-        voice_ai_sdk: global___VoiceAISdk.ValueType = ...,
+        templates: collections.abc.Iterable[builtins.str] | None = ...,
+        datasets: collections.abc.Iterable[builtins.str] | None = ...,
+        models: collections.abc.Iterable[builtins.str] | None = ...,
+        external_repos: collections.abc.Iterable[global___ModelInfo.ExternalRepo] | None = ...,
+        pre_pip_install_commands: collections.abc.Iterable[global___ModelInfo.PipCommand] | None = ...,
+        post_pip_install_commands: collections.abc.Iterable[global___ModelInfo.PipCommand] | None = ...,
+        readme_install_system_deps: builtins.str | None = ...,
+        python_version_greater_than_or_equal_to: builtins.str | None = ...,
+        python_version_greater_than_or_equal_to_reason: builtins.str | None = ...,
+        python_version_less_than: builtins.str | None = ...,
+        python_version_less_than_reason: builtins.str | None = ...,
+        is_collection_model: builtins.bool = ...,
+        has_multi_graph: builtins.bool = ...,
+        is_precompiled: builtins.bool = ...,
+        supported_precisions: collections.abc.Iterable[shared.precision_pb2.Precision.ValueType] | None = ...,
+        orchestrator_runtimes: collections.abc.Iterable[shared.runtime_pb2.Runtime.ValueType] | None = ...,
+        only_allow_orchestrator_runtimes: builtins.bool = ...,
+        requires_aot_prepare: builtins.bool = ...,
+        disabled_paths: collections.abc.Iterable[global___ModelInfo.DisabledPath] | None = ...,
+        is_aimet: builtins.bool = ...,
+        num_calibration_samples: builtins.int | None = ...,
+        separate_quantize_script: builtins.bool = ...,
+        default_device: builtins.str = ...,
+        has_on_target_demo: builtins.bool = ...,
+        numerics_benchmark: numerics_pb2.NumericsAccuracyBenchmark | None = ...,
+        inference_metrics: builtins.str = ...,
+        outputs_to_skip_validation: collections.abc.Mapping[builtins.int, builtins.str] | None = ...,
+        additional_readme_section: builtins.str = ...,
+        skip_example_usage: builtins.bool = ...,
+        local_device_deployment: builtins.bool = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_benchmark", b"_numerics_benchmark", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "license_url", b"license_url", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_benchmark", b"numerics_benchmark", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "source_repo", b"source_repo", "status_reason", b"status_reason"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_benchmark", b"_numerics_benchmark", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "aihm_version", b"aihm_version", "applicable_scenarios", b"applicable_scenarios", "dataset", b"dataset", "description", b"description", "domain", b"domain", "form_factors", b"form_factors", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "headline", b"headline", "id", b"id", "imsdk_supported", b"imsdk_supported", "license_type", b"license_type", "license_url", b"license_url", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "model_type_llm", b"model_type_llm", "name", b"name", "numerics_benchmark", b"numerics_benchmark", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "restrict_model_sharing", b"restrict_model_sharing", "runtime_technical_details", b"runtime_technical_details", "source_repo", b"source_repo", "status", b"status", "status_reason", b"status_reason", "tags", b"tags", "technical_details", b"technical_details", "use_case", b"use_case", "voice_ai_sdk", b"voice_ai_sdk"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "license_url", b"license_url", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "source_repo", b"source_repo", "status_reason", b"status_reason"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "additional_readme_section", b"additional_readme_section", "aihm_version", b"aihm_version", "applicable_scenarios", b"applicable_scenarios", "dataset", b"dataset", "datasets", b"datasets", "default_device", b"default_device", "description", b"description", "disabled_paths", b"disabled_paths", "domain", b"domain", "external_repos", b"external_repos", "form_factors", b"form_factors", "has_animated_banner", b"has_animated_banner", "has_multi_graph", b"has_multi_graph", "has_on_target_demo", b"has_on_target_demo", "has_static_banner", b"has_static_banner", "headline", b"headline", "id", b"id", "imsdk_supported", b"imsdk_supported", "inference_metrics", b"inference_metrics", "is_aimet", b"is_aimet", "is_collection_model", b"is_collection_model", "is_precompiled", b"is_precompiled", "license_type", b"license_type", "license_url", b"license_url", "llm_details", b"llm_details", "local_device_deployment", b"local_device_deployment", "model_maker_id", b"model_maker_id", "model_type_llm", b"model_type_llm", "models", b"models", "name", b"name", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "only_allow_orchestrator_runtimes", b"only_allow_orchestrator_runtimes", "orchestrator_runtimes", b"orchestrator_runtimes", "outputs_to_skip_validation", b"outputs_to_skip_validation", "post_pip_install_commands", b"post_pip_install_commands", "pre_pip_install_commands", b"pre_pip_install_commands", "private_perf_form_factors", b"private_perf_form_factors", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "related_models", b"related_models", "requires_aot_prepare", b"requires_aot_prepare", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "restrict_model_sharing", b"restrict_model_sharing", "runtime_technical_details", b"runtime_technical_details", "separate_quantize_script", b"separate_quantize_script", "skip_example_usage", b"skip_example_usage", "source_repo", b"source_repo", "status", b"status", "status_reason", b"status_reason", "supported_precisions", b"supported_precisions", "tags", b"tags", "technical_details", b"technical_details", "templates", b"templates", "use_case", b"use_case", "voice_ai_sdk", b"voice_ai_sdk"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_license_url", b"_license_url"]) -> typing.Literal["license_url"] | None: ...
     @typing.overload
@@ -568,7 +861,19 @@ class ModelInfo(google.protobuf.message.Message):
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_model_maker_id", b"_model_maker_id"]) -> typing.Literal["model_maker_id"] | None: ...
     @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_num_calibration_samples", b"_num_calibration_samples"]) -> typing.Literal["num_calibration_samples"] | None: ...
+    @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_numerics_benchmark", b"_numerics_benchmark"]) -> typing.Literal["numerics_benchmark"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to"]) -> typing.Literal["python_version_greater_than_or_equal_to"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason"]) -> typing.Literal["python_version_greater_than_or_equal_to_reason"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_python_version_less_than", b"_python_version_less_than"]) -> typing.Literal["python_version_less_than"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_python_version_less_than_reason", b"_python_version_less_than_reason"]) -> typing.Literal["python_version_less_than_reason"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_readme_install_system_deps", b"_readme_install_system_deps"]) -> typing.Literal["readme_install_system_deps"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_research_paper", b"_research_paper"]) -> typing.Literal["research_paper"] | None: ...
     @typing.overload

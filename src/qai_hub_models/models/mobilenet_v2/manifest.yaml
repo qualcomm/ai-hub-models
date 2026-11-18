@@ -1,14 +1,14 @@
 description: MobileNetV2 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  pytorch_mobilenet_v2:
-    commit_sha: 99f213657e97de463c11c9e0eaca3bda598e8b3f
-    repo_url: https://github.com/tonylins/pytorch-mobilenet-v2.git
+- commit_sha: 99f213657e97de463c11c9e0eaca3bda598e8b3f
+  name: pytorch_mobilenet_v2
+  repo_url: https://github.com/tonylins/pytorch-mobilenet-v2.git
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: mobilenet_v2
-license: https://github.com/tonylins/pytorch-mobilenet-v2/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/tonylins/pytorch-mobilenet-v2/blob/master/LICENSE
 name: MobileNet-v2
 numerics_benchmark:
   dataset_name: imagenet
@@ -20,13 +20,13 @@ research_paper: https://arxiv.org/abs/1801.04381
 research_paper_title: 'MobileNetV2: Inverted Residuals and Linear Bottlenecks'
 source_repo: https://github.com/tonylins/pytorch-mobilenet-v2/tree/master
 supported_precisions:
-- float
-- w8a16_mixed_int16
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_INT16
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- backbone
-- real-time
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_REAL_TIME
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

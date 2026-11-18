@@ -1,14 +1,14 @@
 description: MobileNetV4 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  MobileNetV4_pytorch:
-    commit_sha: 5653796f9cb2b99120e0f6a9023ee8c8f0e4786e
-    repo_url: https://github.com/jaiwei98/MobileNetV4-pytorch.git
+- commit_sha: 5653796f9cb2b99120e0f6a9023ee8c8f0e4786e
+  name: MobileNetV4_pytorch
+  repo_url: https://github.com/jaiwei98/MobileNetV4-pytorch.git
 has_on_target_demo: true
 headline: Efficient pure-conv ImageNet classifier for mobile devices.
 id: mobilenet_v4
-license: https://github.com/jaiwei98/MobileNetV4-pytorch/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/jaiwei98/MobileNetV4-pytorch/blob/main/LICENSE
 name: MobileNet-v4
 numerics_benchmark:
   dataset_name: imagenet
@@ -20,12 +20,12 @@ research_paper: https://arxiv.org/abs/2404.10518
 research_paper_title: MobileNetV4 -- Universal Models for the Mobile Ecosystem
 source_repo: https://github.com/jaiwei98/MobileNetV4-pytorch
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- backbone
-- real-time
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

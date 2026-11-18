@@ -1,14 +1,14 @@
 description: MOBILEBERT is a lightweight BERT model designed for efficient self-supervised learning of language representations. It can be used for masked language modeling and as a backbone for various NLP tasks.
 disabled_paths:
-  float:
-    tflite:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-74.000 %) above threshold (10.0 %)
-domain: Generative AI
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-74.000 %) above threshold (10.0 %)
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_on_target_demo: true
 headline: Language model for masked language modeling and general-purpose NLP tasks.
 id: mobile_bert_uncased_google
-license: https://github.com/google-research/google-research/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/google-research/google-research/blob/master/LICENSE
 name: Mobile-Bert-Uncased-Google
 numerics_benchmark:
   dataset_name: bert_wikitext_masked
@@ -20,11 +20,11 @@ research_paper: https://arxiv.org/abs/2004.02984
 research_paper_title: 'MobileBERT: a Compact Task-Agnostic BERT for Resource-Limited Devices'
 source_repo: https://github.com/google-research/google-research/tree/master/mobilebert
 supported_precisions:
-- float
-- w8a16_mixed_fp16
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_FP16
+- PRECISION_W8A16
 tags:
-- backbone
+- MODEL_TAG_BACKBONE
 templates:
 - bert_hf
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

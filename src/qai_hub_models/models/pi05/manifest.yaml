@@ -1,23 +1,22 @@
 default_device: Dragonwing IQ-9075 EVK
 description: Pi0.5 is a vision-language-action model that co-trains on diverse data sources (robot demos, web data, semantic subtasks) to enable open-world generalization for long-horizon robotic manipulation.
-disabled_paths: {}
-domain: Multimodal
+domain: MODEL_DOMAIN_MULTIMODAL
 headline: State-of-the-art generalist robotic foundation model trained on vision, language, and action to enable dexterous, zero-shot physical task execution across diverse robot platforms.
 id: pi05
 is_aimet: true
 is_collection_model: true
-license: https://github.com/Physical-Intelligence/openpi/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/Physical-Intelligence/openpi/blob/main/LICENSE
 name: Pi0.5
 post_pip_install_commands:
 - command: pip install git+https://github.com/huggingface/transformers.git@fix/lerobot_openpi
-  machine: cpu
+  machine: MACHINE_CPU
 - command: pip install git+https://github.com/huggingface/transformers.git@fix/lerobot_openpi
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 python_version_less_than: '3.13'
 python_version_less_than_reason: onnxsim has no Python 3.13 wheels
 requires_aot_prepare: true
@@ -25,11 +24,11 @@ research_paper: https://www.physicalintelligence.company/download/pi05.pdf
 research_paper_title: 'Pi0.5: a Vision-Language-Action Model with Open-World Generalization'
 source_repo: https://github.com/Physical-Intelligence/openpi
 supported_precisions:
-- mixed
+- PRECISION_MIXED
 tags:
-- generative-ai
-- robotics
+- MODEL_TAG_GENERATIVE_AI
+- MODEL_TAG_ROBOTICS
 templates:
 - corevision
 - llm
-use_case: Robotics
+use_case: MODEL_USE_CASE_ROBOTICS

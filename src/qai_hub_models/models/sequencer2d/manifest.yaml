@@ -1,21 +1,23 @@
 description: Sequencer2D is a vision transformer model that can classify images from the Imagenet dataset.
 disabled_paths:
-  w8a16:
-    onnx:
-      scorecard_accuracy_failure: 'Device accuracy (46.0 %) deviates from benchmark (82.3 %) by -36.300 %, threshold: 10.0 %'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jg9qkx3mp'
-  w8a8:
-    onnx:
-      scorecard_accuracy_failure: 'Device accuracy (41.1 %) deviates from benchmark (82.3 %) by -41.200 %, threshold: 10.0 %'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jg9qkx8qp'
-domain: Computer Vision
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jg9qkx8qp'
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: 'Device accuracy (41.1 %) deviates from benchmark (82.3 %) by -41.200 %, threshold: 10.0 %'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jg9qkx3mp'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: 'Device accuracy (46.0 %) deviates from benchmark (82.3 %) by -36.300 %, threshold: 10.0 %'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: sequencer2d
-license: https://github.com/okojoalg/sequencer/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/okojoalg/sequencer/blob/main/LICENSE
 name: Sequencer2D
 numerics_benchmark:
   dataset_name: imagenet
@@ -27,9 +29,9 @@ research_paper: https://arxiv.org/abs/2205.01972
 research_paper_title: 'Sequencer: Deep LSTM for Image Classification'
 source_repo: https://github.com/okojoalg/sequencer
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

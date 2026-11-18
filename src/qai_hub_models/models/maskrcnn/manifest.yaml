@@ -1,15 +1,15 @@
 description: Mask R-CNN is a machine learning model that extends Faster R-CNN to perform instance segmentation by detecting objects in an image while simultaneously generating a high-quality segmentation mask for each instance. It adds a branch for predicting segmentation masks in parallel with the existing branch for bounding box recognition.
 disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Failing jobs: j560q89v5'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: j560q89v5'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Instance segmentation for object detection and masking.
 id: maskrcnn
 is_collection_model: true
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: MaskRCNN
 research_paper: https://arxiv.org/abs/1703.06870
 research_paper_title: Mask R-CNN
@@ -17,4 +17,4 @@ source_repo: https://github.com/pytorch/vision
 templates:
 - corevision
 - proposal_based_detection
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

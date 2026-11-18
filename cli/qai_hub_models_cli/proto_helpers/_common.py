@@ -61,10 +61,14 @@ def proto_to_dict(msg: Message) -> dict[str, Any]:
     return _sorted_keys(data)
 
 
-def proto_from_dict(data: dict[str, Any] | None, proto_type: type[_M]) -> _M:
+def proto_from_dict(
+    data: dict[str, Any] | None,
+    proto_type: type[_M],
+    ignore_unknown_fields: bool = False,
+) -> _M:
     """Build a protobuf message from a dict produced by ``proto_to_dict``."""
     msg = proto_type()
-    json_format.ParseDict(data or {}, msg)
+    json_format.ParseDict(data or {}, msg, ignore_unknown_fields=ignore_unknown_fields)
     return msg
 
 
@@ -92,16 +96,45 @@ def read_proto_yaml(path: str | os.PathLike, proto_type: type[_M]) -> _M:
     return proto_from_dict(data, proto_type)
 
 
-def write_proto_yaml(msg: Message, path: str | os.PathLike) -> None:
-    """Write a protobuf message to a YAML file (proto field names, sorted keys)."""
+def yaml_writer(flow_lists: bool = False) -> Any:
+    """A ruamel writer configured the way every QAIHM YAML file is written."""
     import ruamel.yaml
+    from ruamel.yaml.representer import RoundTripRepresenter
+
+    # add_representer is a classmethod, so registering on yaml.representer would
+    # reconfigure every RoundTripRepresenter in the process. A throwaway subclass
+    # gets its own registry; register new representers on it.
+    class _Representer(RoundTripRepresenter):
+        pass
+
+    def _represent_str(dumper: RoundTripRepresenter, data: str) -> Any:
+        style = "|" if "\n" in data else None
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+    _Representer.add_representer(str, _represent_str)
+
+    if flow_lists:
+
+        def _represent_list(dumper: RoundTripRepresenter, data: list) -> Any:
+            return dumper.represent_sequence(
+                "tag:yaml.org,2002:seq", data, flow_style=True
+            )
+
+        _Representer.add_representer(list, _represent_list)
 
     yaml = ruamel.yaml.YAML()
-    # Don't wrap long values (e.g. S3 keys); wrapping leaves trailing whitespace.
+    yaml.Representer = _Representer
+    # Simplistic YAML readers can't read multi-line strings, and wrapping long
+    # values (e.g. S3 keys) leaves trailing whitespace; never wrap.
     yaml.width = 4096
+    return yaml
+
+
+def write_proto_yaml(msg: Message, path: str | os.PathLike) -> None:
+    """Write a protobuf message to a YAML file (proto field names, sorted keys)."""
     proto_dict = proto_to_dict(msg)
     with open(path, "w") as f:
-        yaml.dump(proto_dict, f)
+        yaml_writer().dump(proto_dict, f)
 
 
 def fetch_proto(url: str, cache_path: Path, proto_type: type[_M]) -> _M:

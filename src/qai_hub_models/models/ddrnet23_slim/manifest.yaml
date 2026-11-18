@@ -1,15 +1,15 @@
 description: DDRNet23Slim is a machine learning model that segments an image into semantic classes, specifically designed for road-based scenes. It is designed for the application of self-driving cars.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  ddrnet_pytorch:
-    commit_sha: bc0e193e87ead839dbc715c48e6bfb059cf21b27
-    patches_filename: ddrnet_pytorch_patches.diff
-    repo_url: https://github.com/chenjun2hao/DDRNet.pytorch.git
+- commit_sha: bc0e193e87ead839dbc715c48e6bfb059cf21b27
+  name: ddrnet_pytorch
+  patches_filename: ddrnet_pytorch_patches.diff
+  repo_url: https://github.com/chenjun2hao/DDRNet.pytorch.git
 has_on_target_demo: true
 headline: Segment images or video by class in real-time on device.
 id: ddrnet23_slim
-license: https://github.com/chenjun2hao/DDRNet.pytorch/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/chenjun2hao/DDRNet.pytorch/blob/main/LICENSE
 name: DDRNet23-Slim
 numerics_benchmark:
   dataset_name: cityscapes
@@ -21,12 +21,12 @@ research_paper: https://arxiv.org/abs/2101.06085
 research_paper_title: Deep Dual-resolution Networks for Real-time and Accurate Semantic Segmentation of Road Scenes
 source_repo: https://github.com/chenjun2hao/DDRNet.pytorch
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - cityscapes_segmentation
 - corevision
 - segmentation
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

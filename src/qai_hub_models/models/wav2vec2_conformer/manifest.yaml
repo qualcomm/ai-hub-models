@@ -1,14 +1,14 @@
 description: Facebook Wav2Vec2-Conformer-Large is an English ASR model fine-tuned on 960 hours of LibriSpeech. It uses a Conformer encoder with relative-position attention (24 layers, 1024 hidden dim, 16 heads) and a CTC head for decoding. The model accepts raw 16kHz audio and outputs transcribed text via CTC greedy decoding.
 disabled_paths:
-  float:
-    qnn_context_binary:
-      scorecard_failure: 'Failing jobs: jpr71j49g'
-domain: Audio
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
+  scorecard_failure: 'Failing jobs: jpr71j49g'
+domain: MODEL_DOMAIN_AUDIO
 has_on_target_demo: true
 headline: English speech recognition with Wav2Vec2-Conformer encoder and CTC decoder.
 id: wav2vec2_conformer
-license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 name: Wav2Vec2-Conformer-Large-960h
 numerics_benchmark:
   dataset_name: librispeech
@@ -31,10 +31,10 @@ research_paper: https://arxiv.org/abs/2006.11477
 research_paper_title: 'wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations'
 source_repo: https://huggingface.co/facebook/wav2vec2-conformer-rel-pos-large-960h-ft
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - conformer
-use_case: Speech Recognition
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION

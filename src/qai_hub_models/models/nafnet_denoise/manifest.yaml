@@ -1,24 +1,25 @@
 description: NAFNET is designed for lightweight real-time denoising of images.
 disabled_paths:
-  float:
-    qnn_dlc:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-28.400 dB) above threshold (10.0 dB)
-    tflite:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-28.400 dB) above threshold (10.0 dB)
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-28.400 dB) above threshold (10.0 dB)
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-28.400 dB) above threshold (10.0 dB)
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Denoise images in real time.
 id: nafnet_denoise
-license: https://github.com/megvii-research/NAFNet/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/megvii-research/NAFNet/blob/main/LICENSE
 name: NAFNet-DeNoise
 research_paper: https://arxiv.org/abs/2204.04676
 research_paper_title: Simple Baselines for Image Restoration
 source_repo: https://github.com/megvii-research/NAFNet.git
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 templates:
 - corevision
 - nafnet
-use_case: Image Editing
+use_case: MODEL_USE_CASE_IMAGE_EDITING

@@ -2,17 +2,17 @@ datasets:
 - kitti_lidar_place_recognition
 - nclt_lidar_place_recognition
 description: OverlapTransformer is a lightweight LiDAR place-recognition network. It projects a point cloud into a spherical range image and produces a yaw-angle-invariant 256-d global descriptor for nearest-neighbor loop-closure retrieval.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  overlap_transformer:
-    commit_sha: 9809ac2c7bce9ebf446392f79bfe514927ab4c63
-    patches_filename: overlap_transformer_patches.diff
-    repo_url: https://github.com/haomo-ai/OverlapTransformer.git
+- commit_sha: 9809ac2c7bce9ebf446392f79bfe514927ab4c63
+  name: overlap_transformer
+  patches_filename: overlap_transformer_patches.diff
+  repo_url: https://github.com/haomo-ai/OverlapTransformer.git
 has_on_target_demo: true
 headline: Yaw-angle-invariant LiDAR place-recognition descriptor for loop-closure detection.
 id: overlap_transformer
-license: https://github.com/haomo-ai/OverlapTransformer/blob/master/LICENSE
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/haomo-ai/OverlapTransformer/blob/master/LICENSE
 name: OverlapTransformer
 numerics_benchmark:
   dataset_name: kitti_lidar_place_recognition
@@ -25,6 +25,6 @@ research_paper_title: 'OverlapTransformer: An Efficient and Yaw-Angle-Invariant 
 restrict_model_sharing: true
 source_repo: https://github.com/haomo-ai/OverlapTransformer
 supported_precisions:
-- float
-- w8a8
-use_case: Robotics
+- PRECISION_FLOAT
+- PRECISION_W8A8
+use_case: MODEL_USE_CASE_ROBOTICS

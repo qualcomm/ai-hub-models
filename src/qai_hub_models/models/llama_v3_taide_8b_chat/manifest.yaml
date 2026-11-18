@@ -1,12 +1,12 @@
 description: The Llama3-TAIDE-LX-8B-Chat-Alpha1 LLM model is based on Meta's released LLaMA3-8b model, fine-tuned on Traditional Chinese data, and enhanced for office tasks and multi-turn dialogue capabilities through instruction tuning. The TAIDE model is incorporating text and training materials from various fields in Taiwan to enhance the model's ability to respond in Traditional Chinese and perform specific tasks such as automatic summarization, writing emails, articles, and translating between Chinese and English.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: llama_v3_taide_8b_chat
 is_aimet: true
 is_collection_model: true
-license: https://drive.google.com/file/d/1ICTxogjS9Bc2O3K1P9ZauQYVoruT13n5/view?pli=1
-license_type: taide
+license_type: MODEL_LICENSE_TAIDE
+license_url: https://drive.google.com/file/d/1ICTxogjS9Bc2O3K1P9ZauQYVoruT13n5/view?pli=1
 local_device_deployment: true
 model_type_llm: true
 name: Llama3-TAIDE-LX-8B-Chat-Alpha1
@@ -18,35 +18,41 @@ numerics_benchmark:
   value: 70.3
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.31.0
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 research_paper: https://ai.meta.com/blog/meta-llama-3/
 research_paper_title: 'LLaMA: Open and Efficient Foundation Language Models'
 restrict_model_sharing: true
 runtime_technical_details:
-  geniex_qairt:
-    Input sequence length for Prompt Processor: '128'
-    Maximum context length: '4096'
-    Quantization Type: w4a16 + w8a16 (few layers)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Maximum context length
+    string_value: '4096'
+  - key: Quantization Type
+    string_value: w4a16 + w8a16 (few layers)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
 separate_quantize_script: true
 source_repo: https://huggingface.co/taide/Llama3-TAIDE-LX-8B-Chat-Alpha1
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llama3
 - llm
 - lm_driver
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

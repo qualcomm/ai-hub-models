@@ -1,10 +1,10 @@
 description: YoloX is a machine learning model that predicts bounding boxes and classes of objects in an image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolox
-license: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/LICENSE
 name: Yolo-X
 numerics_benchmark:
   dataset_name: coco
@@ -13,20 +13,20 @@ numerics_benchmark:
   unit: mAP
   value: 40.5
 post_pip_install_commands:
-- pip install git+https://github.com/Megvii-BaseDetection/YOLOX.git@6ddff48 --no-deps --no-build-isolation --use-pep517
+- command: pip install git+https://github.com/Megvii-BaseDetection/YOLOX.git@6ddff48 --no-deps --no-build-isolation --use-pep517
 pre_pip_install_commands:
-- pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
+- command: pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
 research_paper: https://github.com/Megvii-BaseDetection/YOLOX/blob/main/README.md
 research_paper_title: 'YOLOX: Exceeding YOLO Series in 2021'
 source_repo: https://github.com/Megvii-BaseDetection/YOLOX/
 supported_precisions:
-- float
-- w8a8_mixed_int16
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8_MIXED_INT16
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

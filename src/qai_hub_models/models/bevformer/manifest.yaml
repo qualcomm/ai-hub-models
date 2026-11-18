@@ -2,26 +2,26 @@ datasets:
 - nuscenes
 description: Bevformer is a SOTA model of interest to the Auto BU.
 disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jgo9edkqg'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jgo9edkqg'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  bevformer:
-    commit_sha: 66b65f3a1f58caf0507cb2a971b9c0e7f842376c
-    patches_filename: bevformertiny_minimal.diff
-    repo_url: https://github.com/fundamentalvision/BEVFormer.git
+- commit_sha: 66b65f3a1f58caf0507cb2a971b9c0e7f842376c
+  name: bevformer
+  patches_filename: bevformertiny_minimal.diff
+  repo_url: https://github.com/fundamentalvision/BEVFormer.git
 has_on_target_demo: true
 headline: Transform temporal multi-view images into a unified bird's eye scene.
 id: bevformer
-license: https://github.com/fundamentalvision/BEVFormer/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/fundamentalvision/BEVFormer/blob/master/LICENSE
 name: BEVFormer
 research_paper: https://arxiv.org/abs/2203.17270
 research_paper_title: "BEVFormer: Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers"
 source_repo: https://github.com/fundamentalvision/BEVFormer/
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
-use_case: Driver Assistance
+use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

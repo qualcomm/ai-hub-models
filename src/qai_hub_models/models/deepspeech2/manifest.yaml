@@ -1,23 +1,24 @@
 description: DeepSpeech2 is an end-to-end automatic speech recognition (ASR) model. It uses convolutional layers for feature extraction followed by bidirectional recurrent layers and CTC for sequence-to-sequence learning.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_failure: 'Failing jobs: j5ml4299g'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jp3r83onp'
-domain: Audio
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jp3r83onp'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: j5ml4299g'
+domain: MODEL_DOMAIN_AUDIO
 has_on_target_demo: true
 headline: End-to-end speech recognition model using CNN and bidirectional RNN layers with CTC loss.
 id: deepspeech2
-license: https://github.com/SeanNaren/deepspeech.pytorch/blob/master/LICENCE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/SeanNaren/deepspeech.pytorch/blob/master/LICENCE
 name: DeepSpeech2
 pre_pip_install_commands:
-- pip install git+https://github.com/SeanNaren/deepspeech.pytorch.git@709df90 git+https://github.com/romesco/hydra-lightning/#subdirectory=hydra-configs-pytorch-lightning --no-deps
+- command: pip install git+https://github.com/SeanNaren/deepspeech.pytorch.git@709df90 git+https://github.com/romesco/hydra-lightning/#subdirectory=hydra-configs-pytorch-lightning --no-deps
 research_paper: https://arxiv.org/abs/1512.02595
 research_paper_title: 'Deep Speech 2: End-to-End Speech Recognition in English and Mandarin'
 source_repo: https://github.com/SeanNaren/deepspeech.pytorch
 tags:
-- foundation
-- real-time
-use_case: Speech Recognition
+- MODEL_TAG_FOUNDATION
+- MODEL_TAG_REAL_TIME
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION

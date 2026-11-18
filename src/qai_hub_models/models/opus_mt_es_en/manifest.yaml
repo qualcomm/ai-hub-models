@@ -1,26 +1,25 @@
 description: OpusMT Spanish to English translation model is a state-of-the-art neural machine translation system designed for translating Spanish text into English. This model is based on the Marian transformer architecture and has been optimized for edge inference by splitting into encoder and decoder components with modified attention mechanisms. It exhibits robust performance for real-world translation tasks, making it highly reliable for practical applications. The model supports input sequences up to 256 tokens and can generate English translations with high accuracy.
-disabled_paths: {}
-domain: Multimodal
+domain: MODEL_DOMAIN_MULTIMODAL
 headline: OpusMT Spanish to English neural machine translation model based on MarianMT transformer architecture.
 id: opus_mt_es_en
 is_aimet: true
 is_collection_model: true
-license: https://github.com/Helsinki-NLP/Opus-MT/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/Helsinki-NLP/Opus-MT/blob/master/LICENSE
 name: OpusMT-Es-En
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- voice_ai
+- RUNTIME_VOICE_AI
 requires_aot_prepare: true
 research_paper: https://aclanthology.org/2020.eamt-1.61/
 research_paper_title: OPUS-MT – Building open translation services for the World
 source_repo: https://github.com/Helsinki-NLP/Opus-MT
 supported_precisions:
-- w8a16
-- float
+- PRECISION_W8A16
+- PRECISION_FLOAT
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - opus_mt
-use_case: Text Generation
-voice_ai_sdk: translation
+use_case: MODEL_USE_CASE_TEXT_GENERATION
+voice_ai_sdk: VOICE_AI_SDK_TRANSLATION

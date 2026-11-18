@@ -1,9 +1,9 @@
 description: LFM3-VL is a vision-language model from Liquid AI designed for fast, high-quality on-device deployment. It understands text and images for tasks such as visual question answering, image captioning, and optical character recognition.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Compact 2B vision-language model from Liquid AI built for on-device deployment.
 id: lfm3_vl_2b
-license: https://www.liquid.ai/lfm-license
-license_type: lfm1.0
+license_type: MODEL_LICENSE_LFM1_0
+license_url: https://www.liquid.ai/lfm-license
 model_type_llm: true
 name: LFM3-VL-2B
 numerics_benchmark:
@@ -13,22 +13,28 @@ numerics_benchmark:
   unit: '%'
   value: 82.8
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://www.liquid.ai/blog/lfm3
 research_paper_title: 'Introducing LFM3: Every Modality for Specialized Intelligence'
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 1.05 GB (Q4_0 GGUF weights only; excludes the vision projector).
-    Quantization Type: Q4_0 (GGUF, quantization-aware distillation)
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: LiquidAI/LFM3-VL-2B-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 1.05 GB (Q4_0 GGUF weights only; excludes the vision projector).
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF, quantization-aware distillation)
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: LiquidAI/LFM3-VL-2B-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/LiquidAI/LFM3-VL-2B
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

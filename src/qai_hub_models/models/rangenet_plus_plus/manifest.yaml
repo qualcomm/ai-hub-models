@@ -2,27 +2,27 @@ datasets:
 - pandaset
 - semantic_kitti
 description: RangeNet-Plus-Plus (also stylized as RangeNet++) projects a LiDAR point cloud onto a 5-channel range image (depth, x, y, z, intensity) and applies a DarkNet-53 encoder with a decoder head to predict per-point semantic class labels in real time.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  lidar_bonnetal:
-    commit_sha: 99b827f0228ff0e997473ac8e2cecbaa4af7d7c7
-    patches_filename: lidar_bonnetal_patches.diff
-    repo_url: https://github.com/PRBonn/lidar-bonnetal.git
+- commit_sha: 99b827f0228ff0e997473ac8e2cecbaa4af7d7c7
+  name: lidar_bonnetal
+  patches_filename: lidar_bonnetal_patches.diff
+  repo_url: https://github.com/PRBonn/lidar-bonnetal.git
 has_on_target_demo: true
 headline: Real-time LiDAR point cloud semantic segmentation using range images.
 id: rangenet_plus_plus
-license: https://github.com/PRBonn/lidar-bonnetal/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/PRBonn/lidar-bonnetal/blob/master/LICENSE
 name: RangeNet-Plus-Plus
 research_paper: https://ieeexplore.ieee.org/document/8967762
 research_paper_title: 'RangeNet++: Fast and Accurate LiDAR Semantic Segmentation'
 source_repo: https://github.com/PRBonn/lidar-bonnetal
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
-- bu-auto
+- MODEL_TAG_REAL_TIME
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
-use_case: Driver Assistance
+use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

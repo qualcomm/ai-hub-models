@@ -2,17 +2,17 @@ datasets:
 - coco
 - mpii
 description: HRNet performs pose estimation in high-resolution representations.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  hrnet:
-    commit_sha: 6f69e4676ad8d43d0d61b64b1b9726f0c369e7b1
-    patches_filename: hrnet_patches.diff
-    repo_url: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch.git
+- commit_sha: 6f69e4676ad8d43d0d61b64b1b9726f0c369e7b1
+  name: hrnet
+  patches_filename: hrnet_patches.diff
+  repo_url: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch.git
 has_on_target_demo: true
 headline: Perform accurate human pose estimation.
 id: hrnet_pose
-license: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch/blob/master/LICENSE
 name: HRNetPose
 numerics_benchmark:
   dataset_name: cocobody
@@ -21,17 +21,17 @@ numerics_benchmark:
   unit: mAP
   value: 74.4
 pre_pip_install_commands:
-- pip install mmpose==1.2.0 --no-deps
+- command: pip install mmpose==1.2.0 --no-deps
 research_paper: https://arxiv.org/abs/1902.09212
 research_paper_title: Deep High-Resolution Representation Learning for Human Pose Estimation
 source_repo: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - mmpose
-use_case: Pose Estimation
+use_case: MODEL_USE_CASE_POSE_ESTIMATION

@@ -1,26 +1,25 @@
 description: Track-Anything is a video based machine learning model to track an object in a video.
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  track_anything:
-    commit_sha: e6e159273790974e04eeea6673f1f93c035005fc
-    patches_filename: track_anything_patches.diff
-    repo_url: https://github.com/gaomingqi/Track-Anything.git
+- commit_sha: e6e159273790974e04eeea6673f1f93c035005fc
+  name: track_anything
+  patches_filename: track_anything_patches.diff
+  repo_url: https://github.com/gaomingqi/Track-Anything.git
 has_on_target_demo: true
 headline: High-performance interactive tracking and segmentation in videos.
 id: track_anything
 is_collection_model: true
-license: https://github.com/gaomingqi/Track-Anything/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/gaomingqi/Track-Anything/blob/master/LICENSE
 models:
 - mobilesam
 name: Track-Anything
 post_pip_install_commands:
-- pip install git+https://github.com/ChaoningZhang/MobileSAM@34bbbfd --use-pep517
+- command: pip install git+https://github.com/ChaoningZhang/MobileSAM@34bbbfd --use-pep517
 research_paper: https://arxiv.org/abs/2304.11968
 research_paper_title: 'Track Anything: Segment Anything Meets Videos'
 source_repo: https://github.com/gaomingqi/Track-Anything
 templates:
 - corevision
 - sam
-use_case: Video Object Tracking
+use_case: MODEL_USE_CASE_VIDEO_OBJECT_TRACKING

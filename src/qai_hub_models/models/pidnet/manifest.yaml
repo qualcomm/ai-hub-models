@@ -1,14 +1,14 @@
 description: PIDNet (Proportional-Integral-Derivative Network) is a real-time semantic segmentation model based on  PID controllers
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  pidnet:
-    commit_sha: fefa51716bddc13a4321af2c70a074367100645a
-    repo_url: https://github.com/XuJiacong/PIDNet.git
+- commit_sha: fefa51716bddc13a4321af2c70a074367100645a
+  name: pidnet
+  repo_url: https://github.com/XuJiacong/PIDNet.git
 has_on_target_demo: true
 headline: Segment images or video by class in real-time on device.
 id: pidnet
-license: https://github.com/XuJiacong/PIDNet/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/XuJiacong/PIDNet/blob/main/LICENSE
 name: PidNet
 numerics_benchmark:
   dataset_name: cityscapes
@@ -20,11 +20,11 @@ research_paper: https://arxiv.org/abs/2206.02066
 research_paper_title: PIDNet A Real-time Semantic Segmentation Network Inspired from PID Controller Segmentation of Road Scenes
 source_repo: https://github.com/XuJiacong/PIDNet
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - cityscapes_segmentation
 - segmentation
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

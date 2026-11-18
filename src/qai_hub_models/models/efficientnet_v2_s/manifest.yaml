@@ -1,12 +1,12 @@
 datasets:
 - imagenet
 description: EfficientNetV2-s is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: efficientnet_v2_s
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: EfficientNet-V2-s
 numerics_benchmark:
   dataset_name: imagenet
@@ -18,12 +18,12 @@ research_paper: https://arxiv.org/abs/2104.00298
 research_paper_title: 'EfficientNetV2: Smaller Models and Faster Training'
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/efficientnet.py
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- backbone
-- bu-auto
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

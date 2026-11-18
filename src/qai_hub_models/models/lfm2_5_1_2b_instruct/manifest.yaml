@@ -1,27 +1,33 @@
 description: LFM2.5 is a family of hybrid language models from Liquid AI designed for fast, high-quality on-device deployment. The 1.2B Instruct model is tuned for instruction following, chat, and tool use.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Compact 1.2B hybrid instruct model from Liquid AI built for on-device deployment.
 id: lfm2_5_1_2b_instruct
-license: https://www.liquid.ai/lfm-license
-license_type: lfm1.0
+license_type: MODEL_LICENSE_LFM1_0
+license_url: https://www.liquid.ai/lfm-license
 model_type_llm: true
 name: LFM2.5-1.2B-Instruct
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://www.liquid.ai/blog/introducing-lfm2-5-the-next-generation-of-on-device-ai
 research_paper_title: 'Introducing LFM2.5: The Next Generation of On-Device AI'
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 696 MB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: LiquidAI/LFM2.5-1.2B-Instruct-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 696 MB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: LiquidAI/LFM2.5-1.2B-Instruct-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

@@ -1,14 +1,14 @@
 description: XLSR is designed for lightweight real-time upscaling of images.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  aimet_zoo:
-    commit_sha: d09d2b0404d10f71a7640a87e9d5e5257b028802
-    repo_url: https://github.com/quic/aimet-model-zoo.git
+- commit_sha: d09d2b0404d10f71a7640a87e9d5e5257b028802
+  name: aimet_zoo
+  repo_url: https://github.com/quic/aimet-model-zoo.git
 has_on_target_demo: true
 headline: Upscale images in real time.
 id: xlsr
-license: https://github.com/quic/aimet-model-zoo/blob/develop/LICENSE.md
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/quic/aimet-model-zoo/blob/develop/LICENSE.md
 name: XLSR
 numerics_benchmark:
   dataset_name: set14
@@ -20,8 +20,8 @@ research_paper: https://arxiv.org/abs/2105.10288
 research_paper_title: Extremely Lightweight Quantization Robust Real-Time Single-Image Super Resolution for Mobile Devices
 source_repo: https://github.com/quic/aimet-model-zoo/tree/develop/aimet_zoo_torch/xlsr
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 templates:
 - super_resolution
-use_case: Super Resolution
+use_case: MODEL_USE_CASE_SUPER_RESOLUTION

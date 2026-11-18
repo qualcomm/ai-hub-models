@@ -1,15 +1,15 @@
 description: SINet is a machine learning model that is designed to segment people from close-up portrait images in real time.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  ext_portrait_segmentation:
-    commit_sha: 9bc1bada1cb7bd17a3a80a2964980f4b4befef5b
-    patches_filename: ext_portrait_segmentation_patches.diff
-    repo_url: https://github.com/clovaai/ext_portrait_segmentation
+- commit_sha: 9bc1bada1cb7bd17a3a80a2964980f4b4befef5b
+  name: ext_portrait_segmentation
+  patches_filename: ext_portrait_segmentation_patches.diff
+  repo_url: https://github.com/clovaai/ext_portrait_segmentation
 has_on_target_demo: true
 headline: Lightweight portrait segmentation for background removal.
 id: sinet
-license: https://github.com/clovaai/ext_portrait_segmentation/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/clovaai/ext_portrait_segmentation/blob/master/LICENSE
 name: SINet
 numerics_benchmark:
   dataset_name: eg1800
@@ -21,10 +21,10 @@ research_paper: https://arxiv.org/abs/1911.09099
 research_paper_title: 'SINet: Extreme Lightweight Portrait Segmentation Networks with Spatial Squeeze Modules and Information Blocking Decoder'
 source_repo: https://github.com/clovaai/ext_portrait_segmentation
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 templates:
 - corevision
 - selfie_segmentation
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

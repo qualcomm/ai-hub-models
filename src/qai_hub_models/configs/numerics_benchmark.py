@@ -35,3 +35,15 @@ class NumericsAccuracyBenchmark(BaseQAIHMConfig):
             unit=self.unit,
             source=self.source,
         )
+
+    @classmethod
+    def from_proto(
+        cls, proto: numerics_pb2.NumericsAccuracyBenchmark
+    ) -> NumericsAccuracyBenchmark:
+        return cls(
+            dataset_name=proto.dataset_name,
+            metric_name=proto.metric_name,
+            value=proto.value,
+            unit=proto.unit,
+            source=proto.source,
+        )

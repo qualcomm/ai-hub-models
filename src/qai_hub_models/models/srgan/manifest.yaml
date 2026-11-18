@@ -1,14 +1,14 @@
 description: SRGAN is designed for lightweight real-time upscaling of images.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  srgan_pytorch:
-    commit_sha: da74ea5de7f6d582b42b42169566079059ec9846
-    repo_url: https://github.com/Lornatang/SRGAN-PyTorch
+- commit_sha: da74ea5de7f6d582b42b42169566079059ec9846
+  name: srgan_pytorch
+  repo_url: https://github.com/Lornatang/SRGAN-PyTorch
 has_on_target_demo: true
 headline: Upscale images in real time.
 id: srgan
-license: https://github.com/Lornatang/SRGAN-PyTorch/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/Lornatang/SRGAN-PyTorch/blob/main/LICENSE
 name: SRGAN
 numerics_benchmark:
   dataset_name: set14
@@ -20,9 +20,9 @@ research_paper: https://arxiv.org/abs/1609.04802v5
 research_paper_title: Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
 source_repo: https://github.com/Lornatang/SRGAN-PyTorch
 supported_precisions:
-- float
-- w8a8
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A8
+- PRECISION_W8A16
 templates:
 - super_resolution
-use_case: Super Resolution
+use_case: MODEL_USE_CASE_SUPER_RESOLUTION

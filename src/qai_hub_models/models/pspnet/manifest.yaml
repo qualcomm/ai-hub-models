@@ -2,23 +2,25 @@ datasets:
 - ade20k
 description: PSPNet (Pyramid Scene Parsing Network) is a semantic segmentation model that captures global context information by applying pyramid pooling modules. It is designed to improve scene understanding by aggregating contextual features at multiple scales.
 disabled_paths:
-  w8a8:
-    onnx:
-      scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
-    qnn_dlc:
-      scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
-    tflite:
-      scorecard_accuracy_failure: 'Device accuracy (27.9 mIOU) deviates from benchmark (17.5 mIOU) by 10.400 mIOU, threshold: 10.0 mIOU'
-domain: Computer Vision
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: 'Device accuracy (27.9 mIOU) deviates from benchmark (17.5 mIOU) by 10.400 mIOU, threshold: 10.0 mIOU'
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: 'Device accuracy (27.8 mIOU) deviates from benchmark (17.5 mIOU) by 10.300 mIOU, threshold: 10.0 mIOU'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  semseg:
-    commit_sha: 4f274c3f276778228bc14a4565822d46359f0cc8
-    repo_url: https://github.com/hszhao/semseg.git
+- commit_sha: 4f274c3f276778228bc14a4565822d46359f0cc8
+  name: semseg
+  repo_url: https://github.com/hszhao/semseg.git
 has_on_target_demo: true
 headline: Deep learning model for pixel-level semantic segmentation using pyramid pooling.
 id: pspnet
-license: https://github.com/hszhao/semseg/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/hszhao/semseg/blob/master/LICENSE
 name: PSPNet
 numerics_benchmark:
   dataset_name: ade20k_10
@@ -27,12 +29,12 @@ numerics_benchmark:
   unit: mIOU
   value: 17.5
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - cityscapes_segmentation
 - corevision
 - segmentation
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

@@ -1,12 +1,12 @@
 description: SEA-LION is a collection of Large Language Models (LLMs) which have been pretrained and instruct-tuned for the Southeast Asia (SEA) region. The model is quantized to w4a16 (4-bit weights and 16-bit activations) and part of the model is quantized to w8a16 (8-bit weights and 16-bit activations) making it suitable for on-device deployment. For Prompt and output length specified below, the time to first token is Llama-PromptProcessor-Quantized's latency and average time per addition token is Llama-TokenGenerator-Quantized's latency.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: Llama-SEA-LION-v3.5-8B-R is a hybrid model offering versatile functionality, handling both complex reasoning tasks and general text generation, with mode selection managed through the tokenizer's chat template.
 id: llama_v3_1_sea_lion_3_5_8b_r
 is_aimet: true
 is_collection_model: true
-license: https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/blob/main/LICENSE
-license_type: llama3
+license_type: MODEL_LICENSE_LLAMA3
+license_url: https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/blob/main/LICENSE
 local_device_deployment: true
 model_type_llm: true
 name: Llama-SEA-LION-v3.5-8B-R
@@ -18,33 +18,39 @@ numerics_benchmark:
   value: 92.9
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.31.0
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 restrict_model_sharing: true
 runtime_technical_details:
-  geniex_qairt:
-    Input sequence length for Prompt Processor: '128'
-    Maximum context length: '4096'
-    Quantization Type: w4a16 + w8a16 (few layers)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Maximum context length
+    string_value: '4096'
+  - key: Quantization Type
+    string_value: w4a16 + w8a16 (few layers)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
 separate_quantize_script: true
 source_repo: https://github.com/aisingapore/sealion/blob/main/models/sea-lion-v3.5/llama-sea-lion-v3.5-8B.md
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llama3
 - llm
 - lm_driver
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

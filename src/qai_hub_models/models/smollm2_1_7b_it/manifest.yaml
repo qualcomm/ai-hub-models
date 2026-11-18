@@ -1,12 +1,12 @@
 description: A 1.7B parameter instruction-tuned variant of SmolLM2, fine-tuned for conversational and instruction-following tasks, optimized for efficient on-device inference on Qualcomm Snapdragon platforms.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: Compact language model capable of solving a wide range of tasks while being lightweight.
 id: smollm2_1_7b_it
 is_aimet: true
 is_collection_model: true
-license: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct/blob/main/README.md
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct/blob/main/README.md
 model_type_llm: true
 name: SmolLM2-1.7B-Instruct
 numerics_benchmark:
@@ -17,30 +17,40 @@ numerics_benchmark:
   value: 82.1
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2502.02737
 research_paper_title: 'SmolLM2: When Smol Goes Big -- Data-Centric Training of a Small Language Model'
 runtime_technical_details:
-  geniex_qairt:
-    Context lengths: '4096'
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.45.0
-    Model size (part1_of_3) (w4a16): 192 MB
-    Model size (part2_of_3) (w4a16): 783 MB
-    Model size (part3_of_3) (w4a16): 882 MB
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: ai-hub-models/SmolLM2-1_7B-Instruct
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context lengths
+    string_value: '4096'
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.45.0
+  - key: Model size (part1_of_3) (w4a16)
+    string_value: 192 MB
+  - key: Model size (part2_of_3) (w4a16)
+    string_value: 783 MB
+  - key: Model size (part3_of_3) (w4a16)
+    string_value: 882 MB
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ai-hub-models/SmolLM2-1_7B-Instruct
 separate_quantize_script: true
 source_repo: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llama3
 - llm
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

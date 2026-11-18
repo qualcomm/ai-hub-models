@@ -1,19 +1,19 @@
 description: EasyOCR is a machine learning model that can recognize text in images. It supports 80+ supported languages and all popular writing scripts.
 disabled_paths:
-  w8a8:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jp42my6lg'
-domain: Multimodal
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jp42my6lg'
+domain: MODEL_DOMAIN_MULTIMODAL
 headline: Ready-to-use OCR with 80+ supported languages and all popular writing scripts.
 id: easyocr
 is_collection_model: true
-license: https://github.com/JaidedAI/EasyOCR/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/JaidedAI/EasyOCR/blob/master/LICENSE
 name: EasyOCR
 source_repo: https://github.com/JaidedAI/EasyOCR
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 templates:
 - corevision
-use_case: Image To Text
+use_case: MODEL_USE_CASE_IMAGE_TO_TEXT

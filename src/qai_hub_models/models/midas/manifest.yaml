@@ -1,15 +1,15 @@
 description: Midas is designed for estimating depth at each point in an image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  midas:
-    commit_sha: bdc4ed64c095e026dc0a2f17cabb14d58263decb
-    patches_filename: midas_patches.diff
-    repo_url: https://github.com/isl-org/MiDaS.git
+- commit_sha: bdc4ed64c095e026dc0a2f17cabb14d58263decb
+  name: midas
+  patches_filename: midas_patches.diff
+  repo_url: https://github.com/isl-org/MiDaS.git
 has_on_target_demo: true
 headline: Deep Convolutional Neural Network model for depth estimation.
 id: midas
-license: https://github.com/isl-org/MiDaS/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/isl-org/MiDaS/blob/master/LICENSE
 name: Midas-V2
 numerics_benchmark:
   dataset_name: nyuv2
@@ -21,9 +21,9 @@ research_paper: https://arxiv.org/abs/1907.01341v3
 research_paper_title: 'Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer'
 source_repo: https://github.com/isl-org/MiDaS
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 templates:
 - corevision
 - depth_estimation
-use_case: Depth Estimation
+use_case: MODEL_USE_CASE_DEPTH_ESTIMATION

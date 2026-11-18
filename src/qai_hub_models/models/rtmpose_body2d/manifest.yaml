@@ -1,12 +1,12 @@
 datasets:
 - cocowholebody
 description: RTMPose is a machine learning model that detects human pose and returns a location and confidence for each of 133 joints.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Human pose estimation.
 id: rtmpose_body2d
-license: https://github.com/open-mmlab/mmpose/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/open-mmlab/mmpose/blob/main/LICENSE
 name: RTMPose-Body2d
 numerics_benchmark:
   dataset_name: cocowholebody
@@ -15,14 +15,14 @@ numerics_benchmark:
   unit: mAP
   value: 51.7
 pre_pip_install_commands:
-- pip install mmpose==1.2.0 --no-deps
+- command: pip install mmpose==1.2.0 --no-deps
 research_paper: https://arxiv.org/abs/2303.07399
 research_paper_title: 'RTMPose: Real-Time Multi-Person Pose Estimation based on MMPose'
 source_repo: https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 templates:
 - corevision
 - mmpose
-use_case: Pose Estimation
+use_case: MODEL_USE_CASE_POSE_ESTIMATION

@@ -14,7 +14,7 @@ import ruamel.yaml
 from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler
 from pydantic_core import core_schema
 from pydantic_yaml import parse_yaml_file_as, to_yaml_str
-from ruamel.yaml.representer import RoundTripRepresenter
+from qai_hub_models_cli.proto_helpers._common import yaml_writer
 from typing_extensions import Self, TypeVar
 
 # Size of an 'empty' YAML serialization. When a BaseQAIHMConfig's values are all defaults, it will serialize to the below string.
@@ -35,44 +35,6 @@ def sorted_mappings(value: Any) -> Any:
     return value
 
 
-def _yaml_writer(flow_lists: bool = False) -> ruamel.yaml.YAML:
-    """A ruamel writer configured the way every QAIHM YAML file is written."""
-    yaml = ruamel.yaml.YAML()
-
-    # add_representer is a classmethod, so registering on yaml.representer
-    # would reconfigure every RoundTripRepresenter in the process, not just
-    # this dump. A throwaway subclass gets its own registry (ruamel copies on
-    # first write), so register new representers on _Representer, not on
-    # yaml.representer.
-    class _Representer(RoundTripRepresenter):
-        pass
-
-    yaml.Representer = _Representer
-
-    # build_and_test.py uses simplistic YAML readers that can't read strings on
-    # multiple lines. Make sure strings aren't dumped to multiple lines.
-    yaml.width = 4096
-
-    # Allow strings with newlines to dump as newlines rather than \n
-    def _yaml_repr_str(dumper: RoundTripRepresenter, data: str) -> Any:
-        if "\n" in data:
-            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-    _Representer.add_representer(str, _yaml_repr_str)
-
-    if flow_lists:
-
-        def _yaml_repr_list(dumper: RoundTripRepresenter, data: list) -> Any:
-            return dumper.represent_sequence(
-                "tag:yaml.org,2002:seq", data, flow_style=True
-            )
-
-        _Representer.add_representer(list, _yaml_repr_list)
-
-    return yaml
-
-
 def dump_yaml_dict(data: Any, path: str | Path, flow_lists: bool = False) -> None:
     """Write a plain dict to YAML with every mapping's keys sorted alphabetically.
 
@@ -80,7 +42,7 @@ def dump_yaml_dict(data: Any, path: str | Path, flow_lists: bool = False) -> Non
     website's info.yaml) get byte-identical output to a single config's dump.
     """
     with open(path, "w") as f:
-        _yaml_writer(flow_lists).dump(sorted_mappings(data), f)
+        yaml_writer(flow_lists).dump(sorted_mappings(data), f)
 
 
 class BaseQAIHMConfig(BaseModel):
@@ -113,7 +75,7 @@ class BaseQAIHMConfig(BaseModel):
         """
         rendered = to_yaml_str(
             self,
-            custom_yaml_writer=_yaml_writer(),
+            custom_yaml_writer=yaml_writer(),
             exclude_defaults=exclude_defaults,
             exclude_none=True,
             **kwargs,

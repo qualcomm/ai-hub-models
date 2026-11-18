@@ -1,15 +1,15 @@
 description: DeepLabXception is a semantic segmentation model supporting multiple backbones like ResNet-101 and Xception, with flexible dataset compatibility including COCO, VOC, and Cityscapes.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  segmentron:
-    commit_sha: 4bc605eedde7d680314f63d329277b73f83b1c5f
-    patches_filename: segmentron_patches.diff
-    repo_url: https://github.com/LikeLy-Journey/SegmenTron
+- commit_sha: 4bc605eedde7d680314f63d329277b73f83b1c5f
+  name: segmentron
+  patches_filename: segmentron_patches.diff
+  repo_url: https://github.com/LikeLy-Journey/SegmenTron
 has_on_target_demo: true
 headline: Deep Convolutional Neural Network model for semantic segmentation.
 id: deeplab_xception
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: DeepLabXception
 numerics_benchmark:
   dataset_name: pascal_voc
@@ -21,11 +21,11 @@ research_paper: https://arxiv.org/abs/1802.02611
 research_paper_title: Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation
 source_repo: https://github.com/LikeLy-Journey/SegmenTron
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - deeplab
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

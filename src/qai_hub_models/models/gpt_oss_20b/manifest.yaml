@@ -1,28 +1,34 @@
 description: GPT-OSS-20B is a 20.9B parameter Mixture of Experts (MoE) language model with 32 experts (4 active per token). It features an extended 131K context length with YARN rope scaling and uses a GPT-4o compatible tokenizer. The model is quantized to MXFP4 for efficient on-device deployment.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: State-of-the-art Mixture of Experts large language model with extended context length for text generation tasks.
 id: gpt_oss_20b
-license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 model_type_llm: true
 name: GPT-OSS-20B
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://arxiv.org/abs/2508.10925
 research_paper_title: gpt-oss-120b & gpt-oss-20b Model Card
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 11.27 GB (GGUF)
-    Quantization Type: MXFP4 (GGUF)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: unsloth/gpt-oss-20b-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 11.27 GB (GGUF)
+  - key: Quantization Type
+    string_value: MXFP4 (GGUF)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: unsloth/gpt-oss-20b-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/ggml-org/gpt-oss-20b-GGUF
 supported_precisions:
-- mxfp4
+- PRECISION_MXFP4
 tags:
-- llm
-- generative-ai
-- moe
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
+- MODEL_TAG_MOE
+use_case: MODEL_USE_CASE_TEXT_GENERATION

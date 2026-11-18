@@ -1,14 +1,14 @@
 description: Ultralytics YOLOv8 is a machine learning model that predicts bounding boxes and classes of objects in an image.
 disabled_paths:
-  w8a8_mixed_int16:
-    qnn_dlc:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-17.900 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
-domain: Computer Vision
+- precision: PRECISION_W8A8_MIXED_INT16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-17.900 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Real-time object detection optimized for mobile and edge by Ultralytics.
 id: yolov8_det
-license: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
-license_type: agpl-3.0
+license_type: MODEL_LICENSE_AGPL_3_0
+license_url: https://github.com/ultralytics/ultralytics/blob/main/LICENSE
 name: YOLOv8-Detection
 numerics_benchmark:
   dataset_name: coco
@@ -23,14 +23,14 @@ research_paper_title: 'Ultralytics YOLOv8 Docs: Object Detection'
 restrict_model_sharing: true
 source_repo: https://github.com/ultralytics/ultralytics/tree/main/ultralytics/models/yolo/detect
 supported_precisions:
-- float
-- w8a8_mixed_int16
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8_MIXED_INT16
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - ultralytics
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

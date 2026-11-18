@@ -1,17 +1,15 @@
 description: NeuTTS-2E is a compact on-device emotional text-to-speech language model from Neuphonic. It pairs a 236M-parameter Qwen3 causal LM backbone with the NeuCodec 50Hz neural audio codec, and produces natural-sounding 24kHz English speech for four fixed speakers across seven emotions. There is no voice cloning, as the four speakers ship as pre-encoded reference codes, so no reference audio is read and the codec's encoder is never called. The backbone exports as two graphs (a 128-token prefill and a single-token decode) linked into one weight-shared context binary; prompt assembly, emotion conditioning, sampling and NeuCodec decode run on CPU in the app.
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 external_repos:
-  neutts:
-    commit_sha: ac69851f28fc63a487917e7c2e27f0d75c759cba
-    patches_filename: neutts_patches.diff
-    repo_url: https://github.com/neuphonic/neutts.git
+- commit_sha: ac69851f28fc63a487917e7c2e27f0d75c759cba
+  name: neutts
+  patches_filename: neutts_patches.diff
+  repo_url: https://github.com/neuphonic/neutts.git
 has_multi_graph: true
-has_on_target_demo: false
 headline: On-device emotional text-to-speech language model with seven emotions.
 id: neutts_2e
-is_collection_model: false
-license: https://github.com/neuphonic/neutts/blob/ac69851f28fc63a487917e7c2e27f0d75c759cba/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/neuphonic/neutts/blob/ac69851f28fc63a487917e7c2e27f0d75c759cba/LICENSE
 models:
 - whisper_large_v3_turbo
 name: NeuTTS-2E
@@ -19,10 +17,8 @@ requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2509.09550
 research_paper_title: NeuCodec Neural Audio Codec for Speech Language Models
 source_repo: https://github.com/neuphonic/neutts
-supported_precisions:
-- float
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - qwen3
-use_case: Audio Generation
+use_case: MODEL_USE_CASE_AUDIO_GENERATION

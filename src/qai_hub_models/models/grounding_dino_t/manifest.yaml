@@ -2,31 +2,35 @@ datasets:
 - coco
 description: GroundingDINO-T is a vision-language object detection model that predicts bounding boxes for objects in an image based on text prompts. This model is split into vision, BERT text-encoder, and fusion/decoder components, each compiled independently.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jpvn4m9rg'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5wrxzxmp'
-    tflite:
-      scorecard_failure: 'Failing jobs: jgdm04rzg'
-  mixed_with_float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jglq78y2p'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5wrxz44p'
-    tflite:
-      scorecard_failure: 'Failing jobs: jp42jezlg j5mlv9jqg'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jgdm04rzg'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5wrxzxmp'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jpvn4m9rg'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jp42jezlg j5mlv9jqg'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5wrxz44p'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jglq78y2p'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  groundingdino:
-    commit_sha: 856dde20aee659246248e20734ef9ba5214f5e44
-    repo_url: https://github.com/IDEA-Research/GroundingDINO.git
+- commit_sha: 856dde20aee659246248e20734ef9ba5214f5e44
+  name: groundingdino
+  repo_url: https://github.com/IDEA-Research/GroundingDINO.git
 has_on_target_demo: true
 headline: Open-vocabulary object detection using vision-language grounding, split into independently-compiled vision, BERT text-encoder, and fusion/decoder components.
 id: grounding_dino_t
 is_collection_model: true
-license: https://github.com/IDEA-Research/GroundingDINO/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/IDEA-Research/GroundingDINO/blob/main/LICENSE
 name: GroundingDINO-T
 numerics_benchmark:
   dataset_name: grounding_dino_coco
@@ -39,11 +43,11 @@ research_paper_title: 'Grounding DINO: Marrying DINO with Grounded Pre-Training 
 restrict_model_sharing: true
 source_repo: https://github.com/IDEA-Research/GroundingDINO
 supported_precisions:
-- float
-- mixed_with_float
+- PRECISION_FLOAT
+- PRECISION_MIXED_WITH_FLOAT
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - corevision
 - detection
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

@@ -1,9 +1,9 @@
 description: Granite 4.0 is a family of open language models from IBM designed for enterprise AI workloads including code generation, summarization, and retrieval-augmented generation.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Compact language model from IBM optimized for enterprise tasks.
 id: granite_4_0_micro
-license: https://github.com/ibm-granite/granite-4.0-language-models/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/ibm-granite/granite-4.0-language-models/blob/main/LICENSE
 model_type_llm: true
 name: Granite-4.0-Micro
 numerics_benchmark:
@@ -13,21 +13,27 @@ numerics_benchmark:
   unit: '%'
   value: 90.9
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://www.ibm.com/granite/docs/models/granite
 research_paper_title: Granite 4.0
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 1.86 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: ibm-granite/granite-4.0-micro-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 1.86 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ibm-granite/granite-4.0-micro-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/ibm-granite/granite-4.0-h-micro
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

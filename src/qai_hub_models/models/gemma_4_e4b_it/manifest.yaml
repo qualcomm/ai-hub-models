@@ -1,19 +1,20 @@
 description: Gemma is a family of open models built by Google DeepMind. Gemma 4 models are multimodal, handling text and image input (with audio supported on small models) and generating text output. This release includes open-weights models in both pre-trained and instruction-tuned variants. Gemma 4 features a context window of up to 256K tokens and maintains multilingual support in over 140 languages.
 disabled_paths:
-  w4a16:
-    genie:
-      issue: https://github.com/qcom-ai-hub/tetracode/issues/20995
-    geniex_qairt:
-      issue: https://github.com/qcom-ai-hub/tetracode/issues/20995
-      scorecard_accuracy_failure: 'Device accuracy (0.0 %) deviates from benchmark (98.2 %) by -98.200 %, threshold: 25.0 %'
-domain: Generative AI
+- issue: https://github.com/qcom-ai-hub/tetracode/issues/20995
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- issue: https://github.com/qcom-ai-hub/tetracode/issues/20995
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+  scorecard_accuracy_failure: 'Device accuracy (0.0 %) deviates from benchmark (98.2 %) by -98.200 %, threshold: 25.0 %'
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: Multimodal model from Google DeepMind handling text and image input.
 id: gemma_4_e4b_it
 is_aimet: true
 is_collection_model: true
-license: https://ai.google.dev/gemma/apache_2
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://ai.google.dev/gemma/apache_2
 model_type_llm: true
 name: Gemma-4-E4B-it
 numerics_benchmark:
@@ -24,50 +25,70 @@ numerics_benchmark:
   value: 98.2
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- geniex_llamacpp
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIEX_LLAMACPP
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 research_paper: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
 research_paper_title: Gemma 4
 runtime_technical_details:
-  genie:
-    Context lengths: '4096'
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.48.0
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-  geniex_llamacpp:
-    Model Size: 4.84 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: image, text, audio
-    Supported Output Modalities: text
-    model_infer_id: google/gemma-4-E4B-it-qat-q4_0-gguf
-  geniex_qairt:
-    Context lengths: '4096'
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.45.0
-    Note: This model is still under Developer Preview. We're working to further improve the quantization and accuracy on-device. It has known issues with repetitive words, formatting and code related questions. We recommend leveraging the geniex llamacpp plugin based model (quantization technique q4_0) for more accurate responses.
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: ai-hub-models/Gemma-4-E4B-it
+- runtime: RUNTIME_GENIE
+  technical_details:
+  - key: Context lengths
+    string_value: '4096'
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.48.0
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context lengths
+    string_value: '4096'
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.45.0
+  - key: Note
+    string_value: This model is still under Developer Preview. We're working to further improve the quantization and accuracy on-device. It has known issues with repetitive words, formatting and code related questions. We recommend leveraging the geniex llamacpp plugin based model (quantization technique q4_0) for more accurate responses.
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ai-hub-models/Gemma-4-E4B-it
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 4.84 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text, audio
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: google/gemma-4-E4B-it-qat-q4_0-gguf
 separate_quantize_script: true
 skip_example_usage: true
 source_repo: https://huggingface.co/google/gemma-4-E4B-it
 supported_precisions:
-- w4a16
-- q4_0
+- PRECISION_W4A16
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - gemma4
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

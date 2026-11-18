@@ -1,12 +1,12 @@
 description: The Qwen3-4B is a state-of-the-art multilingual base language model with 4 billion parameters, excelling in language understanding, generation, coding, and mathematics.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: qwen3_4b
 is_aimet: true
 is_collection_model: true
-license: https://huggingface.co/Qwen/Qwen3-4B/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/Qwen/Qwen3-4B/blob/main/LICENSE
 local_device_deployment: true
 model_type_llm: true
 name: Qwen3-4B
@@ -18,43 +18,56 @@ numerics_benchmark:
   value: 91.6
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- geniex_llamacpp
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIEX_LLAMACPP
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2505.09388
 research_paper_title: Qwen3 Technical Report
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 2.38 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: unsloth/Qwen3-4B-GGUF
-  geniex_qairt:
-    Context lengths: 512, 1024, 2048, 3072, 4096
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.45.0
-    Supported Input Modalities: text
-    Supported Output Modalities: text
-    model_infer_id: ai-hub-models/Qwen3-4B
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context lengths
+    string_value: 512, 1024, 2048, 3072, 4096
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.45.0
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ai-hub-models/Qwen3-4B
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 2.38 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: unsloth/Qwen3-4B-GGUF
 separate_quantize_script: true
 source_repo: https://huggingface.co/Qwen/Qwen3-4B
 supported_precisions:
-- w4a16
-- q4_0
+- PRECISION_W4A16
+- PRECISION_Q4_0
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llm
 - lm_driver
 - qwen3
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

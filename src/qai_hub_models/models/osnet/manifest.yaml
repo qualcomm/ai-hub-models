@@ -1,16 +1,16 @@
 datasets:
 - reid
 description: OSNet is a compact convolutional architecture for person re-identification. It extracts discriminative embeddings that can be compared with cosine similarity for person matching across camera views.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  deep_person_reid:
-    commit_sha: f8cd150fdf77e8d9e1ed143b7f308c2c609ded50
-    repo_url: https://github.com/KaiyangZhou/deep-person-reid.git
+- commit_sha: f8cd150fdf77e8d9e1ed143b7f308c2c609ded50
+  name: deep_person_reid
+  repo_url: https://github.com/KaiyangZhou/deep-person-reid.git
 has_on_target_demo: true
 headline: Omni-scale person re-identification network for robust identity embeddings.
 id: osnet
-license: https://github.com/KaiyangZhou/deep-person-reid/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/KaiyangZhou/deep-person-reid/blob/master/LICENSE
 name: OSNet
 numerics_benchmark:
   dataset_name: Market-1501
@@ -22,13 +22,13 @@ research_paper: https://arxiv.org/abs/1905.00953
 research_paper_title: Omni-Scale Feature Learning for Person Re-Identification
 source_repo: https://github.com/KaiyangZhou/deep-person-reid
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- backbone
-- real-time
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - reid
-use_case: Video Object Tracking
+use_case: MODEL_USE_CASE_VIDEO_OBJECT_TRACKING

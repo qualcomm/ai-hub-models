@@ -1,15 +1,15 @@
 description: Predicts gaze direction (pitch, yaw) from 96x160 grayscale eye images using the EyeNet model.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  gaze_estimation:
-    commit_sha: 249691893a37944a03e4ad4a3448083b6f63af10
-    patches_filename: gaze_estimation_patches.diff
-    repo_url: https://github.com/david-wb/gaze-estimation
+- commit_sha: 249691893a37944a03e4ad4a3448083b6f63af10
+  name: gaze_estimation
+  patches_filename: gaze_estimation_patches.diff
+  repo_url: https://github.com/david-wb/gaze-estimation
 has_on_target_demo: true
 headline: Eye gaze estimation from cropped eye images.
 id: eyegaze
-license: https://github.com/qualcomm/ai-hub-models/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/qualcomm/ai-hub-models/blob/main/LICENSE
 name: EyeGaze
 numerics_benchmark:
   dataset_name: mpiigaze
@@ -19,11 +19,11 @@ numerics_benchmark:
   value: 16.8
 source_repo: https://github.com/david-wb/gaze-estimation
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- bu-auto
-- real-time
+- MODEL_TAG_BU_AUTO
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Gaze Estimation
+use_case: MODEL_USE_CASE_GAZE_ESTIMATION

@@ -2,16 +2,16 @@ datasets:
 - coco
 description: Detectron2-Panoptic-Segmentation is a machine learning model that performs panoptic segmentation (trained on COCO dataset), combining instance and semantic segmentation.
 disabled_paths:
-  mixed:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5786k09p'
-domain: Computer Vision
+- precision: PRECISION_MIXED
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5786k09p'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Panoptic segmentation combining instance and semantic predictions on COCO.
 id: detectron2_panoptic_seg
 is_collection_model: true
-license: https://github.com/facebookresearch/detectron2/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/detectron2/blob/main/LICENSE
 name: Detectron2-Panoptic-Segmentation
 numerics_benchmark:
   dataset_name: coco
@@ -20,16 +20,16 @@ numerics_benchmark:
   unit: PQ
   value: 39.4
 post_pip_install_commands:
-- pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
+- command: pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
 pre_pip_install_commands:
-- pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
+- command: pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
 source_repo: https://github.com/facebookresearch/detectron2/
 supported_precisions:
-- float
-- mixed
+- PRECISION_FLOAT
+- PRECISION_MIXED
 templates:
 - corevision
 - detectron2
 - panoptic_seg
 - proposal_based_detection
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

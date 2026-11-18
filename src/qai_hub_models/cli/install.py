@@ -32,12 +32,10 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import cache
 from pathlib import Path
-from typing import Any
 
 from qai_hub_models_cli.errors import CLIUserError
 
-from qai_hub_models.configs.manifest_yaml import PipCommand
-from qai_hub_models.utils.asset_loaders import load_yaml
+from qai_hub_models.configs.manifest_yaml import PipCommand, QAIHMModelManifest
 from qai_hub_models.utils.export.context import (
     looks_like_path,
     unknown_model_error,
@@ -168,19 +166,6 @@ def _validate_dep_name(name: str, kind: NodeKind, referrer: Node) -> None:
         )
 
 
-@cache
-def _load_manifest(node: Node) -> dict[str, Any]:
-    """Return the parsed ``manifest.yaml`` for ``node``, or ``{}`` if missing.
-
-    Cached so ``_load_deps`` and both ``_load_pip_commands`` calls per model
-    node share a single parse instead of re-opening the file three times.
-    """
-    manifest_path = node.manifest_path
-    if not manifest_path.exists():
-        return {}
-    return load_yaml(manifest_path) or {}
-
-
 def _load_deps(node: Node) -> tuple[list[str], list[str], list[str]]:
     """Return ``(datasets, templates, models)`` from ``node``'s manifest.
 
@@ -191,10 +176,12 @@ def _load_deps(node: Node) -> tuple[list[str], list[str], list[str]]:
     ``models=[]`` regardless of what their manifest says. Every declared
     name is validated so it cannot escape its intended root.
     """
-    data = _load_manifest(node)
-    datasets = list(data.get("datasets") or [])
-    templates = list(data.get("templates") or [])
-    models = list(data.get("models") or []) if node.kind is NodeKind.MODEL else []
+    manifest = QAIHMModelManifest.from_yaml(
+        node.manifest_path, create_empty_if_no_file=True
+    )
+    datasets = list(manifest.datasets)
+    templates = list(manifest.templates)
+    models = list(manifest.models) if node.kind is NodeKind.MODEL else []
     for name in datasets:
         _validate_dep_name(name, NodeKind.DATASET, node)
     for name in templates:
@@ -212,8 +199,11 @@ def _load_pip_commands(node: Node, field: str) -> list[PipCommand]:
     """
     if node.kind is not NodeKind.MODEL:
         return []
-    raw = _load_manifest(node).get(field) or []
-    return [PipCommand.model_validate(entry) for entry in raw]
+    manifest = QAIHMModelManifest.from_yaml(
+        node.manifest_path, create_empty_if_no_file=True
+    )
+    commands: list[PipCommand] = getattr(manifest, field)
+    return commands
 
 
 def build_install_order(root: Node) -> list[Node]:

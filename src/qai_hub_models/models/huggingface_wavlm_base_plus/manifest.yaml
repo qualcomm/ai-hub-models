@@ -2,31 +2,39 @@ datasets:
 - librispeech
 description: HuggingFaceWavLMBasePlus is a real time speech processing backbone based on Microsoft's WavLM model.
 disabled_paths:
-  float:
-    genie:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    geniex_llamacpp:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    geniex_qairt:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    onnx:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    precompiled_qnn_onnx:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    qnn_context_binary:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    qnn_dlc:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    tflite:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-    voice_ai:
-      scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
-domain: Audio
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_CONTEXT_BINARY
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_PRECOMPILED_QNN_ONNX
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_GENIE
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_VOICE_AI
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_GENIEX_QAIRT
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_GENIEX_LLAMACPP
+  scorecard_accuracy_failure: 'Torch accuracy (20.7 WER) deviates from benchmark (6.83 WER) by 13.870 WER, threshold: 10.0 WER'
+domain: MODEL_DOMAIN_AUDIO
 has_on_target_demo: true
 headline: Real-time Speech processing.
 id: huggingface_wavlm_base_plus
-license: https://github.com/microsoft/unilm/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/microsoft/unilm/blob/master/LICENSE
 name: HuggingFace-WavLM-Base-Plus
 numerics_benchmark:
   dataset_name: libri_speech
@@ -48,5 +56,5 @@ research_paper: https://arxiv.org/abs/2110.13900
 research_paper_title: 'WavLM: Large-Scale Self-Supervised Pre-Training for Full Stack Speech Processing'
 source_repo: https://huggingface.co/patrickvonplaten/wavlm-libri-clean-100h-base-plus/tree/main
 tags:
-- backbone
-use_case: Speech Recognition
+- MODEL_TAG_BACKBONE
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION

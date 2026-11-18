@@ -1,9 +1,9 @@
 description: SmolVLM2 is a lightweight vision-language model from Hugging Face capable of understanding text and images for tasks such as visual question answering, image captioning, and optical character recognition.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Multimodal 2.2B vision-language model capable of understanding text and images.
 id: smolvlm2_2_2b_instruct
-license: https://www.apache.org/licenses/LICENSE-2.0
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://www.apache.org/licenses/LICENSE-2.0
 model_type_llm: true
 name: SmolVLM2-2.2B-Instruct
 numerics_benchmark:
@@ -13,22 +13,28 @@ numerics_benchmark:
   unit: '%'
   value: 56.4
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://arxiv.org/abs/2504.05299
 research_paper_title: 'SmolVLM: Redefining small and efficient multimodal models'
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 1.93 GB (Q8_0 GGUF weights only; excludes the vision projector).
-    Quantization Type: Q8_0 (GGUF)
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: ggml-org/SmolVLM2-2.2B-Instruct-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 1.93 GB (Q8_0 GGUF weights only; excludes the vision projector).
+  - key: Quantization Type
+    string_value: Q8_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ggml-org/SmolVLM2-2.2B-Instruct-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/HuggingFaceTB/SmolVLM2-2.2B-Instruct
 supported_precisions:
-- q8_0
+- PRECISION_Q8_0
 tags:
-- llm
-- vlm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

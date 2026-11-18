@@ -1,30 +1,29 @@
 datasets:
 - sav
 description: EdgeTAM is a lightweight and efficient version of SAM 2, optimized for on-device tracking and segmenting any object in videos and low memory usage by using a novel 2D Spatial Perceiver and RepViT backbone.
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  edgetam:
-    commit_sha: a1209a454c9950d531498074a95ecf3a3ba02dfd
-    repo_url: https://github.com/facebookresearch/EdgeTAM.git
+- commit_sha: a1209a454c9950d531498074a95ecf3a3ba02dfd
+  name: edgetam
+  repo_url: https://github.com/facebookresearch/EdgeTAM.git
 has_on_target_demo: true
 headline: Real-time on-device track-anything video segmentation and tracking.
 id: edgetam
 is_collection_model: true
-license: https://github.com/facebookresearch/EdgeTAM/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/EdgeTAM/blob/main/LICENSE
 name: EdgeTAM
 post_pip_install_commands:
-- pip install git+https://github.com/facebookresearch/EdgeTAM.git@a1209a454c9950d531498074a95ecf3a3ba02dfd
+- command: pip install git+https://github.com/facebookresearch/EdgeTAM.git@a1209a454c9950d531498074a95ecf3a3ba02dfd
 research_paper: https://arxiv.org/abs/2501.07256
 research_paper_title: 'EdgeTAM: On-Device Track Anything Model'
 source_repo: https://github.com/facebookresearch/EdgeTAM
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - corevision
 - sam2
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

@@ -3,32 +3,32 @@ datasets:
 - pandaset
 description: BEVDet is a machine learning model for generating a birds eye view represenation from the sensors(cameras) mounted on a vehicle.
 disabled_paths:
-  mixed_with_float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jpyyv76lp j5qd9m3og'
-domain: Computer Vision
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jpyyv76lp j5qd9m3og'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  bevdet:
-    commit_sha: 26144be7c11c2972a8930d6ddd6471b8ea900d13
-    patches_filename: bevdet_patches.diff
-    repo_url: https://github.com/HuangJunJie2017/BEVDet.git
+- commit_sha: 26144be7c11c2972a8930d6ddd6471b8ea900d13
+  name: bevdet
+  patches_filename: bevdet_patches.diff
+  repo_url: https://github.com/HuangJunJie2017/BEVDet.git
 has_on_target_demo: true
 headline: Construct a bird’s eye view from sensors mounted on a vehicle.
 id: bevdet
 is_collection_model: true
-license: https://github.com/HuangJunJie2017/BEVDet/blob/dev3.0/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/HuangJunJie2017/BEVDet/blob/dev3.0/LICENSE
 name: BEVDet
 pre_pip_install_commands:
-- pip install nuscenes-devkit==1.2.0 --no-deps
+- command: pip install nuscenes-devkit==1.2.0 --no-deps
 research_paper: https://arxiv.org/abs/2112.11790
 research_paper_title: 'BEVDet: High-Performance Multi-Camera 3D Object Detection in Bird-Eye-View'
 source_repo: https://github.com/HuangJunJie2017/BEVDet/
 supported_precisions:
-- float
-- mixed_with_float
+- PRECISION_FLOAT
+- PRECISION_MIXED_WITH_FLOAT
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
-use_case: Driver Assistance
+use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

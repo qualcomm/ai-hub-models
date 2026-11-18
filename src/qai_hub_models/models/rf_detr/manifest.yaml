@@ -1,17 +1,17 @@
 description: DETR is a machine learning model that can detect objects (trained on COCO dataset).
 disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jpvnzn6jg'
-  w8a16:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jp2z4qx4p'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jpvnzn6jg'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jp2z4qx4p'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Transformer based object detection model architecture developed by Roboflow.
 id: rf_detr
-license: https://github.com/roboflow/rf-detr/blob/develop/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/roboflow/rf-detr/blob/develop/LICENSE
 name: RF-DETR
 outputs_to_skip_validation:
   '0': PSNR is not a meaningful metric for pixel-space bounding box coordinates
@@ -20,9 +20,9 @@ research_paper: https://blog.roboflow.com/rf-detr/
 research_paper_title: RF-DETR A SOTA Real-Time Object Detection Model
 source_repo: https://github.com/roboflow/rf-detr
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 templates:
 - corevision
 - detr
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

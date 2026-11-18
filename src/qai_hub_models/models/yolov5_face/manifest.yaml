@@ -1,15 +1,15 @@
 description: YoloV5-Face-Nano is a lightweight single-class face detector based on the YoloV5 backbone (StemBlock + ShuffleV2Block). Each detected face is accompanied by 5 facial landmark predictions (left eye, right eye, nose, left mouth corner, right mouth corner). Trained on the WiderFace dataset.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  yolov5_face:
-    commit_sha: 152c688d551aefb973b7b589fb0691c93dab3564
-    patches_filename: yolov5_face_patches.diff
-    repo_url: https://github.com/deepcam-cn/yolov5-face
+- commit_sha: 152c688d551aefb973b7b589fb0691c93dab3564
+  name: yolov5_face
+  patches_filename: yolov5_face_patches.diff
+  repo_url: https://github.com/deepcam-cn/yolov5-face
 has_on_target_demo: true
 headline: Real-time face detection with 5-point facial landmark estimation on mobile and edge devices.
 id: yolov5_face
-license: https://github.com/deepcam-cn/yolov5-face/blob/master/LICENSE
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/deepcam-cn/yolov5-face/blob/master/LICENSE
 name: YoloV5-Face
 numerics_benchmark:
   dataset_name: widerface
@@ -22,10 +22,10 @@ research_paper_title: 'YOLO5Face: Why Reinventing a Face Detector'
 restrict_model_sharing: true
 source_repo: https://github.com/deepcam-cn/yolov5-face
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

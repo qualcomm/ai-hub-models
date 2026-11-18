@@ -1,30 +1,29 @@
 datasets:
 - common_voice
 description: Zipformer streaming ASR (Automatic Speech Recognition) model is a state-of-the-art system designed for transcribing spoken language into written text streamingly. This model is based on the transformer architecture and has been optimized for edge inference by replacing linear layers with convolutional (conv) layers. It exhibits robust performance in realistic, noisy environments, making it highly reliable for real-world applications. Specifically, it excels in long-form transcription, capable of accurately transcribing audios. Time to the first token is the encoder's latency, while time to each additional token is joiner's latency, where we assume a max decoded length specified below.
-disabled_paths: {}
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 external_repos:
-  icefall:
-    commit_sha: 693f069de73fd91d7c2009571245d97221cc3a3f
-    patches_filename: icefall_patches.diff
-    repo_url: https://github.com/k2-fsa/icefall.git
+- commit_sha: 693f069de73fd91d7c2009571245d97221cc3a3f
+  name: icefall
+  patches_filename: icefall_patches.diff
+  repo_url: https://github.com/k2-fsa/icefall.git
 headline: Transformer-based automatic speech recognition (ASR) model for English and Chinese language.
 id: zipformer
 is_collection_model: true
-license: https://github.com/huggingface/transformers/blob/v4.42.3/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/huggingface/transformers/blob/v4.42.3/LICENSE
 name: Zipformer
 post_pip_install_commands:
-- pip install k2==1.24.4.dev20251029+cpu.torch2.9.0 -f https://k2-fsa.github.io/k2/cpu.html
+- command: pip install k2==1.24.4.dev20251029+cpu.torch2.9.0 -f https://k2-fsa.github.io/k2/cpu.html
 pre_pip_install_commands:
-- pip install torch==2.9.0+cpu -f https://download.pytorch.org/whl/torch/
+- command: pip install torch==2.9.0+cpu -f https://download.pytorch.org/whl/torch/
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2310.11230
 research_paper_title: Zipformer A faster and better encoder for automatic speech recognition
 source_repo: https://github.com/k2-fsa/icefall
 supported_precisions:
-- float
-- mixed
+- PRECISION_FLOAT
+- PRECISION_MIXED
 tags:
-- foundation
-use_case: Speech Recognition
+- MODEL_TAG_FOUNDATION
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION

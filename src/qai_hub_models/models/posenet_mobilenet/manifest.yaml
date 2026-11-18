@@ -1,16 +1,16 @@
 datasets:
 - coco
 description: Posenet performs pose estimation on human images.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  posenet_pytorch:
-    commit_sha: 6f7376d47683553b99d6b67734bc8b368dbcda73
-    repo_url: https://github.com/rwightman/posenet-pytorch.git
+- commit_sha: 6f7376d47683553b99d6b67734bc8b368dbcda73
+  name: posenet_pytorch
+  repo_url: https://github.com/rwightman/posenet-pytorch.git
 has_on_target_demo: true
 headline: Perform accurate human pose estimation.
 id: posenet_mobilenet
-license: https://github.com/rwightman/posenet-pytorch/blob/master/LICENSE.txt
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/rwightman/posenet-pytorch/blob/master/LICENSE.txt
 name: Posenet-Mobilenet
 numerics_benchmark:
   dataset_name: cocobody
@@ -22,9 +22,9 @@ research_paper: https://arxiv.org/abs/1803.08225
 research_paper_title: 'PersonLab: Person Pose Estimation and Instance Segmentation with a Bottom-Up, Part-Based, Geometric Embedding Model'
 source_repo: https://github.com/rwightman/posenet-pytorch
 supported_precisions:
-- float
-- w8a16_mixed_int16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_INT16
+- PRECISION_W8A8
 templates:
 - corevision
-use_case: Pose Estimation
+use_case: MODEL_USE_CASE_POSE_ESTIMATION

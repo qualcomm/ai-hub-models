@@ -1,14 +1,14 @@
 description: U2-Net is a machine learning model for salient object detection and foreground extraction. It uses a two-level nested U-structure (RSU blocks) to capture both local and global context at multiple scales, producing high-quality binary foreground masks. The model is trained on the DUTS dataset and is well-suited for background removal, portrait segmentation, and object extraction on mobile and edge devices.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  u2net:
-    commit_sha: ac7e1c817ecab7c7dff5ce6b1abba61cd213ff29
-    repo_url: https://github.com/xuebinqin/U-2-Net.git
+- commit_sha: ac7e1c817ecab7c7dff5ce6b1abba61cd213ff29
+  name: u2net
+  repo_url: https://github.com/xuebinqin/U-2-Net.git
 has_on_target_demo: true
 headline: Salient object segmentation for high-quality foreground extraction.
 id: u2net_segmentation
-license: https://github.com/xuebinqin/U-2-Net/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/xuebinqin/U-2-Net/blob/master/LICENSE
 name: U2Net-Segmentation
 numerics_benchmark:
   dataset_name: duts
@@ -20,10 +20,10 @@ research_paper: https://arxiv.org/abs/2005.09007
 research_paper_title: 'U^2-Net: Going Deeper with Nested U-Structure for Salient Object Detection'
 source_repo: https://github.com/xuebinqin/U-2-Net
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

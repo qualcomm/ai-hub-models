@@ -1,18 +1,17 @@
 description: |
   GR00T N1.7 is a vision-language-action (VLA) model for generalist robot control. The model uses a Qwen3-VL (Cosmos-Reason2-2B) backbone with mRoPE and DeepStack visual injection, and a 32-layer flow-matching DiT action head, for dexterous, long-horizon manipulation tasks.
-disabled_paths: {}
-domain: Multimodal
+domain: MODEL_DOMAIN_MULTIMODAL
 external_repos:
-  gr00t:
-    commit_sha: 23ace64f17aa5015259b8609d371eb61a357c776
-    patches_filename: gr00t_patches.diff
-    repo_url: https://github.com/NVIDIA/Isaac-GR00T.git
+- commit_sha: 23ace64f17aa5015259b8609d371eb61a357c776
+  name: gr00t
+  patches_filename: gr00t_patches.diff
+  repo_url: https://github.com/NVIDIA/Isaac-GR00T.git
 has_on_target_demo: true
 headline: State-of-the-art vision-language-action model for dexterous robot manipulation, enabling zero-shot generalization across diverse embodiments via diffusion-based action generation.
 id: grootn17
 is_collection_model: true
-license: https://github.com/NVIDIA/Isaac-GR00T/blob/23ace64f17aa5015259b8609d371eb61a357c776/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/NVIDIA/Isaac-GR00T/blob/23ace64f17aa5015259b8609d371eb61a357c776/LICENSE
 name: GR00TN1.7
 python_version_less_than: '3.13'
 python_version_less_than_reason: av==12.3.0 and dm_tree==0.1.8 have no Python 3.13 wheels
@@ -21,6 +20,6 @@ research_paper: https://arxiv.org/abs/2503.14734
 research_paper_title: 'GR00T N1: An Open Foundation Model for Generalist Humanoid Robots'
 source_repo: https://github.com/NVIDIA/Isaac-GR00T/tree/23ace64f17aa5015259b8609d371eb61a357c776
 tags:
-- generative-ai
-- robotics
-use_case: Robotics
+- MODEL_TAG_GENERATIVE_AI
+- MODEL_TAG_ROBOTICS
+use_case: MODEL_USE_CASE_ROBOTICS

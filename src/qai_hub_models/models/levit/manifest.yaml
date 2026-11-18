@@ -1,14 +1,14 @@
 description: LeViT is a vision transformer model that can classify images from the Imagenet dataset.
 disabled_paths:
-  w8a8_mixed_int16:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j560r3d75'
-domain: Computer Vision
+- precision: PRECISION_W8A8_MIXED_INT16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j560r3d75'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: levit
-license: https://github.com/facebookresearch/LeViT?tab=Apache-2.0-1-ov-file
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/LeViT?tab=Apache-2.0-1-ov-file
 name: LeViT
 numerics_benchmark:
   dataset_name: imagenet
@@ -20,12 +20,12 @@ research_paper: https://arxiv.org/abs/2104.01136
 research_paper_title: "LeViT: a Vision Transformer in ConvNet's Clothing for Faster Inference"
 source_repo: https://github.com/facebookresearch/LeViT
 supported_precisions:
-- float
-- w8a8_mixed_int16
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A8_MIXED_INT16
+- PRECISION_W8A16
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

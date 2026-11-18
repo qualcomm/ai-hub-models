@@ -1,14 +1,14 @@
 description: SuperPoint is a self-supervised framework for detecting interest points and computing their descriptors in a single forward pass. It uses a VGG-style encoder shared between a keypoint detector head and a descriptor head, trained via homographic adaptation on synthetic shapes and real images. The model outputs up to 500 keypoints per image with 256-dimensional L2-normalised descriptors, suitable for feature matching, visual localisation, and SLAM.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  superpoint:
-    commit_sha: 1411bbd68c50163555d39c1b26e9e046ebd48f27
-    repo_url: https://github.com/rpautrat/SuperPoint.git
+- commit_sha: 1411bbd68c50163555d39c1b26e9e046ebd48f27
+  name: superpoint
+  repo_url: https://github.com/rpautrat/SuperPoint.git
 has_on_target_demo: true
 headline: Self-supervised keypoint detector and descriptor for image matching and SLAM.
 id: superpoint
-license: https://github.com/rpautrat/SuperPoint/blob/master/LICENSE.txt
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/rpautrat/SuperPoint/blob/master/LICENSE.txt
 name: SuperPoint
 numerics_benchmark:
   dataset_name: hpatches
@@ -20,10 +20,10 @@ research_paper: https://arxiv.org/abs/1712.07629
 research_paper_title: 'SuperPoint: Self-Supervised Interest Point Detection and Description'
 source_repo: https://github.com/rpautrat/SuperPoint
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Pose Estimation
+use_case: MODEL_USE_CASE_POSE_ESTIMATION

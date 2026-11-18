@@ -1,24 +1,24 @@
 datasets:
 - coco
 description: Movenet performs pose estimation on human images.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  movenet_pytorch:
-    commit_sha: d7262410af2776afe66d3f7a2282b64becb82601
-    patches_filename: movenet_pytorch_patches.diff
-    repo_url: https://github.com/lee-man/movenet-pytorch/
+- commit_sha: d7262410af2776afe66d3f7a2282b64becb82601
+  name: movenet_pytorch
+  patches_filename: movenet_pytorch_patches.diff
+  repo_url: https://github.com/lee-man/movenet-pytorch/
 has_on_target_demo: true
 headline: Perform accurate human pose estimation.
 id: movenet
-license: http://www.apache.org/licenses/LICENSE-2.0
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: http://www.apache.org/licenses/LICENSE-2.0
 name: Movenet
 research_paper: https://blog.tensorflow.org/2021/05/next-generation-pose-detection-with-movenet-and-tensorflowjs.html
 research_paper_title: 'MoveNet: Ultra fast and accurate pose detection model'
 source_repo: https://github.com/lee-man/movenet-pytorch
 supported_precisions:
-- float
-- w8a16_mixed_int16
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_INT16
 templates:
 - corevision
-use_case: Pose Estimation
+use_case: MODEL_USE_CASE_POSE_ESTIMATION

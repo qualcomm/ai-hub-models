@@ -1,27 +1,27 @@
 datasets:
 - nuscenes
 description: Cross-View Transformer generates real-time bird's-eye view maps from multiple vehicle cameras for autonomous driving.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  cross_view_transformers:
-    commit_sha: 4de6e641397ef1ffde996d7549f7f988e49156f7
-    patches_filename: cvt_patches.diff
-    repo_url: https://github.com/bradyz/cross_view_transformers
+- commit_sha: 4de6e641397ef1ffde996d7549f7f988e49156f7
+  name: cross_view_transformers
+  patches_filename: cvt_patches.diff
+  repo_url: https://github.com/bradyz/cross_view_transformers
 has_on_target_demo: true
 headline: Construct a map view from sensors mounted on a vehicle.
 id: cvt
-license: https://github.com/bradyz/cross_view_transformers/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/bradyz/cross_view_transformers/blob/master/LICENSE
 name: CVT
 pre_pip_install_commands:
-- pip install nuscenes-devkit==1.2.0 --no-deps
+- command: pip install nuscenes-devkit==1.2.0 --no-deps
 research_paper: https://arxiv.org/abs/2205.02833
 research_paper_title: Cross-view Transformers for real-time Map-view Semantic Segmentation
 source_repo: https://github.com/bradyz/cross_view_transformers
 supported_precisions:
-- float
-- w8a16_mixed_int16
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_INT16
 templates:
 - corevision
 - cvt_gkt
-use_case: Driver Assistance
+use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

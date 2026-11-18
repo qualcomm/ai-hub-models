@@ -7,10 +7,18 @@ from __future__ import annotations
 
 import os
 import shlex
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Literal
 
+from google.protobuf import json_format
 from pydantic import ConfigDict, Field, model_serializer, model_validator
+from qai_hub_models_cli.proto import info_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    proto_from_dict,
+    read_proto_yaml,
+    write_proto_yaml,
+)
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import (
@@ -21,9 +29,29 @@ from qai_hub_models.configs._info_yaml_enums import (
     MODEL_USE_CASE,
     VOICE_AI_SDK,
 )
-from qai_hub_models.configs.model_disable_reasons import ModelDisableReasonsMapping
+from qai_hub_models.configs.legacy_manifest import legacy_manifest_to_proto_dict
+from qai_hub_models.configs.model_disable_reasons import (
+    ModelDisableReasons,
+    ModelDisableReasonsMapping,
+)
 from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
-from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
+from qai_hub_models.configs.proto_helpers import (
+    domain_from_proto,
+    domain_to_proto,
+    license_from_proto,
+    license_to_proto,
+    precision_from_proto,
+    precision_to_proto,
+    runtime_from_proto,
+    runtime_to_proto,
+    tag_from_proto,
+    tag_to_proto,
+    use_case_from_proto,
+    use_case_to_proto,
+    voice_ai_sdk_from_proto,
+    voice_ai_sdk_to_proto,
+)
+from qai_hub_models.utils.asset_loaders import ASSET_CONFIG, load_yaml
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import DEFAULT_EXPORT_DEVICE
 from qai_hub_models.utils.path_helpers import (
@@ -205,6 +233,50 @@ class PipCommand(BaseQAIHMConfig):
 
 TechnicalDetails = dict[str, str | int | float]
 
+_DEFAULT_INFERENCE_METRICS = "psnr"
+
+_MACHINE_TO_PROTO: dict[PipCommandMachine, int] = {
+    "any": info_pb2.ModelInfo.PipCommand.MACHINE_UNSPECIFIED,
+    "gpu": info_pb2.ModelInfo.PipCommand.MACHINE_GPU,
+    "cpu": info_pb2.ModelInfo.PipCommand.MACHINE_CPU,
+}
+_PROTO_TO_MACHINE: dict[int, PipCommandMachine] = {
+    v: k for k, v in _MACHINE_TO_PROTO.items()
+}
+
+
+def _technical_details_to_proto(
+    details: TechnicalDetails,
+) -> list[info_pb2.ModelInfo.TechnicalDetail]:
+    protos = []
+    for key in sorted(details):
+        val = details[key]
+        td = info_pb2.ModelInfo.TechnicalDetail(key=key)
+        if isinstance(val, int):
+            td.int_value = val
+        elif isinstance(val, float):
+            td.float_value = val
+        else:
+            td.string_value = val
+        protos.append(td)
+    return protos
+
+
+def _technical_details_from_proto(
+    protos: Iterable[info_pb2.ModelInfo.TechnicalDetail],
+) -> TechnicalDetails:
+    details: TechnicalDetails = {}
+    for td in protos:
+        kind = td.WhichOneof("value")
+        if kind is None:
+            raise ValueError(f"technical detail {td.key!r} has no value")
+        details[td.key] = getattr(td, kind)
+    return details
+
+
+def _optional_str(proto: info_pb2.ModelInfo, field: str) -> str | None:
+    return getattr(proto, field) if proto.HasField(field) else None
+
 
 class QAIHMModelManifest(BaseQAIHMConfig):
     """Unified schema for manifest.yaml.
@@ -385,7 +457,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     post_pip_install_commands: list[PipCommand] = Field(default_factory=list)
 
     # A comma separated list of metrics to print in the inference summary of `qai-hub-models export`.
-    inference_metrics: str = "psnr"
+    inference_metrics: str = _DEFAULT_INFERENCE_METRICS
 
     # Additional details that can be set on the model's readme.
     # Use LiteralScalarString so the YAML dump writes this on multiple lines instead of dumping '\n' directly
@@ -829,6 +901,10 @@ class QAIHMModelManifest(BaseQAIHMConfig):
             assert self.name is not None
             assert self.license_type is not None
 
+            if not self.supported_precisions:
+                raise ValueError(
+                    f"Model {self.id}: supported_precisions must not be empty."
+                )
             if not self.license and self.license_type != MODEL_LICENSE.COMMERCIAL:
                 raise ValueError("license cannot be empty")
             if (
@@ -889,8 +965,296 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         return self
 
     # =============================================================================
+    # Proto serialization
+    # =============================================================================
+
+    def to_proto(self, include_defaults: bool = False) -> info_pb2.ModelInfo:
+        """Serialize the manifest half of ``ModelInfo``.
+
+        Parameters
+        ----------
+        include_defaults
+            If False, fields with a non-zero default (supported precisions,
+            default device, inference metrics) are omitted when unchanged so the
+            YAML stays minimal. If True they are always filled in, as for release.
+
+        Returns
+        -------
+        info_pb2.ModelInfo
+            The serialized manifest fields.
+        """
+        msg = info_pb2.ModelInfo(
+            id=self.id,
+            name=self.name,
+            headline=self.headline,
+            description=self.description,
+            domain=domain_to_proto(self.domain) if self.domain else None,
+            use_case=use_case_to_proto(self.use_case) if self.use_case else None,
+            tags=[tag_to_proto(t) for t in self.tags],
+            license_type=(
+                license_to_proto(self.license_type) if self.license_type else None
+            ),
+            research_paper=self.research_paper,
+            research_paper_title=self.research_paper_title,
+            source_repo=self.source_repo,
+            license_url=self.license,
+            restrict_model_sharing=self.restrict_model_sharing,
+            model_type_llm=self.model_type_llm,
+            voice_ai_sdk=voice_ai_sdk_to_proto(self.voice_ai_sdk),
+            numerics_benchmark=(
+                self.numerics_benchmark.to_proto() if self.numerics_benchmark else None
+            ),
+            runtime_technical_details=[
+                info_pb2.ModelInfo.RuntimeTechnicalDetails(
+                    runtime=runtime_to_proto(runtime),
+                    technical_details=_technical_details_to_proto(details),
+                )
+                for runtime, details in sorted(
+                    self.runtime_technical_details.items(),
+                    key=lambda kv: runtime_to_proto(kv[0]),
+                )
+            ],
+            templates=self.templates,
+            datasets=self.datasets,
+            external_repos=[
+                info_pb2.ModelInfo.ExternalRepo(
+                    name=name,
+                    repo_url=repo.repo_url,
+                    commit_sha=repo.commit_sha,
+                    patches_filename=repo.patches_filename,
+                )
+                for name, repo in sorted((self.external_repos or {}).items())
+            ],
+            models=self.models,
+            is_aimet=self.is_aimet,
+            num_calibration_samples=self.num_calibration_samples,
+            has_on_target_demo=self.has_on_target_demo,
+            disabled_paths=self._disabled_paths_to_proto(),
+            outputs_to_skip_validation=self.outputs_to_skip_validation,
+            is_collection_model=self.is_collection_model,
+            is_precompiled=self.is_precompiled,
+            requires_aot_prepare=self.requires_aot_prepare,
+            orchestrator_runtimes=[
+                runtime_to_proto(r) for r in self.orchestrator_runtimes
+            ],
+            only_allow_orchestrator_runtimes=self.only_allow_orchestrator_runtimes,
+            pre_pip_install_commands=[
+                self._pip_command_to_proto(c) for c in self.pre_pip_install_commands
+            ],
+            post_pip_install_commands=[
+                self._pip_command_to_proto(c) for c in self.post_pip_install_commands
+            ],
+            additional_readme_section=self.additional_readme_section,
+            skip_example_usage=self.skip_example_usage,
+            local_device_deployment=self.local_device_deployment,
+            python_version_greater_than_or_equal_to=(
+                self.python_version_greater_than_or_equal_to
+            ),
+            python_version_greater_than_or_equal_to_reason=(
+                self.python_version_greater_than_or_equal_to_reason
+            ),
+            python_version_less_than=self.python_version_less_than,
+            python_version_less_than_reason=self.python_version_less_than_reason,
+            has_multi_graph=self.has_multi_graph,
+            separate_quantize_script=self.separate_quantize_script,
+            readme_install_system_deps=self.readme_install_system_deps,
+        )
+        if include_defaults or self.supported_precisions != [Precision.float]:
+            msg.supported_precisions.extend(
+                precision_to_proto(p) for p in self.supported_precisions
+            )
+        if include_defaults or self.default_device != DEFAULT_EXPORT_DEVICE:
+            msg.default_device = self.default_device
+        if include_defaults or self.inference_metrics != _DEFAULT_INFERENCE_METRICS:
+            msg.inference_metrics = self.inference_metrics
+        return msg
+
+    @staticmethod
+    def _pip_command_to_proto(cmd: PipCommand) -> info_pb2.ModelInfo.PipCommand:
+        return info_pb2.ModelInfo.PipCommand(
+            command=cmd.command, machine=_MACHINE_TO_PROTO[cmd.machine]
+        )
+
+    def _disabled_paths_to_proto(self) -> list[info_pb2.ModelInfo.DisabledPath]:
+        paths = [
+            info_pb2.ModelInfo.DisabledPath(
+                precision=precision_to_proto(precision),
+                runtime=runtime_to_proto(runtime),
+                scorecard_failure=reasons.scorecard_failure,
+                scorecard_accuracy_failure=reasons.scorecard_accuracy_failure,
+                issue=reasons.issue,
+                causes_timeout=reasons.causes_timeout,
+                disable_devices=reasons.disable_devices,
+            )
+            for precision, runtimes in self.disabled_paths.data.items()
+            for runtime, reasons in runtimes.items()
+            if reasons.has_failure
+        ]
+        paths.sort(key=lambda p: (p.precision, p.runtime))
+        return paths
+
+    @classmethod
+    def from_proto(cls, proto: info_pb2.ModelInfo) -> QAIHMModelManifest:
+        """Build a manifest from the manifest half of a ``ModelInfo`` proto."""
+        disabled_paths = ModelDisableReasonsMapping()
+        for path in proto.disabled_paths:
+            disabled_paths.data.setdefault(precision_from_proto(path.precision), {})[
+                runtime_from_proto(path.runtime)
+            ] = ModelDisableReasons(
+                scorecard_failure=_optional_str(path, "scorecard_failure"),
+                scorecard_accuracy_failure=_optional_str(
+                    path, "scorecard_accuracy_failure"
+                ),
+                issue=_optional_str(path, "issue"),
+                causes_timeout=path.causes_timeout,
+                disable_devices=list(path.disable_devices),
+            )
+
+        kwargs: dict[str, Any] = {
+            "id": proto.id or None,
+            "name": proto.name or None,
+            "headline": proto.headline or None,
+            "description": proto.description or None,
+            "domain": domain_from_proto(proto.domain) if proto.domain else None,
+            "use_case": use_case_from_proto(proto.use_case) if proto.use_case else None,
+            "tags": [tag_from_proto(t) for t in proto.tags],
+            "license_type": (
+                license_from_proto(proto.license_type) if proto.license_type else None
+            ),
+            "research_paper": _optional_str(proto, "research_paper"),
+            "research_paper_title": _optional_str(proto, "research_paper_title"),
+            "source_repo": _optional_str(proto, "source_repo"),
+            "license": _optional_str(proto, "license_url"),
+            "restrict_model_sharing": proto.restrict_model_sharing,
+            "model_type_llm": proto.model_type_llm,
+            "voice_ai_sdk": voice_ai_sdk_from_proto(proto.voice_ai_sdk),
+            "numerics_benchmark": (
+                NumericsAccuracyBenchmark.from_proto(proto.numerics_benchmark)
+                if proto.HasField("numerics_benchmark")
+                else None
+            ),
+            "runtime_technical_details": {
+                runtime_from_proto(r.runtime): _technical_details_from_proto(
+                    r.technical_details
+                )
+                for r in proto.runtime_technical_details
+            },
+            "templates": list(proto.templates),
+            "datasets": list(proto.datasets),
+            "external_repos": {
+                r.name: ExternalRepoConfig(
+                    repo_url=r.repo_url,
+                    commit_sha=r.commit_sha,
+                    patches_filename=_optional_str(r, "patches_filename"),
+                )
+                for r in proto.external_repos
+            }
+            or None,
+            "models": list(proto.models),
+            "is_aimet": proto.is_aimet,
+            "num_calibration_samples": (
+                proto.num_calibration_samples
+                if proto.HasField("num_calibration_samples")
+                else None
+            ),
+            "has_on_target_demo": proto.has_on_target_demo,
+            "disabled_paths": disabled_paths,
+            "outputs_to_skip_validation": dict(proto.outputs_to_skip_validation)
+            or None,
+            "is_collection_model": proto.is_collection_model,
+            "is_precompiled": proto.is_precompiled,
+            "requires_aot_prepare": proto.requires_aot_prepare,
+            "orchestrator_runtimes": [
+                runtime_from_proto(r) for r in proto.orchestrator_runtimes
+            ],
+            "only_allow_orchestrator_runtimes": proto.only_allow_orchestrator_runtimes,
+            "pre_pip_install_commands": [
+                PipCommand(command=c.command, machine=_PROTO_TO_MACHINE[c.machine])
+                for c in proto.pre_pip_install_commands
+            ],
+            "post_pip_install_commands": [
+                PipCommand(command=c.command, machine=_PROTO_TO_MACHINE[c.machine])
+                for c in proto.post_pip_install_commands
+            ],
+            "additional_readme_section": proto.additional_readme_section,
+            "skip_example_usage": proto.skip_example_usage,
+            "local_device_deployment": proto.local_device_deployment,
+            "python_version_greater_than_or_equal_to": _optional_str(
+                proto, "python_version_greater_than_or_equal_to"
+            ),
+            "python_version_greater_than_or_equal_to_reason": _optional_str(
+                proto, "python_version_greater_than_or_equal_to_reason"
+            ),
+            "python_version_less_than": _optional_str(
+                proto, "python_version_less_than"
+            ),
+            "python_version_less_than_reason": _optional_str(
+                proto, "python_version_less_than_reason"
+            ),
+            "has_multi_graph": proto.has_multi_graph,
+            "separate_quantize_script": proto.separate_quantize_script,
+            "readme_install_system_deps": _optional_str(
+                proto, "readme_install_system_deps"
+            ),
+        }
+        if proto.supported_precisions:
+            kwargs["supported_precisions"] = [
+                precision_from_proto(p) for p in proto.supported_precisions
+            ]
+        if proto.default_device:
+            kwargs["default_device"] = proto.default_device
+        if proto.inference_metrics:
+            kwargs["inference_metrics"] = proto.inference_metrics
+        return cls(**kwargs)
+
+    # =============================================================================
     # Loader / writer
     # =============================================================================
+
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str | os.PathLike,
+        create_empty_if_no_file: bool = False,
+    ) -> QAIHMModelManifest:
+        """
+        Read a manifest.yaml, which is the YAML form of a ``ModelInfo`` proto.
+
+        If the file does not parse as a proto, it is treated as the legacy
+        (pre-proto) format: the raw YAML is rewritten into the proto's dict form
+        and parsed as a ``ModelInfo`` the same way.
+        """
+        if create_empty_if_no_file and (
+            not os.path.exists(path) or os.path.getsize(path) == 0
+        ):
+            return cls()
+        try:
+            proto = read_proto_yaml(path, info_pb2.ModelInfo)
+        except json_format.ParseError:
+            proto = proto_from_dict(
+                legacy_manifest_to_proto_dict(load_yaml(Path(path))),
+                info_pb2.ModelInfo,
+                ignore_unknown_fields=True,
+            )
+        return cls.from_proto(proto)
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Write this manifest to ``path`` as the YAML form of a ``ModelInfo`` proto.
+
+        Parameters
+        ----------
+        path
+            Where to write the file.
+        **kwargs
+            Unused. Accepted so the signature matches ``BaseQAIHMConfig.to_yaml``.
+
+        Returns
+        -------
+        written : bool
+            Always True.
+        """
+        write_proto_yaml(self.to_proto(), path)
+        return True
 
     @classmethod
     def from_model(cls: type[QAIHMModelManifest], model_id: str) -> QAIHMModelManifest:

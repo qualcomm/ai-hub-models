@@ -1,9 +1,9 @@
 description: Qwen3.5 is the latest multilingual language model series from Alibaba Cloud with improved reasoning and instruction-following capabilities over Qwen3.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Balanced 2B parameter model from the Qwen3.5 series for on-device inference.
 id: qwen3_5_2b
-license: https://huggingface.co/Qwen/Qwen3.5-2B/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/Qwen/Qwen3.5-2B/blob/main/LICENSE
 model_type_llm: true
 name: Qwen3.5-2B
 numerics_benchmark:
@@ -13,22 +13,28 @@ numerics_benchmark:
   unit: '%'
   value: 79.5
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://qwen.ai/blog?id=qwen3.5
 research_paper_title: 'Qwen3.5: Towards Native Multimodal Agents'
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 1.21 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: unsloth/Qwen3.5-2B-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 1.21 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: unsloth/Qwen3.5-2B-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/Qwen/Qwen3.5-2B
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

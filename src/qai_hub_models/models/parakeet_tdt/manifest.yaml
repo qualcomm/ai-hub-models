@@ -1,22 +1,23 @@
 description: Parakeet-TDT-0.6B-v3 is a 600M-parameter ASR model by NVIDIA using TDT architecture with a FastConformer encoder and 2-layer LSTM predictor, split into Encoder, Decoder, and Joint components for efficient on-device inference across English and 25 European languages.
 disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jp42j2nvg'
-  mixed:
-    onnx:
-      scorecard_failure: 'Failing jobs: jp3rxx7zp'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5mloo0qg'
-  mixed_with_float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jp3rqrvlp'
-domain: Audio
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jp42j2nvg'
+- precision: PRECISION_MIXED
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5mloo0qg'
+- precision: PRECISION_MIXED
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jp3rxx7zp'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jp3rqrvlp'
+domain: MODEL_DOMAIN_AUDIO
 headline: Multilingual automatic speech recognition (ASR) model supporting English and 25 European languages with Token-and-Duration Transducer (TDT) architecture.
 id: parakeet_tdt
 is_collection_model: true
-license: https://creativecommons.org/licenses/by/4.0/legalcode.en
-license_type: cc-by-4.0
+license_type: MODEL_LICENSE_CC_BY_4_0
+license_url: https://creativecommons.org/licenses/by/4.0/legalcode.en
 name: Parakeet-TDT-0.6B-v3
 numerics_benchmark:
   dataset_name: libri_speech
@@ -25,18 +26,18 @@ numerics_benchmark:
   unit: WER
   value: 3.964
 orchestrator_runtimes:
-- voice_ai
+- RUNTIME_VOICE_AI
 post_pip_install_commands:
-- pip install transformers==5.15.0 soundfile==0.14.0 librosa==0.10.0
+- command: pip install transformers==5.15.0 soundfile==0.14.0 librosa==0.10.0
 research_paper: https://arxiv.org/abs/2509.14128
 research_paper_title: 'Canary-1B-v2 & Parakeet-TDT-0.6B-v3: Efficient and High-Performance Models for Multilingual ASR and AST'
 source_repo: https://github.com/NVIDIA/NeMo
 supported_precisions:
-- float
-- mixed_with_float
-- mixed
+- PRECISION_FLOAT
+- PRECISION_MIXED_WITH_FLOAT
+- PRECISION_MIXED
 tags:
-- foundation
-- real-time
-use_case: Speech Recognition
-voice_ai_sdk: asr
+- MODEL_TAG_FOUNDATION
+- MODEL_TAG_REAL_TIME
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION
+voice_ai_sdk: VOICE_AI_SDK_ASR

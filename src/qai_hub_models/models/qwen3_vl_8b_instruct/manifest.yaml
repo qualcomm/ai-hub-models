@@ -1,24 +1,25 @@
 description: Qwen3-VL is a vision-language model from Alibaba Cloud capable of understanding both text and images for multimodal reasoning tasks such as visual question answering and image captioning.
 disabled_paths:
-  w4a16:
-    genie:
-      disable_devices:
-      - Samsung Galaxy S25 (Family)
-      - Samsung Galaxy S26 (Family)
-      issue: https://github.com/qcom-ai-hub/tetracode/issues/21748
-    geniex_qairt:
-      disable_devices:
-      - Samsung Galaxy S25 (Family)
-      - Samsung Galaxy S26 (Family)
-      issue: https://github.com/qcom-ai-hub/tetracode/issues/21748
-domain: Generative AI
+- disable_devices:
+  - Samsung Galaxy S25 (Family)
+  - Samsung Galaxy S26 (Family)
+  issue: https://github.com/qcom-ai-hub/tetracode/issues/21748
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIE
+- disable_devices:
+  - Samsung Galaxy S25 (Family)
+  - Samsung Galaxy S26 (Family)
+  issue: https://github.com/qcom-ai-hub/tetracode/issues/21748
+  precision: PRECISION_W4A16
+  runtime: RUNTIME_GENIEX_QAIRT
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: Multimodal 8B vision-language model with enhanced visual reasoning capabilities.
 id: qwen3_vl_8b_instruct
 is_aimet: true
 is_collection_model: true
-license: https://www.apache.org/licenses/LICENSE-2.0
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://www.apache.org/licenses/LICENSE-2.0
 model_type_llm: true
 name: Qwen3-VL-8B-Instruct
 numerics_benchmark:
@@ -29,38 +30,45 @@ numerics_benchmark:
   value: 92.8
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 python_version_less_than: '3.13'
 python_version_less_than_reason: onnx 1.17.0 has no Python 3.13 wheels
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2505.09388
 research_paper_title: Qwen3 Technical Report
 runtime_technical_details:
-  geniex_qairt:
-    Context lengths: 512, 1024, 2048, 4096
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.45.0
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: ai-hub-models/Qwen3-VL-8B-Instruct
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context lengths
+    string_value: 512, 1024, 2048, 4096
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.45.0
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ai-hub-models/Qwen3-VL-8B-Instruct
 separate_quantize_script: true
 source_repo: https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- vlm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llm
 - qwen3_vl
 - vlm
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

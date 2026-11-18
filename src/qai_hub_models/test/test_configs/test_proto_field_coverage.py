@@ -215,41 +215,6 @@ class TestInfoFieldCoverage:
             QAIHMModelManifest,
             info_pb2.ModelInfo.DESCRIPTOR,
             pydantic_field_renames={"license": "license_url"},
-            pydantic_only={
-                # Shared/dataset dependency declarations. Not part of the
-                # public info.proto schema — used only by internal setup.
-                "templates",
-                "datasets",
-                # Build/export config fields. These drive codegen and export
-                # dispatch, and are not part of the public info.proto schema.
-                "additional_readme_section",
-                "default_device",
-                "disabled_paths",
-                "external_repos",
-                "has_multi_graph",
-                "has_on_target_demo",
-                "inference_metrics",
-                "is_aimet",
-                "is_collection_model",
-                "is_precompiled",
-                "local_device_deployment",
-                "models",
-                "num_calibration_samples",
-                "only_allow_orchestrator_runtimes",
-                "orchestrator_runtimes",
-                "outputs_to_skip_validation",
-                "post_pip_install_commands",
-                "pre_pip_install_commands",
-                "python_version_greater_than_or_equal_to",
-                "python_version_greater_than_or_equal_to_reason",
-                "python_version_less_than",
-                "python_version_less_than_reason",
-                "readme_install_system_deps",
-                "requires_aot_prepare",
-                "separate_quantize_script",
-                "skip_example_usage",
-                "supported_precisions",
-            },
             proto_only={"aihm_version"}
             | _INTERNAL_OWNED_INFO_FIELDS
             | _UNUSED_INFO_PROTO_FIELDS,

@@ -1,12 +1,12 @@
 description: Falcon3 family of Open Foundation Models is a set of pretrained and instruct LLMs ranging from 1B to 10B.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: falcon_v3_7b_instruct
 is_aimet: true
 is_collection_model: true
-license: https://falconllm.tii.ae/falcon-terms-and-conditions.html
-license_type: falcon3
+license_type: MODEL_LICENSE_FALCON3
+license_url: https://falconllm.tii.ae/falcon-terms-and-conditions.html
 local_device_deployment: true
 model_type_llm: true
 name: Falcon3-7B-Instruct
@@ -18,33 +18,39 @@ numerics_benchmark:
   value: 79.4
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.31.0
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 restrict_model_sharing: true
 runtime_technical_details:
-  geniex_qairt:
-    Context length: '4096'
-    Input sequence length for Prompt Processor: '128'
-    Quantization Type: w4a16 + w8a16 (few layers)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context length
+    string_value: '4096'
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Quantization Type
+    string_value: w4a16 + w8a16 (few layers)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
 separate_quantize_script: true
 source_repo: https://huggingface.co/tiiuae/Falcon3-7B-Instruct
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llama3
 - llm
 - lm_driver
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

@@ -1,14 +1,14 @@
 description: InternImage employs DCNv3 as its core operator to equips the model with dynamic and effective receptive fields required for downstream tasks like object detection and segmentation, while enabling adaptive spatial aggregation.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  internimage:
-    commit_sha: 31c962dc6c1ceb23e580772f7daaa6944694fbe6
-    patches_filename: internimage_patches.diff
-    repo_url: https://github.com/OpenGVLab/InternImage
+- commit_sha: 31c962dc6c1ceb23e580772f7daaa6944694fbe6
+  name: internimage
+  patches_filename: internimage_patches.diff
+  repo_url: https://github.com/OpenGVLab/InternImage
 headline: InternImage Large-Scale Vision Foundation Model.
 id: internimage
-license: https://github.com/OpenGVLab/InternImage/tree/master?tab=MIT-1-ov-file
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/OpenGVLab/InternImage/tree/master?tab=MIT-1-ov-file
 name: InternImage
 numerics_benchmark:
   dataset_name: imagenet
@@ -18,10 +18,10 @@ numerics_benchmark:
   value: 83.5
 requires_aot_prepare: true
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

@@ -1,32 +1,35 @@
 description: Deformable DETR is a machine learning model that can detect objects (trained on COCO dataset).
 disabled_paths:
-  float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jgj8o19x5'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jgz08wqk5'
-    tflite:
-      scorecard_failure: 'Failing jobs: jpen82n1p'
-  w8a16:
-    onnx:
-      scorecard_failure: 'Failing jobs: jgo9omjqg'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jgdm80jrg'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jpen82n1p'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jgz08wqk5'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jgj8o19x5'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jgdm80jrg'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jgo9omjqg'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Transformer based object detector with ResNet-50 backbone.
 id: deformable_detr
-license: https://github.com/facebookresearch/detr/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/detr/blob/main/LICENSE
 name: DeformableDETR
 research_paper: https://arxiv.org/abs/2010.04159
 research_paper_title: 'Deformable DETR: Deformable Transformers for End-to-End Object Detection'
 source_repo: https://github.com/fundamentalvision/Deformable-DETR
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - detr
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

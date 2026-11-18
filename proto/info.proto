@@ -8,6 +8,7 @@ package qaihm;
 
 import "platform.proto";
 import "numerics.proto";
+import "shared/precision.proto";
 import "shared/runtime.proto";
 
 enum ModelLicense {
@@ -118,7 +119,12 @@ enum ModelUseCase {
   MODEL_USE_CASE_TEXT_GENERATION = 20;
 }
 
-// Schema for model info.yaml.
+// Everything known about a model: how it is presented, how it is built and
+// exported, and which precision / runtime paths it supports.
+//
+// Field numbers are stable and not in declaration order; fields are grouped by
+// topic below. Fields at their default may be omitted when authoring a model's
+// config, but released info always fills in every field.
 message ModelInfo {
 
   string aihm_version = 1;
@@ -185,6 +191,10 @@ message ModelInfo {
   //   Number of output classes: The number of classes the model can classify or annotate.
   repeated TechnicalDetail technical_details = 14;
 
+  // Technical details that only apply to specific runtimes, e.g. a model size
+  // that differs per runtime. One entry per runtime that has such details.
+  repeated RuntimeTechnicalDetails runtime_technical_details = 32;
+
   // The license type of the original model repo.
   ModelLicense license_type = 15;
 
@@ -224,7 +234,7 @@ message ModelInfo {
   reserved 24;
 
   // ---------------------------------------------------------------------------
-  // Features & deployment
+  // Distribution & integrations
   // ---------------------------------------------------------------------------
 
   // Whether the model is compatible with the IMSDK Plugin for IOT devices.
@@ -233,13 +243,15 @@ message ModelInfo {
   // If set, model assets shouldn't be distributed.
   bool restrict_model_sharing = 26;
 
-  // ---------------------------------------------------------------------------
-  // Validation
-  // ---------------------------------------------------------------------------
+  // Which Qualcomm Voice AI SDK variant the model is compatible with.
+  // Unset means the model has no Voice AI SDK integration.
+  VoiceAISdk voice_ai_sdk = 33;
 
-  // Expected accuracy benchmark. If set, scorecard will flag results that
-  // deviate from this value by more than the metric's metric_enablement_threshold.
-  optional NumericsAccuracyBenchmark numerics_benchmark = 27;
+  // Device form factors for which we don't publish performance data.
+  repeated FormFactor private_perf_form_factors = 30;
+
+  reserved 31;
+  reserved "voice_ai_compatible";
 
   // ---------------------------------------------------------------------------
   // LLM-specific
@@ -250,19 +262,155 @@ message ModelInfo {
 
   optional LLMDetails llm_details = 29;
 
-  // Device form factors for which we don't publish performance data.
-  repeated FormFactor private_perf_form_factors = 30;
+  // ---------------------------------------------------------------------------
+  // Dependencies
+  // ---------------------------------------------------------------------------
 
-  reserved 31;
-  reserved "voice_ai_compatible";
+  // Names of other templates/ folders this model depends on.
+  repeated string templates = 34;
 
-  // Technical details that only apply to specific runtimes, e.g. a model size
-  // that differs per runtime. One entry per runtime that has such details.
-  repeated RuntimeTechnicalDetails runtime_technical_details = 32;
+  // Names of datasets/ folders this model depends on.
+  repeated string datasets = 35;
 
-  // Which Qualcomm Voice AI SDK variant the model is compatible with.
-  // Unset means the model has no Voice AI SDK integration.
-  VoiceAISdk voice_ai_sdk = 33;
+  // Direct dependencies on other model folders under qai_hub_models/models/.
+  repeated string models = 37;
+
+  // External repository dependencies, imported as external_repos.<name>.
+  repeated ExternalRepo external_repos = 36;
+
+  // pip commands to run before / after `pip install -r requirements.txt`.
+  repeated PipCommand pre_pip_install_commands = 50;
+  repeated PipCommand post_pip_install_commands = 51;
+
+  // Instructions for installing system-level dependencies before pip install.
+  optional string readme_install_system_deps = 62;
+
+  // Supported python versions: >= greater_than_or_equal_to, < less_than.
+  // Each bound requires its reason.
+  optional string python_version_greater_than_or_equal_to = 56;
+  optional string python_version_greater_than_or_equal_to_reason = 57;
+  optional string python_version_less_than = 58;
+  optional string python_version_less_than_reason = 59;
+
+  // ---------------------------------------------------------------------------
+  // Model structure
+  // ---------------------------------------------------------------------------
+
+  // True for collection models made of components (e.g. encoder + decoder).
+  bool is_collection_model = 45;
+
+  // If set, the model returns multiple (input_spec, graph_name) pairs that are
+  // compiled separately and linked into a single context binary.
+  bool has_multi_graph = 60;
+
+  // Whether the model uses the pre-compiled pattern.
+  bool is_precompiled = 46;
+
+  // ---------------------------------------------------------------------------
+  // Precision & runtime support
+  // ---------------------------------------------------------------------------
+
+  // Precisions enabled via the CLI and run by scorecard. Always populated in
+  // released info; an empty list in a source file means [float].
+  repeated Precision supported_precisions = 39;
+
+  // Runtimes that need extra orchestration steps beyond running the model.
+  repeated Runtime orchestrator_runtimes = 48;
+
+  // If set, only runtimes in orchestrator_runtimes are supported.
+  bool only_allow_orchestrator_runtimes = 49;
+
+  // If set, only AOT-prepared (context binary) paths are enabled.
+  bool requires_aot_prepare = 47;
+
+  // Precision + runtime paths that are disabled, with the reason.
+  repeated DisabledPath disabled_paths = 42;
+
+  // ---------------------------------------------------------------------------
+  // Quantization & export
+  // ---------------------------------------------------------------------------
+
+  // Whether the model is quantized with aimet.
+  bool is_aimet = 38;
+
+  // Number of calibration samples used to speed up compilation (aimet models).
+  optional int32 num_calibration_samples = 40;
+
+  // If set, the model has a separate quantize.py script.
+  bool separate_quantize_script = 61;
+
+  // Default device for `qai-hub-models export`.
+  string default_device = 43;
+
+  // Whether the model's demo supports `--eval-mode on-device`.
+  bool has_on_target_demo = 41;
+
+  // ---------------------------------------------------------------------------
+  // Validation
+  // ---------------------------------------------------------------------------
+
+  // Expected accuracy benchmark. If set, scorecard will flag results that
+  // deviate from this value by more than the metric's metric_enablement_threshold.
+  optional NumericsAccuracyBenchmark numerics_benchmark = 27;
+
+  // Comma separated metrics printed in the export inference summary.
+  string inference_metrics = 52;
+
+  // Output index -> reason its PSNR should not be printed by export.
+  map<int32, string> outputs_to_skip_validation = 44;
+
+  // ---------------------------------------------------------------------------
+  // README
+  // ---------------------------------------------------------------------------
+
+  // Extra README content for the model.
+  string additional_readme_section = 53;
+
+  // If set, omits "Example Usage" from the HuggingFace readme.
+  bool skip_example_usage = 54;
+
+  // If set, the README groups Setup / Demo / Export under one "## Export".
+  bool local_device_deployment = 55;
+
+  message ExternalRepo {
+    // Import name of the repo.
+    string name = 1;
+    string repo_url = 2;
+    string commit_sha = 3;
+    optional string patches_filename = 4;
+  }
+
+  message PipCommand {
+    string command = 1;
+    Machine machine = 2;
+
+    // Which hosts the command runs on.
+    enum Machine {
+      // Runs on every host.
+      MACHINE_UNSPECIFIED = 0;
+      // Runs only when a CUDA GPU is detected.
+      MACHINE_GPU = 1;
+      // Runs only when no CUDA GPU is detected.
+      MACHINE_CPU = 2;
+    }
+  }
+
+  // Why a precision + runtime path is disabled.
+  message DisabledPath {
+    Precision precision = 1;
+    Runtime runtime = 2;
+
+    // Set by scorecard; removed automatically when the path works again.
+    optional string scorecard_failure = 3;
+    optional string scorecard_accuracy_failure = 4;
+
+    // Link to an issue explaining the failure.
+    optional string issue = 5;
+    bool causes_timeout = 6;
+
+    // If set, issue and causes_timeout only apply to these device names.
+    repeated string disable_devices = 7;
+  }
 
   message TechnicalDetail {
     string key = 1;

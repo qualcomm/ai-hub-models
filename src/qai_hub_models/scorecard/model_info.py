@@ -31,21 +31,15 @@ from qai_hub_models.configs.proto_helpers import (
     call_to_action_from_proto,
     call_to_action_to_proto,
     domain_from_proto,
-    domain_to_proto,
     form_factor_from_proto,
     form_factor_to_proto,
     license_from_proto,
-    license_to_proto,
     runtime_from_proto,
-    runtime_to_proto,
     status_from_proto,
     status_to_proto,
     tag_from_proto,
-    tag_to_proto,
     use_case_from_proto,
-    use_case_to_proto,
     voice_ai_sdk_from_proto,
-    voice_ai_sdk_to_proto,
 )
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.utils.base_config import dump_yaml_dict
@@ -97,6 +91,7 @@ class WebsiteModelInfo:
         return protos
 
     def to_proto(self, aihm_version: str) -> info_pb2.ModelInfo:
+        """Release ``ModelInfo`` with every field filled in, defaults included."""
         manifest, internal = self.manifest, self.internal
         assert manifest.is_full_model_manifest, (
             "to_proto only valid for model manifests"
@@ -104,64 +99,37 @@ class WebsiteModelInfo:
         assert manifest.domain is not None
         assert manifest.use_case is not None
         assert manifest.license_type is not None
-        technical_details = self._technical_details_to_proto(internal.technical_details)
 
-        runtime_technical_details = [
-            info_pb2.ModelInfo.RuntimeTechnicalDetails(
-                runtime=runtime_to_proto(runtime),
-                technical_details=self._technical_details_to_proto(details),
-            )
-            for runtime, details in manifest.runtime_technical_details.items()
-        ]
-
-        llm_details = None
-        if internal.llm_details is not None:
-            llm_details = info_pb2.ModelInfo.LLMDetails(
-                call_to_action=call_to_action_to_proto(
-                    internal.llm_details.call_to_action
-                ),
-                genie_compatible=internal.llm_details.genie_compatible,
-                geniex_llamacpp_compatible=internal.llm_details.geniex_llamacpp_compatible,
-            )
-
-        numerics_benchmark = None
-        if manifest.numerics_benchmark is not None:
-            numerics_benchmark = manifest.numerics_benchmark.to_proto()
-
-        return info_pb2.ModelInfo(
-            aihm_version=aihm_version,
-            id=manifest.id,
-            name=manifest.name,
-            status=status_to_proto(internal.status),
-            status_reason=internal.status_reason,
-            headline=manifest.headline,
-            domain=domain_to_proto(manifest.domain),
-            description=manifest.description,
-            use_case=use_case_to_proto(manifest.use_case),
-            tags=[tag_to_proto(t) for t in manifest.tags],
-            applicable_scenarios=internal.applicable_scenarios,
-            related_models=internal.related_models,
-            technical_details=technical_details,
-            runtime_technical_details=runtime_technical_details,
-            license_type=license_to_proto(manifest.license_type),
-            model_maker_id=internal.model_maker_id,
-            research_paper=manifest.research_paper,
-            research_paper_title=manifest.research_paper_title,
-            source_repo=manifest.source_repo,
-            license_url=manifest.license,
-            has_static_banner=internal.has_static_banner,
-            has_animated_banner=internal.has_animated_banner,
-            imsdk_supported=internal.imsdk_supported,
-            restrict_model_sharing=manifest.restrict_model_sharing,
-            numerics_benchmark=numerics_benchmark,
-            model_type_llm=manifest.model_type_llm,
-            llm_details=llm_details,
-            private_perf_form_factors=[
-                form_factor_to_proto(ff)
-                for ff in (internal.private_perf_form_factors or [])
-            ],
-            voice_ai_sdk=voice_ai_sdk_to_proto(manifest.voice_ai_sdk),
+        msg = manifest.to_proto(include_defaults=True)
+        msg.aihm_version = aihm_version
+        msg.status = status_to_proto(internal.status)
+        if internal.status_reason is not None:
+            msg.status_reason = internal.status_reason
+        if internal.model_maker_id is not None:
+            msg.model_maker_id = internal.model_maker_id
+        msg.applicable_scenarios.extend(internal.applicable_scenarios)
+        msg.related_models.extend(internal.related_models)
+        msg.technical_details.extend(
+            self._technical_details_to_proto(internal.technical_details)
         )
+        msg.has_static_banner = internal.has_static_banner
+        msg.has_animated_banner = internal.has_animated_banner
+        msg.imsdk_supported = internal.imsdk_supported
+        msg.private_perf_form_factors.extend(
+            form_factor_to_proto(ff)
+            for ff in (internal.private_perf_form_factors or [])
+        )
+        if internal.llm_details is not None:
+            msg.llm_details.CopyFrom(
+                info_pb2.ModelInfo.LLMDetails(
+                    call_to_action=call_to_action_to_proto(
+                        internal.llm_details.call_to_action
+                    ),
+                    genie_compatible=internal.llm_details.genie_compatible,
+                    geniex_llamacpp_compatible=internal.llm_details.geniex_llamacpp_compatible,
+                )
+            )
+        return msg
 
     @staticmethod
     def _technical_details_from_proto(

@@ -1,14 +1,14 @@
 description: GPUNet is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  deeplearningexamples:
-    commit_sha: 9dd9fcb98f56187e49c5ee280cf8dbd530dde57b
-    patches_filename: deeplearningexamples_patches.diff
-    repo_url: https://github.com/NVIDIA/DeepLearningExamples.git
+- commit_sha: 9dd9fcb98f56187e49c5ee280cf8dbd530dde57b
+  name: deeplearningexamples
+  patches_filename: deeplearningexamples_patches.diff
+  repo_url: https://github.com/NVIDIA/DeepLearningExamples.git
 headline: Imagenet classifier and general purpose backbone.
 id: gpunet
-license: http://www.apache.org/licenses/LICENSE-2.0
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: http://www.apache.org/licenses/LICENSE-2.0
 name: GPUNet
 numerics_benchmark:
   dataset_name: imagenet
@@ -20,12 +20,12 @@ research_paper: https://arxiv.org/abs/2205.00841
 research_paper_title: 'GPUNet: Searching the Deployable Convolution Neural Networks for GPUs'
 source_repo: https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Classification/GPUNet
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- backbone
-- bu-auto
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

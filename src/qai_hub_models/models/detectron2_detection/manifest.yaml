@@ -1,14 +1,13 @@
 datasets:
 - coco
 description: Detectron2-Detection is a machine learning model that can detect objects (trained on COCO dataset).
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: A next-generation library for object detection.
 id: detectron2_detection
 is_collection_model: true
-license: https://github.com/facebookresearch/detectron2/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/detectron2/blob/main/LICENSE
 name: Detectron2-Detection
 numerics_benchmark:
   dataset_name: coco
@@ -17,16 +16,16 @@ numerics_benchmark:
   unit: mAP
   value: 35.7
 post_pip_install_commands:
-- pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
+- command: pip install git+https://github.com/facebookresearch/detectron2.git@8a9d885 --no-build-isolation
 pre_pip_install_commands:
-- pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
+- command: pip install "torch>=2.1,<=2.14.1" "setuptools>=80"
 source_repo: https://github.com/facebookresearch/detectron2/
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 templates:
 - corevision
 - detectron2
 - proposal_based_detection
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

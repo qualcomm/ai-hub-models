@@ -1,15 +1,15 @@
 description: MobileFaceNet is an efficient CNN that maps a 112x112 face image to a compact 128-dimensional embedding. Two embeddings are compared via cosine similarity to determine whether they belong to the same person, achieving 99.48% accuracy on the LFW benchmark. The model uses depthwise-separable convolutions and inverted residual blocks (MobileNetV2-style) to stay under 1M parameters, making it well-suited for real-time face verification on mobile and edge devices. Trained with ArcFace loss on MS-Celeb-1M.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  pytorch_mobile_facenet:
-    commit_sha: a6cc9032a659b615f477833e1a70b5e7931bcccc
-    patches_filename: mobile_facenet_patches.diff
-    repo_url: https://github.com/foamliu/MobileFaceNet.git
+- commit_sha: a6cc9032a659b615f477833e1a70b5e7931bcccc
+  name: pytorch_mobile_facenet
+  patches_filename: mobile_facenet_patches.diff
+  repo_url: https://github.com/foamliu/MobileFaceNet.git
 has_on_target_demo: true
 headline: Lightweight real-time face verification on-device.
 id: mobile_facenet
-license: https://github.com/foamliu/MobileFaceNet/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/foamliu/MobileFaceNet/blob/master/LICENSE
 name: MobileFaceNet
 numerics_benchmark:
   dataset_name: lfw
@@ -19,11 +19,11 @@ numerics_benchmark:
   value: 99.48
 source_repo: https://github.com/foamliu/MobileFaceNet
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
-- bu-auto
+- MODEL_TAG_REAL_TIME
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

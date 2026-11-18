@@ -1,23 +1,25 @@
 description: YoloV6 is a machine learning model that predicts bounding boxes and classes of objects in an image.
 disabled_paths:
-  w8a8:
-    onnx:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
-    qnn_dlc:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
-    tflite:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
-domain: Computer Vision
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
+- precision: PRECISION_W8A8
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-41.400 mAP@0.5:0.95) above threshold (10.0 mAP@0.5:0.95)
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  yolov6:
-    commit_sha: 55d80c317edd0fb5847e599a1802d394f34a3141
-    patches_filename: yolov6_patches.diff
-    repo_url: https://github.com/meituan/YOLOv6
+- commit_sha: 55d80c317edd0fb5847e599a1802d394f34a3141
+  name: yolov6
+  patches_filename: yolov6_patches.diff
+  repo_url: https://github.com/meituan/YOLOv6
 has_on_target_demo: true
 headline: Real-time object detection optimized for mobile and edge.
 id: yolov6
-license: https://github.com/meituan/YOLOv6/blob/47625514e7480706a46ff3c0cd0252907ac12f22/LICENSE
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/meituan/YOLOv6/blob/47625514e7480706a46ff3c0cd0252907ac12f22/LICENSE
 name: Yolo-v6
 numerics_benchmark:
   dataset_name: coco
@@ -32,12 +34,12 @@ research_paper_title: 'YOLOv6: A Single-Stage Object Detection Framework for Ind
 restrict_model_sharing: true
 source_repo: https://github.com/meituan/YOLOv6/
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

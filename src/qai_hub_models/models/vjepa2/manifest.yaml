@@ -1,27 +1,28 @@
 description: V-JEPA 2 (Video Joint-Embedding Predictive Architecture 2) is a self-supervised video encoder from Meta AI that uses a ViT (Vision Transformer) backbone to produce per-token video embeddings. It is used as a frozen backbone for downstream video understanding tasks such as action recognition and video retrieval.
 disabled_paths:
-  float:
-    tflite:
-      scorecard_failure: 'Failing jobs: jgo9ojd1g'
-  w8a16:
-    onnx:
-      scorecard_failure: 'Failing jobs: jgj8oj815'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jp42mz42g'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jgo9ojd1g'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jp42mz42g'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jgj8oj815'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 headline: Self-supervised video representation backbone.
 id: vjepa2
-license: https://github.com/facebookresearch/vjepa2/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/facebookresearch/vjepa2/blob/main/LICENSE
 name: V-JEPA-2
 research_paper: https://arxiv.org/abs/2506.09985
 research_paper_title: 'V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning'
 source_repo: https://github.com/facebookresearch/vjepa2
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- backbone
+- MODEL_TAG_BACKBONE
 templates:
 - corevision
-use_case: Video Classification
+use_case: MODEL_USE_CASE_VIDEO_CLASSIFICATION

@@ -1,30 +1,33 @@
 description: WAFT-Stereo estimates per-pixel disparity from a rectified stereo pair using warping-based iterative refinement instead of a 4D cost volume.
 disabled_paths:
-  float:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5wr0oj6p'
-    tflite:
-      scorecard_accuracy_failure: On-device D1-all 51.17% on 40 KITTI-2015 samples vs torch baseline 12.96% (~38.2pp gap, well outside the 10pp threshold)
-  mixed_with_float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jp2zq6krp'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j56096l05'
-    tflite:
-      scorecard_failure: 'Failing jobs: jp3rlk7zp'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_accuracy_failure: On-device D1-all 51.17% on 40 KITTI-2015 samples vs torch baseline 12.96% (~38.2pp gap, well outside the 10pp threshold)
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5wr0oj6p'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jp3rlk7zp'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j56096l05'
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jp2zq6krp'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  waft_stereo:
-    commit_sha: c534320860f4bbb2c0df896e3ccb95de49284aec
-    patches_filename: waft_stereo_patches.diff
-    repo_url: https://github.com/princeton-vl/WAFT-Stereo.git
+- commit_sha: c534320860f4bbb2c0df896e3ccb95de49284aec
+  name: waft_stereo
+  patches_filename: waft_stereo_patches.diff
+  repo_url: https://github.com/princeton-vl/WAFT-Stereo.git
 has_on_target_demo: true
 headline: Warping-based iterative stereo matching network that avoids constructing a cost volume.
 id: waft_stereo
 is_aimet: true
 is_collection_model: true
-license: https://github.com/princeton-vl/WAFT-Stereo/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/princeton-vl/WAFT-Stereo/blob/main/LICENSE
 name: WAFT-Stereo
 numerics_benchmark:
   dataset_name: kitti_2015_scene_flow
@@ -36,8 +39,8 @@ research_paper: https://arxiv.org/abs/2603.24836
 research_paper_title: 'WAFT-Stereo: Warping-Alone Field Transforms for Stereo Matching'
 source_repo: https://github.com/princeton-vl/WAFT-Stereo
 supported_precisions:
-- float
-- mixed_with_float
+- PRECISION_FLOAT
+- PRECISION_MIXED_WITH_FLOAT
 templates:
 - corevision
-use_case: Depth Estimation
+use_case: MODEL_USE_CASE_DEPTH_ESTIMATION

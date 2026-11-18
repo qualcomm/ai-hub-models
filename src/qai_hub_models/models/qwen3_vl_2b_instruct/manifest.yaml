@@ -1,9 +1,9 @@
 description: Qwen3-VL is a vision-language model from Alibaba Cloud capable of understanding both text and images for multimodal reasoning tasks such as visual question answering and image captioning.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Multimodal 2B vision-language model capable of understanding text and images.
 id: qwen3_vl_2b_instruct
-license: https://www.apache.org/licenses/LICENSE-2.0
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://www.apache.org/licenses/LICENSE-2.0
 model_type_llm: true
 name: Qwen3-VL-2B-Instruct
 numerics_benchmark:
@@ -13,22 +13,28 @@ numerics_benchmark:
   unit: '%'
   value: 79.9
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://arxiv.org/abs/2505.09388
 research_paper_title: Qwen3 Technical Report
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 1.39 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: unsloth/Qwen3-VL-2B-Instruct-GGUF
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 1.39 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: unsloth/Qwen3-VL-2B-Instruct-GGUF
 skip_example_usage: true
 source_repo: https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

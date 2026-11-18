@@ -1,25 +1,25 @@
 datasets:
 - bsd
 description: DnCNN is a 17-layer denoising convolutional neural network that uses residual learning to remove Gaussian noise (sigma=25) from grayscale images. The network predicts the noise residual and subtracts it from the input to produce a clean image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  kair:
-    commit_sha: fc1732f4a4514e42ce15e5b3a1e18c828af47a1e
-    patches_filename: kair_patches.diff
-    repo_url: https://github.com/cszn/KAIR.git
+- commit_sha: fc1732f4a4514e42ce15e5b3a1e18c828af47a1e
+  name: kair
+  patches_filename: kair_patches.diff
+  repo_url: https://github.com/cszn/KAIR.git
 headline: Remove Gaussian noise from grayscale images in real-time.
 id: dncnn
-license: https://github.com/cszn/KAIR/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/cszn/KAIR/blob/master/LICENSE
 name: DnCNN
 research_paper: https://arxiv.org/abs/1608.03981
 research_paper_title: 'Beyond a Gaussian Denoiser: Residual Learning of Deep CNN for Image Denoising'
 source_repo: https://github.com/cszn/KAIR
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Image Editing
+use_case: MODEL_USE_CASE_IMAGE_EDITING

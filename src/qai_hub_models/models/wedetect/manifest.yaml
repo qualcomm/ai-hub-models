@@ -1,20 +1,20 @@
 description: WeDetect is a text-conditioned object detection model that uses a prompt-then-detect strategy. Text class names are reparameterized into the model weights before export, producing a fixed-vocabulary detector that runs efficiently on-device. The model uses LTRB (Left-Top-Right-Bottom) regression with multi-scale feature maps at strides 8, 16, and 32.
 disabled_paths:
-  mixed_with_float:
-    tflite:
-      scorecard_failure: 'Failing jobs: j5wrx66zp'
-domain: Computer Vision
+- precision: PRECISION_MIXED_WITH_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: j5wrx66zp'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  wedetect:
-    commit_sha: 43009416e3ffc2a19100e79012f1482c55dce372
-    patches_filename: wedetect_patches.diff
-    repo_url: https://github.com/WeChatCV/WeDetect.git
+- commit_sha: 43009416e3ffc2a19100e79012f1482c55dce372
+  name: wedetect
+  patches_filename: wedetect_patches.diff
+  repo_url: https://github.com/WeChatCV/WeDetect.git
 has_on_target_demo: true
 headline: Real-time text-conditioned object detection optimized for mobile and edge.
 id: wedetect
 is_collection_model: true
-license: https://github.com/WeChatCV/WeDetect/blob/main/README.md
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/WeChatCV/WeDetect/blob/main/README.md
 name: WeDetect
 numerics_benchmark:
   dataset_name: coco
@@ -29,10 +29,10 @@ research_paper_title: 'WeDetect: Fast Open-Vocabulary Object Detection as Retrie
 restrict_model_sharing: true
 source_repo: https://github.com/WeChatCV/WeDetect
 supported_precisions:
-- float
-- mixed_with_float
+- PRECISION_FLOAT
+- PRECISION_MIXED_WITH_FLOAT
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

@@ -1,17 +1,17 @@
 description: RTMDet is a highly efficient model for real-time object detection,capable of predicting both the bounding boxes and classes of objects within an image.It is highly optimized for real-time applications, making it reliable for industrial and commercial use
 disabled_paths:
-  float:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jpvnerv7g'
-  w8a16:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jpvner1mg'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jpvnerv7g'
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jpvner1mg'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Real-time object detection optimized for mobile and edge.
 id: rtmdet
-license: https://github.com/open-mmlab/mmdetection/blob/3.x/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/open-mmlab/mmdetection/blob/3.x/LICENSE
 name: RTMDet
 numerics_benchmark:
   dataset_name: coco
@@ -24,11 +24,11 @@ research_paper_title: 'RTMDet: An Empirical Study of Designing Real-Time Object 
 restrict_model_sharing: true
 source_repo: https://github.com/open-mmlab/mmdetection/tree/3.x/configs/rtmdet
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - yolo
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

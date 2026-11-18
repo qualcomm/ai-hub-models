@@ -1,44 +1,48 @@
 description: DeepLabV3 is designed for semantic segmentation at multiple scales, trained on the COCO dataset. It uses ResNet50 as a backbone.
 disabled_paths:
-  float:
-    onnx:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-    qnn_dlc:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-    tflite:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-  w8a8:
-    onnx:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-    qnn_dlc:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-    tflite:
-      causes_timeout: true
-      issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
-      scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
-domain: Computer Vision
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_W8A8
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_W8A8
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+- causes_timeout: true
+  issue: https://jira-dc.qualcomm.com/jira/projects/AISW/issues/AISW-161021
+  precision: PRECISION_W8A8
+  runtime: RUNTIME_ONNX
+  scorecard_failure: No profile jobs found with default device Samsung Galaxy S25
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Deep Convolutional Neural Network model for semantic segmentation.
 id: deeplabv3_resnet50
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: DeepLabV3-ResNet50
 research_paper: https://arxiv.org/abs/1706.05587
 research_paper_title: Rethinking Atrous Convolution for Semantic Image Segmentation
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/segmentation/deeplabv3.py
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 templates:
 - deeplab
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

@@ -1,28 +1,28 @@
 datasets:
 - nuscenes
 description: Geometry-guided Kernel Transformer is a machine learning model for generating a birds eye view represenation from the sensors(cameras) mounted on a vehicle.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  gkt:
-    commit_sha: 104c27f66799f620e54eb0242509ee3b041ae426
-    patches_filename: gkt_patches.diff
-    repo_url: https://github.com/hustvl/GKT.git
+- commit_sha: 104c27f66799f620e54eb0242509ee3b041ae426
+  name: gkt
+  patches_filename: gkt_patches.diff
+  repo_url: https://github.com/hustvl/GKT.git
 has_on_target_demo: true
 headline: Construct a bird’s eye view from sensors mounted on a vehicle.
 id: gkt
-license: https://github.com/hustvl/GKT/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/hustvl/GKT/blob/main/LICENSE
 name: GKT
 pre_pip_install_commands:
-- pip install nuscenes-devkit==1.2.0 --no-deps
+- command: pip install nuscenes-devkit==1.2.0 --no-deps
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2206.04584
 research_paper_title: Efficient and Robust 2D-to-BEV Representation Learning via Geometry-guided Kernel Transformer
 source_repo: https://github.com/hustvl/GKT/
 supported_precisions:
-- float
-- w8a16_mixed_fp16
+- PRECISION_FLOAT
+- PRECISION_W8A16_MIXED_FP16
 templates:
 - corevision
 - cvt_gkt
-use_case: Driver Assistance
+use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

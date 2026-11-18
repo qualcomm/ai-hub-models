@@ -1,19 +1,19 @@
 description: FOMM is a machine learning model that animates a still image to mirror the movements from a target video.
 disabled_paths:
-  float:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jgz0w1zx5'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jgz0w1zx5'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  first_order_model:
-    commit_sha: f4ff6da1ef5c0e6bcf6ec80324fab37c92193e84
-    patches_filename: fomm_patches.diff
-    repo_url: https://github.com/AliaksandrSiarohin/first-order-model.git
+- commit_sha: f4ff6da1ef5c0e6bcf6ec80324fab37c92193e84
+  name: first_order_model
+  patches_filename: fomm_patches.diff
+  repo_url: https://github.com/AliaksandrSiarohin/first-order-model.git
 headline: Animation of Still Image from Source Video.
 id: fomm
 is_collection_model: true
-license: https://github.com/AliaksandrSiarohin/first-order-model/blob/master/LICENSE.md
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/AliaksandrSiarohin/first-order-model/blob/master/LICENSE.md
 name: First-Order-Motion-Model
 readme_install_system_deps: |
   #### Linux
@@ -30,4 +30,4 @@ research_paper_title: First Order Motion Model for Image Animation
 source_repo: https://github.com/AliaksandrSiarohin/first-order-model/tree/master
 templates:
 - corevision
-use_case: Video Generation
+use_case: MODEL_USE_CASE_VIDEO_GENERATION

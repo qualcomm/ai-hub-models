@@ -2,17 +2,18 @@ datasets:
 - imagenet
 description: NASNet is a CNN-based architecture discovered via Neural Architecture Search (NAS) that can classify images from the Imagenet dataset.
 disabled_paths:
-  w8a16:
-    onnx:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.200 %) above threshold (10.0 %)
-    qnn_dlc:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-59.700 %) above threshold (10.0 %)
-domain: Computer Vision
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-59.700 %) above threshold (10.0 %)
+- precision: PRECISION_W8A16
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.200 %) above threshold (10.0 %)
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: nasnet
-license: https://github.com/huggingface/pytorch-image-models?tab=Apache-2.0-1-ov-file
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/huggingface/pytorch-image-models?tab=Apache-2.0-1-ov-file
 name: NASNet
 numerics_benchmark:
   dataset_name: imagenet
@@ -24,11 +25,11 @@ research_paper: https://arxiv.org/abs/1707.07012
 research_paper_title: Learning Transferable Architectures for Scalable Image Recognition
 source_repo: https://github.com/huggingface/pytorch-image-models/tree/main
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

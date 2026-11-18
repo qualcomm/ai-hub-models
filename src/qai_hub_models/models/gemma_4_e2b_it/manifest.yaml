@@ -1,9 +1,9 @@
 description: Gemma is a family of open models built by Google DeepMind. Gemma 4 models are multimodal, handling text and image input (with audio supported on small models) and generating text output. This release includes open-weights models in both pre-trained and instruction-tuned variants. Gemma 4 features a context window of up to 256K tokens and maintains multilingual support in over 140 languages.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 headline: Lightweight multimodal model from Google DeepMind handling text and image input.
 id: gemma_4_e2b_it
-license: https://ai.google.dev/gemma/apache_2
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://ai.google.dev/gemma/apache_2
 model_type_llm: true
 name: Gemma-4-E2B-it
 numerics_benchmark:
@@ -13,22 +13,28 @@ numerics_benchmark:
   unit: '%'
   value: 97.0
 orchestrator_runtimes:
-- geniex_llamacpp
+- RUNTIME_GENIEX_LLAMACPP
 research_paper: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
 research_paper_title: Gemma 4
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 3.04 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: image, text, audio
-    Supported Output Modalities: text
-    model_infer_id: google/gemma-4-E2B-it-qat-q4_0-gguf
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 3.04 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text, audio
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: google/gemma-4-E2B-it-qat-q4_0-gguf
 skip_example_usage: true
 source_repo: https://huggingface.co/google/gemma-4-E2B-it
 supported_precisions:
-- q4_0
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
-use_case: Text Generation
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
+use_case: MODEL_USE_CASE_TEXT_GENERATION

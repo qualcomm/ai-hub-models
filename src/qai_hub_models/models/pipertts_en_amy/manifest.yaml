@@ -1,21 +1,20 @@
 datasets:
 - common_voice
 description: PiperTTS is a high-quality multi-lingual text-to-speech library. This model uses the Amy English voice (medium quality). Its training data is licensed CC-BY-SA-4.0 per the mimic3-voices project (https://github.com/MycroftAI/mimic3-voices).
-disabled_paths: {}
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 headline: High-quality text-to-speech for English (Amy voice).
 id: pipertts_en_amy
 is_collection_model: true
-license: https://github.com/rhasspy/piper/blob/master/LICENSE.md
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/rhasspy/piper/blob/master/LICENSE.md
 models:
 - whisper_large_v3_turbo
 name: PiperTTS-EN-Amy
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- voice_ai
+- RUNTIME_VOICE_AI
 pre_pip_install_commands:
-- pip install git+https://github.com/rhasspy/piper.git#subdirectory=src/python --no-deps
+- command: pip install git+https://github.com/rhasspy/piper.git#subdirectory=src/python --no-deps
 python_version_less_than: '3.12'
 python_version_less_than_reason: piper-phonemize is prebuilt on 3.11 and 3.10 only
 readme_install_system_deps: |
@@ -28,7 +27,7 @@ research_paper: https://github.com/rhasspy/piper
 research_paper_title: PiperTTS High-quality Multi-lingual Multi-accent Text-to-Speech
 source_repo: https://github.com/rhasspy/piper
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - pipertts
-use_case: Audio Generation
+use_case: MODEL_USE_CASE_AUDIO_GENERATION

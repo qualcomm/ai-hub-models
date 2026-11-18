@@ -1,16 +1,17 @@
 description: Densenet is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
 disabled_paths:
-  w8a8_mixed_int16:
-    onnx:
-      scorecard_failure: 'Failing jobs: jgdm06d6g'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: jp0xkoj0p'
-domain: Computer Vision
+- precision: PRECISION_W8A8_MIXED_INT16
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: jp0xkoj0p'
+- precision: PRECISION_W8A8_MIXED_INT16
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jgdm06d6g'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: densenet121
-license: https://github.com/pytorch/vision/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/pytorch/vision/blob/main/LICENSE
 name: DenseNet-121
 numerics_benchmark:
   dataset_name: imagenet
@@ -22,13 +23,13 @@ research_paper: https://arxiv.org/abs/1608.06993
 research_paper_title: Densely Connected Convolutional Networks
 source_repo: https://github.com/pytorch/vision/blob/main/torchvision/models/densenet.py
 supported_precisions:
-- float
-- w8a8_mixed_int16
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8_MIXED_INT16
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- backbone
-- bu-auto
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

@@ -1,16 +1,16 @@
 datasets:
 - imagenet
 description: EfficientNet-Lite4 is a machine learning model that can classify images from the Imagenet dataset. It can also be used as a backbone in building more complex models for specific use cases.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  efficientnet_lite4:
-    commit_sha: 0379e1d1fa2d7fd70318ac5f59b054fbb707fa58
-    repo_url: https://github.com/RangiLyu/EfficientNet-Lite.git
+- commit_sha: 0379e1d1fa2d7fd70318ac5f59b054fbb707fa58
+  name: efficientnet_lite4
+  repo_url: https://github.com/RangiLyu/EfficientNet-Lite.git
 has_on_target_demo: true
 headline: Imagenet classifier and general purpose backbone.
 id: efficientnet_lite4
-license: https://github.com/RangiLyu/EfficientNet-Lite/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/RangiLyu/EfficientNet-Lite/blob/main/LICENSE
 name: EfficientNet-Lite4
 numerics_benchmark:
   dataset_name: imagenet
@@ -22,12 +22,12 @@ research_paper: https://arxiv.org/abs/1905.11946
 research_paper_title: 'EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks'
 source_repo: https://github.com/RangiLyu/EfficientNet-Lite
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- backbone
-- bu-auto
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

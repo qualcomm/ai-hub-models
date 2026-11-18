@@ -51,7 +51,6 @@ def fake_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(install_mod, "_has_cuda_gpu", lambda: False)
     monkeypatch.setattr(install_mod, "uv_installed", lambda: False)
     install_mod.get_pip.cache_clear()
-    install_mod._load_manifest.cache_clear()
     return tmp_path
 
 
@@ -296,9 +295,9 @@ class TestPlanInstall:
             fake_tree / "models" / "root_model",
             "post_pip_install_commands:\n"
             "  - command: pip install cpubuild\n"
-            "    machine: cpu\n"
+            "    machine: MACHINE_CPU\n"
             "  - command: pip install gpubuild\n"
-            "    machine: gpu\n"
+            "    machine: MACHINE_GPU\n"
             "  - command: pip install always\n",
         )
         plan = plan_install("root_model")
@@ -316,9 +315,9 @@ class TestPlanInstall:
             fake_tree / "models" / "root_model",
             "post_pip_install_commands:\n"
             "  - command: pip install cpubuild\n"
-            "    machine: cpu\n"
+            "    machine: MACHINE_CPU\n"
             "  - command: pip install gpubuild\n"
-            "    machine: gpu\n",
+            "    machine: MACHINE_GPU\n",
         )
         plan = plan_install("root_model")
         commands = plan[0][1]

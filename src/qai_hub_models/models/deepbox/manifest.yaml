@@ -1,18 +1,17 @@
 datasets:
 - kitti
 description: 3D Deep Box is a machine learning model that predicts 3D bounding boxes and classes of objects in an image.
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  boundingbox_3d:
-    commit_sha: 40ba3b60fd550ff33d5c1b307212dad80149e525
-    patches_filename: boundingbox_3d_patches.diff
-    repo_url: https://github.com/skhadem/3D-BoundingBox.git
+- commit_sha: 40ba3b60fd550ff33d5c1b307212dad80149e525
+  name: boundingbox_3d
+  patches_filename: boundingbox_3d_patches.diff
+  repo_url: https://github.com/skhadem/3D-BoundingBox.git
 headline: Real-time 3D object detection.
 id: deepbox
 is_collection_model: true
-license: https://github.com/skhadem/3D-BoundingBox/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/skhadem/3D-BoundingBox/blob/master/LICENSE
 models:
 - yolov3
 name: 3D-Deep-BOX
@@ -20,10 +19,10 @@ research_paper: https://arxiv.org/abs/1612.00496
 research_paper_title: 3D Bounding Box Estimation Using Deep Learning and Geometry
 source_repo: https://github.com/skhadem/3D-BoundingBox/
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Object Detection
+use_case: MODEL_USE_CASE_OBJECT_DETECTION

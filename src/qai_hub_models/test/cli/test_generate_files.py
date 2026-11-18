@@ -26,12 +26,12 @@ from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 
 _MINIMAL_MANIFEST = """\
 description: A test classifier.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: A test classifier.
 id: {model_id}
-license: https://example.com/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://example.com/LICENSE
 name: {model_name}
 research_paper: https://arxiv.org/abs/1512.03385
 research_paper_title: Test Paper
@@ -39,17 +39,17 @@ source_repo: https://github.com/example/test-model
 supported_precisions:
 {precisions}\
 tags:
-- bu-auto
+- MODEL_TAG_BU_AUTO
 templates:
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION
 """
 
 
 def _write_recipe(
     folder: Path,
     model_id: str = "my_model",
-    precisions: str = "- float\n",
+    precisions: str = "- PRECISION_FLOAT\n",
 ) -> QAIHMModelManifest:
     """Author a minimal recipe folder + manifest at *folder* and return the manifest."""
     folder.mkdir(parents=True, exist_ok=True)
@@ -121,7 +121,9 @@ class TestExternalReadme:
     def test_demo_command_has_no_quantize_flag(self, tmp_path: Path) -> None:
         """--quantize is a redundant alias for --precision; it must not be advertised."""
         recipe = tmp_path / "my_model"
-        manifest = _write_recipe(recipe, precisions="- float\n- w8a8\n")
+        manifest = _write_recipe(
+            recipe, precisions="- PRECISION_FLOAT\n- PRECISION_W8A8\n"
+        )
         readme = write_readme(recipe, manifest).read_text()
         assert "--quantize" not in readme
 
@@ -166,7 +168,7 @@ class TestExternalReadme:
             _MINIMAL_MANIFEST.format(
                 model_id="my_model",
                 model_name="MyModel",
-                precisions="- float\n",
+                precisions="- PRECISION_FLOAT\n",
             ).replace("headline: A test classifier.\n", "")
         )
         manifest = QAIHMModelManifest.from_yaml(manifest_path)

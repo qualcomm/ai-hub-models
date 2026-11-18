@@ -1,48 +1,54 @@
 datasets:
 - wikitext
 description: Llama-3-ELYZA-JP-8B is a lightweight LLM with only 8 billion parameters, yet achieves Japanese language performance comparable to GPT-3.5 Turbo. The model has undergone additional pre-training and post-training of Japanese to expand instruction-following capabilities in Japanese.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: State-of-the-art large language model useful on a variety of language understanding and generation tasks.
 id: llama_v3_elyza_jp_8b
 is_aimet: true
 is_collection_model: true
-license: https://huggingface.co/meta-llama/Meta-Llama-3-8B/blob/main/LICENSE
-license_type: llama3
+license_type: MODEL_LICENSE_LLAMA3
+license_url: https://huggingface.co/meta-llama/Meta-Llama-3-8B/blob/main/LICENSE
 local_device_deployment: true
 model_type_llm: true
 name: Llama-v3-ELYZA-JP-8B
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.31.0
-  machine: gpu
+  machine: MACHINE_GPU
 requires_aot_prepare: true
 research_paper: https://note.com/elyza/n/n360b6084fdbd
 research_paper_title: GPT-4 を上回る日本語性能のLLM Llama-3-ELYZA-JP を開発しました
 restrict_model_sharing: true
 runtime_technical_details:
-  geniex_qairt:
-    Input sequence length for Prompt Processor: '128'
-    Maximum context length: '4096'
-    Quantization Type: w4a16 + w8a16 (few layers)
-    Supported Input Modalities: text
-    Supported Output Modalities: text
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Maximum context length
+    string_value: '4096'
+  - key: Quantization Type
+    string_value: w4a16 + w8a16 (few layers)
+  - key: Supported Input Modalities
+    string_value: text
+  - key: Supported Output Modalities
+    string_value: text
 separate_quantize_script: true
 source_repo: https://huggingface.co/elyza/Llama-3-ELYZA-JP-8B
 supported_precisions:
-- w4a16
+- PRECISION_W4A16
 tags:
-- llm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llama3
 - llm
 - lm_driver
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION

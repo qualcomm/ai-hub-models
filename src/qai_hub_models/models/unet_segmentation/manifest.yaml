@@ -1,16 +1,16 @@
 datasets:
 - coco
 description: UNet is a machine learning model that produces a segmentation mask for an image. The most basic use case will label each pixel in the image as being in the foreground or the background. More advanced usage will assign a class label to each pixel. This version of the model was trained on the data from Kaggle's Carvana Image Masking Challenge (see https://www.kaggle.com/c/carvana-image-masking-challenge) and is used for vehicle segmentation.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  pytorch_unet:
-    commit_sha: 21d7850f2af30a9695bbeea75f3136aa538cfc4a
-    repo_url: https://github.com/milesial/Pytorch-UNet.git
+- commit_sha: 21d7850f2af30a9695bbeea75f3136aa538cfc4a
+  name: pytorch_unet
+  repo_url: https://github.com/milesial/Pytorch-UNet.git
 has_on_target_demo: true
 headline: Real-time segmentation optimized for mobile and edge.
 id: unet_segmentation
-license: https://github.com/milesial/Pytorch-UNet/blob/master/LICENSE
-license_type: gpl-3.0
+license_type: MODEL_LICENSE_GPL_3_0
+license_url: https://github.com/milesial/Pytorch-UNet/blob/master/LICENSE
 name: Unet-Segmentation
 numerics_benchmark:
   dataset_name: carvana
@@ -23,13 +23,13 @@ research_paper_title: 'U-Net: Convolutional Networks for Biomedical Image Segmen
 restrict_model_sharing: true
 source_repo: https://github.com/milesial/Pytorch-UNet
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- backbone
-- bu-auto
-- real-time
+- MODEL_TAG_BACKBONE
+- MODEL_TAG_BU_AUTO
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
 - segmentation
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

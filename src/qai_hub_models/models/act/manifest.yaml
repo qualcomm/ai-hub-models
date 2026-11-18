@@ -1,19 +1,18 @@
 description: ACT (Action Chunking with Transformers) is a robotic policy model that is trained to predict the next chunk of actions that the robotic hand is expected to perform.
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  act:
-    commit_sha: 742c753c0d4a5d87076c8f69e5628c79a8cc5488
-    patches_filename: act_patches.diff
-    repo_url: https://github.com/tonyzhaozh/act.git
+- commit_sha: 742c753c0d4a5d87076c8f69e5628c79a8cc5488
+  name: act
+  patches_filename: act_patches.diff
+  repo_url: https://github.com/tonyzhaozh/act.git
 has_on_target_demo: true
 headline: Action Chunking with Transformers.
 id: act
-license: https://github.com/tonyzhaozh/act/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/tonyzhaozh/act/blob/main/LICENSE
 name: ACT
 pre_pip_install_commands:
-- pip install dm_control==1.0.36 --no-deps
+- command: pip install dm_control==1.0.36 --no-deps
 readme_install_system_deps: |
   #### Linux
   ```bash
@@ -27,7 +26,7 @@ research_paper: https://arxiv.org/abs/2304.13705
 research_paper_title: Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware
 source_repo: https://github.com/tonyzhaozh/act
 tags:
-- robotics
+- MODEL_TAG_ROBOTICS
 templates:
 - corevision
-use_case: Robotics
+use_case: MODEL_USE_CASE_ROBOTICS

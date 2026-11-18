@@ -1,15 +1,15 @@
 description: LaMa-Dilated is a machine learning model that allows to erase and in-paint part of given input image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  lama:
-    commit_sha: 7dee0e4a3cf5f73f86a820674bf471454f52b74f
-    patches_filename: lama_patches.diff
-    repo_url: https://github.com/advimman/lama
+- commit_sha: 7dee0e4a3cf5f73f86a820674bf471454f52b74f
+  name: lama
+  patches_filename: lama_patches.diff
+  repo_url: https://github.com/advimman/lama
 has_on_target_demo: true
 headline: High resolution image in-painting on-device.
 id: lama_dilated
-license: https://github.com/advimman/lama/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/advimman/lama/blob/main/LICENSE
 name: LaMa-Dilated
 numerics_benchmark:
   dataset_name: celebahq
@@ -21,7 +21,7 @@ research_paper: https://arxiv.org/abs/2109.07161
 research_paper_title: Resolution-robust Large Mask Inpainting with Fourier Convolutions
 source_repo: https://github.com/advimman/lama
 tags:
-- backbone
+- MODEL_TAG_BACKBONE
 templates:
 - repaint
-use_case: Image Editing
+use_case: MODEL_USE_CASE_IMAGE_EDITING

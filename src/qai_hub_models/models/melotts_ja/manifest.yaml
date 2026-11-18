@@ -1,21 +1,20 @@
 datasets:
 - common_voice
 description: MeloTTS is a high-quality multi-lingual text-to-speech library for English, Chinese, Korean, Japanese and Spanish language.
-disabled_paths: {}
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 headline: High-quality text-to-speech for Japanese.
 id: melotts_ja
 is_collection_model: true
-license: https://github.com/myshell-ai/MeloTTS/blob/main/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/myshell-ai/MeloTTS/blob/main/LICENSE
 models:
 - whisper_large_v3_turbo
 name: MeloTTS-JA
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- voice_ai
+- RUNTIME_VOICE_AI
 pre_pip_install_commands:
-- pip install --no-deps git+https://github.com/myshell-ai/MeloTTS.git
+- command: pip install --no-deps git+https://github.com/myshell-ai/MeloTTS.git
 readme_install_system_deps: |
   #### Linux
   ```bash
@@ -26,11 +25,11 @@ research_paper: https://github.com/myshell-ai/MeloTTS
 research_paper_title: MeloTTS High-quality Multi-lingual Multi-accent Text-to-Speech
 source_repo: https://github.com/myshell-ai/MeloTTS
 supported_precisions:
-- w8a16
-- mixed_with_float
+- PRECISION_W8A16
+- PRECISION_MIXED_WITH_FLOAT
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - melotts
-use_case: Audio Generation
-voice_ai_sdk: tts
+use_case: MODEL_USE_CASE_AUDIO_GENERATION
+voice_ai_sdk: VOICE_AI_SDK_TTS

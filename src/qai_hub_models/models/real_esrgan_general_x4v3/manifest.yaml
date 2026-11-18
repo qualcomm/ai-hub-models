@@ -1,14 +1,14 @@
 description: Real-ESRGAN is a machine learning model that upscales an image with minimal loss in quality.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  real_esrgan:
-    commit_sha: 5ca1078535923d485892caee7d7804380bfc87fd
-    repo_url: https://github.com/xinntao/Real-ESRGAN.git
+- commit_sha: 5ca1078535923d485892caee7d7804380bfc87fd
+  name: real_esrgan
+  repo_url: https://github.com/xinntao/Real-ESRGAN.git
 has_on_target_demo: true
 headline: Upscale images and remove image noise.
 id: real_esrgan_general_x4v3
-license: https://github.com/xinntao/Real-ESRGAN/blob/master/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/xinntao/Real-ESRGAN/blob/master/LICENSE
 name: Real-ESRGAN-General-x4v3
 numerics_benchmark:
   dataset_name: bsd300
@@ -20,8 +20,8 @@ research_paper: https://arxiv.org/abs/2107.10833
 research_paper_title: 'Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data'
 source_repo: https://github.com/xinntao/Real-ESRGAN/tree/master
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 templates:
 - super_resolution
-use_case: Super Resolution
+use_case: MODEL_USE_CASE_SUPER_RESOLUTION

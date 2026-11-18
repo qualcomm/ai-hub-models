@@ -1,17 +1,16 @@
 description: We have applied w8a16 quantization to significantly enhance performance and efficiency. HuggingFace Whisper-Small ASR (Automatic Speech Recognition) model is a state-of-the-art system designed for transcribing spoken language into written text. This model is based on the transformer architecture and has been optimized for edge inference by replacing Multi-Head Attention (MHA) with Single-Head Attention (SHA) and linear layers with convolutional (conv) layers. It exhibits robust performance in realistic, noisy environments, making it highly reliable for real-world applications. Specifically, it excels in long-form transcription, capable of accurately transcribing audio clips up to 30 seconds long. Time to the first token is the encoder's latency, while time to each additional token is decoder's latency, where we assume a max decoded length specified below.
-disabled_paths: {}
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 headline: Transformer-based automatic speech recognition (ASR) model for multilingual transcription and translation available on HuggingFace.
 id: whisper_small_quantized
 is_aimet: true
 is_collection_model: true
-license: https://github.com/huggingface/transformers/blob/v4.42.3/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/huggingface/transformers/blob/v4.42.3/LICENSE
 models:
 - whisper_small
 name: Whisper-Small-Quantized
 orchestrator_runtimes:
-- voice_ai
+- RUNTIME_VOICE_AI
 readme_install_system_deps: |
   #### Linux
   ```bash
@@ -27,11 +26,11 @@ research_paper: https://cdn.openai.com/papers/whisper.pdf
 research_paper_title: Robust Speech Recognition via Large-Scale Weak Supervision
 source_repo: https://github.com/huggingface/transformers/tree/v4.42.3/src/transformers/models/whisper
 supported_precisions:
-- w8a16
+- PRECISION_W8A16
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - hf_whisper
 - hf_whisper_quantized
-use_case: Speech Recognition
-voice_ai_sdk: asr
+use_case: MODEL_USE_CASE_SPEECH_RECOGNITION
+voice_ai_sdk: VOICE_AI_SDK_ASR

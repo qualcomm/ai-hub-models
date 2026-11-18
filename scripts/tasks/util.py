@@ -116,6 +116,9 @@ def get_manifest_str_field(model_name: str, field_name: str) -> str | None:
     return field
 
 
+_PROTO_MACHINE_NAMES = {"MACHINE_GPU": "gpu", "MACHINE_CPU": "cpu"}
+
+
 @functools.cache
 def get_pip_install_commands(
     model_name: str, field_name: str
@@ -126,12 +129,12 @@ def get_pip_install_commands(
     ``"any"`` when unset. Returns an empty tuple if the field is absent.
 
     Written primitively (no yaml dep) to match the other manifest helpers in
-    this module. Understands both shapes that manifests emit:
+    this module. Understands the proto-YAML shape manifests emit:
 
         <field_name>:
-        - pip install foo             # bare string, machine="any"
-        - command: pip install bar    # mapping form, needed to set machine
-          machine: gpu
+        - command: pip install foo      # machine omitted == "any"
+        - command: pip install bar
+          machine: MACHINE_GPU
 
     Values may be plain, single-quoted, or double-quoted. Nothing more.
     """
@@ -188,7 +191,8 @@ def get_pip_install_commands(
             else:
                 current_command = _unquote(rest)
         elif line[0].isspace() and stripped.startswith("machine:"):
-            current_machine = _unquote(stripped[len("machine:") :].strip())
+            machine = _unquote(stripped[len("machine:") :].strip())
+            current_machine = _PROTO_MACHINE_NAMES.get(machine, machine)
         elif line[0].isspace() and stripped.startswith("command:"):
             # Unusual layout: "-" on its own line, "command:" on the next.
             _flush()

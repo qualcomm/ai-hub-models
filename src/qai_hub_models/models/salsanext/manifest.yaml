@@ -2,16 +2,16 @@ datasets:
 - pandaset
 - semantic_kitti
 description: SalsaNext is a LiDAR-based model designed for efficient and accurate semantic segmentation.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  salsanext:
-    commit_sha: 7548c124b48f0259cdc40e98dfc3aeeadca6070c
-    patches_filename: salsanext_patches.diff
-    repo_url: https://github.com/TiagoCortinhal/SalsaNext.git
+- commit_sha: 7548c124b48f0259cdc40e98dfc3aeeadca6070c
+  name: salsanext
+  patches_filename: salsanext_patches.diff
+  repo_url: https://github.com/TiagoCortinhal/SalsaNext.git
 headline: Semantic segmentation model optimized for LiDAR point cloud data.
 id: salsanext
-license: https://github.com/TiagoCortinhal/SalsaNext/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/TiagoCortinhal/SalsaNext/blob/master/LICENSE
 name: SalsaNext
 numerics_benchmark:
   dataset_name: semantic_kitti
@@ -20,8 +20,8 @@ numerics_benchmark:
   unit: mIOU
   value: 49.5
 supported_precisions:
-- float
-- w8a16
+- PRECISION_FLOAT
+- PRECISION_W8A16
 tags:
-- bu-auto
-use_case: Semantic Segmentation
+- MODEL_TAG_BU_AUTO
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

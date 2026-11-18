@@ -1,29 +1,31 @@
 description: EfficientViT is a machine learning model that can segment images from the Cityscape dataset. It has lightweight and hardware-efficient operations and thus delivers significant speedup on diverse hardware platforms
 disabled_paths:
-  float:
-    onnx:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.000 mIOU) above threshold (10.0 mIOU)
-      scorecard_failure: 'Profiling jobs slower than 4000ms: jgnwxw2mg'
-    qnn_dlc:
-      scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.000 mIOU) above threshold (10.0 mIOU)
-      scorecard_failure: 'Profiling jobs slower than 4000ms: jpvn4nj7g'
-    tflite:
-      scorecard_failure: 'Failing jobs: jgj8k7dv5'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jgj8k7dv5'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.000 mIOU) above threshold (10.0 mIOU)
+  scorecard_failure: 'Profiling jobs slower than 4000ms: jpvn4nj7g'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_accuracy_failure: Torch and On-device accuracy diff (-66.000 mIOU) above threshold (10.0 mIOU)
+  scorecard_failure: 'Profiling jobs slower than 4000ms: jgnwxw2mg'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Semantic segmentation in higher resuolution.
 id: efficientvit_l2_seg
-license: https://github.com/CVHub520/efficientvit/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/CVHub520/efficientvit/blob/main/LICENSE
 name: EfficientViT-l2-seg
 num_calibration_samples: 5
 research_paper: https://arxiv.org/abs/2205.14756
 research_paper_title: 'EfficientViT: Multi-Scale Linear Attention for High-Resolution Dense Prediction'
 source_repo: https://github.com/CVHub520/efficientvit
 tags:
-- bu-auto
-- real-time
+- MODEL_TAG_BU_AUTO
+- MODEL_TAG_REAL_TIME
 templates:
 - cityscapes_segmentation
 - efficientvit
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

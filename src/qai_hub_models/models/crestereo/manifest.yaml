@@ -1,23 +1,23 @@
 description: CREStereo (Cascaded Recurrent Network with Adaptive Correlation) is a CVPR 2022 Oral paper that achieves state-of-the-art stereo matching accuracy.
 disabled_paths:
-  float:
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j560v0l75'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j560v0l75'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  crestereo_pytorch:
-    commit_sha: b6c7a9fe8dc2e9e56ba7b96f4677312309282d15
-    patches_filename: crestereo_patches.diff
-    repo_url: https://github.com/ibaiGorordo/CREStereo-Pytorch.git
+- commit_sha: b6c7a9fe8dc2e9e56ba7b96f4677312309282d15
+  name: crestereo_pytorch
+  patches_filename: crestereo_patches.diff
+  repo_url: https://github.com/ibaiGorordo/CREStereo-Pytorch.git
 has_on_target_demo: true
 headline: Cascaded recurrent stereo matching network for high-accuracy disparity estimation.
 id: crestereo
-license: https://github.com/megvii-research/CREStereo/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/megvii-research/CREStereo/blob/master/LICENSE
 name: CREStereo
 research_paper: https://arxiv.org/abs/2203.11483
 research_paper_title: Practical Stereo Matching via Cascaded Recurrent Network with Adaptive Correlation
 source_repo: https://github.com/ibaiGorordo/CREStereo-Pytorch
 templates:
 - corevision
-use_case: Depth Estimation
+use_case: MODEL_USE_CASE_DEPTH_ESTIMATION

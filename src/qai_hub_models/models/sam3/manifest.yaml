@@ -1,15 +1,14 @@
 description: SAM3 (Segment Anything with Concepts) extends SAM2 with open-vocabulary segmentation, producing bounding boxes and masks for objects matching a natural-language prompt.
-disabled_paths: {}
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Open-vocabulary segmentation with text and visual prompts for any concept.
 id: sam3
 is_collection_model: true
-license: https://github.com/facebookresearch/sam3/blob/main/LICENSE
-license_type: sam3
+license_type: MODEL_LICENSE_SAM3
+license_url: https://github.com/facebookresearch/sam3/blob/main/LICENSE
 name: Segment-Anything-Model-3
 post_pip_install_commands:
-- pip install "numpy>2,<=2.4.4"
+- command: pip install "numpy>2,<=2.4.4"
 python_version_less_than: '3.13'
 python_version_less_than_reason: SAM3 hardcodes numpy 1.x as a requirement
 requires_aot_prepare: true
@@ -18,8 +17,8 @@ research_paper_title: 'SAM 3: Segment Anything with Concepts'
 restrict_model_sharing: true
 source_repo: https://github.com/facebookresearch/sam3
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - corevision
 - sam
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

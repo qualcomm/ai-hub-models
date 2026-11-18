@@ -1,15 +1,15 @@
 datasets:
 - coco
 description: Mask2Former is a machine learning model that predicts masks and classes of objects in an image.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: Real-time object segmentation.
 id: mask2former
-license: https://github.com/huggingface/transformers/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/huggingface/transformers/blob/main/LICENSE
 name: Mask2Former
 post_pip_install_commands:
-- pip install git+https://github.com/cocodataset/panopticapi.git
+- command: pip install git+https://github.com/cocodataset/panopticapi.git
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2112.01527
 research_paper_title: Masked-attention Mask Transformer for Universal Image Segmentation
@@ -17,4 +17,4 @@ source_repo: https://github.com/huggingface/transformers/tree/main/src/transform
 templates:
 - corevision
 - panoptic_seg
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

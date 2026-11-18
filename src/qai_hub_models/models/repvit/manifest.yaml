@@ -1,15 +1,15 @@
 description: RepViT is a lightweight pure CNN model for mobile devices, incorporating efficient architectural designs from Vision Transformers into CNNs. It achieves over 80% top-1 accuracy on ImageNet with 1ms latency on an iPhone 12.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  repvit:
-    commit_sha: 298f42075eda5d2e6102559fad260c970769d34e
-    patches_filename: repvit_patches.diff
-    repo_url: https://github.com/THU-MIG/RepViT.git
+- commit_sha: 298f42075eda5d2e6102559fad260c970769d34e
+  name: repvit
+  patches_filename: repvit_patches.diff
+  repo_url: https://github.com/THU-MIG/RepViT.git
 has_on_target_demo: true
 headline: Imagenet classifier optimized for mobile devices.
 id: repvit
-license: https://github.com/THU-MIG/RepViT/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/THU-MIG/RepViT/blob/main/LICENSE
 name: RepViT
 numerics_benchmark:
   dataset_name: imagenet
@@ -21,8 +21,8 @@ research_paper: https://arxiv.org/abs/2307.09283
 research_paper_title: 'RepViT: Revisiting Mobile CNN From ViT Perspective'
 source_repo: https://github.com/THU-MIG/RepViT
 tags:
-- backbone
+- MODEL_TAG_BACKBONE
 templates:
 - corevision
 - imagenet_classifier
-use_case: Image Classification
+use_case: MODEL_USE_CASE_IMAGE_CLASSIFICATION

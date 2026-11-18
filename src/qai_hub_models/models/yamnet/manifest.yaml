@@ -1,13 +1,13 @@
 description: An audio event classifier trained on the AudioSet dataset to predict audio events from the AudioSet ontology employing the Mobilenet_v1 depthwise-separable convolution architecture.
-domain: Audio
+domain: MODEL_DOMAIN_AUDIO
 has_on_target_demo: true
 headline: Audio Event classification Model.
 id: yamnet
-license: https://github.com/w-hc/torch_audioset/blob/master/LICENSE
-license_type: mit
+license_type: MODEL_LICENSE_MIT
+license_url: https://github.com/w-hc/torch_audioset/blob/master/LICENSE
 name: YamNet
 post_pip_install_commands:
-- pip install git+https://github.com/w-hc/torch_audioset.git
+- command: pip install git+https://github.com/w-hc/torch_audioset.git
 readme_install_system_deps: |
   #### Linux
   ```bash
@@ -22,11 +22,11 @@ research_paper: https://arxiv.org/abs/1704.04861
 research_paper_title: MobileNets Efficient Convolutional Neural Networks for Mobile Vision Applications
 source_repo: https://github.com/w-hc/torch_audioset
 supported_precisions:
-- float
-- w8a16
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A16
+- PRECISION_W8A8
 tags:
-- real-time
+- MODEL_TAG_REAL_TIME
 templates:
 - corevision
-use_case: Audio Classification
+use_case: MODEL_USE_CASE_AUDIO_CLASSIFICATION

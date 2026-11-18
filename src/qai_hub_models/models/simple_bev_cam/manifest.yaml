@@ -1,26 +1,28 @@
 description: Simple-Bev is a machine learning model for generating a bird's eye view representation from the sensors (cameras) mounted on a vehicle. It uses ResNet-101 as the backbone and segnet as a segmentation model for specific use cases.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jp2z4kerp'
-    qnn_dlc:
-      scorecard_failure: 'Failing jobs: j5wr8e16p'
-    tflite:
-      scorecard_failure: 'Failing jobs: jgo9o2mxg'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jgo9o2mxg'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_QNN_DLC
+  scorecard_failure: 'Failing jobs: j5wr8e16p'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jp2z4kerp'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  simple_bev:
-    commit_sha: be46f0ef71960c233341852f3d9bc3677558ab6d
-    patches_filename: simple_bev_patches.diff
-    repo_url: https://github.com/aharley/simple_bev
+- commit_sha: be46f0ef71960c233341852f3d9bc3677558ab6d
+  name: simple_bev
+  patches_filename: simple_bev_patches.diff
+  repo_url: https://github.com/aharley/simple_bev
 headline: Construct a bird's eye view from sensors mounted on a vehicle.
 id: simple_bev_cam
-license: https://github.com/aharley/simple_bev/blob/main/LICENSE
-license_type: bsd-3-clause
+license_type: MODEL_LICENSE_BSD_3_CLAUSE
+license_url: https://github.com/aharley/simple_bev/blob/main/LICENSE
 name: Simple-Bev
 research_paper: https://arxiv.org/abs/2206.07959
 research_paper_title: 'Simple-BEV: What Really Matters for Multi-Sensor BEV Perception?'
 source_repo: https://github.com/aharley/simple_bev/blob/main/nets/segnet.py
 tags:
-- bu-auto
-use_case: Image Generation
+- MODEL_TAG_BU_AUTO
+use_case: MODEL_USE_CASE_IMAGE_GENERATION

@@ -1,27 +1,26 @@
 datasets:
 - imagenet
 description: DDColor is a coloring algorithm that produces natural, vivid color results from incoming black and white images.
-domain: Computer Vision
+domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
-  ddcolor:
-    commit_sha: 4477c1be2553a1a293f89c47c50526ce74570cf5
-    patches_filename: ddcolor_patches.diff
-    repo_url: https://github.com/piddnad/DDColor.git
+- commit_sha: 4477c1be2553a1a293f89c47c50526ce74570cf5
+  name: ddcolor
+  patches_filename: ddcolor_patches.diff
+  repo_url: https://github.com/piddnad/DDColor.git
 has_on_target_demo: true
 headline: Colorize image from the black-and-white image.
 id: ddcolor
-license: https://github.com/piddnad/DDColor/blob/master/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/piddnad/DDColor/blob/master/LICENSE
 name: DDColor
 numerics_benchmark:
   dataset_name: imagenet_colorization
   metric_name: Colorfulness
   source: AI Hub Models Reference Eval
-  unit: ''
   value: 38.3
 research_paper: https://arxiv.org/abs/2201.03545
 research_paper_title: 'DDColor: Towards Photo-Realistic Image Colorization via Dual Decoders'
 source_repo: https://github.com/piddnad/DDColor/
 templates:
 - corevision
-use_case: Image Editing
+use_case: MODEL_USE_CASE_IMAGE_EDITING

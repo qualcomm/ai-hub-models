@@ -1,25 +1,24 @@
 default_device: Dragonwing IQ-9075 EVK
 description: |
   GR00T N1.5 is a vision-language-action (VLA) model for generalist robot control. The model supports multiple robot embodiments and is designed for dexterous, long-horizon manipulation tasks.
-disabled_paths: {}
-domain: Multimodal
+domain: MODEL_DOMAIN_MULTIMODAL
 external_repos:
-  gr00t:
-    commit_sha: 4af2b622892f7dcb5aae5a3fb70bcb02dc217b96
-    patches_filename: gr00t_patches.diff
-    repo_url: https://github.com/NVIDIA/Isaac-GR00T
+- commit_sha: 4af2b622892f7dcb5aae5a3fb70bcb02dc217b96
+  name: gr00t
+  patches_filename: gr00t_patches.diff
+  repo_url: https://github.com/NVIDIA/Isaac-GR00T
 headline: State-of-the-art vision-language-action model for dexterous robot manipulation, enabling zero-shot generalization across diverse embodiments via diffusion-based action generation.
 id: grootn15
 is_aimet: true
 is_collection_model: true
-license: https://github.com/NVIDIA/Isaac-GR00T/blob/n1.5-release/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/NVIDIA/Isaac-GR00T/blob/n1.5-release/LICENSE
 name: GR00TN1.5
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 python_version_less_than: '3.13'
 python_version_less_than_reason: numpy<2 and onnxsim have no Python 3.13 wheels
 requires_aot_prepare: true
@@ -27,9 +26,9 @@ research_paper: https://arxiv.org/abs/2503.14734
 research_paper_title: 'GR00T N1: An Open Foundation Model for Generalist Humanoid Robots'
 source_repo: https://github.com/NVIDIA/Isaac-GR00T/tree/n1.5-release
 supported_precisions:
-- mixed
-- float
+- PRECISION_MIXED
+- PRECISION_FLOAT
 tags:
-- generative-ai
-- robotics
-use_case: Robotics
+- MODEL_TAG_GENERATIVE_AI
+- MODEL_TAG_ROBOTICS
+use_case: MODEL_USE_CASE_ROBOTICS

@@ -2,30 +2,31 @@ datasets:
 - sav
 description: SAM 2, the successor to Meta's Segment Anything Model (SAM), is a cutting-edge tool designed for comprehensive object segmentation in both images and videos. It excels in handling complex visual data through a unified, promptable model architecture that supports real-time processing and zero-shot generalization.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_failure: 'Failing jobs: jp0xkqq2p'
-    tflite:
-      scorecard_failure: 'Failing jobs: jg9q8128p'
-domain: Computer Vision
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_TFLITE
+  scorecard_failure: 'Failing jobs: jg9q8128p'
+- precision: PRECISION_FLOAT
+  runtime: RUNTIME_ONNX
+  scorecard_failure: 'Failing jobs: jp0xkqq2p'
+domain: MODEL_DOMAIN_COMPUTER_VISION
 has_on_target_demo: true
 headline: High-quality segmentation in images and videos with real-time performance and minimal user interaction.
 id: sam2
 is_collection_model: true
-license: https://github.com/facebookresearch/sam2/blob/main/LICENSE
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://github.com/facebookresearch/sam2/blob/main/LICENSE
 name: Segment-Anything-Model-2
 post_pip_install_commands:
-- pip install git+https://github.com/facebookresearch/sam2.git@2b90b9f
+- command: pip install git+https://github.com/facebookresearch/sam2.git@2b90b9f
 research_paper: https://arxiv.org/abs/2408.00714
 research_paper_title: SAM 2 Segment Anything in Images and Videos
 source_repo: https://github.com/facebookresearch/sam2
 supported_precisions:
-- float
-- w8a8
+- PRECISION_FLOAT
+- PRECISION_W8A8
 tags:
-- foundation
+- MODEL_TAG_FOUNDATION
 templates:
 - sam
 - sam2
-use_case: Semantic Segmentation
+use_case: MODEL_USE_CASE_SEMANTIC_SEGMENTATION

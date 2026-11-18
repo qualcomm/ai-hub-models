@@ -1,14 +1,14 @@
 datasets:
 - imagenet
 description: Qwen2.5-VL-7B-Instruct is a multimodal vision-language model with 7 billion parameters that can process both images and text, enabling visual question answering, image description, and other vision-language tasks.
-domain: Generative AI
+domain: MODEL_DOMAIN_GENERATIVE_AI
 has_multi_graph: true
 headline: State-of-the-art vision-language model capable of understanding images and generating text responses.
 id: qwen2_5_vl_7b_instruct
 is_aimet: true
 is_collection_model: true
-license: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
-license_type: apache-2.0
+license_type: MODEL_LICENSE_APACHE_2_0
+license_url: https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
 local_device_deployment: true
 model_type_llm: true
 name: Qwen2.5-VL-7B-Instruct
@@ -20,46 +20,60 @@ numerics_benchmark:
   value: 85.7
 only_allow_orchestrator_runtimes: true
 orchestrator_runtimes:
-- geniex_qairt
-- geniex_llamacpp
-- genie
+- RUNTIME_GENIEX_QAIRT
+- RUNTIME_GENIEX_LLAMACPP
+- RUNTIME_GENIE
 post_pip_install_commands:
 - command: pip uninstall -y onnxruntime
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall torch==2.10.0+cu130 torchvision==0.25.0+cu130 --index-url https://download.pytorch.org/whl/cu130
-  machine: gpu
+  machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
-  machine: gpu
+  machine: MACHINE_GPU
 python_version_less_than: '3.13'
 python_version_less_than_reason: onnx 1.17.0 has no Python 3.13 wheels
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2502.13923
 research_paper_title: Qwen2.5-VL Technical Report
 runtime_technical_details:
-  geniex_llamacpp:
-    Model Size: 4.44 GB
-    Quantization Type: Q4_0 (GGUF)
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: unsloth/Qwen2.5-VL-7B-Instruct-GGUF
-  geniex_qairt:
-    Context lengths: 512, 1024, 2048
-    Input image size for Vision Encoder: 504x336
-    Input sequence length for Prompt Processor: '128'
-    Minimum QNN SDK version required: 2.45.0
-    Supported Input Modalities: image, text
-    Supported Output Modalities: text
-    model_infer_id: ai-hub-models/Qwen2.5-VL-7B-Instruct
+- runtime: RUNTIME_GENIEX_QAIRT
+  technical_details:
+  - key: Context lengths
+    string_value: 512, 1024, 2048
+  - key: Input image size for Vision Encoder
+    string_value: 504x336
+  - key: Input sequence length for Prompt Processor
+    string_value: '128'
+  - key: Minimum QNN SDK version required
+    string_value: 2.45.0
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: ai-hub-models/Qwen2.5-VL-7B-Instruct
+- runtime: RUNTIME_GENIEX_LLAMACPP
+  technical_details:
+  - key: Model Size
+    string_value: 4.44 GB
+  - key: Quantization Type
+    string_value: Q4_0 (GGUF)
+  - key: Supported Input Modalities
+    string_value: image, text
+  - key: Supported Output Modalities
+    string_value: text
+  - key: model_infer_id
+    string_value: unsloth/Qwen2.5-VL-7B-Instruct-GGUF
 separate_quantize_script: true
 source_repo: https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct
 supported_precisions:
-- w4a16
-- q4_0
+- PRECISION_W4A16
+- PRECISION_Q4_0
 tags:
-- llm
-- vlm
-- generative-ai
+- MODEL_TAG_LLM
+- MODEL_TAG_VLM
+- MODEL_TAG_GENERATIVE_AI
 templates:
 - llm
 - qwen2_vl
-use_case: Text Generation
+use_case: MODEL_USE_CASE_TEXT_GENERATION
