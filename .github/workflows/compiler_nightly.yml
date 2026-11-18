@@ -299,6 +299,7 @@ jobs:
     name: "Collect Compile Results"
     needs: submit_compile_jobs
     runs-on: aihub-models-ubuntu-2404-ec2
+    timeout-minutes: 720 # 12 hours
     permissions:
       contents: read
       id-token: write
