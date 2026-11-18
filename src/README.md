@@ -278,6 +278,7 @@ Want to onboard your own model? Follow the instructions in [EXTERNAL_ONBOARDING.
 | [MobileNet-v3-Small](https://aihub.qualcomm.com/models/mobilenet_v3_small) | `qai_hub_models.models.mobilenet_v3_small` |
 | [MobileNet-v4](https://aihub.qualcomm.com/models/mobilenet_v4) | `qai_hub_models.models.mobilenet_v4` |
 | [NASNet](https://aihub.qualcomm.com/models/nasnet) | `qai_hub_models.models.nasnet` |
+| [NetVLAD](https://aihub.qualcomm.com/models/netvlad) | `qai_hub_models.models.netvlad` |
 | [RegNet](https://aihub.qualcomm.com/models/regnet) | `qai_hub_models.models.regnet` |
 | [RegNet-Y-800MF](https://aihub.qualcomm.com/models/regnet_y_800mf) | `qai_hub_models.models.regnet_y_800mf` |
 | [RepViT](https://aihub.qualcomm.com/models/repvit) | `qai_hub_models.models.repvit` |

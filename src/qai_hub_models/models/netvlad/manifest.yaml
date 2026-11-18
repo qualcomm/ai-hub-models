@@ -1,12 +1,5 @@
 description: NetVLAD is a CNN-based visual place recognition model that aggregates dense local descriptors into a compact VLAD descriptor using a differentiable soft assignment to learned cluster centroids. Built on a VGG-16 backbone, it produces a 32,768-d L2-normalized descriptor suitable for nearest-neighbour place retrieval across images taken under varying conditions.
 disabled_paths:
-  float:
-    onnx:
-      scorecard_accuracy_failure: 'Device accuracy (51.6 %) deviates from benchmark (96.8 %) by -45.200 %, threshold: 10.0 %'
-    qnn_dlc:
-      scorecard_accuracy_failure: 'Device accuracy (51.6 %) deviates from benchmark (96.8 %) by -45.200 %, threshold: 10.0 %'
-    tflite:
-      scorecard_accuracy_failure: 'Device accuracy (51.6 %) deviates from benchmark (96.8 %) by -45.200 %, threshold: 10.0 %'
   w8a8_mixed_int16:
     onnx:
       scorecard_accuracy_failure: 'Device accuracy (77.4 %) deviates from benchmark (96.8 %) by -19.400 %, threshold: 10.0 %'
