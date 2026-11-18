@@ -8,12 +8,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from qai_hub_models_cli.proto import perf_pb2
+
 from qai_hub_models import Precision
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_8_gen_3
 from qai_hub_models.scorecard.params import ScJobParams
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.results.performance_diff import PerformanceDiff
 from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
@@ -29,36 +33,45 @@ COMPILE_JOB_ID = "jcnewa11b"
 COMPONENT_ID = "dummy_component"
 
 
+def _details(
+    job_id: str, inference_time_milliseconds: float | None
+) -> perf_pb2.ModelPerf.PerformanceDetails:
+    details = perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=perf_pb2.ModelPerf.ProfileJob(id=job_id)
+    )
+    if inference_time_milliseconds is not None:
+        details.metrics.inference_time_milliseconds = inference_time_milliseconds
+    return details
+
+
+def _report(
+    device: ScorecardDevice,
+    times: dict[ScorecardProfilePath, float | None],
+    job_id: str = JOB_ID,
+) -> QAIHMModelPerf:
+    perf = QAIHMModelPerf(MODEL_ID)
+    for path, time_ms in times.items():
+        perf.update_entry(
+            QAIHMModelPerf.Key(Precision.float, COMPONENT_ID, device, path).stamp(
+                _details(job_id, time_ms)
+            )
+        )
+    return perf
+
+
 def get_basic_speedup_report(
     job_id: str = JOB_ID,
     onnx_tf_inference_time: float | None = None,
     onnx_ort_qnn_inference_time: float | None = 100.0,
 ) -> QAIHMModelPerf:
-    return QAIHMModelPerf(
-        precisions={
-            Precision.float: QAIHMModelPerf.PrecisionDetails(
-                components={
-                    COMPONENT_ID: QAIHMModelPerf.ComponentDetails(
-                        performance_metrics={
-                            cs_8_gen_3: {
-                                ScorecardProfilePath.TFLITE: QAIHMModelPerf.PerformanceDetails(
-                                    job_id=job_id,
-                                    inference_time_milliseconds=onnx_tf_inference_time,
-                                ),
-                                ScorecardProfilePath.ONNX: QAIHMModelPerf.PerformanceDetails(
-                                    job_id=job_id,
-                                    inference_time_milliseconds=5.0,
-                                ),
-                                ScorecardProfilePath.QNN_DLC: QAIHMModelPerf.PerformanceDetails(
-                                    job_id=job_id,
-                                    inference_time_milliseconds=onnx_ort_qnn_inference_time,
-                                ),
-                            }
-                        }
-                    )
-                }
-            )
-        }
+    return _report(
+        cs_8_gen_3,
+        {
+            ScorecardProfilePath.TFLITE: onnx_tf_inference_time,
+            ScorecardProfilePath.ONNX: 5.0,
+            ScorecardProfilePath.QNN_DLC: onnx_ort_qnn_inference_time,
+        },
+        job_id,
     )
 
 
@@ -225,10 +238,19 @@ def test_missing_devices() -> None:
         onnx_tf_inference_time=0.372, onnx_ort_qnn_inference_time=5.123
     )
 
-    # Override chipset
-    new_perf_metrics.precisions[Precision.float].components[
-        COMPONENT_ID
-    ].performance_metrics.pop(cs_8_gen_3)
+    # Add a second device to both reports, then remove cs_8_gen_3 from the new one.
+    # The component still exists in both, so only the device is reported missing.
+    other_device = ScorecardDevice.get("Samsung Galaxy S25")
+    for report in (prev_perf_metrics, new_perf_metrics):
+        report.update_entry(
+            QAIHMModelPerf.Key(
+                Precision.float,
+                COMPONENT_ID,
+                other_device,
+                ScorecardProfilePath.TFLITE,
+            ).stamp(_details(JOB_ID, 5.0))
+        )
+    new_perf_metrics.drop_entries(lambda key: key.device == cs_8_gen_3)
     perf_diff = PerformanceDiff()
     validate_perf_diff_is_empty(perf_diff)
 
@@ -247,7 +269,7 @@ def test_missing_devices() -> None:
 def test_empty_report() -> None:
     prev_perf_metrics = get_basic_speedup_report()
     new_perf_metrics = get_basic_speedup_report()
-    new_perf_metrics.precisions.pop(Precision.float)
+    new_perf_metrics.drop_entries(lambda params: True)
 
     perf_diff = PerformanceDiff()
     validate_perf_diff_is_empty(perf_diff)
@@ -267,42 +289,8 @@ def test_auto_device_excluded() -> None:
     )
 
     # Build reports with a clear 2x regression on the auto device
-    auto_report = QAIHMModelPerf(
-        precisions={
-            Precision.float: QAIHMModelPerf.PrecisionDetails(
-                components={
-                    COMPONENT_ID: QAIHMModelPerf.ComponentDetails(
-                        performance_metrics={
-                            auto_device: {
-                                ScorecardProfilePath.TFLITE: QAIHMModelPerf.PerformanceDetails(
-                                    job_id=JOB_ID,
-                                    inference_time_milliseconds=10.0,
-                                ),
-                            }
-                        }
-                    )
-                }
-            )
-        }
-    )
-    auto_report_regressed = QAIHMModelPerf(
-        precisions={
-            Precision.float: QAIHMModelPerf.PrecisionDetails(
-                components={
-                    COMPONENT_ID: QAIHMModelPerf.ComponentDetails(
-                        performance_metrics={
-                            auto_device: {
-                                ScorecardProfilePath.TFLITE: QAIHMModelPerf.PerformanceDetails(
-                                    job_id=JOB_ID,
-                                    inference_time_milliseconds=20.0,
-                                ),
-                            }
-                        }
-                    )
-                }
-            )
-        }
-    )
+    auto_report = _report(auto_device, {ScorecardProfilePath.TFLITE: 10.0})
+    auto_report_regressed = _report(auto_device, {ScorecardProfilePath.TFLITE: 20.0})
 
     perf_diff = PerformanceDiff()
     perf_diff.update_summary(MODEL_ID, auto_report, auto_report_regressed)

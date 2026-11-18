@@ -16,22 +16,26 @@ correct-looking perf.yaml with the standalone component simply missing.
 from __future__ import annotations
 
 import pytest
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 
 BACKBONE = "Qwen2.5-VL-7B-Instruct"
 STANDALONE = "Vision-Encoder"
 PRECISION = Precision.w4a16
 PATH = ScorecardProfilePath.GENIEX_QAIRT
+MODEL_ID = "qwen2_5_vl_7b_instruct"
 
 
-def _llm_details() -> QAIHMModelPerf.PerformanceDetails:
-    return QAIHMModelPerf.PerformanceDetails(
+def _llm_details() -> perf_pb2.ModelPerf.PerformanceDetails:
+    return perf_pb2.ModelPerf.PerformanceDetails(
         llm_metrics=[
-            QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
+            perf_pb2.ModelPerf.LLMPerfMetrics(
                 context_length=4096,
                 tokens_per_second=9.74,
                 prefill_tokens_per_second=580.7,
@@ -41,27 +45,28 @@ def _llm_details() -> QAIHMModelPerf.PerformanceDetails:
     )
 
 
-def _workbench_details(job_id: str = "jabcd1234") -> QAIHMModelPerf.PerformanceDetails:
-    return QAIHMModelPerf.PerformanceDetails(
-        job_id=job_id,
-        job_status="Passed",
-        inference_time_milliseconds=12.34,
-        primary_compute_unit="NPU",
-        layer_counts=QAIHMModelPerf.PerformanceDetails.LayerCounts(total=556, npu=556),
+def _workbench_details(
+    job_id: str = "jabcd1234",
+) -> perf_pb2.ModelPerf.PerformanceDetails:
+    return perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=perf_pb2.ModelPerf.ProfileJob(id=job_id, status="Passed"),
+        metrics=perf_pb2.ModelPerf.PerfMetrics(
+            inference_time_milliseconds=12.34,
+            primary_compute_unit="NPU",
+            layer_counts=perf_pb2.ModelPerf.PerfMetrics.LayerCounts(total=556, npu=556),
+        ),
     )
 
 
 def _hybrid_perf(device: ScorecardDevice = cs_x_elite) -> QAIHMModelPerf:
-    perf = QAIHMModelPerf()
-    perf.precisions[PRECISION] = QAIHMModelPerf.PrecisionDetails(
-        components={
-            BACKBONE: QAIHMModelPerf.ComponentDetails(
-                performance_metrics={device: {PATH: _llm_details()}}
-            ),
-            STANDALONE: QAIHMModelPerf.ComponentDetails(
-                performance_metrics={device: {PATH: _workbench_details()}}
-            ),
-        }
+    perf = QAIHMModelPerf(MODEL_ID)
+    perf.update_entry(
+        QAIHMModelPerf.Key(PRECISION, BACKBONE, device, PATH).stamp(_llm_details())
+    )
+    perf.update_entry(
+        QAIHMModelPerf.Key(PRECISION, STANDALONE, device, PATH).stamp(
+            _workbench_details()
+        )
     )
     return perf
 
@@ -77,13 +82,17 @@ def test_llm_writer_leaves_standalone_component_alone() -> None:
     perf = _hybrid_perf()
     perf.drop_entries_in_scope(_scope(), only_components={BACKBONE})
 
-    components = perf.precisions[PRECISION].components
-    assert BACKBONE not in components, "the backbone entry should have been cleared"
-    assert STANDALONE in components, "the standalone component must survive"
-    assert (
-        components[STANDALONE].performance_metrics[cs_x_elite][PATH].job_id
-        == "jabcd1234"
+    assert not perf.has_component(PRECISION, BACKBONE), (
+        "the backbone entry should have been cleared"
     )
+    assert perf.has_component(PRECISION, STANDALONE), (
+        "the standalone component must survive"
+    )
+    entry = perf.entries.get(
+        QAIHMModelPerf.Key(PRECISION, STANDALONE, cs_x_elite, PATH)
+    )
+    assert entry is not None
+    assert entry.profile_job.id == "jabcd1234"
 
 
 def test_scorecard_writer_leaves_backbone_alone() -> None:
@@ -91,17 +100,17 @@ def test_scorecard_writer_leaves_backbone_alone() -> None:
     perf = _hybrid_perf()
     perf.drop_entries_in_scope(_scope(), only_components={STANDALONE})
 
-    components = perf.precisions[PRECISION].components
-    assert STANDALONE not in components
-    assert BACKBONE in components
-    assert components[BACKBONE].performance_metrics[cs_x_elite][PATH].llm_metrics
+    assert not perf.has_component(PRECISION, STANDALONE)
+    entry = perf.entries.get(QAIHMModelPerf.Key(PRECISION, BACKBONE, cs_x_elite, PATH))
+    assert entry is not None
+    assert entry.llm_metrics
 
 
 def test_unfiltered_drop_still_clears_everything() -> None:
     """Non-hybrid models pass no filter and must keep the original behaviour."""
     perf = _hybrid_perf()
     perf.drop_entries_in_scope(_scope())
-    assert PRECISION not in perf.precisions
+    assert not perf.entries
 
 
 def test_filter_naming_a_missing_component_is_a_noop() -> None:
@@ -109,8 +118,7 @@ def test_filter_naming_a_missing_component_is_a_noop() -> None:
     perf = _hybrid_perf()
     perf.drop_entries_in_scope(_scope(), only_components={"Audio Encoder"})
 
-    components = perf.precisions[PRECISION].components
-    assert set(components) == {BACKBONE, STANDALONE}
+    assert {params.component for params in perf.entries} == {BACKBONE, STANDALONE}
 
 
 @pytest.mark.parametrize("owner", [BACKBONE, STANDALONE])
@@ -119,15 +127,16 @@ def test_out_of_scope_devices_are_untouched(owner: str) -> None:
     other = ScorecardDevice.get("Samsung Galaxy S25")
     perf = _hybrid_perf()
     for component in (BACKBONE, STANDALONE):
-        details = perf.precisions[PRECISION].components[component]
-        details.performance_metrics[other] = {PATH: _workbench_details("jother999")}
+        perf.update_entry(
+            QAIHMModelPerf.Key(PRECISION, component, other, PATH).stamp(
+                _workbench_details("jother999")
+            )
+        )
 
     perf.drop_entries_in_scope(_scope(cs_x_elite), only_components={owner})
 
     for component in (BACKBONE, STANDALONE):
-        metrics = perf.precisions[PRECISION].components[component].performance_metrics
-        assert other in metrics, f"{component} lost its out-of-scope device"
-    assert (
-        cs_x_elite
-        not in perf.precisions[PRECISION].components[owner].performance_metrics
-    )
+        assert QAIHMModelPerf.Key(PRECISION, component, other, PATH) in perf.entries, (
+            f"{component} lost its out-of-scope device"
+        )
+    assert QAIHMModelPerf.Key(PRECISION, owner, cs_x_elite, PATH) not in perf.entries

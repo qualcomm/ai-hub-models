@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Generic, final
 
 from qai_hub import JobType
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -30,7 +31,10 @@ from qai_hub_models.scorecard.params import (
     ScJobParams,
     ScorecardPathT,
 )
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    MIXED_PRECISIONS,
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.results.chipset_helpers import (
     get_supported_devices,
     sorted_chipsets,
@@ -132,7 +136,7 @@ class ScorecardJobSummary(Generic[ScorecardPathT]):
         perf: QAIHMModelPerf,
         include_failures: bool = False,
     ) -> None:
-        """Add the profile job for this export test to the given QAIHMModelPerf object."""
+        """Add the profile job for this export test to the given ModelPerf proto."""
         params = self.params
         assert params.precision is not None
         assert params.device is not None
@@ -142,33 +146,28 @@ class ScorecardJobSummary(Generic[ScorecardPathT]):
         ):
             return
 
-        if params.precision not in perf.precisions:
-            perf.precisions[params.precision] = QAIHMModelPerf.PrecisionDetails()
-
-        precision_details = perf.precisions[params.precision]
         component_id = model_perf_component_key(params.model_id, params.component)
-        if component_id not in precision_details.components:
-            # This field is set only when the parent precision is "mixed", since it is not otherwise
-            # possible to decipher what precision was used for each component.
-            component_precision: Precision | None = None
-            if (
-                self.params.precision in {Precision.mixed, Precision.mixed_with_float}
-                and self.quantize_job is not None
-            ):
-                component_precision = Precision.from_quantize_job(self.quantize_job.job)
-            precision_details.components[component_id] = (
-                QAIHMModelPerf.ComponentDetails(precision=component_precision)
-            )
+        # A mixed-precision model doesn't say what precision each component uses,
+        # so read it from the component's quantize job.
+        component_precision: Precision | None = None
+        if params.precision in MIXED_PRECISIONS:
+            if self.quantize_job is None:
+                raise ValueError(
+                    f"No quantize job found for mixed-precision component {component_id}."
+                )
+            component_precision = Precision.from_quantize_job(self.quantize_job.job)
 
-        perf_metrics = precision_details.components[component_id].performance_metrics
-
-        if params.device not in perf_metrics:
-            perf_metrics[params.device] = {}
-        perf_metrics[params.device][params.path] = (
+        details = (
             self.profile_job.performance_metrics
             if self.profile_job
-            else QAIHMModelPerf.PerformanceDetails(job_id=None, job_status="Failed")
+            else perf_pb2.ModelPerf.PerformanceDetails(
+                profile_job=perf_pb2.ModelPerf.ProfileJob(status="Failed")
+            )
         )
+        key = QAIHMModelPerf.Key(
+            params.precision, component_id, params.device, params.path
+        )
+        perf.update_entry(key.stamp(details), component_precision=component_precision)
 
 
 @final
@@ -276,7 +275,7 @@ class ScorecardExportTestSummary:
         )
 
     def add_to_perf(self, perf: QAIHMModelPerf, include_failures: bool = False) -> None:
-        """Add all profile jobs from this export test to the given QAIHMModelPerf object."""
+        """Add all profile jobs from this export test to the given ModelPerf proto."""
         assert self.params.device
         if not include_failures and self.has_profile_failure:
             return
@@ -301,8 +300,8 @@ class ScorecardExportTestSummary:
         supported_chipsets = set(perf.supported_chipsets)
         if new_chipsets - supported_chipsets:
             chips = supported_chipsets.union(new_chipsets)
-            perf.supported_chipsets = sorted_chipsets(chips)
-            perf.supported_devices = get_supported_devices(chips)
+            perf.supported_chipsets[:] = sorted_chipsets(chips)
+            perf.supported_devices[:] = [str(d) for d in get_supported_devices(chips)]
 
 
 @dataclass

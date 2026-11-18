@@ -5,6 +5,8 @@
 
 from pathlib import Path
 
+from qai_hub_models_cli.proto import perf_pb2
+
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
@@ -14,7 +16,6 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     _load_similar_devices_raw,
     load_similar_devices,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.test.test_configs.manifest_path_check import (
     get_manifest_support_violations,
@@ -56,18 +57,16 @@ def test_perf_yaml() -> None:
             for chipset in perf.supported_chipsets:
                 _validate_chipset(chipset)
 
-            for device in perf.supported_devices:
-                _validate_device(device)
+            for device_name in perf.supported_devices:
+                _validate_device(ScorecardDevice.parse(device_name))
 
-            for precision, precision_perf in perf.precisions.items():
-                measured_paths: set[ScorecardProfilePath] = set()
-                for component_detail in precision_perf.components.values():
-                    for (
-                        device,
-                        device_paths,
-                    ) in component_detail.performance_metrics.items():
-                        _validate_device(device)
-                        measured_paths.update(device_paths)
+            entries = perf.entries
+            for key in entries:
+                _validate_device(key.device)
+
+            for precision in {k.precision for k in entries}:
+                measured_paths = {k.path for k in entries if k.precision == precision}
+                components = {k.component for k in entries if k.precision == precision}
 
                 path_errors.extend(
                     get_manifest_support_violations(
@@ -76,32 +75,24 @@ def test_perf_yaml() -> None:
                 )
 
                 # If there is 1 component, make sure it matches the model name.
-                if len(precision_perf.components) == 1:
+                if len(components) == 1:
                     if not model_name:
                         model_name = manifest.name
-                    component_name = next(iter(precision_perf.components))
+                    component_name = next(iter(components))
                     if component_name != model_name:
                         raise ValueError(  # noqa: TRY301
                             f"If model has 1 component, the component name (found: {component_name}) should match the model name (expected: {model_name})"
                         )
                 # For LLMs, check if the performance details are complete
                 if model_name is not None:
-                    for runtime_performance_details in precision_perf.components[
-                        model_name
-                    ].performance_metrics.values():
-                        for performance_details in runtime_performance_details.values():
-                            # Validate LLM metrics if present
-                            if performance_details.llm_metrics is not None:
-                                assert len(performance_details.llm_metrics) > 0, (
-                                    "For LLM models, at least one context length entry must be provided"
-                                )
-                                for ctx in performance_details.llm_metrics:
-                                    assert ctx.context_length is not None, (
-                                        "For LLM models, context length value must be provided"
-                                    )
-                                    assert ctx.tokens_per_second is not None, (
-                                        "For LLM models, tokens per second must be provided"
-                                    )
+                    for key, performance_details in entries.items():
+                        if key.precision != precision or key.component != model_name:
+                            continue
+                        if performance_details.llm_metrics:
+                            assert all(
+                                ctx.context_length
+                                for ctx in performance_details.llm_metrics
+                            ), "For LLM models, context length value must be provided"
 
     except Exception as err:
         raise AssertionError(
@@ -173,13 +164,15 @@ def test_apply_similar_devices_idempotent() -> None:
 
     perf = QAIHMModelPerf.from_model("inception_v3")
     perf.apply_similar_devices(mapping)
-    after_devices = [str(d) for d in perf.supported_devices]
+    after_devices = list(perf.supported_devices)
     after_chipsets = list(perf.supported_chipsets)
+    after_entries = len(perf.entries)
 
     perf.apply_similar_devices(mapping)
 
-    assert after_devices == [str(d) for d in perf.supported_devices]
+    assert after_devices == list(perf.supported_devices)
     assert after_chipsets == list(perf.supported_chipsets)
+    assert after_entries == len(perf.entries)
 
 
 def test_to_proto_excludes_similar_devices() -> None:
@@ -190,9 +183,9 @@ def test_to_proto_excludes_similar_devices() -> None:
     perf = QAIHMModelPerf.from_model("inception_v3")
     perf.apply_similar_devices(mapping)
     # Sanity check: applying similar devices puts at least one into the config.
-    assert {str(d) for d in perf.supported_devices} & similar_names
+    assert set(perf.supported_devices) & similar_names
 
-    proto = perf.to_proto("0.99.0", "inception_v3")
+    proto = perf.to_release_proto("0.99.0", "inception_v3")
     proto_devices = set(proto.supported_devices) | {
         r.device for r in proto.performance_metrics
     }
@@ -200,7 +193,9 @@ def test_to_proto_excludes_similar_devices() -> None:
     assert not (proto_devices & similar_names)
 
     # With the flag off, everything is retained.
-    proto_all = perf.to_proto("0.99.0", "inception_v3", exclude_similar_devices=False)
+    proto_all = perf.to_release_proto(
+        "0.99.0", "inception_v3", exclude_similar_devices=False
+    )
     assert similar_names & set(proto_all.supported_devices)
 
 
@@ -209,7 +204,7 @@ def test_apply_similar_devices_refreshes_stale_entry() -> None:
     on re-apply. This is what the LLM pipeline relies on:
     apply_llm_perf_updates.py loads the committed perf.yaml (which already
     has similar-device entries from a prior run) and expects
-    apply_similar_devices to refresh them from the freshly upserted
+    apply_similar_devices to refresh them from the freshly updated
     reference device numbers.
     """
     mapping = load_similar_devices()
@@ -222,33 +217,23 @@ def test_apply_similar_devices_refreshes_stale_entry() -> None:
     stale_time = 999999.0
     seeded_similar: str | None = None
 
-    for prec in perf.precisions.values():
-        for comp in prec.components.values():
-            existing_by_name = {str(d): d for d in comp.performance_metrics}
-            for similar_name, (_, reference_names) in mapping.items():
-                for ref_name in reference_names:
-                    if ref_name not in existing_by_name:
-                        continue
-                    ref_bucket = comp.performance_metrics[existing_by_name[ref_name]]
-                    similar_device = ScorecardDevice(
-                        name=similar_name,
-                        reference_device_name=similar_name,
-                        register=False,
-                    )
-                    stale_bucket = {
-                        path: details.model_copy(
-                            update={"inference_time_milliseconds": stale_time},
-                            deep=True,
-                        )
-                        for path, details in ref_bucket.items()
-                    }
-                    comp.performance_metrics[similar_device] = stale_bucket
-                    seeded_similar = similar_name
-                    break
-                if seeded_similar:
-                    break
-            if seeded_similar:
-                break
+    for similar_name, (_, reference_names) in mapping.items():
+        for ref_name in reference_names:
+            refs = [
+                entry
+                for key, entry in perf.entries.items()
+                if str(key.device) == ref_name
+            ]
+            if not refs:
+                continue
+            for ref in refs:
+                stale = perf_pb2.ModelPerf.PerformanceDetails()
+                stale.CopyFrom(ref)
+                stale.device = similar_name
+                stale.metrics.inference_time_milliseconds = stale_time
+                perf.update_entry(stale)
+            seeded_similar = similar_name
+            break
         if seeded_similar:
             break
 
@@ -258,16 +243,17 @@ def test_apply_similar_devices_refreshes_stale_entry() -> None:
 
     perf.apply_similar_devices(mapping)
 
-    for prec in perf.precisions.values():
-        for comp in prec.components.values():
-            for device, bucket in comp.performance_metrics.items():
-                if str(device) != seeded_similar:
-                    continue
-                for details in bucket.values():
-                    assert details.inference_time_milliseconds != stale_time, (
-                        f"stale similar-device entry for {seeded_similar} was "
-                        f"not overwritten by apply_similar_devices"
-                    )
+    seeded = [
+        entry
+        for key, entry in perf.entries.items()
+        if str(key.device) == seeded_similar
+    ]
+    assert seeded
+    for details in seeded:
+        assert details.metrics.inference_time_milliseconds != stale_time, (
+            f"stale similar-device entry for {seeded_similar} was "
+            f"not overwritten by apply_similar_devices"
+        )
 
 
 def test_empty_perf_to_yaml_deletes_existing_file(tmp_path: Path) -> None:
@@ -285,7 +271,7 @@ def test_empty_perf_to_yaml_deletes_existing_file(tmp_path: Path) -> None:
     path.write_text("supported_devices:\n- Samsung Galaxy S25\n")
     assert path.exists()
 
-    empty_perf = QAIHMModelPerf()
+    empty_perf = QAIHMModelPerf("inception_v3")
     assert empty_perf.empty
     written = empty_perf.to_yaml(path)
 
@@ -304,17 +290,13 @@ def test_apply_similar_devices_adds_real_chipset() -> None:
     # insertion fresh, and verify it doesn't re-trigger after a second apply.
     similar_names = set(mapping)
     real_chipsets = {real for real, _ in mapping.values()}
-    perf.supported_devices = [
-        d for d in perf.supported_devices if str(d) not in similar_names
+    perf.supported_devices[:] = [
+        d for d in perf.supported_devices if d not in similar_names
     ]
-    perf.supported_chipsets = [
+    perf.supported_chipsets[:] = [
         c for c in perf.supported_chipsets if c not in real_chipsets
     ]
-    for prec in perf.precisions.values():
-        for comp in prec.components.values():
-            for d in list(comp.performance_metrics):
-                if str(d) in similar_names:
-                    del comp.performance_metrics[d]
+    perf.drop_entries(lambda key: str(key.device) in similar_names)
 
     perf.apply_similar_devices(mapping)
 
@@ -337,18 +319,15 @@ def test_apply_similar_devices_chipset_matches_device_insertion() -> None:
     perf = QAIHMModelPerf.from_model("inception_v3")
     similar_names = set(mapping)
     real_chipsets = {real for real, _ in mapping.values()}
-    perf.supported_devices = [
-        d for d in perf.supported_devices if str(d) not in similar_names
+    perf.supported_devices[:] = [
+        d for d in perf.supported_devices if d not in similar_names
     ]
-    perf.supported_chipsets = [
+    perf.supported_chipsets[:] = [
         c for c in perf.supported_chipsets if c not in real_chipsets
     ]
 
-    supported_names = {str(d) for d in perf.supported_devices}
-    metric_names: set[str] = set()
-    for prec in perf.precisions.values():
-        for comp in prec.components.values():
-            metric_names.update(str(d) for d in comp.performance_metrics)
+    supported_names = set(perf.supported_devices)
+    metric_names = {str(key.device) for key in perf.entries}
 
     target_similar: str | None = None
     for similar_name, (_, reference_names) in mapping.items():
@@ -363,5 +342,5 @@ def test_apply_similar_devices_chipset_matches_device_insertion() -> None:
 
     perf.apply_similar_devices(mapping)
 
-    assert target_similar in {str(d) for d in perf.supported_devices}
+    assert target_similar in set(perf.supported_devices)
     assert target_chipset in perf.supported_chipsets

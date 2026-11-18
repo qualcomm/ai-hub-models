@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import datetime
 import logging
 import multiprocessing
@@ -43,7 +42,9 @@ from qai_hub_models.scorecard.envvars import (
 )
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.results.code_gen import (
     remove_numerics_failures,
     remove_perf_failures,
@@ -690,14 +691,16 @@ def process_e2e_recipe_model(
         if config_path := update_model_publish_status(manifest):
             print_with_id(pstr=f"Updated publish status at {config_path}")
 
-    model_card = QAIHMModelPerf()
-    prev_model_card = QAIHMModelPerf()
+    model_card = QAIHMModelPerf(model_id)
+    prev_model_card = QAIHMModelPerf(model_id)
     if gen_perf_summary:
         print_with_id("Writing Performance YAML")
 
         # Build model card
-        model_card = QAIHMModelPerf()
-        model_card_without_failures = QAIHMModelPerf() if write_model_card else None
+        model_card = QAIHMModelPerf(model_id)
+        model_card_without_failures = (
+            QAIHMModelPerf(model_id) if write_model_card else None
+        )
         for summary in summaries:
             summary.add_to_perf(model_card, include_failures=True)
             if model_card_without_failures and summary.params.path.is_published:
@@ -712,14 +715,15 @@ def process_e2e_recipe_model(
         if (
             not sc.freeze_perf_yaml
             and (not sc.is_llm or owned_components)
-            and model_card_without_failures
+            and model_card_without_failures is not None
             and not model_card_without_failures.empty
         ):
             # Scoped merge: drop in-scope (precision, path, device) tuples
-            # from the committed card, then upsert this run's results.
-            merged = copy.deepcopy(prev_model_card)
+            # from the committed card, then add this run's results.
+            merged = prev_model_card.copy()
             merged.drop_entries_in_scope(
-                _scope_from_test_config(test_params), only_components=owned_components
+                _scope_from_test_config(test_params),
+                only_components=owned_components,
             )
             merged.drop_entries_with_mismatched_aot(
                 manifest.requires_aot_prepare, only_components=owned_components

@@ -19,7 +19,9 @@ from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.test.test_configs.manifest_path_check import (
     get_manifest_support_violations,
@@ -134,13 +136,10 @@ def test_llm_perf_rows_have_a_release_asset() -> None:
             continue
 
         measured: set[tuple[Precision, ScorecardProfilePath]] = set()
-        for precision, precision_details in perf.precisions.items():
-            for component_details in precision_details.components.values():
-                for device_metrics in component_details.performance_metrics.values():
-                    for path in LLM_PROFILE_PATHS:
-                        metrics = device_metrics.get(path)
-                        if metrics is not None and metrics.llm_metrics:
-                            measured.add((precision, path))
+        for params, entry in perf.entries.items():
+            if params.path in LLM_PROFILE_PATHS and entry.llm_metrics:
+                assert params.precision is not None
+                measured.add((params.precision, params.path))
         if not measured:
             continue
 

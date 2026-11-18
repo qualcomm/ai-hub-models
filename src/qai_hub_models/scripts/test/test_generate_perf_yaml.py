@@ -12,7 +12,9 @@ from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import cs_8_gen_3
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.results.scorecard_summary import (
     ModelTestConfig,
 )
@@ -25,7 +27,7 @@ from qai_hub_models.scorecard.results.yaml import (
 from qai_hub_models.utils.hub_clients import deployment_is_prod
 
 EXPECTED_MODEL_CARD = QAIHMModelPerf.from_yaml(
-    os.path.join(os.path.dirname(__file__), "perf_gt.yaml")
+    os.path.join(os.path.dirname(__file__), "perf_gt.yaml"), "trocr"
 )
 
 
@@ -65,10 +67,12 @@ def test_generate_perf(hub_test_deployment: str) -> None:
         None,
     )
 
-    model_card = QAIHMModelPerf()
+    model_card = QAIHMModelPerf("trocr")
     for summary in summaries:
         summary.add_to_perf(model_card)
 
+    model_card.sort_entries()
+    EXPECTED_MODEL_CARD.sort_entries()
     assert model_card == EXPECTED_MODEL_CARD
 
 
@@ -96,7 +100,7 @@ def _build_perf_card(model_id: str) -> QAIHMModelPerf:
         None,
     )
 
-    model_card = QAIHMModelPerf()
+    model_card = QAIHMModelPerf(model_id)
     for summary in summaries:
         summary.add_to_perf(model_card, include_failures=False)
     model_card.apply_similar_devices(load_similar_devices())
@@ -115,4 +119,6 @@ def test_generate_perf_with_similar_devices(hub_test_deployment: str) -> None:
 
     model_card = _build_perf_card("inception_v3")
     expected = QAIHMModelPerf.from_model("inception_v3")
+    model_card.sort_entries()
+    expected.sort_entries()
     assert str(model_card) == str(expected)

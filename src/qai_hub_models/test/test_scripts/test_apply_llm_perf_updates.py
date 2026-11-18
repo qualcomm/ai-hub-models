@@ -15,12 +15,14 @@ import pytest
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scripts import apply_llm_perf_updates as mod
 
 # A real recipe: the writers read its manifest for the component name, and
-# drop/upsert key perf rows by resolved ScorecardDevice.
+# drop/update key perf rows by resolved ScorecardDevice.
 MODEL = "llama_v3_2_3b_instruct"
 DEV_OK = "Snapdragon X Elite CRD"
 DEV_FAILED = "Samsung Galaxy S25"
@@ -86,14 +88,11 @@ def _key(reference_device_name: str) -> str:
 
 def _devices_with(path: ScorecardProfilePath) -> set[str]:
     perf = QAIHMModelPerf.from_model(MODEL, not_exists_ok=True)
-    out: set[str] = set()
-    for precision_details in perf.precisions.values():
-        for component in precision_details.components.values():
-            for device, metrics in component.performance_metrics.items():
-                entry = metrics.get(path)
-                if entry is not None and entry.llm_metrics:
-                    out.add(device.name)
-    return out
+    return {
+        params.device.name
+        for params, entry in perf.entries.items()
+        if params.path == path and entry.llm_metrics and params.device is not None
+    }
 
 
 def test_failed_device_row_is_removed(perf_dir: Path) -> None:
@@ -215,7 +214,7 @@ def test_exempt_model_keeps_all_assets(perf_dir: Path) -> None:
 
 def _supported(model_id: str) -> tuple[list[str], list[str]]:
     perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
-    return perf.supported_chipsets, [str(d) for d in perf.supported_devices]
+    return list(perf.supported_chipsets), list(perf.supported_devices)
 
 
 def test_x_elite_metric_credits_x_plus(perf_dir: Path) -> None:

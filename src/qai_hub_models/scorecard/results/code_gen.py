@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import copy
+from collections import defaultdict
 from pathlib import Path
 
 from qai_hub_models import Precision, TargetRuntime
@@ -368,56 +369,38 @@ def remove_perf_failures(
     Returns
     -------
     QAIHMModelPerf
-        New perf.yaml with failing device + runtime + precisions pairs removed.
+        New perf with failing device + runtime + precisions pairs removed.
     """
+    result = perf.copy()
+
+    def _is_failing(key: QAIHMModelPerf.Key) -> bool:
+        return key.path.runtime in _runtimes_to_strip_for_device(
+            failure_reason, key.precision, key.device.device_name
+        )
+
+    result.drop_entries(_is_failing)
+
+    # Paths still present for each device and precision decide its supported chipsets.
+    remaining_paths: dict[
+        tuple[ScorecardDevice, Precision], set[ScorecardProfilePath]
+    ] = defaultdict(set)
+    for key in result.entries:
+        remaining_paths[(key.device, key.precision)].add(key.path)
+
     supported_chipsets: set[str] = set()
-    precisions: dict[Precision, QAIHMModelPerf.PrecisionDetails] = {}
+    for (device, _), paths in remaining_paths.items():
+        if device.available_in_hub:
+            supported_chipsets.update(device.supported_chipsets_for_paths(paths))
+        elif details := DevicesAndChipsetsYaml.load().devices.get(
+            device.reference_device_name
+        ):
+            supported_chipsets.add(details.chipset)
 
-    for precision, perf_precision_components in perf.precisions.items():
-        components: dict[str, QAIHMModelPerf.ComponentDetails] = {}
-        for (
-            component,
-            component_details,
-        ) in perf_precision_components.components.items():
-            performance_metrics: dict[
-                ScorecardDevice,
-                dict[ScorecardProfilePath, QAIHMModelPerf.PerformanceDetails],
-            ] = {}
-            for device, perf_by_path in component_details.performance_metrics.items():
-                runtimes_to_strip = _runtimes_to_strip_for_device(
-                    failure_reason, precision, device.device_name
-                )
-                path_perf = {
-                    path: copy.deepcopy(perf_by_path[path])
-                    for path in perf_by_path
-                    if path.runtime not in runtimes_to_strip
-                }
-                if path_perf:
-                    performance_metrics[device] = path_perf
-                    if device.available_in_hub:
-                        supported_chipsets.update(
-                            device.supported_chipsets_for_paths(path_perf)
-                        )
-                    else:
-                        yaml = DevicesAndChipsetsYaml.load()
-                        if details := yaml.devices.get(device.reference_device_name):
-                            supported_chipsets.add(details.chipset)
-
-            if performance_metrics:
-                components[component] = QAIHMModelPerf.ComponentDetails(
-                    performance_metrics=performance_metrics,
-                )
-
-        if components:
-            precisions[precision] = QAIHMModelPerf.PrecisionDetails(
-                components=components
-            )
-
-    return QAIHMModelPerf(
-        supported_devices=get_supported_devices(supported_chipsets),
-        supported_chipsets=sorted_chipsets(supported_chipsets),
-        precisions=precisions,
-    )
+    result.supported_devices[:] = [
+        str(d) for d in get_supported_devices(supported_chipsets)
+    ]
+    result.supported_chipsets[:] = sorted_chipsets(supported_chipsets)
+    return result
 
 
 def remove_asset_failures(

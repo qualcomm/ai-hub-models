@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 import pytest
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
@@ -18,7 +19,7 @@ JIT_MODEL = "act"
 def test_drop_chipsets_without_assets_drops_unbacked() -> None:
     """A claim no published asset backs must not survive."""
     perf = QAIHMModelPerf.from_model(AOT_MODEL)
-    perf.supported_chipsets = [*perf.supported_chipsets, "qualcomm-snapdragon-888"]
+    perf.supported_chipsets.append("qualcomm-snapdragon-888")
     perf.drop_chipsets_without_assets(AOT_MODEL)
     assert "qualcomm-snapdragon-888" not in perf.supported_chipsets
 
@@ -43,9 +44,9 @@ def test_drop_chipsets_without_assets_does_not_add() -> None:
 def test_drop_chipsets_without_assets_rewrites_devices() -> None:
     """supported_devices is derived from the kept chipsets, not left stale."""
     perf = QAIHMModelPerf.from_model(AOT_MODEL)
-    perf.supported_chipsets = [*perf.supported_chipsets, "qualcomm-snapdragon-888"]
+    perf.supported_chipsets.append("qualcomm-snapdragon-888")
     perf.drop_chipsets_without_assets(AOT_MODEL)
-    assert not any("Galaxy S21" in str(d) for d in perf.supported_devices)
+    assert not any("Galaxy S21" in d for d in perf.supported_devices)
 
 
 def test_drop_chipsets_without_assets_skips_universal_assets() -> None:
@@ -53,7 +54,7 @@ def test_drop_chipsets_without_assets_skips_universal_assets() -> None:
     perf = QAIHMModelPerf.from_model(JIT_MODEL)
     before = list(perf.supported_chipsets)
     perf.drop_chipsets_without_assets(JIT_MODEL)
-    assert perf.supported_chipsets == before
+    assert list(perf.supported_chipsets) == before
 
 
 def test_drop_chipsets_without_assets_is_idempotent() -> None:
@@ -61,7 +62,7 @@ def test_drop_chipsets_without_assets_is_idempotent() -> None:
     perf.drop_chipsets_without_assets(AOT_MODEL)
     once = list(perf.supported_chipsets)
     perf.drop_chipsets_without_assets(AOT_MODEL)
-    assert perf.supported_chipsets == once
+    assert list(perf.supported_chipsets) == once
 
 
 MIXED_PATHS = [
@@ -74,25 +75,20 @@ MIXED_PATHS = [
 
 
 def _mixed_perf(*devices: ScorecardDevice) -> QAIHMModelPerf:
-    details = QAIHMModelPerf.PerformanceDetails(job_id="jabcd1234")
-    perf = QAIHMModelPerf()
-    perf.precisions[Precision.float] = QAIHMModelPerf.PrecisionDetails(
-        components={
-            name: QAIHMModelPerf.ComponentDetails(
-                performance_metrics={
-                    d: {p: details.model_copy() for p in MIXED_PATHS}
-                    for d in devices or (cs_x_elite,)
-                }
-            )
-            for name in ("A", "B")
-        }
+    details = perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=perf_pb2.ModelPerf.ProfileJob(id="jabcd1234")
     )
+    perf = QAIHMModelPerf("mixed")
+    for name in ("A", "B"):
+        for device in devices or (cs_x_elite,):
+            for path in MIXED_PATHS:
+                key = QAIHMModelPerf.Key(Precision.float, name, device, path)
+                perf.update_entry(key.stamp(details))
     return perf
 
 
 def _paths(perf: QAIHMModelPerf, component: str = "A") -> set[ScorecardProfilePath]:
-    metrics = perf.precisions[Precision.float].components[component]
-    return {p for by_path in metrics.performance_metrics.values() for p in by_path}
+    return {key.path for key in perf.entries if key.component == component}
 
 
 @pytest.mark.parametrize(
@@ -125,8 +121,8 @@ def test_drop_entries_with_mismatched_aot(
     perf.drop_entries_with_mismatched_aot(requires_aot_prepare)
     for component in ("A", "B"):
         assert _paths(perf, component) == kept
-        metrics = perf.precisions[Precision.float].components[component]
-        assert set(metrics.performance_metrics) == {cs_x_elite, other}
+        devices = {key.device for key in perf.entries if key.component == component}
+        assert devices == {cs_x_elite, other}
 
 
 def test_drop_entries_with_mismatched_aot_respects_component_filter() -> None:
@@ -137,17 +133,10 @@ def test_drop_entries_with_mismatched_aot_respects_component_filter() -> None:
 
 
 def test_drop_entries_with_mismatched_aot_removes_emptied_precision() -> None:
-    perf = QAIHMModelPerf()
-    perf.precisions[Precision.float] = QAIHMModelPerf.PrecisionDetails(
-        components={
-            "A": QAIHMModelPerf.ComponentDetails(
-                performance_metrics={
-                    cs_x_elite: {
-                        ScorecardProfilePath.QNN_CONTEXT_BINARY: QAIHMModelPerf.PerformanceDetails()
-                    }
-                }
-            )
-        }
+    perf = QAIHMModelPerf("mixed")
+    key = QAIHMModelPerf.Key(
+        Precision.float, "A", cs_x_elite, ScorecardProfilePath.QNN_CONTEXT_BINARY
     )
+    perf.update_entry(key.stamp(perf_pb2.ModelPerf.PerformanceDetails()))
     perf.drop_entries_with_mismatched_aot(False)
-    assert Precision.float not in perf.precisions
+    assert not any(key.precision == Precision.float for key in perf.entries)

@@ -24,7 +24,9 @@ def get_manifest_proto() -> ReleaseManifest:
     # Neither the scripts package nor the internal one is present in release
     # builds, so import from both here rather than at module scope.
     from qai_hub_models.scorecard.model_info import WebsiteModelInfo
-    from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+    from qai_hub_models.scorecard.perf_yaml import (
+        QAIHMModelPerf,
+    )
     from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
     from qai_hub_models.scripts.build_release_proto import _manifest_filter_fields
 
@@ -75,9 +77,7 @@ def get_perf_proto(model_id: str) -> ModelPerf:
     # import them here to keep this module importable without it.
     from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 
-    return QAIHMModelPerf.from_model(model_id, not_exists_ok=True).to_proto(
-        __version__, model_id
-    )
+    return QAIHMModelPerf.from_model(model_id, not_exists_ok=True).to_proto()
 
 
 def get_numerics_proto(model_id: str) -> ModelNumerics:

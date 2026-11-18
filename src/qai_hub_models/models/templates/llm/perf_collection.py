@@ -21,6 +21,7 @@ import os
 from dataclasses import dataclass, field
 
 from filelock import FileLock
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -39,7 +40,9 @@ from qai_hub_models.scorecard.envvars import (
     SpecialLLMPerfPrecisionSetting,
 )
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.yaml import ScorecardAssetYaml
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
@@ -353,64 +356,45 @@ def _update_perf_yaml_locked(
     component_name = manifest.name
 
     device = ScorecardDevice.get(device_name, return_unregistered=True)
-    if device not in perf.supported_devices:
-        perf.supported_devices.append(device)
+    if str(device) not in perf.supported_devices:
+        perf.supported_devices.append(str(device))
 
     chipset = device.chipset
     if chipset not in perf.supported_chipsets:
         perf.supported_chipsets.append(chipset)
 
-    if precision not in perf.precisions:
-        perf.precisions[precision] = QAIHMModelPerf.PrecisionDetails()
-
-    precision_details = perf.precisions[precision]
-
-    if component_name not in precision_details.components:
-        precision_details.components[component_name] = QAIHMModelPerf.ComponentDetails()
-
-    component_details = precision_details.components[component_name]
-
-    if device not in component_details.performance_metrics:
-        component_details.performance_metrics[device] = {}
-
-    device_metrics = component_details.performance_metrics[device]
-
-    if profile_path not in device_metrics:
-        device_metrics[profile_path] = QAIHMModelPerf.PerformanceDetails()
-
-    perf_details = device_metrics[profile_path]
+    perf_details = perf.get_or_create_entry(
+        QAIHMModelPerf.Key(precision, component_name, device, profile_path)
+    )
 
     if tool_versions is not None:
-        perf_details.tool_versions = tool_versions
+        perf_details.tool_versions.CopyFrom(tool_versions.to_proto())
 
-    llm_metric = QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength(
+    llm_metric = perf_pb2.ModelPerf.LLMPerfMetrics(
         context_length=context_length,
         tokens_per_second=tps,
         prefill_tokens_per_second=prefill_tps,
         desired_compute_unit=desired_compute_unit,
     )
-
-    if perf_details.llm_metrics is None:
-        perf_details.llm_metrics = []
-    _upsert_metric(perf_details.llm_metrics, llm_metric)
+    _upsert_metric(perf_details, llm_metric)
 
     perf.to_model_yaml(model_id)
     print(f"Updated perf.yaml for {model_id}")
 
 
 def _upsert_metric(
-    bucket: list[QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength],
-    metric: QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength,
+    details: perf_pb2.ModelPerf.PerformanceDetails,
+    metric: perf_pb2.ModelPerf.LLMPerfMetrics,
 ) -> None:
     """Replace the existing entry at the same (context_length, desired_compute_unit) or append."""
-    for i, existing in enumerate(bucket):
+    for existing in details.llm_metrics:
         if (
             existing.context_length == metric.context_length
             and existing.desired_compute_unit == metric.desired_compute_unit
         ):
-            bucket[i] = metric
+            existing.CopyFrom(metric)
             return
-    bucket.append(metric)
+    details.llm_metrics.append(metric)
 
 
 def clear_llm_metrics_for_profile_path(
@@ -440,19 +424,14 @@ def clear_llm_metrics_for_profile_path(
     with FileLock(f"{perf_path}.lock"):
         perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
         changed = False
-        for prec, precision_details in perf.precisions.items():
-            if precision is not None and prec != precision:
+        for key, entry in perf.entries.items():
+            if precision is not None and key.precision != precision:
                 continue
-            for component_details in precision_details.components.values():
-                for (
-                    device,
-                    device_metrics,
-                ) in component_details.performance_metrics.items():
-                    if target_device is not None and device != target_device:
-                        continue
-                    perf_details = device_metrics.get(profile_path)
-                    if perf_details is not None and perf_details.llm_metrics:
-                        perf_details.llm_metrics = []
-                        changed = True
+            if target_device is not None and key.device != target_device:
+                continue
+            if key.path != profile_path or not entry.llm_metrics:
+                continue
+            del entry.llm_metrics[:]
+            changed = True
         if changed:
             perf.to_model_yaml(model_id)

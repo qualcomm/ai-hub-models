@@ -45,24 +45,10 @@ def _perf_tool_versions_by_path(
     """
     if perf is None:
         return {}
-    versions: dict[_PathKey, tool_versions_pb2.ToolVersions] = {}
-
-    def _collect(
-        precision: Precision,
-        component: str,
-        device: ScorecardDevice,
-        path: ScorecardProfilePath,
-        details: QAIHMModelPerf.PerformanceDetails,
-    ) -> None:
-        key = (
-            str(device),
-            precision_to_proto(precision),
-            runtime_to_proto(path.runtime),
-        )
-        versions[key] = details.tool_versions.to_proto()
-
-    perf.for_each_entry(_collect)
-    return versions
+    return {
+        (entry.device, entry.precision, entry.runtime): entry.tool_versions
+        for entry in perf.entries.values()
+    }
 
 
 def get_numerics_yaml_path(model_id: str) -> Path:

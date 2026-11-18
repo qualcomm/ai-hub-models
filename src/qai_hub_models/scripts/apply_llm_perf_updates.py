@@ -27,7 +27,9 @@ from qai_hub_models.scorecard.device import DEFAULT_QDC_DEVICE, ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
 from qai_hub_models.scorecard.internal_config_yaml import model_perf_component_key
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.release_assets_yaml import (
     NEVER_DROPPED,
     QAIHMModelReleaseAssets,

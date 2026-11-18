@@ -26,7 +26,9 @@ import ruamel.yaml
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
@@ -43,7 +45,9 @@ def _reverse_mappings(value: Any) -> Any:
 
 
 def _assert_to_yaml_is_order_independent(
-    config_cls: type[BaseQAIHMConfig], yaml_path: Path, tmp_path: Path
+    config_cls: type[BaseQAIHMConfig] | None,
+    yaml_path: Path,
+    tmp_path: Path,
 ) -> None:
     if not yaml_path.exists():
         pytest.skip(f"{yaml_path.name} does not exist for this model")
@@ -56,13 +60,17 @@ def _assert_to_yaml_is_order_independent(
     with open(scrambled_path, "w") as f:
         yaml.dump(_reverse_mappings(data), f)
 
-    config = config_cls.from_yaml(scrambled_path)
     out_path = tmp_path / f"rewritten-{yaml_path.name}"
-    config.to_yaml(out_path)
+    if config_cls is None:
+        QAIHMModelPerf.from_yaml(scrambled_path, yaml_path.parent.name).to_yaml(
+            out_path
+        )
+    else:
+        config_cls.from_yaml(scrambled_path).to_yaml(out_path)
 
     assert out_path.read_text() == yaml_path.read_text(), (
         f"{yaml_path.name}: re-saving a scrambled copy through "
-        f"{config_cls.__name__}.to_yaml did not reproduce the original file. "
+        f"{config_cls.__name__ if config_cls else 'QAIHMModelPerf.to_yaml'} did not reproduce the original file. "
         f"Diff the two files in {tmp_path} for details."
     )
 
@@ -70,7 +78,7 @@ def _assert_to_yaml_is_order_independent(
 @pytest.mark.parametrize("model_id", CANONICALIZED_MODELS)
 def test_perf_yaml_to_yaml_is_order_independent(model_id: str, tmp_path: Path) -> None:
     _assert_to_yaml_is_order_independent(
-        QAIHMModelPerf, QAIHM_MODELS_ROOT / model_id / "perf.yaml", tmp_path
+        None, QAIHM_MODELS_ROOT / model_id / "perf.yaml", tmp_path
     )
 
 

@@ -32,7 +32,6 @@ from qai_hub_models.configs.proto_helpers import (
     tag_to_proto,
     use_case_to_proto,
 )
-from qai_hub_models.scorecard import ScorecardDevice, ScorecardProfilePath
 from qai_hub_models.scorecard.device import compute_peer_chipsets
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     DevicesAndChipsetsYaml,
@@ -41,7 +40,9 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar, SpecialModelSetting
 from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
@@ -170,7 +171,9 @@ def _build_model_protos(
     if not perf.empty:
         written.extend(
             _write_proto_multi(
-                perf.to_proto(aihm_version, model_id), output_dir / "perf", fmts
+                perf.to_release_proto(aihm_version, model_id),
+                output_dir / "perf",
+                fmts,
             )
         )
 
@@ -343,17 +346,10 @@ def _manifest_filter_fields(
         for path_dict in prec_details.chipset_assets.values():
             runtimes.update(path.runtime for path in path_dict)
 
-    def _collect_perf(
-        precision: Precision,
-        component: str,
-        device: ScorecardDevice,
-        path: ScorecardProfilePath,
-        details: QAIHMModelPerf.PerformanceDetails,
-    ) -> None:
-        precisions.add(precision)
-        runtimes.add(path.runtime)
-
-    perf.for_each_entry(_collect_perf)
+    for params in perf.entries:
+        assert params.precision is not None
+        precisions.add(params.precision)
+        runtimes.add(params.path.runtime)
 
     # Drop chipsets of "similar" devices (perf borrowed, not measured).
     similar = _similar_chipsets()

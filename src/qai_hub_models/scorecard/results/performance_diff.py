@@ -5,11 +5,13 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from typing import Any, NamedTuple
 
 from prettytable import PrettyTable
 from pydantic import ConfigDict, Field, model_validator
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
@@ -193,12 +195,9 @@ class PerformanceDiff:
         self,
         compile_jobs: CompileScorecardJobYaml,
         model_id: str,
-        precision: Precision,
-        path: ScorecardProfilePath,
-        device: ScorecardDevice,
-        component: str | None,
+        key: QAIHMModelPerf.Key,
     ) -> str:
-        """Return the compile-job ID for these params, or "null" if missing.
+        """Return the compile-job ID for this perf entry, or "null" if missing.
 
         The linkifier renders "null" as N/A.
 
@@ -210,247 +209,19 @@ class PerformanceDiff:
         """
         params = ScJobParams(
             model_id=model_id,
-            path=path,
-            precision=precision,
-            device=device,
-            component=component,
+            path=key.path,
+            precision=key.precision,
+            device=key.device,
+            component=key.component,
         )
         if not params.has_compile_job:
             return "null"
         if job_id := compile_jobs.get_job_id(params):
             return job_id
-        if component is not None:
-            params_no_component = ScJobParams(
-                model_id=model_id,
-                path=path,
-                precision=precision,
-                device=device,
-                component=None,
-            )
-            if job_id := compile_jobs.get_job_id(params_no_component):
-                return job_id
+        params_no_component = dataclasses.replace(params, component=None)
+        if job_id := compile_jobs.get_job_id(params_no_component):
+            return job_id
         return "null"
-
-    def _update_summary_for_path(
-        self,
-        model_id: str,
-        precision: Precision,
-        component: str,
-        device: ScorecardDevice,
-        path: ScorecardProfilePath,
-        previous_report: dict[ScorecardProfilePath, QAIHMModelPerf.PerformanceDetails],
-        new_report: dict[ScorecardProfilePath, QAIHMModelPerf.PerformanceDetails],
-    ) -> None:
-        prev_entry = previous_report.get(path, QAIHMModelPerf.PerformanceDetails())
-        new_entry = new_report.get(path, QAIHMModelPerf.PerformanceDetails())
-
-        # Skip LLM metrics - this method only handles non-LLM PerformanceDetails
-        if prev_entry.llm_metrics is not None or new_entry.llm_metrics is not None:
-            return
-
-        prev_results = prev_entry
-        prev_inference_time = prev_results.inference_time_milliseconds
-
-        new_results = new_entry
-        new_inference_time = new_results.inference_time_milliseconds
-        if prev_inference_time and new_inference_time:
-            progression_speedup = float(prev_inference_time) / float(new_inference_time)
-            regression_speedup = float(new_inference_time) / float(prev_inference_time)
-            is_progression = progression_speedup >= 1
-            diff = progression_speedup if is_progression else regression_speedup
-        elif prev_inference_time and not new_inference_time:
-            is_progression = False
-            diff = float("inf")
-        elif not prev_inference_time and new_inference_time:
-            is_progression = True
-            diff = float("inf")
-        else:
-            # both failed, don't add this to the summary
-            return
-
-        # Skip regressions where absolute diff is within noise margin
-        if (
-            not is_progression
-            and prev_inference_time
-            and new_inference_time
-            and abs(new_inference_time - prev_inference_time) <= self._MIN_REGRESSION_MS
-        ):
-            return
-
-        append_to = self.progressions if is_progression else self.regressions
-        bucket = None
-        for i in range(len(self.perf_buckets)):
-            key = self.perf_buckets[i]
-            if diff >= key:
-                bucket = key
-                break
-        if bucket is not None:
-            append_to[bucket].append(
-                (
-                    model_id,
-                    precision,
-                    component,
-                    device,
-                    path,
-                    prev_inference_time or float("-inf"),
-                    new_inference_time or float("-inf"),
-                    diff,
-                    new_results.job_id or "null",
-                    prev_results.job_id or "null",
-                    self._compile_job_id_for(
-                        self._current_compile_jobs,
-                        model_id,
-                        precision,
-                        path,
-                        device,
-                        component,
-                    ),
-                    self._compile_job_id_for(
-                        self._previous_compile_jobs,
-                        model_id,
-                        precision,
-                        path,
-                        device,
-                        component,
-                    ),
-                )
-            )
-
-        if (
-            new_results.primary_compute_unit
-            and new_results.primary_compute_unit != "NPU"
-        ):
-            # If another device as the same results, group the two devices in 1 entry to reduce noise.
-            # Otherwise, add a new entry to npu_not_primary_cu.
-            info = NPUNotPrimaryCUInfo(
-                model_id,
-                precision,
-                component,
-                path,
-                new_results.layer_counts.cpu if new_results.layer_counts else 0,
-                new_results.layer_counts.gpu if new_results.layer_counts else 0,
-                new_results.layer_counts.npu if new_results.layer_counts else 0,
-                "N/A"
-                if not prev_results.primary_compute_unit
-                else str(prev_results.primary_compute_unit != "NPU"),
-            )
-            if count := self.npu_not_primary_cu.get(info):
-                self.npu_not_primary_cu[info] = count + 1
-            else:
-                self.npu_not_primary_cu[info] = 1
-
-    def _update_summary_for_device(
-        self,
-        model_id: str,
-        precision: Precision,
-        component: str,
-        device: ScorecardDevice,
-        previous_report: dict[
-            ScorecardDevice,
-            dict[ScorecardProfilePath, QAIHMModelPerf.PerformanceDetails],
-        ],
-        new_report: dict[
-            ScorecardDevice,
-            dict[ScorecardProfilePath, QAIHMModelPerf.PerformanceDetails],
-        ],
-    ) -> None:
-        if str(device) in self._excluded_device_names:
-            return
-        if device not in previous_report and device not in new_report:
-            return
-        if device in previous_report and device not in new_report:
-            self.missing_devices.append((model_id, precision, component, device))
-        elif device not in previous_report and device in new_report:
-            self.new_devices.append((model_id, precision, component, device))
-        else:
-            all_paths: set[ScorecardProfilePath] = set()
-            previous_report_device = previous_report[device]
-            new_report_device = new_report[device]
-            all_paths.update(previous_report_device.keys())
-            all_paths.update(new_report_device.keys())
-            for path in all_paths:
-                self._update_summary_for_path(
-                    model_id,
-                    precision,
-                    component,
-                    device,
-                    path,
-                    previous_report_device,
-                    new_report_device,
-                )
-
-    def _update_summary_for_component(
-        self,
-        model_id: str,
-        precision: Precision,
-        component: str,
-        previous_report: QAIHMModelPerf.PrecisionDetails,
-        new_report: QAIHMModelPerf.PrecisionDetails,
-    ) -> None:
-        if (
-            component not in previous_report.components
-            and component not in new_report.components
-        ):
-            return
-        if (
-            component in previous_report.components
-            and component not in new_report.components
-        ):
-            self.missing_components.append((model_id, precision, component))
-        elif (
-            component not in previous_report.components
-            and component in new_report.components
-        ):
-            self.new_components.append((model_id, precision, component))
-        else:
-            all_devices: set[ScorecardDevice] = set()
-            previous_report_component = previous_report.components[
-                component
-            ].performance_metrics
-            new_report_component = new_report.components[component].performance_metrics
-            all_devices.update(previous_report_component.keys())
-            all_devices.update(new_report_component.keys())
-            for device in all_devices:
-                self._update_summary_for_device(
-                    model_id,
-                    precision,
-                    component,
-                    device,
-                    previous_report_component,
-                    new_report_component,
-                )
-
-    def _update_summary_for_precision(
-        self,
-        model_id: str,
-        precision: Precision,
-        previous_report: QAIHMModelPerf,
-        new_report: QAIHMModelPerf,
-    ) -> None:
-        if (
-            precision in previous_report.precisions
-            and precision not in new_report.precisions
-        ):
-            self.missing_precisions.append((model_id, precision))
-        elif (
-            precision not in previous_report.precisions
-            and precision in new_report.precisions
-        ):
-            self.new_precisions.append((model_id, precision))
-        else:
-            all_components: set[str] = set()
-            previous_report_precision = previous_report.precisions[precision]
-            new_report_precision = new_report.precisions[precision]
-            all_components.update(previous_report_precision.components.keys())
-            all_components.update(new_report_precision.components.keys())
-            for component in all_components:
-                self._update_summary_for_component(
-                    model_id,
-                    precision,
-                    component,
-                    previous_report_precision,
-                    new_report_precision,
-                )
 
     def update_summary(
         self,
@@ -458,24 +229,159 @@ class PerformanceDiff:
         previous_report: QAIHMModelPerf | None,
         new_report: QAIHMModelPerf | None,
     ) -> None:
-        if not new_report and not previous_report:
-            return
-        if new_report and not previous_report:
-            self.new_models.append(model_id)
-        elif previous_report and not new_report:
-            self.missing_models.append(model_id)
-        elif previous_report and new_report:
-            if new_report.empty:
-                self.empty_models.append(model_id)
-                return
+        """
+        Record the differences between a model's previous and new perf reports.
 
-            all_precisions: set[Precision] = set()
-            all_precisions.update(previous_report.precisions.keys())
-            all_precisions.update(new_report.precisions.keys())
-            for precision in all_precisions:
-                self._update_summary_for_precision(
-                    model_id, precision, previous_report, new_report
+        Precisions, components and devices are each reported as missing (only in the
+        previous report) or new (only in the new report). A component is only
+        reported if its precision is in both reports, and a device only if its
+        component is in both. That way a new precision is listed once, not again
+        for every component and device inside it.
+        """
+        if new_report is None and previous_report is None:
+            return
+        if previous_report is None:
+            self.new_models.append(model_id)
+            return
+        if new_report is None:
+            self.missing_models.append(model_id)
+            return
+        if new_report.empty:
+            self.empty_models.append(model_id)
+            return
+
+        previous_entries = previous_report.entries
+        new_entries = new_report.entries
+
+        previous_devices = {
+            (k.precision, k.component, k.device) for k in previous_entries
+        }
+        new_devices = {(k.precision, k.component, k.device) for k in new_entries}
+        shared_devices = previous_devices & new_devices
+
+        previous_components = {(prec, comp) for prec, comp, _ in previous_devices}
+        new_components = {(prec, comp) for prec, comp, _ in new_devices}
+        shared_components = previous_components & new_components
+
+        previous_precisions = {prec for prec, _ in previous_components}
+        new_precisions = {prec for prec, _ in new_components}
+        shared_precisions = previous_precisions & new_precisions
+
+        self.missing_precisions.extend(
+            (model_id, prec) for prec in previous_precisions - new_precisions
+        )
+        self.new_precisions.extend(
+            (model_id, prec) for prec in new_precisions - previous_precisions
+        )
+        self.missing_components.extend(
+            (model_id, prec, comp)
+            for prec, comp in previous_components - new_components
+            if prec in shared_precisions
+        )
+        self.new_components.extend(
+            (model_id, prec, comp)
+            for prec, comp in new_components - previous_components
+            if prec in shared_precisions
+        )
+        self.missing_devices.extend(
+            (model_id, prec, comp, device)
+            for prec, comp, device in previous_devices - new_devices
+            if (prec, comp) in shared_components and not self._is_excluded(device)
+        )
+        self.new_devices.extend(
+            (model_id, prec, comp, device)
+            for prec, comp, device in new_devices - previous_devices
+            if (prec, comp) in shared_components and not self._is_excluded(device)
+        )
+
+        no_entry = perf_pb2.ModelPerf.PerformanceDetails()
+        for key in previous_entries.keys() | new_entries.keys():
+            prec, comp, device = key.precision, key.component, key.device
+            if self._is_excluded(device) or (prec, comp, device) not in shared_devices:
+                continue
+
+            prev_entry = previous_entries.get(key, no_entry)
+            new_entry = new_entries.get(key, no_entry)
+
+            # LLM entries have no inference time to compare.
+            if prev_entry.llm_metrics or new_entry.llm_metrics:
+                continue
+
+            prev_inference_time = prev_entry.metrics.inference_time_milliseconds
+            new_inference_time = new_entry.metrics.inference_time_milliseconds
+            if prev_inference_time and new_inference_time:
+                progression_speedup = prev_inference_time / new_inference_time
+                regression_speedup = new_inference_time / prev_inference_time
+                is_progression = progression_speedup >= 1
+                diff = progression_speedup if is_progression else regression_speedup
+            elif prev_inference_time:
+                is_progression = False
+                diff = float("inf")
+            elif new_inference_time:
+                is_progression = True
+                diff = float("inf")
+            else:
+                # Neither report has a result for this path, so there is nothing to compare.
+                continue
+
+            # A regression this small is within measurement noise.
+            is_noise = (
+                not is_progression
+                and prev_inference_time
+                and new_inference_time
+                and abs(new_inference_time - prev_inference_time)
+                <= self._MIN_REGRESSION_MS
+            )
+            if not is_noise:
+                bucket = next((b for b in self.perf_buckets if diff >= b), None)
+                if bucket is not None:
+                    append_to = (
+                        self.progressions if is_progression else self.regressions
+                    )
+                    append_to[bucket].append(
+                        (
+                            model_id,
+                            prec,
+                            comp,
+                            device,
+                            key.path,
+                            prev_inference_time or float("-inf"),
+                            new_inference_time or float("-inf"),
+                            diff,
+                            new_entry.profile_job.id or "null",
+                            prev_entry.profile_job.id or "null",
+                            self._compile_job_id_for(
+                                self._current_compile_jobs, model_id, key
+                            ),
+                            self._compile_job_id_for(
+                                self._previous_compile_jobs, model_id, key
+                            ),
+                        )
+                    )
+
+            new_metrics = new_entry.metrics
+            if (
+                new_metrics.primary_compute_unit
+                and new_metrics.primary_compute_unit != "NPU"
+            ):
+                # Count identical results together so several devices make one entry.
+                info = NPUNotPrimaryCUInfo(
+                    model_id,
+                    prec,
+                    comp,
+                    key.path,
+                    new_metrics.layer_counts.cpu,
+                    new_metrics.layer_counts.gpu,
+                    new_metrics.layer_counts.npu,
+                    "N/A"
+                    if not prev_entry.metrics.primary_compute_unit
+                    else str(prev_entry.metrics.primary_compute_unit != "NPU"),
                 )
+                self.npu_not_primary_cu[info] = self.npu_not_primary_cu.get(info, 0) + 1
+
+    def _is_excluded(self, device: ScorecardDevice) -> bool:
+        """True if this device is left out of the performance diff."""
+        return str(device) in self._excluded_device_names
 
     def _get_summary_table(
         self, bucket_id: float | str, get_progressions: bool = True

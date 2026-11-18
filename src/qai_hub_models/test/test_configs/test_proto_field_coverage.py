@@ -20,7 +20,6 @@ from qai_hub_models_cli.proto import (
     info_pb2,
     model_metadata_pb2,
     numerics_pb2,
-    perf_pb2,
     platform_pb2,
     release_assets_pb2,
 )
@@ -52,7 +51,6 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
 )
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 
@@ -294,42 +292,6 @@ class TestNumericsFieldCoverage:
             QAIHMModelNumerics.DeviceDetails,
             numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics.DESCRIPTOR,
             proto_only={"device", "precision", "runtime", "tool_versions"},
-        )
-
-
-# ---------------------------------------------------------------------------
-# perf.proto
-# ---------------------------------------------------------------------------
-
-
-class TestPerfFieldCoverage:
-    def test_performance_details(self) -> None:
-        perf_detail = perf_pb2.ModelPerf.PerformanceDetails.DESCRIPTOR
-        profile_job = perf_pb2.ModelPerf.ProfileJob.DESCRIPTOR
-        perf_metrics = perf_pb2.ModelPerf.PerfMetrics.DESCRIPTOR
-        all_proto_fields = (
-            {f.name for f in perf_detail.fields}
-            | {f.name for f in profile_job.fields}
-            | {f.name for f in perf_metrics.fields}
-        )
-        py_fields = set(QAIHMModelPerf.PerformanceDetails.model_fields.keys())
-        renames = {"job_id": "id", "job_status": "status"}
-        mapped = {renames.get(f, f) for f in py_fields}
-        missing = mapped - all_proto_fields
-        assert not missing, (
-            f"PerformanceDetails: pydantic fields missing from proto: {missing}"
-        )
-
-    def test_layer_counts(self) -> None:
-        _check_coverage(
-            QAIHMModelPerf.PerformanceDetails.LayerCounts,
-            perf_pb2.ModelPerf.PerfMetrics.LayerCounts.DESCRIPTOR,
-        )
-
-    def test_llm_metrics(self) -> None:
-        _check_coverage(
-            QAIHMModelPerf.PerformanceDetails.LLMMetricsPerContextLength,
-            perf_pb2.ModelPerf.LLMPerfMetrics.DESCRIPTOR,
         )
 
 

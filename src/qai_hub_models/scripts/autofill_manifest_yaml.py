@@ -10,6 +10,7 @@ import copy
 import os
 import subprocess
 import sys
+from collections import defaultdict
 from typing import Any
 
 import numpy as np
@@ -17,8 +18,11 @@ import qai_hub as hub
 from ruamel.yaml import YAML
 from tflite import Model as TFModel
 
+from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
+from qai_hub_models.scorecard.perf_yaml import (
+    QAIHMModelPerf,
+)
 from qai_hub_models.utils.asset_loaders import qaihm_temp_dir
 from qai_hub_models.utils.export.context import resolve_recipe_dir
 from qai_hub_models.utils.export.dispatch import select_pipeline
@@ -255,34 +259,33 @@ def main() -> None:
                 if perf.empty:
                     print(f"No perf data for model {model_name}. Skipping.")
                     continue
-                for precision, precision_data in perf.precisions.items():
-                    precision_str = str(precision)
-                    for (
-                        submodel_name,
-                        submodel_data,
-                    ) in precision_data.components.items():
-                        details_key = (
-                            submodel_name
-                            if len(precision_data.components) > 1
-                            else "model"
+                components_by_precision: dict[Precision, set[str]] = defaultdict(set)
+                for params in perf.entries:
+                    assert params.precision is not None
+                    assert params.component is not None
+                    components_by_precision[params.precision].add(params.component)
+
+                done: set[tuple[Precision, str]] = set()
+                for params, entry in perf.entries.items():
+                    assert params.precision is not None
+                    assert params.component is not None
+                    precision, component = params.precision, params.component
+                    if (precision, component) in done or not entry.profile_job.id:
+                        continue
+                    details_key = (
+                        component
+                        if len(components_by_precision[precision]) > 1
+                        else "model"
+                    )
+                    # Get model from first available profile job
+                    try:
+                        job = hub.get_job(entry.profile_job.id)
+                        details[str(precision)][details_key] = (
+                            get_model_size_and_parameters(job)
                         )
-                        # Get model from first available profile job
-                        found = False
-                        for device_data in submodel_data.performance_metrics.values():
-                            for runtime_data in device_data.values():
-                                if job_id := runtime_data.job_id:
-                                    try:
-                                        job = hub.get_job(job_id)
-                                        details[precision_str][details_key] = (
-                                            get_model_size_and_parameters(job)
-                                        )
-                                        found = True
-                                    except Exception:
-                                        continue
-                                if found:
-                                    break
-                            if found:
-                                break
+                        done.add((precision, component))
+                    except Exception:
+                        continue
 
             config_path = SCORECARD_MODELS_ROOT / model_name / "internal-config.yaml"
             config_dict: dict[str, Any] = {}

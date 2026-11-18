@@ -16,10 +16,8 @@ from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models._version import __version__ as qaihm_version
 from qai_hub_models.configs._info_yaml_llm_details import LLM_CALL_TO_ACTION
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.chipset_helpers import WEBSITE_CHIPSET_ORDER
@@ -161,32 +159,24 @@ def get_performance_table_rows(
 
     devices_yaml = DevicesAndChipsetsYaml.load()
 
-    def add_entry(
-        precision: Precision,
-        component_name: str,
-        device: ScorecardDevice,
-        path: ScorecardProfilePath,
-        profile_perf_details: QAIHMModelPerf.PerformanceDetails,
-    ) -> None:
-        nonlocal is_llm
-
-        device_chipset = devices_yaml.devices[device.reference_device_name].chipset
+    for key, entry in perf_info.entries.items():
+        device_chipset = devices_yaml.devices[key.device.reference_device_name].chipset
 
         base_row: dict[str, Any] = {
-            "component": component_name,
-            "precision": str(precision),
+            "component": key.component,
+            "precision": str(key.precision),
             "chipset": devices_yaml.chipsets[device_chipset].marketing_name,
             "_chipset_sort": _chipset_sort_key(device_chipset),
-            "runtime": path.runtime.name,
+            "runtime": key.path.runtime.name,
         }
 
-        if profile_perf_details.llm_metrics is not None:
+        if entry.llm_metrics:
             # LLM metrics - one row per (context_length, desired_compute_unit).
             is_llm = True
-            for ctx in profile_perf_details.llm_metrics:
+            for ctx in entry.llm_metrics:
                 if not ctx.tokens_per_second:
                     # Decode produced 0 tokens/sec (e.g. ran out of memory
-                    # mid-generation at this context length); not a
+                    # mid-generation at this context length), not a
                     # measurement worth publishing.
                     continue
                 row = base_row.copy()
@@ -195,18 +185,16 @@ def get_performance_table_rows(
                 row["compute_unit"] = ctx.desired_compute_unit
                 rows.append(row)
         else:
-            assert profile_perf_details.estimated_peak_memory_range_mb
-            assert profile_perf_details.inference_time_milliseconds
-            mem = profile_perf_details.estimated_peak_memory_range_mb
+            assert entry.HasField("metrics")
+            metrics = entry.metrics
+            assert metrics.HasField("estimated_peak_memory_range_mb")
+            assert metrics.inference_time_milliseconds
+            mem = metrics.estimated_peak_memory_range_mb
             row = base_row.copy()
-            row["inference_time"] = (
-                f"{profile_perf_details.inference_time_milliseconds} ms"
-            )
+            row["inference_time"] = f"{metrics.inference_time_milliseconds} ms"
             row["peak_memory"] = f"{mem.min} - {mem.max} MB"
-            row["compute_unit"] = profile_perf_details.primary_compute_unit or ""
+            row["compute_unit"] = metrics.primary_compute_unit
             rows.append(row)
-
-    perf_info.for_each_entry(add_entry)
 
     # Sort by model, then runtime, then precision, then chipset, then context_length (using WEBSITE_CHIPSET_ORDER)
     rows.sort(
