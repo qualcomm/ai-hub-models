@@ -76,6 +76,7 @@ jobs:
     name: "Submit Compile Jobs"
     needs: wait_workbench_deployment
     runs-on: aihub-models-ubuntu-2404-ec2
+    timeout-minutes: 720 # 12 hours
     permissions:
       contents: read
       id-token: write
