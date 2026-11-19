@@ -587,8 +587,15 @@ class ScorecardDevice(HubDeviceAttributes):
 # augmentations.
 # ----------------------
 
-# Mobile chipsets. S22-S26 override reference_device_name so metadata comes
+# Mobile chipsets. S21-S26 override reference_device_name so metadata comes
 # from the specific device even though Hub jobs schedule on the family pool.
+cs_888 = ScorecardDevice.from_registered(
+    registered_device.cs_888,
+    name="cs_888",
+    reference_device_name="Samsung Galaxy S21",
+    include_in_all=False,
+)
+
 cs_8_gen_1 = ScorecardDevice.from_registered(
     registered_device.cs_8_gen_1,
     name="cs_8_gen_1",

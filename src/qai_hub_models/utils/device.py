@@ -376,6 +376,7 @@ class RegisteredDevice(HubDeviceAttributes):
 
 # Mobile chipsets. For S22-S26 the ``device_name`` is the Family alias so Hub
 # job scheduling can pick any member of the family.
+cs_888 = RegisteredDevice(device_name="Samsung Galaxy S21 (Family)")
 cs_8_gen_1 = RegisteredDevice(device_name="Samsung Galaxy S22 (Family)")
 cs_8_gen_2 = RegisteredDevice(device_name="Samsung Galaxy S23 (Family)")
 cs_8_gen_3 = RegisteredDevice(device_name="Samsung Galaxy S24 (Family)")
