@@ -22,7 +22,7 @@ from .base import VLM
 from .generator import Generator, VLM_Generator
 from .utils.layer_cache import (
     LayerCacheDescriptor,
-    _resolve_text_config,
+    resolve_text_config,
 )
 
 
@@ -292,7 +292,7 @@ class InternVL_VLM(VLM):
         **kwargs,
     ):
         config = model.config if hasattr(model, "config") else None
-        text_config = _resolve_text_config(config) if config else None
+        text_config = resolve_text_config(config) if config else None
         hidden_size = text_config.hidden_size if text_config else 4096
 
         dummy_inputs_embeds = torch.zeros(
@@ -339,8 +339,8 @@ class InternVL_VLM(VLM):
         **kwargs,
     ) -> dict[str, dict[int, str]]:
         from .utils.layer_cache import (
-            AttentionType,
             attention_mask_input_names,
+            kv_length_dynamic_axes,
         )
 
         axes: dict[str, dict[int, str]] = {
@@ -350,12 +350,7 @@ class InternVL_VLM(VLM):
         }
         for name in attention_mask_input_names(layer_cache_descriptors):
             axes[name] = {2: "sequence_length"}
-        for desc in layer_cache_descriptors:
-            i = desc.layer_idx
-            if desc.attention_type == AttentionType.LINEAR:
-                continue
-            axes[f"past_key_{i}_in"] = {2: "kv_cache_length"}
-            axes[f"past_value_{i}_in"] = {2: "kv_cache_length"}
+        axes |= kv_length_dynamic_axes(layer_cache_descriptors)
         return axes
 
     @staticmethod

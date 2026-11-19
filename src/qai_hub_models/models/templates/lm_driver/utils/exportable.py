@@ -7,11 +7,14 @@ import torch
 from transformers import PreTrainedModel, DynamicCache
 
 from .compat import _patch_sdpa_mask  # noqa: F401 — triggers the patch on import
-from .compat import linear_attention_states
+from .compat import indexer_position_ids_owner, linear_attention_states
 from .layer_cache import (
+    PAST_POSITION_IDS,
+    PLE_CONV_STATE_IDX,
     AttentionType,
+    all_states,
     build_layer_cache_descriptors,
-    _resolve_text_config,
+    resolve_text_config,
 )
 
 
@@ -29,7 +32,10 @@ class ONNXExportableModuleWithCache(torch.nn.Module):
         "past_key_",
         "past_value_",
         "conv_state_",
+        "past_indexer_key_",
         "recurrent_state_",
+        "ple_conv_state_",
+        PAST_POSITION_IDS,
     )
 
     def __init__(
@@ -111,33 +117,50 @@ class ONNXExportableModuleWithCache(torch.nn.Module):
         """Return model config"""
         return self.model.config
 
-    def _build_cache(self, past_key_values: tuple[tuple[torch.Tensor, ...], ...]):
-        """Build a cache object from flattened state pairs using ``self.cache_type``."""
-        resolved = _resolve_text_config(self.config)
-        layer_types = getattr(resolved, "layer_types", None)
-        has_linear = bool(layer_types) and "linear_attention" in layer_types
+    def _build_cache(self, states: dict[str, torch.Tensor]):
+        """Build a cache object from the carried state inputs, keyed by state name."""
+        resolved = resolve_text_config(self.config)
+        descriptors = build_layer_cache_descriptors(resolved)
+        has_linear = any(d.attention_type == AttentionType.LINEAR for d in descriptors)
 
         # Hybrid (linear + full) models need a config-constructed cache so the
         # per-layer cache objects are created with the right type — the linear
         # layers expose conv/recurrent state slots that ``update_conv_state`` /
-        # ``update_recurrent_state`` write into. Pure attention models keep the
-        # config-less ``DynamicCache``: passing config there would create
-        # DynamicSlidingWindowLayers that clip KV internally, whereas our 4D
-        # attention mask already handles windowing and we need uniform caches.
-        if self.cache_type is DynamicCache and not has_linear:
+        # ``update_recurrent_state`` write into, and QSA layers an indexer key
+        # slot. Pure attention models keep the config-less ``DynamicCache``:
+        # passing config there would create DynamicSlidingWindowLayers that clip
+        # KV internally, whereas our 4D attention mask already handles windowing
+        # and we need uniform caches.
+        needs_config = has_linear or any(d.indexer_head_dim for d in descriptors)
+        if self.cache_type is DynamicCache and not needs_config:
             kv_cache = DynamicCache()
         else:
             kv_cache = self.cache_type(config=resolved)
 
-        for layer_idx, (state_a, state_b) in enumerate(
-            zip(past_key_values[::2], past_key_values[1::2])
-        ):
-            if layer_types and layer_types[layer_idx] == "linear_attention":
-                # Linear attention layers carry conv / recurrent states.
-                kv_cache.update_conv_state(state_a, layer_idx)
-                kv_cache.update_recurrent_state(state_b, layer_idx)
-            else:
-                kv_cache.update(state_a, state_b, layer_idx, {})
+        if not states:
+            return kv_cache
+
+        for desc in descriptors:
+            layer_states = [states[state.name] for state in desc.states]
+            if desc.attention_type == AttentionType.LINEAR:
+                conv_state, recurrent_state = layer_states[:2]
+                kv_cache.update_conv_state(conv_state, desc.layer_idx)
+                kv_cache.update_recurrent_state(recurrent_state, desc.layer_idx)
+                if desc.ple_conv_shape is not None:
+                    # Qwen4-Exp keeps the PLE short-conv window as conv state 1
+                    kv_cache.update_conv_state(
+                        layer_states[2], desc.layer_idx, state_idx=PLE_CONV_STATE_IDX
+                    )
+                continue
+            kv_cache.update(layer_states[0], layer_states[1], desc.layer_idx, {})
+            if desc.indexer_head_dim is not None:
+                kv_cache.update_indexer(layer_states[2], desc.layer_idx)
+
+        if PAST_POSITION_IDS in states:
+            # The model keeps these as (3, batch, kv_length); the graph state is
+            # batch-first like every other state.
+            owner, attr = indexer_position_ids_owner(kv_cache, resolved)
+            setattr(owner, attr, states[PAST_POSITION_IDS].transpose(0, 1))
         return kv_cache
 
     @staticmethod
@@ -173,6 +196,13 @@ class ONNXExportableModuleWithCache(torch.nn.Module):
         if ds_items:
             ds_items.sort(key=lambda x: x[0])
             result["deepstack_visual_embeds"] = [v for _, v in ds_items]
+        # Qwen4-Exp PLE: decoder layer index -> its host-computed n-gram embeddings.
+        # Keyed by int only: strict torch.export cannot sort tuples holding tensors.
+        ple_keys = [k for k in result if k.startswith("ple_embeds_")]
+        if ple_keys:
+            result["ple_embeds"] = {
+                int(k[len("ple_embeds_") :]): result.pop(k) for k in ple_keys
+            }
         return result
 
     @staticmethod
@@ -209,17 +239,21 @@ class ONNXExportableModuleWithCache(torch.nn.Module):
         position_ids_cos = inputs.get("position_ids_cos")
         position_ids_sin = inputs.get("position_ids_sin")
 
-        kv_pairs = [
-            v
-            for k, v in inputs.items()
-            if k.startswith(
-                ("past_key_", "past_value_", "conv_state_", "recurrent_state_")
-            )
-        ]
+        # No state inputs means an empty cache (e.g. a prefill-only trace);
+        # otherwise every state must be present
+        expected = all_states(build_layer_cache_descriptors(self.config))
+        states = {
+            state.name: inputs[f"{state.name}_in"]
+            for state in expected
+            if f"{state.name}_in" in inputs
+        }
+        if states and len(states) != len(expected):
+            missing = [s.name for s in expected if s.name not in states]
+            raise ValueError(f"Missing cache state inputs: {missing}")
         extra_kwargs = {k: v for k, v in inputs.items() if k in self.extra_input_names}
         extra_kwargs = self._collect_indexed_extras(extra_kwargs)
 
-        kv_cache = self._build_cache(tuple(kv_pairs))
+        kv_cache = self._build_cache(states)
 
         model_kwargs = {
             "attention_mask": attention_mask,
@@ -254,17 +288,27 @@ class ONNXExportableModuleWithCache(torch.nn.Module):
         else:
             lm_logits = hidden_states_or_logits
 
-        # Flatten output KV cache
+        # Flatten output states, in the same order as the inputs
         flat_output_past_key_values = []
-        resolved = _resolve_text_config(self.config)
-        layer_types = getattr(resolved, "layer_types", None)
-        for layer_idx in range(len(new_past_key_values)):
-            cache_layer = new_past_key_values.layers[layer_idx]
-            if layer_types and layer_types[layer_idx] == "linear_attention":
+        descriptors = build_layer_cache_descriptors(self.config)
+        for desc in descriptors:
+            cache_layer = new_past_key_values.layers[desc.layer_idx]
+            if desc.attention_type == AttentionType.LINEAR:
                 # Linear attention: extract conv_state and recurrent_state.
                 flat_output_past_key_values.extend(linear_attention_states(cache_layer))
-            else:
-                flat_output_past_key_values.append(cache_layer.keys)
-                flat_output_past_key_values.append(cache_layer.values)
+                if desc.ple_conv_shape is not None:
+                    flat_output_past_key_values.append(
+                        cache_layer.conv_states[PLE_CONV_STATE_IDX]
+                    )
+                continue
+            flat_output_past_key_values.append(cache_layer.keys)
+            flat_output_past_key_values.append(cache_layer.values)
+            if desc.indexer_head_dim is not None:
+                flat_output_past_key_values.append(cache_layer.indexer_keys)
+        if any(s.name == PAST_POSITION_IDS for s in all_states(descriptors)):
+            owner, attr = indexer_position_ids_owner(
+                new_past_key_values, resolve_text_config(self.config)
+            )
+            flat_output_past_key_values.append(getattr(owner, attr).transpose(0, 1))
 
         return lm_logits, *flat_output_past_key_values

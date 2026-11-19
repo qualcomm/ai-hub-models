@@ -22,8 +22,8 @@ from .utils.layer_cache import (
     LayerCacheDescriptor,
     attention_mask_input_names,
     cache_state_names,
-    AttentionType,
-    _resolve_text_config,
+    kv_length_dynamic_axes,
+    resolve_text_config,
 )
 
 
@@ -98,7 +98,7 @@ class LLM(ABC):
         )
 
         if small_model:
-            text_cfg = _resolve_text_config(llm_config)
+            text_cfg = resolve_text_config(llm_config)
             text_cfg.num_hidden_layers = 2
             if hasattr(text_cfg, "layer_types") and text_cfg.layer_types is not None:
                 text_cfg.layer_types = text_cfg.layer_types[:2]
@@ -216,12 +216,7 @@ class LLM(ABC):
             name: {2: "sequence_length"}
             for name in attention_mask_input_names(layer_cache_descriptors)
         }
-        for desc in layer_cache_descriptors:
-            i = desc.layer_idx
-            if desc.attention_type == AttentionType.LINEAR:
-                continue
-            axes[f"past_key_{i}_in"] = {2: "kv_cache_length"}
-            axes[f"past_value_{i}_in"] = {2: "kv_cache_length"}
+        axes |= kv_length_dynamic_axes(layer_cache_descriptors)
         return axes
 
     @staticmethod
@@ -243,6 +238,11 @@ class LLM(ABC):
     @staticmethod
     def get_generator_cls() -> type[Generator]:
         return Generator
+
+    @classmethod
+    def get_extras(cls, model: PreTrainedModel) -> dict:
+        """Return extra host-side modules the generator needs (e.g. per-layer embeddings)."""
+        return {}
 
 
 def _unimplemented(cls, hook: str):
@@ -307,11 +307,6 @@ class VLM(LLM):
         raise _unimplemented(cls, "build_vision_wrapper")
 
     @classmethod
-    def get_extras(cls, model: PreTrainedModel) -> dict:
-        """Return extra modules for SimCollection (e.g. per-layer embeddings)."""
-        return {}
-
-    @classmethod
     def get_sample_vision_inputs(
         cls,
         config: PretrainedConfig,
@@ -346,12 +341,7 @@ class VLM(LLM):
             "position_ids": {2: "sequence_length"},
             "logits": {1: "sequence_length"},
         }
-        for desc in layer_cache_descriptors:
-            i = desc.layer_idx
-            if desc.attention_type == AttentionType.LINEAR:
-                continue
-            axes[f"past_key_{i}_in"] = {2: "kv_cache_length"}
-            axes[f"past_value_{i}_in"] = {2: "kv_cache_length"}
+        axes |= kv_length_dynamic_axes(layer_cache_descriptors)
         return axes
 
     @staticmethod
