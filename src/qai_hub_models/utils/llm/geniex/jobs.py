@@ -107,6 +107,7 @@ class GenieXBenchMetrics:
     gen_tokens: int
     geniex_version: str | None = None
     qairt_version: str | None = None
+    requested_qairt_version: str | None = None
     llama_cpp_version: str | None = None
     stop_reason: str | None = None
 

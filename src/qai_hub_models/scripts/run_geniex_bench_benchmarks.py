@@ -563,15 +563,13 @@ def _rows_from_metrics(
                 if plugin == "qairt"
                 else ScorecardProfilePath.GENIEX_LLAMACPP
             )
-            # report.c writes qairt_version unconditionally on every cell
-            # regardless of --plugin, so it's only meaningful for qairt-plugin
-            # cells -- an llama_cpp cell's qairt_version reflects whatever
-            # QAIRT plugin happens to also be registered in that binary.
             tool_versions = ToolVersions(
                 geniex=m.geniex_version,
                 qairt=(
-                    QAIRTVersion(m.qairt_version, validate_exists_on_ai_hub=False)
-                    if base_plugin == "qairt" and m.qairt_version
+                    QAIRTVersion(
+                        m.requested_qairt_version, validate_exists_on_ai_hub=False
+                    )
+                    if base_plugin == "qairt" and m.requested_qairt_version
                     else None
                 ),
             )
@@ -918,6 +916,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
     (model, precision, plugin, device) tuple up in the jobs_file by key.
     """
     eval_items = _resolve_eval_items(args)
+    qairt_version = _resolve_qairt_version(args)
     rows: list[dict] = []
     records = load_jobs(args.jobs_file)
     for (
@@ -1010,6 +1009,7 @@ def _cmd_collect(args: argparse.Namespace) -> int:
             job_failure,
             args.skip_perf_update,
             args.eval_dataset,
+            qairt_version,
         )
 
     return _write_final_outputs(rows, args.csv)
@@ -1039,6 +1039,7 @@ def _record_outcome(
     job_failure: str | None,
     skip_perf_update: bool,
     eval_dataset: str,
+    qairt_version: str | None,
 ) -> None:
     """Fold one finished (model, precision, device) into the output rows."""
     _save_eval_results(eval_results, model_id, sd, precision, plugin, eval_dataset)
@@ -1058,6 +1059,9 @@ def _record_outcome(
         rows.append(_status_row(model_id, plugin, precision, sd, status))
         return
 
+    requested = qairt_version if plugin == "qairt" else None
+    for m in metrics:
+        m.requested_qairt_version = requested
     rows.extend(
         _rows_from_metrics(model_id, sd, plugin, precision, metrics, skip_perf_update)
     )
@@ -1183,6 +1187,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             kept,
             args.skip_perf_update,
             args.eval_dataset,
+            qairt_version,
         )
 
     def _collect(case: _Case) -> None:
