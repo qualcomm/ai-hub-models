@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 import ruamel.yaml
+from qai_hub_models_cli.proto import perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -470,7 +471,7 @@ def process_model(
     sync_code_gen: bool,
     gen_perf_summary: bool,
     write_model_card: bool,
-) -> tuple[ResultsSpreadsheet, QAIHMModelPerf | None, QAIHMModelPerf | None] | None:
+) -> tuple[ResultsSpreadsheet, bytes | None, bytes | None] | None:
     """
     Process results for a single model.
 
@@ -512,7 +513,7 @@ def process_model(
 
     Returns
     -------
-    result : tuple[ResultsSpreadsheet, QAIHMModelPerf | None, QAIHMModelPerf | None] | None
+    result : tuple[ResultsSpreadsheet, bytes | None, bytes | None] | None
         ``None`` if processing this model raised an exception. Otherwise a
         3-tuple of:
 
@@ -596,7 +597,7 @@ def process_e2e_recipe_model(
     sync_code_gen: bool,
     gen_perf_summary: bool,
     write_model_card: bool,
-) -> tuple[ResultsSpreadsheet, QAIHMModelPerf | None, QAIHMModelPerf | None]:
+) -> tuple[ResultsSpreadsheet, bytes | None, bytes | None]:
     """
     Process results for a model with an end-to-end pyTorch recipe.
 
@@ -633,10 +634,10 @@ def process_e2e_recipe_model(
     -------
     spreadsheet : ResultsSpreadsheet
         Model spreadsheet, or empty spreadsheet if not gen_csv.
-    previous_perf : QAIHMModelPerf | None
-        Previous (on disk) perf yaml, or None if not gen_perf_summary.
-    current_perf : QAIHMModelPerf | None
-        Current (from this scorecard) perf yaml, or None if not gen_perf_summary.
+    previous_perf : bytes | None
+        Serialized ModelPerf proto of the previous (on disk) perf yaml, or None if not gen_perf_summary.
+    current_perf : bytes | None
+        Serialized ModelPerf proto of the current (from this scorecard) perf, or None if not gen_perf_summary.
     """
 
     def print_with_id(pstr: str) -> None:
@@ -748,7 +749,11 @@ def process_e2e_recipe_model(
             card_path = merged.to_model_yaml(model_id)
             print_with_id(f"Wrote {card_path}")
 
-    return entries, prev_model_card, model_card
+    return (
+        entries,
+        prev_model_card.to_proto().SerializeToString(),
+        model_card.to_proto().SerializeToString(),
+    )
 
 
 def process_static_file_model(
@@ -950,7 +955,21 @@ if __name__ == "__main__":
         if model_summary is None:
             failed_model_ids.append(model_id)
             continue
-        model_spreadsheet, prev_model_card, curr_model_card = model_summary
+        model_spreadsheet, prev_perf_bytes, curr_perf_bytes = model_summary
+        prev_model_card = (
+            None
+            if prev_perf_bytes is None
+            else QAIHMModelPerf(
+                model_id, perf_pb2.ModelPerf.FromString(prev_perf_bytes)
+            )
+        )
+        curr_model_card = (
+            None
+            if curr_perf_bytes is None
+            else QAIHMModelPerf(
+                model_id, perf_pb2.ModelPerf.FromString(curr_perf_bytes)
+            )
+        )
 
         # Combine model spreadsheet with group spreadsheet
         if spreadsheet is not None:
