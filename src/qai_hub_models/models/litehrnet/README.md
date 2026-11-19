@@ -1,6 +1,6 @@
 # [LiteHRNet: Human pose estimation](https://aihub.qualcomm.com/models/litehrnet)
 
-LiteHRNet is a machine learning model that detects human pose and returns a location and confidence for each of 17 joints.
+LiteHRNet estimates human pose and returns a location and confidence for each of 17 joints. It expects an image containing a single person, pre-cropped and resized to the model's 256x192 input resolution. The reported performance covers pose estimation on that crop.
 
 This is based on the implementation of LiteHRNet found [here](https://github.com/HRNet/Lite-HRNet).
 This repository contains scripts for optimized on-device export suitable to run on Qualcomm® devices. More details on model performance across various devices, can be found [here](https://aihub.qualcomm.com/models/litehrnet).

@@ -13,13 +13,12 @@ from qai_hub_models.models.mobile_facenet.model import (
     MobileFaceNet,
 )
 from qai_hub_models.utils.args import (
-    demo_model_from_cli_args,
+    demo_model_components_from_cli_args,
     get_model_cli_parser,
     get_on_device_demo_parser,
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
-from qai_hub_models.utils.base_model import BaseModel
 
 INPUT_IMAGE_ADDRESS_1 = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "mobilefacenet_demo_input_1.jpg"
@@ -29,13 +28,9 @@ INPUT_IMAGE_ADDRESS_2 = CachedWebModelAsset.from_asset_store(
 )
 
 
-def mobile_facenet_demo(
-    model_type: type[BaseModel],
-    model_id: str,
-    is_test: bool = False,
-) -> None:
+def main(is_test: bool = False) -> None:
     # Demo parameters
-    parser = get_model_cli_parser(model_type)
+    parser = get_model_cli_parser(MobileFaceNet)
     parser = get_on_device_demo_parser(parser, add_output_dir=True)
     parser.add_argument(
         "--image1",
@@ -59,17 +54,20 @@ def mobile_facenet_demo(
         "--threshold",
         type=float,
         default=DEFAULT_THRESHOLD,
-        help="Cosine-angle threshold in degrees (default: 70.0). Below = same person.",
+        help="Cosine-angle threshold in degrees (default: 74.18). Below = same person.",
     )
 
     args = parser.parse_args([] if is_test else None)
-    validate_on_device_demo_args(args, model_id)
+    validate_on_device_demo_args(args, MODEL_ID)
 
-    # Load model & image
-    model = demo_model_from_cli_args(model_type, model_id, args)
-    (height, width) = model.get_input_spec()["img1"][0][2:]
-
-    app = MobileFaceNetApp(model, height, width, args.threshold)  # type: ignore[arg-type]
+    _, (face_detector, face_recognizer) = demo_model_components_from_cli_args(
+        MobileFaceNet, MODEL_ID, args
+    )
+    app = MobileFaceNetApp(
+        face_detector=face_detector,
+        face_recognizer=face_recognizer,
+        threshold=args.threshold,
+    )
     print("Model loaded")
 
     img1 = load_image(args.image1)
@@ -82,10 +80,6 @@ def mobile_facenet_demo(
     print(f"Angle             : {angle:.2f}°  (lower = more similar)")
     print(f"Threshold         : {args.threshold:.1f}°")
     print(f"Verdict           : {'SAME PERSON' if same else 'DIFFERENT PERSON'}")
-
-
-def main(is_test: bool = False) -> None:
-    mobile_facenet_demo(MobileFaceNet, MODEL_ID, is_test)
 
 
 if __name__ == "__main__":

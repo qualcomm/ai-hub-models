@@ -20,6 +20,11 @@ from qai_hub_models.models.sixd_repnet.external_repos.sixdrepnet.sixdrepnet.mode
 from qai_hub_models.models.templates.corevision.image_processing import (
     normalize_image_torchvision,
 )
+from qai_hub_models.models.templates.retinaface.model import (
+    DEFAULT_DETECTOR_HEIGHT,
+    DEFAULT_DETECTOR_WIDTH,
+    RetinaFaceDetectorBase,
+)
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
@@ -46,27 +51,16 @@ DEFAULT_WEIGHTS_FILE = CachedWebModelAsset.from_asset_store(
 # upstream 6DRepNet demo: https://github.com/thohemp/6DRepNet/blob/master/demo.py
 SCORE_THRESHOLD = 0.95
 
-# BGR mean used by the upstream RetinaFace MobileNet, matching batch_detect() in
-# face_detection/alignment.py: mean = [104, 117, 123]
-_RETINA_BGR_MEAN = torch.tensor([104.0, 117.0, 123.0]).view(1, 3, 1, 1)
 
-
-class RetinaFaceDetector(BaseModel):
+class RetinaFaceDetector(RetinaFaceDetectorBase):
     """
     RetinaFace face detector component.
 
-    Wraps the RetinaFace MobileNet model from the face_detection package as a
-    BaseModel so it can participate in a CollectionModel pipeline.
-
-    Accepts an RGB image tensor (float32, [0, 1]) and returns the raw network
-    outputs: (bbox_regressions, classifications, landmark_regressions).
-    Post-processing (anchor decoding, NMS, score filtering) is performed in
-    the application layer (SixDRepNetApp).
+    Weights come from the ``face_detection`` pip package rather than a
+    vendored checkpoint, so only ``from_pretrained`` differs from the shared
+    base. Post-processing (anchor decoding, NMS, score filtering) is
+    performed in the application layer (SixDRepNetApp).
     """
-
-    def __init__(self, model: torch.nn.Module) -> None:
-        super().__init__()
-        self.detector_model = model
 
     @classmethod
     def from_pretrained(
@@ -85,56 +79,6 @@ class RetinaFaceDetector(BaseModel):
         )
         net = load_net(model_path, device, network)
         return cls(net)
-
-    def forward(
-        self, image: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Run RetinaFace on an RGB image tensor and return raw network outputs.
-
-        Parameters
-        ----------
-        image
-            RGB image tensor of shape (1, 3, H, W), float32, values in [0, 1].
-
-        Returns
-        -------
-        bbox_regressions : torch.Tensor
-            Shape (1, num_anchors, 4) — raw box regression deltas.
-        classifications : torch.Tensor
-            Shape (1, num_anchors, 2) — softmax class scores [background, face].
-        landmark_regressions : torch.Tensor
-            Shape (1, num_anchors, 10) — raw landmark regression deltas.
-        """
-        # Convert RGB [0,1] float → BGR [0,255] float, matching batch_detect() preprocessing.
-        img_bgr = torch.flip(image, dims=[1]) * 255.0
-        mean = _RETINA_BGR_MEAN.to(img_bgr.device, dtype=img_bgr.dtype)
-        img_bgr = img_bgr - mean
-        bbox_regressions, classifications, landmark_regressions = self.detector_model(
-            img_bgr
-        )
-        return bbox_regressions, classifications, landmark_regressions
-
-    def get_input_spec(
-        self,
-        batch_size: int = 1,
-        detector_height: int = 640,
-        detector_width: int = 640,
-    ) -> InputSpec:
-        return {
-            "image": TensorSpec(
-                shape=(batch_size, 3, detector_height, detector_width),
-                dtype="float32",
-                apply_runtime_channel_reordering=True,
-            )
-        }
-
-    def get_output_spec(self) -> OutputSpec:
-        return {
-            "bbox_regressions": TensorSpec(),
-            "classifications": TensorSpec(),
-            "landmark_regressions": TensorSpec(),
-        }
 
 
 class PoseEstimator(BaseModel):
@@ -228,8 +172,8 @@ class SixDRepNet(WorkbenchModelCollection):
     def get_input_spec(
         self,
         batch_size: int = 1,
-        detector_height: int = 640,
-        detector_width: int = 640,
+        detector_height: int = DEFAULT_DETECTOR_HEIGHT,
+        detector_width: int = DEFAULT_DETECTOR_WIDTH,
         pose_height: int = INPUT_IMAGE_DIM,
         pose_width: int = INPUT_IMAGE_DIM,
     ) -> ComponentGroup[InputSpec]:

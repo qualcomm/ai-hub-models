@@ -153,7 +153,8 @@ class RTMDet(Yolo):
 
             cls = F.sigmoid(cls)
             conf = torch.max(cls, dim=3, keepdim=True)[0]
-            class_idx = torch.argmax(cls, dim=3, keepdim=True).to(torch.int8)
+            # HTP cannot narrow ArgMax class IDs from int32 to int8.
+            class_idx = torch.argmax(cls, dim=3, keepdim=True).to(torch.int32)
 
             step = self.input_shape // self.stage[i]
             block_step = (

@@ -54,7 +54,7 @@ def decode_rtmdet_heads(
 
         cls = torch.sigmoid(cls)
         conf = torch.max(cls, dim=3, keepdim=True)[0]
-        class_idx = torch.argmax(cls, dim=3, keepdim=True).to(torch.int8)
+        class_idx = torch.argmax(cls, dim=3, keepdim=True).to(torch.int32)
 
         step = input_shape // stages[i]
         block_step = torch.arange(stages[i], device=box.device, dtype=box.dtype) * step

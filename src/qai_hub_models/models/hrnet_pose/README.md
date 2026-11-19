@@ -1,6 +1,6 @@
 # [HRNetPose: Perform accurate human pose estimation](https://aihub.qualcomm.com/models/hrnet_pose)
 
-HRNet performs pose estimation in high-resolution representations.
+HRNet performs pose estimation in high-resolution representations. This recipe runs as a two-component pipeline. An RTMDet-m detector (640x640) finds people in each full COCO scene, then the HRNet pose estimator (256x192) predicts keypoints for every detected person. Both components are included in reported performance and accuracy.
 
 This is based on the implementation of HRNetPose found [here](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
 This repository contains scripts for optimized on-device export suitable to run on Qualcomm® devices. More details on model performance across various devices, can be found [here](https://aihub.qualcomm.com/models/hrnet_pose).

@@ -1,7 +1,7 @@
 datasets:
 - coco
 - mpii
-description: HRNet performs pose estimation in high-resolution representations.
+description: HRNet performs pose estimation in high-resolution representations. This recipe runs as a two-component pipeline. An RTMDet-m detector (640x640) finds people in each full COCO scene, then the HRNet pose estimator (256x192) predicts keypoints for every detected person. Both components are included in reported performance and accuracy.
 domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
 - commit_sha: 6f69e4676ad8d43d0d61b64b1b9726f0c369e7b1
@@ -11,6 +11,7 @@ external_repos:
 has_on_target_demo: true
 headline: Perform accurate human pose estimation.
 id: hrnet_pose
+is_collection_model: true
 license_type: MODEL_LICENSE_MIT
 license_url: https://github.com/leoxiaobin/deep-high-resolution-net.pytorch/blob/master/LICENSE
 name: HRNetPose
@@ -34,4 +35,5 @@ tags:
 templates:
 - corevision
 - mmpose
+- yolo
 use_case: MODEL_USE_CASE_POSE_ESTIMATION

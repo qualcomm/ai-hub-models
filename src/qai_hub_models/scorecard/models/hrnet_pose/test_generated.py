@@ -15,6 +15,7 @@ import pytest
 import qai_hub as hub
 import torch
 
+import qai_hub_models.models.hrnet_pose as _model_module
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.models.hrnet_pose import MODEL_ID, Model
@@ -36,32 +37,28 @@ from qai_hub_models.scorecard.execution_helpers import (
 )
 from qai_hub_models.scorecard.utils.testing import skip_invalid_runtime_device
 from qai_hub_models.scorecard.utils.testing_export_eval import (
-    accuracy_on_dataset_via_evaluate_and_export,
     accuracy_on_sample_inputs_via_export,
     compile_via_export,
     export_test_e2e,
     inference_via_export,
     link_via_export,
-    on_device_inference_for_accuracy_validation,
     pre_quantize_compile_via_export,
     profile_via_export,
     quantize_via_export,
-    sim_accuracy_on_dataset,
-    split_and_group_accuracy_validation_output_batches,
-    torch_accuracy_on_dataset,
-    torch_eval_smoke_on_two_samples,
-    torch_inference_for_accuracy_validation,
-    torch_inference_for_accuracy_validation_outputs,
 )
 from qai_hub_models.utils.args import get_model_kwargs
-from qai_hub_models.utils.export.compile import run_compile as compile_model
+from qai_hub_models.utils.export.compile import run_collection_compile as compile_model
 from qai_hub_models.utils.export.context import resolve_recipe_dir
 from qai_hub_models.utils.export.dispatch import select_pipeline
-from qai_hub_models.utils.export.inference import run_inference as inference_model
-from qai_hub_models.utils.export.link import run_link as link_model
-from qai_hub_models.utils.export.profile import run_profile as profile_model
-from qai_hub_models.utils.export.quantize import run_quantize as quantize_model
-from qai_hub_models.utils.export.upload import upload_source as upload_model
+from qai_hub_models.utils.export.inference import (
+    run_collection_inference as inference_model,
+)
+from qai_hub_models.utils.export.link import run_collection_link as link_model
+from qai_hub_models.utils.export.profile import run_collection_profile as profile_model
+from qai_hub_models.utils.export.quantize import (
+    run_collection_quantize as quantize_model,
+)
+from qai_hub_models.utils.export.upload import upload_collection_source as upload_model
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.validation import perform_runtime_model_validation
 
@@ -81,7 +78,9 @@ export_model = select_pipeline(resolve_recipe_dir(MODEL_ID))
 
 @pytest.mark.compile
 def test_runtime_model_validation() -> None:
-    perform_runtime_model_validation(Model, MODEL_ID)
+    perform_runtime_model_validation(
+        Model, MODEL_ID, getattr(_model_module, "App", None)
+    )
 
 
 @pytest.mark.pre_quantize_compile
@@ -212,46 +211,16 @@ def test_inference(
 ) -> None:
     skip_invalid_runtime_device(Model, scorecard_path.runtime, device)
     try:
-        if HAS_EVAL_DATASET:
-            on_device_inference_for_accuracy_validation(
-                Model,
-                Model.get_eval_dataset_classes()[0],
-                MODEL_ID,
-                precision,
-                scorecard_path,
-                device,
-            )
-        else:
-            inference_via_export(
-                inference_model,
-                MODEL_ID,
-                Model.from_pretrained(
-                    **get_model_kwargs(Model, dict(precision=precision))
-                ),
-                precision,
-                scorecard_path,
-                device,
-            )
+        inference_via_export(
+            inference_model,
+            MODEL_ID,
+            Model.from_pretrained(**get_model_kwargs(Model, dict(precision=precision))),
+            precision,
+            scorecard_path,
+            device,
+        )
     except CachedScorecardJobError as e:
         pytest.skip(str(e))
-
-
-@pytest.mark.inference
-def test_val_data_torch() -> None:
-    if not HAS_EVAL_DATASET:
-        return
-    torch_inference_for_accuracy_validation(
-        Model.from_pretrained(), Model.get_eval_dataset_classes()[0], MODEL_ID
-    )
-
-
-@pytest.mark.nightly
-def test_val_data_torch_smoke() -> None:
-    if not HAS_EVAL_DATASET:
-        return
-    torch_eval_smoke_on_two_samples(
-        Model.from_pretrained(), Model.get_eval_dataset_classes()[0], MODEL_ID
-    )
 
 
 @pytest.fixture(scope="module")
@@ -260,9 +229,8 @@ def torch_val_outputs() -> list[np.ndarray]:
     Because the below method downloads a dataset over the internet,
     it is called in a fixture so it can be reused.
     """
-    if not HAS_EVAL_DATASET:
-        return []
-    return torch_inference_for_accuracy_validation_outputs(MODEL_ID)
+    # Collection models are not torch-accuracy validated in the scorecard.
+    return []
 
 
 @pytest.fixture(scope="module")
@@ -273,48 +241,8 @@ def torch_evaluate_mock_outputs(
     Because the below method does some memory movement,
     it is called in a fixture so its output can be reused.
     """
-    if not HAS_EVAL_DATASET:
-        return []
-    return split_and_group_accuracy_validation_output_batches(torch_val_outputs)
-
-
-@pytest.mark.inference
-def test_torch_accuracy(
-    torch_evaluate_mock_outputs: list[torch.Tensor | tuple[torch.Tensor, ...]],
-) -> None:
-    if not HAS_EVAL_DATASET:
-        return
-    torch_accuracy_on_dataset(
-        Model.from_pretrained(),
-        Model.get_eval_dataset_classes()[0],
-        torch_evaluate_mock_outputs,
-        MODEL_ID,
-    )
-
-
-@pytest.mark.parametrize(
-    "precision",
-    get_quantize_parameterized_pytest_config(
-        MODEL_ID, ENABLED_PRECISION_RUNTIMES, PASSING_PRECISION_RUNTIMES
-    ),
-    ids=pytest_device_idfn,
-)
-@pytest.mark.inference
-def test_sim_accuracy(
-    precision: Precision,
-    torch_evaluate_mock_outputs: list[torch.Tensor | tuple[torch.Tensor, ...]],
-) -> None:
-    if not HAS_EVAL_DATASET:
-        return
-    try:
-        sim_accuracy_on_dataset(
-            Model.from_pretrained(**get_model_kwargs(Model, dict(precision=precision))),
-            Model.get_eval_dataset_classes()[0],
-            MODEL_ID,
-            precision,
-        )
-    except CachedScorecardJobError as e:
-        pytest.skip(str(e))
+    # Collection models are not torch-accuracy validated in the scorecard.
+    return []
 
 
 @pytest.mark.parametrize(
@@ -336,31 +264,14 @@ def test_val_accuracy(
     torch_evaluate_mock_outputs: list[torch.Tensor | tuple[torch.Tensor, ...]],
 ) -> None:
     try:
-        if HAS_EVAL_DATASET:
-            accuracy_on_dataset_via_evaluate_and_export(
-                export_model,
-                Model.from_pretrained(
-                    **get_model_kwargs(Model, dict(precision=precision))
-                ),
-                Model.get_eval_dataset_classes()[0],
-                torch_val_outputs,
-                torch_evaluate_mock_outputs,
-                MODEL_ID,
-                precision,
-                scorecard_path,
-                device,
-            )
-        else:
-            accuracy_on_sample_inputs_via_export(
-                export_model,
-                MODEL_ID,
-                Model.from_pretrained(
-                    **get_model_kwargs(Model, dict(precision=precision))
-                ),
-                precision,
-                scorecard_path,
-                device,
-            )
+        accuracy_on_sample_inputs_via_export(
+            export_model,
+            MODEL_ID,
+            Model.from_pretrained(**get_model_kwargs(Model, dict(precision=precision))),
+            precision,
+            scorecard_path,
+            device,
+        )
     except CachedScorecardJobError as e:
         pytest.skip(str(e))
 
@@ -415,19 +326,22 @@ def cached_serialize_for_export(
             return cached
 
         mp.setattr(hub, "upload_model", _cached_upload_model)
-        serialize = Model.serialize
+        serialize_component = Model.serialize_component
 
-        def _cached_serialize(
+        def _cached_serialize_component(
             self: Model,
+            component_name: str,
             output_dir: str | os.PathLike,
             input_spec: InputSpec | None = None,
         ) -> Path:
-            model_key = str(input_spec)
+            model_key = component_name + str(input_spec)
             cached = model_cache.get(model_key)
             if not cached:
-                cached = serialize(self, cache_dir, input_spec)
+                cached = serialize_component(
+                    self, component_name, cache_dir, input_spec
+                )
                 model_cache[model_key] = cached
             return cached
 
-        mp.setattr(Model, "serialize", _cached_serialize)
+        mp.setattr(Model, "serialize_component", _cached_serialize_component)
         yield mp

@@ -1,4 +1,4 @@
-description: MobileFaceNet is an efficient CNN that maps a 112x112 face image to a compact 128-dimensional embedding. Two embeddings are compared via cosine similarity to determine whether they belong to the same person, achieving 99.48% accuracy on the LFW benchmark. The model uses depthwise-separable convolutions and inverted residual blocks (MobileNetV2-style) to stay under 1M parameters, making it well-suited for real-time face verification on mobile and edge devices. Trained with ArcFace loss on MS-Celeb-1M.
+description: MobileFaceNet is an efficient CNN that maps a 112x112 face image to a compact 128-dimensional embedding. Two embeddings are compared via cosine similarity to determine whether they belong to the same person, achieving 99.48% accuracy on the LFW benchmark. The model uses depthwise-separable convolutions and inverted residual blocks (MobileNetV2-style) to stay under 1M parameters, making it well-suited for real-time face verification on mobile and edge devices. Trained with ArcFace loss on MS-Celeb-1M. This recipe runs as a two-component pipeline. A RetinaFace detector (640x640) finds the face, then MobileFaceNet (112x112) computes the embedding. Both are compiled and profiled, so the reported numbers cover the full pipeline. LFW accuracy uses the dataset's own landmarks, so it does not depend on the detector.
 domain: MODEL_DOMAIN_COMPUTER_VISION
 external_repos:
 - commit_sha: a6cc9032a659b615f477833e1a70b5e7931bcccc
@@ -8,6 +8,7 @@ external_repos:
 has_on_target_demo: true
 headline: Lightweight real-time face verification on-device.
 id: mobile_facenet
+is_collection_model: true
 license_type: MODEL_LICENSE_APACHE_2_0
 license_url: https://github.com/foamliu/MobileFaceNet/blob/master/LICENSE
 name: MobileFaceNet

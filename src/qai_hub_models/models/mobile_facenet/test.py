@@ -32,23 +32,23 @@ OUTPUT = CachedWebModelAsset.from_asset_store(
 )
 
 
-def test_task() -> None:
-    model = MobileFaceNet.from_pretrained()
-    _, _, h, w = model.get_input_spec()["img1"][0]
-    app = MobileFaceNetApp(model, h, w, DEFAULT_THRESHOLD)
-
-    img1 = load_image(INPUT_IMAGE_ADDRESS_1.fetch())
-    img2 = load_image(INPUT_IMAGE_ADDRESS_2.fetch())
-
-    preds = app.predict_features(
-        img1,
-        img2,
-    )
+def _assert_matches_expected(preds: tuple[bool, float, float]) -> None:
     expected = load_numpy(OUTPUT.fetch())
     same, angle, cosine = preds
     assert bool(same) == bool(expected[0])
     np.testing.assert_allclose(angle, expected[1], atol=0.5)
     np.testing.assert_allclose(cosine, expected[2], atol=0.005)
+
+
+def test_task() -> None:
+    model = MobileFaceNet.from_pretrained()
+    app = MobileFaceNetApp.from_pretrained(model)
+    app.threshold = DEFAULT_THRESHOLD
+
+    img1 = load_image(INPUT_IMAGE_ADDRESS_1.fetch())
+    img2 = load_image(INPUT_IMAGE_ADDRESS_2.fetch())
+
+    _assert_matches_expected(app.predict_features(img1, img2))
 
 
 def test_demo() -> None:

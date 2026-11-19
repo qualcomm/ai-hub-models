@@ -11,7 +11,7 @@ from qai_hub_models.models.hrnet_pose.model import (
 )
 from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
-    demo_model_from_cli_args,
+    demo_model_components_from_cli_args,
     get_model_cli_parser,
     get_on_device_demo_parser,
     validate_on_device_demo_args,
@@ -37,12 +37,16 @@ def main(is_test: bool = False) -> None:
     args = parser.parse_args([] if is_test else None)
     validate_on_device_demo_args(args, MODEL_ID)
 
-    # Load image & model
-    model = demo_model_from_cli_args(HRNetPose, MODEL_ID, args)
+    _, (person_detector, pose_estimator) = demo_model_components_from_cli_args(
+        HRNetPose, MODEL_ID, args
+    )
     image = load_image(args.image)
     print("Model Loaded")
 
-    app = HRNetPoseApp(model)  # type: ignore[arg-type]
+    app = HRNetPoseApp(
+        person_detector=person_detector,
+        pose_estimator=pose_estimator,
+    )
     keypoints = app.predict_pose_keypoints(image)[0]
     if not is_test:
         display_or_save_image(

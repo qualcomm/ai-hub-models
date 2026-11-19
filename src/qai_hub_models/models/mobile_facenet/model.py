@@ -15,16 +15,26 @@ from qai_hub_models.models.mobile_facenet.evaluator import (
 from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.mobilefacenet import (
     MobileFaceNet as SourceMobileFaceNet,
 )
+from qai_hub_models.models.mobile_facenet.external_repos.pytorch_mobile_facenet.retinaface.detector import (
+    detector,
+)
 from qai_hub_models.models.templates.corevision.image_processing import (
     normalize_image_torchvision,
+)
+from qai_hub_models.models.templates.retinaface.model import (
+    DEFAULT_DETECTOR_HEIGHT,
+    DEFAULT_DETECTOR_WIDTH,
+    RetinaFaceDetectorBase,
 )
 from qai_hub_models.utils.asset_loaders import (
     CachedWebModelAsset,
     load_torch,
 )
+from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
+from qai_hub_models.utils.export.result import ComponentGroup
 from qai_hub_models.utils.input_spec import (
     ColorFormat,
     ImageMetadata,
@@ -43,8 +53,30 @@ DEFAULT_WEIGHTS = CachedWebModelAsset.from_asset_store(
 )
 DEFAULT_THRESHOLD = 74.18
 
+# Minimum RetinaFace detection confidence. Matches the confidence_threshold
+# default of the upstream RetinafaceDetector.detect_faces().
+SCORE_THRESHOLD = 0.9
 
-class MobileFaceNet(BaseModel):
+
+class RetinaFaceDetector(RetinaFaceDetectorBase):
+    """
+    RetinaFace face detector component.
+
+    Weights come from the vendored MobileFaceNet repo rather than the
+    ``face_detection`` pip package, so only ``from_pretrained`` differs from the
+    shared base.
+    """
+
+    @classmethod
+    def from_pretrained(cls) -> Self:
+        model = detector.model
+        model.eval()
+        return cls(model)
+
+
+class FaceRecognizer(BaseModel):
+    """MobileFaceNet embedding backbone, run on an aligned face crop."""
+
     @classmethod
     def from_pretrained(
         cls, weights_name: str | CachedWebModelAsset = DEFAULT_WEIGHTS
@@ -119,6 +151,66 @@ class MobileFaceNet(BaseModel):
         return {
             "embeddings": TensorSpec(),
         }
+
+    @classmethod
+    def get_eval_dataset_classes(cls) -> list[type[BaseDataset]]:
+        return [LFWDataset]
+
+    def get_calibration_dataset_cls(self) -> type[BaseDataset]:
+        return LFWDataset
+
+    def get_evaluator(self) -> BaseEvaluator:
+        return MobileFaceNetEvaluator(threshold=DEFAULT_THRESHOLD)
+
+
+class MobileFaceNet(WorkbenchModelCollection):
+    """
+    Two-component face verification pipeline:
+      1. RetinaFaceDetector — detects face boxes and 5-point landmarks in the scene image.
+      2. FaceRecognizer     — embeds each aligned face crop.
+
+    Both components are compiled and profiled, so the published figure covers the
+    whole pipeline. LFW evaluation aligns from the dataset's own landmarks (the
+    standard verification protocol), so the detector is exported but not part of
+    the accuracy path.
+    """
+
+    def __init__(
+        self,
+        face_detector: RetinaFaceDetector,
+        face_recognizer: FaceRecognizer,
+    ) -> None:
+        super().__init__(
+            {"face_detector": face_detector, "face_recognizer": face_recognizer}
+        )
+        self.face_detector = face_detector
+        self.face_recognizer = face_recognizer
+
+    def get_input_spec(
+        self,
+        batch_size: int = 1,
+        detector_height: int = DEFAULT_DETECTOR_HEIGHT,
+        detector_width: int = DEFAULT_DETECTOR_WIDTH,
+        height: int = 112,
+        width: int = 112,
+    ) -> ComponentGroup[InputSpec]:
+        return super().get_input_spec(
+            batch_size=batch_size,
+            detector_height=detector_height,
+            detector_width=detector_width,
+            height=height,
+            width=width,
+        )
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        weights_name: str | CachedWebModelAsset = DEFAULT_WEIGHTS,
+    ) -> Self:
+        return cls(
+            RetinaFaceDetector.from_pretrained(),
+            FaceRecognizer.from_pretrained(weights_name),
+        )
 
     @classmethod
     def get_eval_dataset_classes(cls) -> list[type[BaseDataset]]:
