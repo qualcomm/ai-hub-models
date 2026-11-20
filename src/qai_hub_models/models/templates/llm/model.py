@@ -100,6 +100,7 @@ from qai_hub_models.models.templates.llm.common import (
 from qai_hub_models.models.templates.llm.llm_helpers import (
     create_genie_config,
     save_htp_config_for_genie_bundle,
+    tokenizer_adds_bos,
 )
 from qai_hub_models.models.templates.llm.onnx_optimize import optimize_onnx_model
 from qai_hub_models.models.templates.llm.sha_dynamic_kvcache import (
@@ -1984,7 +1985,13 @@ class DynamicSplitCollectionBase(LLMCollectionBase):
 
         # Build genie_config.json
         model_list = list(metadata.model_files.keys())
-        config = create_genie_config(context_length, llm_config, "rope", model_list)
+        config = create_genie_config(
+            context_length,
+            llm_config,
+            "rope",
+            model_list,
+            add_bos_token=tokenizer_adds_bos(output_path),
+        )
         with open(output_path / "genie_config.json", "w") as f:
             json.dump(config, f, indent=4)
 
@@ -3441,7 +3448,14 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
                 device_info[key] = value
         save_htp_config_for_genie_bundle(device_info, output_path)
         # Save the genie config
-        config = create_genie_config(context_length, llm_config, "rope", model_list)
+        add_bos_token = tokenizer_adds_bos(output_path)
+        config = create_genie_config(
+            context_length,
+            llm_config,
+            "rope",
+            model_list,
+            add_bos_token=add_bos_token,
+        )
         with open(output_path / "genie_config.json", "w") as f:
             json.dump(config, f, indent=4)
 
@@ -3464,6 +3478,7 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
             "rope",
             model_list,
             top_level_key="text-generator",
+            add_bos_token=add_bos_token,
         )
         with open(output_path / "text-generator.json", "w") as f:
             json.dump(text_gen_config, f, indent=4)

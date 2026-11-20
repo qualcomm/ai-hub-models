@@ -55,6 +55,7 @@ from qai_hub_models.models.templates.llm.llm_helpers import (
     generate_genie_app_script,
     get_rope_scaling,
     save_htp_config_for_genie_bundle,
+    tokenizer_adds_bos,
 )
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_CONTEXT_LENGTH,
@@ -2358,6 +2359,8 @@ class Qwen3VLCollectionBase(LLMCollectionBase):
         text_config = self._get_text_config_from_llm_config(llm_config)
         vlm_rope_config = self._build_vlm_rope_config(text_config, image_processor)
 
+        add_bos_token = tokenizer_adds_bos(output_dir)
+
         # text-generator.json: used by genie-app-script.txt (genie-app VLM pipeline)
         genie_config = create_genie_config(
             context_length=context_length,
@@ -2368,6 +2371,7 @@ class Qwen3VLCollectionBase(LLMCollectionBase):
             top_level_key="text-generator",
             embedding_lut_path="embedding_weights.raw",
             vlm_rope_config=vlm_rope_config,
+            add_bos_token=add_bos_token,
         )
         with open(output_dir / "text-generator.json", "w") as f:
             json.dump(genie_config, f, indent=4)
@@ -2385,6 +2389,7 @@ class Qwen3VLCollectionBase(LLMCollectionBase):
             top_level_key="dialog",
             embedding_lut_path="embedding_weights.raw",
             vlm_rope_config=vlm_rope_config,
+            add_bos_token=add_bos_token,
         )
         with open(output_dir / "genie_config.json", "w") as f:
             json.dump(dialog_config, f, indent=4)

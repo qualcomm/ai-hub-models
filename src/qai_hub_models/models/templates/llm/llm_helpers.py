@@ -148,6 +148,15 @@ def log_perf_on_device_result(
 DEFAULT_MAX_NUM_TOKENS = 2048
 
 
+def tokenizer_adds_bos(tokenizer_dir: str | Path) -> bool:
+    """Return False if tokenizer_config.json sets add_bos_token=false, else True."""
+    config_path = Path(tokenizer_dir) / "tokenizer_config.json"
+    if not config_path.exists():
+        return True
+    with open(config_path) as f:
+        return json.load(f).get("add_bos_token") is not False
+
+
 def create_genie_config(
     context_length: int,
     llm_config: PretrainedConfig,
@@ -157,6 +166,7 @@ def create_genie_config(
     top_level_key: str = "dialog",
     embedding_lut_path: str | None = None,
     vlm_rope_config: dict[str, Any] | None = None,
+    add_bos_token: bool = True,
 ) -> dict[str, Any]:
     """
     Create Genie configuration for LLM or VLM models.
@@ -184,6 +194,9 @@ def create_genie_config(
         VLM-specific MRoPE positional encoding overrides. When provided,
         replaces the standard rope-scaling logic. Expected keys:
         "rope-type", "time-step", "spatial-merge-size", "mrope-section".
+    add_bos_token
+        If False (tokenizer_config.json has add_bos_token=false), bos-token is
+        set to -1 so Genie does not prepend a BOS.
 
     Returns
     -------
@@ -223,7 +236,7 @@ def create_genie_config(
             "version": 1,
             "size": context_length,
             "n-vocab": llm_config.vocab_size,
-            "bos-token": llm_config.bos_token_id,
+            "bos-token": llm_config.bos_token_id if add_bos_token else -1,
             "eos-token": llm_config.eos_token_id,
         },
         "sampler": sampler,

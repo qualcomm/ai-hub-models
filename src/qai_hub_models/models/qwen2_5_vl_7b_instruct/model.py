@@ -57,7 +57,11 @@ from qai_hub_models.models.templates.llm.generator_factory import (
     HubCompatibleVLMGenerator,
 )
 from qai_hub_models.models.templates.llm.llm_helpers import (
+    create_genie_config,
     export_embedding_weights_from_tensor,
+    generate_genie_app_script,
+    save_htp_config_for_genie_bundle,
+    tokenizer_adds_bos,
 )
 from qai_hub_models.models.templates.llm.model import (
     DEFAULT_CONTEXT_LENGTH,
@@ -1310,12 +1314,6 @@ class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
         metadata: ModelMetadata,
     ) -> None:
         """Write genie-app assets: genie config, embedding table, tokenizer, HTP config, app script."""
-        from qai_hub_models.models.templates.llm.llm_helpers import (
-            create_genie_config,
-            generate_genie_app_script,
-            save_htp_config_for_genie_bundle,
-        )
-
         output_dir = Path(output_dir)
         checkpoint_path = Path(self._checkpoint)
 
@@ -1425,6 +1423,8 @@ class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
         if rope_scaling is not None and "mrope_section" in rope_scaling:
             vlm_rope_config["mrope-section"] = rope_scaling["mrope_section"]
 
+        add_bos_token = tokenizer_adds_bos(output_dir)
+
         # text-generator.json: used by genie-app-script.txt (genie-app VLM pipeline)
         genie_config = create_genie_config(
             context_length=context_length,
@@ -1435,6 +1435,7 @@ class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
             top_level_key="text-generator",
             embedding_lut_path="embedding_weights.raw",
             vlm_rope_config=vlm_rope_config,
+            add_bos_token=add_bos_token,
         )
         with open(output_dir / "text-generator.json", "w") as f:
             json.dump(genie_config, f, indent=4)
@@ -1452,6 +1453,7 @@ class Qwen2_5_VL_7B_Collection(CollectionCompileO0Mixin, LLMCollectionBase):
             top_level_key="dialog",
             embedding_lut_path="embedding_weights.raw",
             vlm_rope_config=vlm_rope_config,
+            add_bos_token=add_bos_token,
         )
         with open(output_dir / "genie_config.json", "w") as f:
             json.dump(dialog_config, f, indent=4)

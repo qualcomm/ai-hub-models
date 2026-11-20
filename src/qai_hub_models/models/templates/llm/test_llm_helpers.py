@@ -4,13 +4,61 @@
 # ---------------------------------------------------------------------
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
-from qai_hub_models.models.templates.llm.llm_helpers import create_genie_config
+import pytest
+
+from qai_hub_models.models.templates.llm.llm_helpers import (
+    create_genie_config,
+    tokenizer_adds_bos,
+)
 
 if TYPE_CHECKING:
     from transformers import PretrainedConfig
+
+
+@pytest.mark.parametrize(
+    ("tokenizer_config", "expected"),
+    [
+        ({"add_bos_token": False}, False),
+        ({"add_bos_token": True}, True),
+        ({}, True),
+        (None, True),
+    ],
+)
+def test_tokenizer_adds_bos(
+    tmp_path: Path, tokenizer_config: dict | None, expected: bool
+) -> None:
+    if tokenizer_config is not None:
+        (tmp_path / "tokenizer_config.json").write_text(json.dumps(tokenizer_config))
+    assert tokenizer_adds_bos(tmp_path) is expected
+
+
+def test_create_genie_config_bos_token_disabled() -> None:
+    llm_config = cast(
+        "PretrainedConfig",
+        SimpleNamespace(
+            hidden_size=2048,
+            num_attention_heads=32,
+            vocab_size=151936,
+            bos_token_id=151643,
+            eos_token_id=151645,
+            rope_theta=1000000,
+        ),
+    )
+    kwargs = {
+        "context_length": 1024,
+        "llm_config": llm_config,
+        "embedding_type": "rope",
+        "model_list": ["part1.bin"],
+    }
+    default = create_genie_config(**kwargs)  # type: ignore[arg-type]
+    disabled = create_genie_config(**kwargs, add_bos_token=False)  # type: ignore[arg-type]
+    assert default["dialog"]["context"]["bos-token"] == 151643
+    assert disabled["dialog"]["context"]["bos-token"] == -1
 
 
 def test_create_genie_config_preserves_rope_scaling_factor() -> None:
