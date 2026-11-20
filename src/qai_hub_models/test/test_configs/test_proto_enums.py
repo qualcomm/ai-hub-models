@@ -50,6 +50,10 @@ from qai_hub_models.configs.tensor_spec import (
     ColorFormat,
     IoType,
 )
+from qai_hub_models.scorecard.internal_config_yaml import (
+    _TEST_SPLIT_TO_PROTO,
+    TestRunnerSplit,
+)
 from qai_hub_models.utils.device import FormFactor
 
 _ALL_PRECISIONS = [
@@ -193,6 +197,19 @@ class TestStatusMapping:
         )
         mapped = set(_STATUS_TO_PROTO.values())
         assert proto_values == mapped
+
+
+class TestInternalConfigEnumMappings:
+    def test_test_split(self) -> None:
+        descriptor = (
+            model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR.enum_types_by_name[
+                "TestSplit"
+            ]
+        )
+        assert {v.number for v in descriptor.values} == set(
+            _TEST_SPLIT_TO_PROTO.values()
+        )
+        assert set(_TEST_SPLIT_TO_PROTO) == set(TestRunnerSplit)
 
 
 class TestUseCaseMapping:

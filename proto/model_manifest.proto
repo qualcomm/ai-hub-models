@@ -442,12 +442,52 @@ message ModelManifest {
     // (also the component's perf.yaml key).
     map<string, string> standalone_components = 11;
 
+    // ---------------------------------------------------------------------------
+    // CI / scorecard knobs
+    // ---------------------------------------------------------------------------
+
+    // If set, skips generating `test_generated.py`, the weekly scorecard, and perf.yaml.
+    bool skip_hub_tests_and_scorecard = 12;
+
+    // Second knob for skipping scorecard generation: skip scorecard but run hub tests.
+    bool skip_scorecard = 13;
+
+    // If set, scorecard still runs this model, but perf.yaml and associated
+    // manifest.yaml / README.md changes are not written to disk.
+    bool freeze_perf_yaml = 14;
+
+    // Named CI test split this model runs in.
+    TestSplit test_split = 15;
+
+    // If set, skips all code generation for this model.
+    bool skip_export = 16;
+
+    // If set, omits the evaluate/accuracy tests from the generated test file.
+    bool skip_evaluate = 17;
+
+    // Overrides the scorecard acceptance threshold. E.g. 15 allows up to a
+    // 15-point drop and is still considered successful.
+    optional double numerics_threshold_override = 18;
+
+    // Set when a model's requirements.txt versions can't match global_requirements.txt.
+    bool global_requirements_incompatible = 19;
+
+    // If true, this LLM is excluded from the weekly schedule and only runs when
+    // explicitly requested via the 'llm_on_demand' token.
+    bool on_demand_only = 20;
+
     enum ModelStatus {
       MODEL_STATUS_UNSPECIFIED = 0;
       MODEL_STATUS_PUBLISHED = 1;
       MODEL_STATUS_UNPUBLISHED = 2;
       // Pending models are waiting for scorecard to collect perf data before being published.
       MODEL_STATUS_PENDING = 3;
+    }
+
+    enum TestSplit {
+      TEST_SPLIT_DEFAULT = 0;
+      TEST_SPLIT_LLM = 1;
+      TEST_SPLIT_PI05 = 2;
     }
 
     message LLMDetails {

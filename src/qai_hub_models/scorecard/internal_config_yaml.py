@@ -7,17 +7,28 @@ from __future__ import annotations
 
 import functools
 import os
-import sys
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-import ruamel.yaml
 from pydantic import Field, PrivateAttr, model_validator
+from qai_hub_models_cli.proto import model_manifest_pb2
+from qai_hub_models_cli.proto_helpers._common import (
+    read_proto_yaml,
+    write_proto_yaml,
+)
 
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs._info_yaml_llm_details import LLMDetails
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.configs.proto_helpers import (
+    call_to_action_from_proto,
+    call_to_action_to_proto,
+    form_factor_from_proto,
+    form_factor_to_proto,
+    status_from_proto,
+    status_to_proto,
+)
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import FormFactor
 from qai_hub_models.utils.path_helpers import (
@@ -55,6 +66,16 @@ class TestRunnerSplit(Enum):
         if self is TestRunnerSplit.LLM:
             return 5
         return 10**9
+
+
+_Internal = model_manifest_pb2.ModelManifest.Internal
+
+_TEST_SPLIT_TO_PROTO: dict[TestRunnerSplit, int] = {
+    TestRunnerSplit.DEFAULT: _Internal.TEST_SPLIT_DEFAULT,
+    TestRunnerSplit.LLM: _Internal.TEST_SPLIT_LLM,
+    TestRunnerSplit.PI0_5: _Internal.TEST_SPLIT_PI05,
+}
+_PROTO_TO_TEST_SPLIT = {v: k for k, v in _TEST_SPLIT_TO_PROTO.items()}
 
 
 class QAIHMModelInternalConfig(BaseQAIHMConfig):
@@ -279,6 +300,111 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
         config.validate_llm_details()
         return config
 
+    def to_proto(self) -> model_manifest_pb2.ModelManifest.Internal:
+        """Serialize to the ``ModelManifest.Internal`` proto."""
+        msg = _Internal(
+            status=status_to_proto(self.status),
+            status_reason=self.status_reason,
+            applicable_scenarios=self.applicable_scenarios,
+            related_models=self.related_models,
+            model_maker_id=self.model_maker_id,
+            has_static_banner=self.has_static_banner,
+            has_animated_banner=self.has_animated_banner,
+            imsdk_supported=self.imsdk_supported,
+            private_perf_form_factors=[
+                form_factor_to_proto(ff)
+                for ff in (self.private_perf_form_factors or [])
+            ],
+            standalone_components=self.standalone_components,
+            skip_hub_tests_and_scorecard=self.skip_hub_tests_and_scorecard,
+            skip_scorecard=self.skip_scorecard,
+            freeze_perf_yaml=self.freeze_perf_yaml,
+            test_split=_TEST_SPLIT_TO_PROTO[self.test_split],
+            skip_export=self.skip_export,
+            skip_evaluate=self.skip_evaluate,
+            numerics_threshold_override=self.numerics_threshold_override,
+            global_requirements_incompatible=self.global_requirements_incompatible,
+            on_demand_only=self.on_demand_only,
+        )
+        if self.llm_details is not None:
+            msg.llm_details.CopyFrom(
+                _Internal.LLMDetails(
+                    call_to_action=call_to_action_to_proto(
+                        self.llm_details.call_to_action
+                    ),
+                    genie_compatible=self.llm_details.genie_compatible,
+                    geniex_llamacpp_compatible=self.llm_details.geniex_llamacpp_compatible,
+                )
+            )
+        return msg
+
+    @classmethod
+    def from_proto(
+        cls, proto: model_manifest_pb2.ModelManifest.Internal
+    ) -> QAIHMModelInternalConfig:
+        """Build a config from a ``ModelManifest.Internal`` proto."""
+        if (
+            proto.status
+            == model_manifest_pb2.ModelManifest.Internal.MODEL_STATUS_UNSPECIFIED
+        ):
+            raise ValueError("status is required in internal-config.yaml.")
+        llm_details = None
+        if proto.HasField("llm_details"):
+            llm_details = LLMDetails(
+                call_to_action=call_to_action_from_proto(
+                    proto.llm_details.call_to_action
+                ),
+                genie_compatible=proto.llm_details.genie_compatible,
+                geniex_llamacpp_compatible=proto.llm_details.geniex_llamacpp_compatible,
+            )
+        return cls(
+            status=status_from_proto(proto.status),
+            status_reason=(
+                proto.status_reason if proto.HasField("status_reason") else None
+            ),
+            applicable_scenarios=list(proto.applicable_scenarios),
+            related_models=list(proto.related_models),
+            model_maker_id=(
+                proto.model_maker_id if proto.HasField("model_maker_id") else None
+            ),
+            has_static_banner=proto.has_static_banner,
+            has_animated_banner=proto.has_animated_banner,
+            imsdk_supported=proto.imsdk_supported,
+            private_perf_form_factors=[
+                form_factor_from_proto(ff) for ff in proto.private_perf_form_factors
+            ]
+            or None,
+            standalone_components=dict(proto.standalone_components),
+            skip_hub_tests_and_scorecard=proto.skip_hub_tests_and_scorecard,
+            skip_scorecard=proto.skip_scorecard,
+            freeze_perf_yaml=proto.freeze_perf_yaml,
+            test_split=_PROTO_TO_TEST_SPLIT[proto.test_split],
+            skip_export=proto.skip_export,
+            skip_evaluate=proto.skip_evaluate,
+            numerics_threshold_override=(
+                proto.numerics_threshold_override
+                if proto.HasField("numerics_threshold_override")
+                else None
+            ),
+            global_requirements_incompatible=proto.global_requirements_incompatible,
+            on_demand_only=proto.on_demand_only,
+            llm_details=llm_details,
+        )
+
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str | os.PathLike,
+        create_empty_if_no_file: bool = False,
+    ) -> QAIHMModelInternalConfig:
+        """Read an internal-config.yaml, the YAML form of ``ModelManifest.Internal``."""
+        return cls.from_proto(read_proto_yaml(path, _Internal))
+
+    def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
+        """Write this config to ``path`` as the YAML form of ``ModelManifest.Internal``."""
+        write_proto_yaml(self.to_proto(), path)
+        return True
+
     @property
     def runs_in_scorecard(self) -> bool:
         """Whether the model runs in scorecard."""
@@ -296,33 +422,14 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
 def write_publish_status(
     model_id: str, status: MODEL_STATUS, status_reason: str | None
 ) -> Path:
-    """
-    Set status / status_reason in the model's internal-config.yaml.
-
-    Edits the two keys in place rather than re-dumping the config, so the rest of
-    the file (hand-ordered keys, explicit defaults) is left untouched.
-    """
+    """Set status / status_reason in the model's internal-config.yaml."""
     path = SCORECARD_MODELS_ROOT / model_id / "internal-config.yaml"
-    QAIHMModelInternalConfig.model_validate(
-        {
-            **QAIHMModelInternalConfig.from_yaml(path).model_dump(),
-            "status": status,
-            "status_reason": status_reason,
-        }
+    config = QAIHMModelInternalConfig.from_yaml(path)
+    # model_validate re-runs the status / status_reason coupling check.
+    updated = QAIHMModelInternalConfig.model_validate(
+        {**config.model_dump(), "status": status, "status_reason": status_reason}
     )
-
-    yaml = ruamel.yaml.YAML()
-    yaml.width = sys.maxsize
-    yaml.preserve_quotes = True
-    data = yaml.load(path)
-    data["status"] = status.value
-    if status_reason is None:
-        data.pop("status_reason", None)
-    elif "status_reason" in data:
-        data["status_reason"] = status_reason
-    else:
-        data.insert(list(data).index("status") + 1, "status_reason", status_reason)
-    yaml.dump(data, path)
+    updated.to_yaml(path)
 
     # from_model is cached process-wide; drop the now-stale copy.
     QAIHMModelInternalConfig.from_model.cache_clear()

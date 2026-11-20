@@ -8,12 +8,18 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from qai_hub_models_cli.proto import model_manifest_pb2
 
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
+from qai_hub_models.configs._info_yaml_llm_details import (
+    LLM_CALL_TO_ACTION,
+    LLMDetails,
+)
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.envvars import SpecialModelSetting
 from qai_hub_models.scorecard.internal_config_yaml import (
     QAIHMModelInternalConfig,
+    TestRunnerSplit,
     get_llm_model_ids,
     get_on_demand_llm_model_ids,
     get_weekly_llm_model_ids,
@@ -24,6 +30,7 @@ from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
 )
 from qai_hub_models.utils.asset_loaders import load_yaml
+from qai_hub_models.utils.device import FormFactor
 from qai_hub_models.utils.path_helpers import (
     MODEL_IDS,
     QAIHM_MODELS_ROOT,
@@ -87,6 +94,13 @@ def test_website_fields_are_scorecard_config_fields() -> None:
     assert not WEBSITE_FIELDS & set(QAIHMModelManifest.model_fields)
 
 
+def test_every_internal_config_field_is_in_the_proto() -> None:
+    proto_fields = {
+        f.name for f in model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR.fields
+    }
+    assert set(QAIHMModelInternalConfig.model_fields) == proto_fields
+
+
 def test_manifest_ignores_unrecognized_keys() -> None:
     manifest = QAIHMModelManifest.model_validate(
         {"id": "x", "name": "X", "status": "published", "form_factors": ["Phone"]}
@@ -138,29 +152,55 @@ def test_status_reason_coupling(
             build()
 
 
-def test_write_publish_status_edits_only_status_keys(tmp_path: Path) -> None:
+def test_write_publish_status_round_trips_other_fields(tmp_path: Path) -> None:
     model_id = sorted(MODEL_IDS)[0]
     config = tmp_path / model_id / "internal-config.yaml"
     config.parent.mkdir()
-    # Out-of-order keys and an explicit default, which a full re-dump would rewrite.
-    config.write_text(
-        "has_animated_banner: false\nrelated_models:\n- b\n- a\nstatus: published\n"
-    )
+    QAIHMModelInternalConfig(
+        status=MODEL_STATUS.PUBLISHED,
+        has_animated_banner=True,
+        related_models=["b", "a"],
+    ).to_yaml(config)
     with mock.patch(
         "qai_hub_models.scorecard.internal_config_yaml.SCORECARD_MODELS_ROOT",
         tmp_path,
     ):
         write_publish_status(model_id, MODEL_STATUS.PENDING, "no runtimes")
-        assert config.read_text() == (
-            "has_animated_banner: false\nrelated_models:\n- b\n- a\n"
-            "status: pending\nstatus_reason: no runtimes\n"
-        )
+        pending = QAIHMModelInternalConfig.from_yaml(config)
+        assert pending.status is MODEL_STATUS.PENDING
+        assert pending.status_reason == "no runtimes"
+        assert pending.has_animated_banner
+        assert pending.related_models == ["b", "a"]
+
         write_publish_status(model_id, MODEL_STATUS.PUBLISHED, None)
-        assert config.read_text() == (
-            "has_animated_banner: false\nrelated_models:\n- b\n- a\nstatus: published\n"
-        )
+        published = QAIHMModelInternalConfig.from_yaml(config)
+        assert published.status is MODEL_STATUS.PUBLISHED
+        assert published.status_reason is None
+        assert "status_reason" not in config.read_text()
+
         with pytest.raises(ValueError, match="Unpublished models must set"):
             write_publish_status(model_id, MODEL_STATUS.UNPUBLISHED, None)
+
+
+def test_internal_config_proto_round_trip() -> None:
+    config = QAIHMModelInternalConfig(
+        status=MODEL_STATUS.UNPUBLISHED,
+        status_reason="tracked in #1",
+        test_split=TestRunnerSplit.LLM,
+        on_demand_only=True,
+        numerics_threshold_override=15.0,
+        private_perf_form_factors=[FormFactor.AUTO],
+        standalone_components={"vision_encoder": "Encoder"},
+        llm_details=LLMDetails(call_to_action=LLM_CALL_TO_ACTION.DOWNLOAD),
+    )
+    assert QAIHMModelInternalConfig.from_proto(config.to_proto()) == config
+
+
+def test_internal_config_missing_status_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "internal-config.yaml"
+    path.write_text("has_static_banner: true\n")
+    with pytest.raises(ValueError, match="status is required"):
+        QAIHMModelInternalConfig.from_yaml(path)
 
 
 @pytest.mark.parametrize("model_id", MODEL_IDS)

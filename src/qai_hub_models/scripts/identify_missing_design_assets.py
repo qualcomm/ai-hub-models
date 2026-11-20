@@ -49,6 +49,11 @@ SAFE_BRANCH_RE = re.compile(r"^[\w./_+-]+$")
 MAX_YAML_BYTES = 512 * 1024  # 512 KB
 
 
+def _short_status(info: dict) -> str:
+    """Status as `published` / `pending` / `unpublished`, or "" if unset."""
+    return str(info.get("status", "")).removeprefix("MODEL_STATUS_").lower()
+
+
 def _blocked_by_banners(info: dict) -> bool:
     """Return True if missing banners are the likely blocker for this model.
 
@@ -60,7 +65,7 @@ def _blocked_by_banners(info: dict) -> bool:
     if info.get("has_static_banner", False):
         return False
 
-    status = info.get("status", "")
+    status = _short_status(info)
     reason = str(info.get("status_reason") or "").lower()
     if status == "pending":
         return not reason or any(kw in reason for kw in BANNER_REASON_KEYWORDS)
@@ -88,7 +93,7 @@ def scan_local_models() -> list[dict[str, str]]:
                 {
                     "model_id": model_id,
                     "name": manifest.get("name", model_id),
-                    "status": info.get("status", "unknown"),
+                    "status": _short_status(info) or "unknown",
                     "use_case": manifest.get("use_case", ""),
                     "source_repo": manifest.get("source_repo", ""),
                 }
@@ -216,7 +221,7 @@ def scan_open_prs() -> list[dict[str, str]]:
                     {
                         "model_id": model_id,
                         "name": manifest.get("name", model_id),
-                        "status": info.get("status", "unknown"),
+                        "status": _short_status(info) or "unknown",
                         "use_case": manifest.get("use_case", ""),
                         "source_repo": manifest.get("source_repo", ""),
                         "pr": f"#{pr_number}",

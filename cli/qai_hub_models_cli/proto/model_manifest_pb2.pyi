@@ -441,6 +441,21 @@ class ModelManifest(google.protobuf.message.Message):
         MODEL_STATUS_PENDING: ModelManifest.Internal.ModelStatus.ValueType  # 3
         """Pending models are waiting for scorecard to collect perf data before being published."""
 
+        class _TestSplit:
+            ValueType = typing.NewType("ValueType", builtins.int)
+            V: typing_extensions.TypeAlias = ValueType
+
+        class _TestSplitEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelManifest.Internal._TestSplit.ValueType], builtins.type):
+            DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+            TEST_SPLIT_DEFAULT: ModelManifest.Internal._TestSplit.ValueType  # 0
+            TEST_SPLIT_LLM: ModelManifest.Internal._TestSplit.ValueType  # 1
+            TEST_SPLIT_PI05: ModelManifest.Internal._TestSplit.ValueType  # 2
+
+        class TestSplit(_TestSplit, metaclass=_TestSplitEnumTypeWrapper): ...
+        TEST_SPLIT_DEFAULT: ModelManifest.Internal.TestSplit.ValueType  # 0
+        TEST_SPLIT_LLM: ModelManifest.Internal.TestSplit.ValueType  # 1
+        TEST_SPLIT_PI05: ModelManifest.Internal.TestSplit.ValueType  # 2
+
         @typing.final
         class StandaloneComponentsEntry(google.protobuf.message.Message):
             DESCRIPTOR: google.protobuf.descriptor.Descriptor
@@ -514,6 +529,15 @@ class ModelManifest(google.protobuf.message.Message):
         PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
         LLM_DETAILS_FIELD_NUMBER: builtins.int
         STANDALONE_COMPONENTS_FIELD_NUMBER: builtins.int
+        SKIP_HUB_TESTS_AND_SCORECARD_FIELD_NUMBER: builtins.int
+        SKIP_SCORECARD_FIELD_NUMBER: builtins.int
+        FREEZE_PERF_YAML_FIELD_NUMBER: builtins.int
+        TEST_SPLIT_FIELD_NUMBER: builtins.int
+        SKIP_EXPORT_FIELD_NUMBER: builtins.int
+        SKIP_EVALUATE_FIELD_NUMBER: builtins.int
+        NUMERICS_THRESHOLD_OVERRIDE_FIELD_NUMBER: builtins.int
+        GLOBAL_REQUIREMENTS_INCOMPATIBLE_FIELD_NUMBER: builtins.int
+        ON_DEMAND_ONLY_FIELD_NUMBER: builtins.int
         status: global___ModelManifest.Internal.ModelStatus.ValueType
         """Whether or not the model is published on the website.
         This should be set to public unless the model has poor accuracy/perf.
@@ -528,6 +552,35 @@ class ModelManifest(google.protobuf.message.Message):
         """Whether the model has an animated asset uploaded in S3. This is optional."""
         imsdk_supported: builtins.bool
         """Whether the model is compatible with the IMSDK Plugin for IOT devices."""
+        skip_hub_tests_and_scorecard: builtins.bool
+        """---------------------------------------------------------------------------
+        CI / scorecard knobs
+        ---------------------------------------------------------------------------
+
+        If set, skips generating `test_generated.py`, the weekly scorecard, and perf.yaml.
+        """
+        skip_scorecard: builtins.bool
+        """Second knob for skipping scorecard generation: skip scorecard but run hub tests."""
+        freeze_perf_yaml: builtins.bool
+        """If set, scorecard still runs this model, but perf.yaml and associated
+        manifest.yaml / README.md changes are not written to disk.
+        """
+        test_split: global___ModelManifest.Internal.TestSplit.ValueType
+        """Named CI test split this model runs in."""
+        skip_export: builtins.bool
+        """If set, skips all code generation for this model."""
+        skip_evaluate: builtins.bool
+        """If set, omits the evaluate/accuracy tests from the generated test file."""
+        numerics_threshold_override: builtins.float
+        """Overrides the scorecard acceptance threshold. E.g. 15 allows up to a
+        15-point drop and is still considered successful.
+        """
+        global_requirements_incompatible: builtins.bool
+        """Set when a model's requirements.txt versions can't match global_requirements.txt."""
+        on_demand_only: builtins.bool
+        """If true, this LLM is excluded from the weekly schedule and only runs when
+        explicitly requested via the 'llm_on_demand' token.
+        """
         @property
         def applicable_scenarios(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
             """A list of real-world applications for which this model could be used.
@@ -567,13 +620,24 @@ class ModelManifest(google.protobuf.message.Message):
             private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
             llm_details: global___ModelManifest.Internal.LLMDetails | None = ...,
             standalone_components: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
+            skip_hub_tests_and_scorecard: builtins.bool = ...,
+            skip_scorecard: builtins.bool = ...,
+            freeze_perf_yaml: builtins.bool = ...,
+            test_split: global___ModelManifest.Internal.TestSplit.ValueType = ...,
+            skip_export: builtins.bool = ...,
+            skip_evaluate: builtins.bool = ...,
+            numerics_threshold_override: builtins.float | None = ...,
+            global_requirements_incompatible: builtins.bool = ...,
+            on_demand_only: builtins.bool = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_status_reason", b"_status_reason", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "status_reason", b"status_reason"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_status_reason", b"_status_reason", "applicable_scenarios", b"applicable_scenarios", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "imsdk_supported", b"imsdk_supported", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "standalone_components", b"standalone_components", "status", b"status", "status_reason", b"status_reason"]) -> None: ...
+        def HasField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_threshold_override", b"_numerics_threshold_override", "_status_reason", b"_status_reason", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_threshold_override", b"numerics_threshold_override", "status_reason", b"status_reason"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_threshold_override", b"_numerics_threshold_override", "_status_reason", b"_status_reason", "applicable_scenarios", b"applicable_scenarios", "freeze_perf_yaml", b"freeze_perf_yaml", "global_requirements_incompatible", b"global_requirements_incompatible", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "imsdk_supported", b"imsdk_supported", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_threshold_override", b"numerics_threshold_override", "on_demand_only", b"on_demand_only", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "skip_evaluate", b"skip_evaluate", "skip_export", b"skip_export", "skip_hub_tests_and_scorecard", b"skip_hub_tests_and_scorecard", "skip_scorecard", b"skip_scorecard", "standalone_components", b"standalone_components", "status", b"status", "status_reason", b"status_reason", "test_split", b"test_split"]) -> None: ...
         @typing.overload
         def WhichOneof(self, oneof_group: typing.Literal["_llm_details", b"_llm_details"]) -> typing.Literal["llm_details"] | None: ...
         @typing.overload
         def WhichOneof(self, oneof_group: typing.Literal["_model_maker_id", b"_model_maker_id"]) -> typing.Literal["model_maker_id"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_numerics_threshold_override", b"_numerics_threshold_override"]) -> typing.Literal["numerics_threshold_override"] | None: ...
         @typing.overload
         def WhichOneof(self, oneof_group: typing.Literal["_status_reason", b"_status_reason"]) -> typing.Literal["status_reason"] | None: ...
 

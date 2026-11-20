@@ -205,7 +205,8 @@ def resolve_publish_status(source_dir: Path) -> MODEL_STATUS | None:
         raise FileNotFoundError(
             f"{source_dir.name} is an in-tree recipe but has no {config_path}."
         )
-    return MODEL_STATUS((load_yaml(config_path) or {})["status"])
+    raw_status = (load_yaml(config_path) or {})["status"]
+    return MODEL_STATUS(raw_status.removeprefix("MODEL_STATUS_").lower())
 
 
 def resolve_model_cls(source_dir: Path) -> Any:

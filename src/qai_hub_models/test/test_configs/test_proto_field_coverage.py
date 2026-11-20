@@ -201,18 +201,6 @@ class TestInfoFieldCoverage:
         _check_coverage(
             QAIHMModelInternalConfig,
             model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR,
-            pydantic_only={
-                # Scorecard / CI knobs. Never reach the website feed.
-                "freeze_perf_yaml",
-                "global_requirements_incompatible",
-                "numerics_threshold_override",
-                "on_demand_only",
-                "skip_evaluate",
-                "skip_export",
-                "skip_hub_tests_and_scorecard",
-                "skip_scorecard",
-                "test_split",
-            },
         )
 
     def test_llm_details(self) -> None:

@@ -38,8 +38,8 @@ def _get_model_status(
         return None
     with open(config_yaml) as f:
         for line in f:
-            if m := re.match(r"^status:\s*(\S+)", line):
-                out = m.group(1)
+            if m := re.match(r"^status:\s*MODEL_STATUS_(\S+)", line):
+                out = m.group(1).lower()
                 assert out in {"published", "unpublished", "pending"}, (
                     f"Unknown model status: {out}"
                 )

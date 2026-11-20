@@ -92,7 +92,7 @@ def _published_recipes_with_source() -> list[str]:
             continue
         config = SCORECARD_MODELS_ROOT / d.name / "internal-config.yaml"
         with open(config) as f:
-            if (yaml.safe_load(f) or {}).get("status") == "published":
+            if (yaml.safe_load(f) or {}).get("status") == "MODEL_STATUS_PUBLISHED":
                 out.append(d.name)
     return out
 
