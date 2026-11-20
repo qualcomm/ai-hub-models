@@ -98,12 +98,14 @@ Follow one input from the raw file through the model and back to the final outpu
 - Labels, names and class counts belong to this model, not to a template it was copied from.
 - Sample inputs look like real data, not zeros or random noise.
 - Test with non-default values. Default sizes and settings can hide mismatches.
+- **`forward()` docstring.** Check every model class the PR adds or changes, and every exported component of a collection model. Its numpydoc docstring must have a one-line description plus `Parameters` and `Returns` sections. Each input and output needs its meaning, shape, channel layout (RGB or BGR, NCHW or NHWC), dtype and value range (`float[0, 1]`, `int[0, 255]`). Tuple outputs name each element in order. Quote the PR's docstring against `input_spec()` and the real tensors. A missing or vague docstring (for example "Returns the output") is `medium`. One that disagrees with the code is `high`. Sibling to compare against: `src/qai_hub_models/models/yolov8_det/model.py`.
 
 ### Lens C: Dataset and evaluator
 
 Code used by only one model lives in that model's folder. Shared code never depends on a specific model. If a shared dataset or evaluator already fits, the PR uses it.
 
 Dataset:
+- **`__getitem__` docstring.** Every dataset the PR adds or changes documents `__getitem__` with `Parameters` and `Returns` sections. Name each returned element in order, with its shape, dtype, channel layout and value range. For ground truth, give the coordinate format and normalization (for example "(x1, y1, x2, y2), normalized [0, 1]") and what padded entries mean. Compare it with the real return value. Sibling to compare against: `src/qai_hub_models/datasets/coco/coco.py`. Missing or vague is `medium`. Wrong is `high`.
 - The training and evaluation splits contain different data, and each name means what it says.
 - Downloading and validation can't delete the wrong files, and they catch incomplete downloads.
 - Ordering, pairing and sampling preserve what the evaluator relies on.
@@ -112,6 +114,7 @@ Dataset:
 - The dataset's license allows how it's used. Data from third parties is copied to our own storage.
 
 Evaluator:
+- **`add_batch` docstring.** Every evaluator the PR adds or changes documents the inputs of `add_batch(output, gt)`, with a `Parameters` section. Name each element of `output` (the model's `forward()` outputs) and of `gt` (the dataset's ground truth) in order, with shape, dtype, units and coordinate format. Check that the order matches `forward()` and the dataset's `__getitem__`. Also check that `get_accuracy_score` and `get_metric_metadata` say what the metric is and whether higher or lower is better. Sibling to compare against: `src/qai_hub_models/models/templates/detection/detection_evaluator.py`. Missing or vague is `medium`. Wrong, or a different order from the code, is `high`.
 - It computes the metric the way the benchmark's authors define it. If it doesn't, the reference number can't be compared with ours.
 - The calculation is correct: scale, units, whether higher or lower is better, and empty or unusual inputs.
 - Settings come from the model, not from defaults inside the evaluator, and creating it is cheap.
@@ -185,8 +188,8 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 - The parameter count and model sizes are plausible for the architecture, and not copied from another model. There is a size entry for each supported precision.
 
 **Title and description**
-- The `id` is identical to the recipe's folder name. A PR whose `id` and folder name differ fails to resolve, so this is `high`.
-- The `id` and `name` describe the same model: `id` is the snake_case form of `name`, with dashes and dots turned into underscores and everything lowercased (`DeepLabV3-ResNet50` -> `deeplabv3_resnet50`, `Qwen3-0.6B` -> `qwen3_0_6b`). Flag a mismatch where they drift apart or name different variants.
+- The recipe's folder name, the manifest `id` and the manifest `name` must all agree. Check all three against each other, and against the scorecard `internal-config.yaml` folder if the PR adds one. Any mismatch is `high` and must be fixed. A folder name that differs from `id` fails to resolve, and an `id` that doesn't match `name` publishes the model under the wrong identity.
+- `id` is the snake_case form of `name`: lowercased, with dashes and dots turned into underscores (`DeepLabV3-ResNet50` -> `deeplabv3_resnet50`, `Qwen3-0.6B` -> `qwen3_0_6b`, `FFNet-40S` -> `ffnet_40s`). The one allowed difference is that a trailing task word may be abbreviated or dropped (`YOLOv11-Detection` -> `yolov11_det`, `MediaPipe-Hand-Detection` -> `mediapipe_hand`). Before flagging, find two or three existing models with the same family or task and quote their `id` / `name` pairs as the convention. Flag an `id` that drops or changes any other part of the name, or names a different variant.
 - The headline is one short sentence that says what the model does.
 - The description is accurate. It names the right task, architecture and supported variants, doesn't promise anything the PR doesn't ship, and doesn't repeat the benchmark number.
 - Wording and format follow the closest similar model. Tags, use case and domain fit the task.
@@ -207,6 +210,8 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 
 - Before accepting new code, search shared code for something that already does the job. If the PR says a shared utility can't be used, check whether that is true.
 - If this model is similar to another, ask whether the code they have in common should move into a template or shared utility. Name the code, the other model and where it would go. Don't ask for a shared package that only one model would use.
+- **Shared datasets and evaluators.** Look for models with the same task, family or data source (same dataset, same upstream repo, same architecture at another size). If this PR adds a dataset, evaluator or preprocessing that those models already have or could use, flag it. Name the other model, the file, and whether this PR should reuse the existing code or the code should move to shared. Don't flag code only this model could use.
+- **Related models.** Find the models a user would reasonably compare with this one: other sizes or versions of the same family, and the same task from a different family (for example `yolov8_det` lists `yolov6`, `yolov7` and `yolov11_det`). Check the recipe's `related_models` list in `src/qai_hub_models/scorecard/models/<id>/internal-config.yaml`. Flag the entry as missing or incomplete when such models exist and aren't listed, naming each one to add. Also flag ids that don't exist and the recipe's own id. These are `medium`. Sibling models' lists are the evidence, so quote them.
 - Follow the conventions of the base class and similar models.
 - Use the repo's standard methods for bringing in upstream code and for generated files.
 - Models may import shared code, but not each other.
@@ -222,6 +227,7 @@ Every statement in the manifest must be true for what this PR ships. Check each 
 ### Do not flag
 
 - Anything a linter, formatter or type checker enforces.
+- Missing or out-of-date `perf.yaml`, `numerics.yaml` or `release-assets.yaml`. The scorecard test suites regenerate them every week, so don't flag them or the values in them.
 - Pre-existing issues the PR did not touch or worsen.
 - Style preferences, or rules you cannot quote or show in a sibling.
 - Problems that depend on state you cannot see. Put plausible but unconfirmed items under "Not verified".

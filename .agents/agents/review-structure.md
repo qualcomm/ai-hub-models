@@ -1,6 +1,6 @@
 ---
 name: review-structure
-description: Reviewer for one model-onboarding PR. Checks reuse of existing helpers and templates, duplication, dead code, class structure, and use of repo abstractions such as external_repos. Launched by the model-onboarding-review skill (Lens I).
+description: Reviewer for one model-onboarding PR. Checks reuse of existing helpers and templates, code and datasets that could be shared with related models, missing related_models entries, duplication, dead code, class structure, and use of repo abstractions such as external_repos. Launched by the model-onboarding-review skill (Lens I).
 ---
 
 # Reviewer: structure and reuse

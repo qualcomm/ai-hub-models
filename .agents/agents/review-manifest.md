@@ -1,6 +1,6 @@
 ---
 name: review-manifest
-description: Reviewer for one model-onboarding PR. Checks that manifest.yaml claims match what the PR ships: demo flag, numerics benchmark, status, precisions, sizes, links, and related entries. Launched by the model-onboarding-review skill (Lens H).
+description: Reviewer for one model-onboarding PR. Checks that manifest.yaml claims match what the PR ships: demo flag, numerics benchmark, status, precisions, sizes, links, and that the folder name, id and name agree. Launched by the model-onboarding-review skill (Lens H).
 ---
 
 # Reviewer: manifest and metadata

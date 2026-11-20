@@ -1,6 +1,6 @@
 ---
 name: review-data-path
-description: Reviewer for one model-onboarding PR. Checks that preprocessing, input spec, dtype and postprocessing agree across app, dataset, evaluator, sample inputs and forward. Launched by the model-onboarding-review skill (Lens B).
+description: Reviewer for one model-onboarding PR. Checks that preprocessing, input spec, dtype and postprocessing agree across app, dataset, evaluator, sample inputs and forward, and that `forward()` has a docstring giving each input and output's shape, layout and range. Launched by the model-onboarding-review skill (Lens B).
 ---
 
 # Reviewer: data path consistency

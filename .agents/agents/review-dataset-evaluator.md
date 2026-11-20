@@ -1,6 +1,6 @@
 ---
 name: review-dataset-evaluator
-description: Reviewer for one model-onboarding PR. Checks dataset placement and validation, evaluator metric direction and degenerate inputs, silent truncation, and where thresholds come from. Launched by the model-onboarding-review skill (Lens C).
+description: Reviewer for one model-onboarding PR. Checks that `__getitem__` and `add_batch` docstrings state shapes, layout and ranges, dataset placement and validation, evaluator metric direction and degenerate inputs, silent truncation, and where thresholds come from. Launched by the model-onboarding-review skill (Lens C).
 ---
 
 # Reviewer: dataset and evaluator
