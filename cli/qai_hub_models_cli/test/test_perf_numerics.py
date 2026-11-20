@@ -8,8 +8,8 @@ from unittest.mock import patch
 import pytest
 
 from qai_hub_models_cli.cli import main
-from qai_hub_models_cli.proto.numerics_pb2 import ModelNumerics
-from qai_hub_models_cli.proto.perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_numerics_pb2 import ModelNumerics
+from qai_hub_models_cli.proto.model_perf_pb2 import ModelPerf
 from qai_hub_models_cli.proto.platform_pb2 import (
     ChipsetInfo,
     DeviceInfo,
@@ -19,11 +19,11 @@ from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.range_pb2 import IntRange
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto.shared.tool_versions_pb2 import ToolVersions
-from qai_hub_models_cli.proto_helpers.numerics import (
+from qai_hub_models_cli.proto_helpers.model_numerics import (
     filter_numerics,
     format_numerics_table,
 )
-from qai_hub_models_cli.proto_helpers.perf import (
+from qai_hub_models_cli.proto_helpers.model_perf import (
     filter_perf,
     format_perf_table,
 )

@@ -9,17 +9,17 @@ import argparse
 import copy
 import os
 import subprocess
-import sys
 from collections import defaultdict
-from typing import Any
 
 import numpy as np
 import qai_hub as hub
-from ruamel.yaml import YAML
 from tflite import Model as TFModel
 
 from qai_hub_models import Precision
-from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.configs.manifest_yaml import (
+    QAIHMModelManifest,
+    TechnicalDetails,
+)
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -32,11 +32,7 @@ from qai_hub_models.utils.export.result import (
     LegacyCollectionExportResult,
     MultiGraphCollectionExportResult,
 )
-from qai_hub_models.utils.path_helpers import (
-    MODEL_IDS,
-    QAIHM_MODELS_ROOT,
-    SCORECARD_MODELS_ROOT,
-)
+from qai_hub_models.utils.path_helpers import MODEL_IDS, QAIHM_MODELS_ROOT
 
 
 def _display_with_sig_figs(num: float, num_sig_figs: int = 3) -> str:
@@ -113,12 +109,11 @@ def get_model_size_and_parameters(
         return str(size), parameters
 
 
-def add_details_to_internal_config(
-    config_dict: dict[str, Any],
+def add_details_to_technical_details(
+    technical_details: TechnicalDetails,
     details: dict[str, dict[str, tuple[str, str | None]]],
-) -> dict[str, Any]:
-    new_config = copy.deepcopy(config_dict)
-    tech = new_config.setdefault("technical_details", {})
+) -> TechnicalDetails:
+    tech = copy.deepcopy(technical_details)
 
     # Clean the old keys
     for detail_key in list(tech):
@@ -138,7 +133,7 @@ def add_details_to_internal_config(
                 tech[param_key] = parameters
             tech[f"{size_key} ({precision_str})"] = size
 
-    return new_config
+    return tech
 
 
 def main() -> None:
@@ -149,7 +144,7 @@ def main() -> None:
         nargs="+",
         type=str,
         default=None,
-        help="Models for which to autofill internal-config.yaml technical details.",
+        help="Models for which to autofill manifest.yaml technical details.",
     )
     parser.add_argument(
         "--all",
@@ -173,8 +168,6 @@ def main() -> None:
 
     for model_name in models:
         model_dir = QAIHM_MODELS_ROOT / model_name
-        yaml = YAML()
-        yaml.width = sys.maxsize
         perf = QAIHMModelPerf.from_model(model_name, not_exists_ok=True)
 
         manifest = QAIHMModelManifest.from_model(model_name)
@@ -287,16 +280,10 @@ def main() -> None:
                     except Exception:
                         continue
 
-            config_path = SCORECARD_MODELS_ROOT / model_name / "internal-config.yaml"
-            config_dict: dict[str, Any] = {}
-            if config_path.exists():
-                config_dict = yaml.load(config_path) or {}
-            new_config = add_details_to_internal_config(
-                config_dict=config_dict, details=details
+            manifest.technical_details = add_details_to_technical_details(
+                manifest.technical_details, details
             )
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(config_path, "wb") as f:
-                yaml.dump(new_config, f)
+            manifest.to_model_yaml()
 
         except Exception as e:
             raise ValueError(f"Failed for model {model_name}") from e

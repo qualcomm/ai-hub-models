@@ -13,7 +13,7 @@ from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
 
 
-def get_manifest_support_violations(
+def get_release_manifest_support_violations(
     manifest: QAIHMModelManifest,
     yaml_name: str,
     precision: Precision,

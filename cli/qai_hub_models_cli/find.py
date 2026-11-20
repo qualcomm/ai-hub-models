@@ -9,9 +9,13 @@ from collections.abc import Callable, Iterable
 from packaging.version import Version
 
 from qai_hub_models_cli.errors import CLIUserError, UnsupportedVersionError
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
+from qai_hub_models_cli.proto_helpers.model_release_assets import (
+    filter_release_assets,
+    get_model_release_assets,
+)
 from qai_hub_models_cli.proto_helpers.platform import (
     get_platform,
     resolve_chipset,
@@ -20,10 +24,6 @@ from qai_hub_models_cli.proto_helpers.platform import (
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_str_to_proto,
     runtime_str_to_proto,
-)
-from qai_hub_models_cli.proto_helpers.release_assets import (
-    filter_release_assets,
-    get_model_release_assets,
 )
 from qai_hub_models_cli.proto_helpers.tool_versions import validate_sdk_tools
 from qai_hub_models_cli.versions import MIN_MANIFEST_VERSION, get_supported_versions

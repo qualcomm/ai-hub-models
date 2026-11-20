@@ -24,7 +24,7 @@ from qai_hub_models.scorecard.perf_yaml import (
 )
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.test.test_configs.manifest_path_check import (
-    get_manifest_support_violations,
+    get_release_manifest_support_violations,
 )
 from qai_hub_models.utils.aws import (
     QAIHM_PRIVATE_S3_BUCKET,
@@ -103,7 +103,7 @@ def test_release_assets_yaml_schema() -> None:
                 for chipset_paths in a.chipset_assets.values():
                     paths.update(chipset_paths)
                 path_errors.extend(
-                    get_manifest_support_violations(
+                    get_release_manifest_support_violations(
                         manifest, "release-assets.yaml", precision, paths
                     )
                 )

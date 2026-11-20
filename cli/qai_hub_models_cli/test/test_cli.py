@@ -110,7 +110,7 @@ def test_dispatch_forwards_remaining_args_to_model_parser(script: str) -> None:
         patch("qai_hub_models_cli.cli.is_heavy_package_installed", return_value=True),
         patch("qai_hub_models_cli.cli.CURRENT_VERSION", "9.9.9"),
         patch(
-            "qai_hub_models_cli.cli.get_manifest_entry", return_value=fake_entry
+            "qai_hub_models_cli.cli.get_release_manifest_entry", return_value=fake_entry
         ) as mock_get_entry,
         patch.dict(
             sys.modules,

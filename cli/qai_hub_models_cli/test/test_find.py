@@ -17,8 +17,8 @@ from qai_hub_models_cli.find import (
     find_in_version,
     find_matching_releases,
 )
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo, RuntimeInfo
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 

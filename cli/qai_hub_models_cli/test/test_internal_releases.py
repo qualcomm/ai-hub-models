@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 from packaging.version import Version
 
-from qai_hub_models_cli.proto.manifest_pb2 import ReleaseManifest
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.release_manifest_pb2 import ReleaseManifest
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 

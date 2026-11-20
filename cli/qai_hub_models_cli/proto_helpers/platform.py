@@ -24,7 +24,6 @@ from qai_hub_models_cli.proto.platform_pb2 import (
 )
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto_helpers._common import fetch_release_proto
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     form_factor_proto_to_str,
     normalize_label,
@@ -33,6 +32,7 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     runtime_str_to_proto,
     world_proto_to_str,
 )
+from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest
 from qai_hub_models_cli.utils import build_table
 from qai_hub_models_cli.versions import (
     CURRENT_VERSION,
@@ -102,7 +102,7 @@ def get_platform(
     if local_path is not None:
         url = None
     else:
-        manifest = get_manifest(version)
+        manifest = get_release_manifest(version)
         url = manifest.platform_url
     return fetch_release_proto(
         version,

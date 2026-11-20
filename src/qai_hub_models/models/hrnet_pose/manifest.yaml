@@ -32,6 +32,19 @@ supported_precisions:
 - PRECISION_W8A8
 tags:
 - MODEL_TAG_BU_AUTO
+technical_details:
+- key: Pipeline
+  string_value: RTMDet-m detector (640x640) -> HRNet pose estimator (256x192)
+- key: Input resolution
+  string_value: 256x192
+- key: Model checkpoint
+  string_value: hrnet_posenet_FP32_state_dict
+- key: Model size (float)
+  string_value: 109 MB
+- key: Model size (w8a8)
+  string_value: 28.1 MB
+- key: Number of parameters
+  string_value: 28.5M
 templates:
 - corevision
 - mmpose

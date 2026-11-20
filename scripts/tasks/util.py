@@ -87,7 +87,7 @@ def check_scorecard_config_field(model_name: str, field_name: str) -> bool:
 
 
 @functools.cache
-def get_manifest_str_field(model_name: str, field_name: str) -> str | None:
+def get_release_manifest_str_field(model_name: str, field_name: str) -> str | None:
     """This process does not have the yaml package, so use this primitive way to get manifest field value."""
     yaml_path = Path(PY_PACKAGE_MODELS_ROOT) / model_name / "manifest.yaml"
     if not yaml_path.exists():

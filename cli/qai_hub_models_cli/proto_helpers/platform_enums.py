@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from qai_hub_models_cli.errors import CLIUnknownNameError
-from qai_hub_models_cli.proto.info_pb2 import (
+from qai_hub_models_cli.proto.model_manifest_pb2 import (
     ModelDomain,
     ModelLicense,
     ModelTag,

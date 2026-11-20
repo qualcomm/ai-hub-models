@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 import ruamel.yaml
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -960,14 +960,14 @@ if __name__ == "__main__":
             None
             if prev_perf_bytes is None
             else QAIHMModelPerf(
-                model_id, perf_pb2.ModelPerf.FromString(prev_perf_bytes)
+                model_id, model_perf_pb2.ModelPerf.FromString(prev_perf_bytes)
             )
         )
         curr_model_card = (
             None
             if curr_perf_bytes is None
             else QAIHMModelPerf(
-                model_id, perf_pb2.ModelPerf.FromString(curr_perf_bytes)
+                model_id, model_perf_pb2.ModelPerf.FromString(curr_perf_bytes)
             )
         )
 

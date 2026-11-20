@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass, field
 
 from filelock import FileLock
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -370,7 +370,7 @@ def _update_perf_yaml_locked(
     if tool_versions is not None:
         perf_details.tool_versions.CopyFrom(tool_versions.to_proto())
 
-    llm_metric = perf_pb2.ModelPerf.LLMPerfMetrics(
+    llm_metric = model_perf_pb2.ModelPerf.LLMPerfMetrics(
         context_length=context_length,
         tokens_per_second=tps,
         prefill_tokens_per_second=prefill_tps,
@@ -383,8 +383,8 @@ def _update_perf_yaml_locked(
 
 
 def _upsert_metric(
-    details: perf_pb2.ModelPerf.PerformanceDetails,
-    metric: perf_pb2.ModelPerf.LLMPerfMetrics,
+    details: model_perf_pb2.ModelPerf.PerformanceDetails,
+    metric: model_perf_pb2.ModelPerf.LLMPerfMetrics,
 ) -> None:
     """Replace the existing entry at the same (context_length, desired_compute_unit) or append."""
     for existing in details.llm_metrics:

@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from qai_hub_models_cli.proto import info_pb2, model_metadata_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2, model_metadata_pb2
 from qai_hub_models_cli.proto.shared import tensor_spec_pb2
 from qai_hub_models_cli.proto_helpers._common import read_proto_json, read_proto_yaml
 
@@ -838,9 +838,15 @@ def test_genie_chat_template_thinking_tags_gemma4_shape() -> None:
 @pytest.mark.parametrize(
     ("use_case", "expected_proto"),
     [
-        (None, info_pb2.MODEL_USE_CASE_UNSPECIFIED),
-        (MODEL_USE_CASE.TEXT_GENERATION, info_pb2.MODEL_USE_CASE_TEXT_GENERATION),
-        (MODEL_USE_CASE.OBJECT_DETECTION, info_pb2.MODEL_USE_CASE_OBJECT_DETECTION),
+        (None, model_manifest_pb2.MODEL_USE_CASE_UNSPECIFIED),
+        (
+            MODEL_USE_CASE.TEXT_GENERATION,
+            model_manifest_pb2.MODEL_USE_CASE_TEXT_GENERATION,
+        ),
+        (
+            MODEL_USE_CASE.OBJECT_DETECTION,
+            model_manifest_pb2.MODEL_USE_CASE_OBJECT_DETECTION,
+        ),
     ],
 )
 def test_model_metadata_use_case_roundtrip(

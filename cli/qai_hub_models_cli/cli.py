@@ -40,26 +40,32 @@ from qai_hub_models_cli.envvars import verbose_exceptions_enabled
 from qai_hub_models_cli.errors import CLIUserError, UnsupportedVersionError
 from qai_hub_models_cli.fetch import fetch, get_asset_url
 from qai_hub_models_cli.find import find_matching_releases
-from qai_hub_models_cli.proto.info_pb2 import (
+from qai_hub_models_cli.proto.model_manifest_pb2 import (
     MODEL_TAG_LLM,
     MODEL_TAG_VLM,
     ModelDomain,
     ModelTag,
     ModelUseCase,
 )
-from qai_hub_models_cli.proto.manifest_pb2 import ManifestModelEntry
 from qai_hub_models_cli.proto.platform_pb2 import FormFactor, WebsiteWorld
-from qai_hub_models_cli.proto_helpers.info import get_model_info
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest, get_manifest_entry
-from qai_hub_models_cli.proto_helpers.numerics import (
+from qai_hub_models_cli.proto.release_manifest_pb2 import ReleaseManifestModelEntry
+from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
+from qai_hub_models_cli.proto_helpers.model_numerics import (
     filter_numerics,
     format_numerics_table,
     get_model_numerics,
 )
-from qai_hub_models_cli.proto_helpers.perf import (
+from qai_hub_models_cli.proto_helpers.model_perf import (
     filter_perf,
     format_perf_table,
     get_model_perf,
+)
+from qai_hub_models_cli.proto_helpers.model_release_assets import (
+    filter_release_assets,
+    format_fetch_commands,
+    format_release_assets_table,
+    get_model_asset_details,
+    get_model_release_assets,
 )
 from qai_hub_models_cli.proto_helpers.platform import (
     filter_chipsets,
@@ -87,12 +93,9 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     world_proto_to_str,
     world_str_to_proto,
 )
-from qai_hub_models_cli.proto_helpers.release_assets import (
-    filter_release_assets,
-    format_fetch_commands,
-    format_release_assets_table,
-    get_model_asset_details,
-    get_model_release_assets,
+from qai_hub_models_cli.proto_helpers.release_manifest import (
+    get_release_manifest,
+    get_release_manifest_entry,
 )
 from qai_hub_models_cli.proto_helpers.tool_versions import format_tool_versions
 from qai_hub_models_cli.registry import (
@@ -927,7 +930,7 @@ def add_list_registered_parser(
 
 
 def _run_list_models(args: argparse.Namespace) -> None:
-    manifest = get_manifest(args.qaihm_version)
+    manifest = get_release_manifest(args.qaihm_version)
 
     # All filters except --domain rely on manifest fields added in
     # MIN_MODEL_FILTER_VERSION; older releases only support --domain.
@@ -955,7 +958,7 @@ def _run_list_models(args: argparse.Namespace) -> None:
 
     # Resolve/validate each filter's criteria once up front, then build a list of
     # per-model predicates so the models are walked a single time below.
-    predicates: list[Callable[[ManifestModelEntry], bool]] = []
+    predicates: list[Callable[[ReleaseManifestModelEntry], bool]] = []
 
     if args.domain:
         domain_filter = normalize_label(args.domain)
@@ -1030,7 +1033,7 @@ def _run_list_models(args: argparse.Namespace) -> None:
             print(entry.id)
         return
 
-    groups: dict[str, list[ManifestModelEntry]] = {}
+    groups: dict[str, list[ReleaseManifestModelEntry]] = {}
     for entry in entries:
         domain = domain_proto_to_str(entry.domain)
         groups.setdefault(domain, []).append(entry)
@@ -1378,7 +1381,7 @@ def add_list_runtimes_parser(
 
 
 def _run_info(args: argparse.Namespace) -> None:
-    info = get_model_info(args.model, args.qaihm_version)
+    info = get_model_manifest(args.model, args.qaihm_version)
 
     url = f"{AIHUB_MODELS_URL}/{info.id}"
     width = max(len(info.name), len(url)) + 4
@@ -1413,7 +1416,7 @@ def _run_info(args: argparse.Namespace) -> None:
     # Best-effort: skip if the model isn't in the manifest for this version.
     if feature_supported(args.qaihm_version, MIN_MODEL_FILTER_VERSION):
         try:
-            entry = get_manifest_entry(args.model, args.qaihm_version)
+            entry = get_release_manifest_entry(args.model, args.qaihm_version)
         except KeyError:
             entry = None
         if entry is not None:

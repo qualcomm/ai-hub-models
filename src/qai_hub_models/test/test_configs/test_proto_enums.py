@@ -13,7 +13,7 @@ Each test verifies two directions:
 from __future__ import annotations
 
 from google.protobuf.descriptor import EnumDescriptor
-from qai_hub_models_cli.proto import info_pb2, platform_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2, platform_pb2
 from qai_hub_models_cli.proto.shared import (
     precision_pb2,
     runtime_pb2,
@@ -129,7 +129,7 @@ class TestVoiceAISDKMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["VoiceAISdk"]
+            model_manifest_pb2.DESCRIPTOR.enum_types_by_name["VoiceAISdk"]
         )
         mapped = set(_VOICE_AI_SDK_TO_PROTO.values())
         assert proto_values == mapped
@@ -144,7 +144,7 @@ class TestLicenseMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["ModelLicense"]
+            model_manifest_pb2.DESCRIPTOR.enum_types_by_name["ModelLicense"]
         )
         mapped = set(_LICENSE_TO_PROTO.values())
         assert proto_values == mapped
@@ -159,7 +159,7 @@ class TestDomainMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["ModelDomain"]
+            model_manifest_pb2.DESCRIPTOR.enum_types_by_name["ModelDomain"]
         )
         mapped = set(_DOMAIN_TO_PROTO.values())
         assert proto_values == mapped
@@ -172,7 +172,7 @@ class TestTagMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["ModelTag"]
+            model_manifest_pb2.DESCRIPTOR.enum_types_by_name["ModelTag"]
         )
         mapped = set(_TAG_TO_PROTO.values())
         assert proto_values == mapped
@@ -187,7 +187,9 @@ class TestStatusMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["ModelStatus"]
+            model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR.enum_types_by_name[
+                "ModelStatus"
+            ]
         )
         mapped = set(_STATUS_TO_PROTO.values())
         assert proto_values == mapped
@@ -202,7 +204,7 @@ class TestUseCaseMapping:
 
     def test_proto_to_python(self) -> None:
         proto_values = _proto_enum_values(
-            info_pb2.DESCRIPTOR.enum_types_by_name["ModelUseCase"]
+            model_manifest_pb2.DESCRIPTOR.enum_types_by_name["ModelUseCase"]
         )
         mapped = set(_USE_CASE_TO_PROTO.values())
         assert proto_values == mapped
@@ -216,8 +218,11 @@ class TestCallToActionMapping:
             )
 
     def test_proto_to_python(self) -> None:
-        msg_descriptor = info_pb2.DESCRIPTOR.message_types_by_name["ModelInfo"]
-        llm_descriptor = msg_descriptor.nested_types_by_name["LLMDetails"]
+        msg_descriptor = model_manifest_pb2.DESCRIPTOR.message_types_by_name[
+            "ModelManifest"
+        ]
+        internal_descriptor = msg_descriptor.nested_types_by_name["Internal"]
+        llm_descriptor = internal_descriptor.nested_types_by_name["LLMDetails"]
         proto_values = _proto_enum_values(
             llm_descriptor.enum_types_by_name["CallToAction"]
         )

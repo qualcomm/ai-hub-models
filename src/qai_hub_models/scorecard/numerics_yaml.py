@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import Field
-from qai_hub_models_cli.proto import numerics_pb2
+from qai_hub_models_cli.proto import model_numerics_pb2
 from qai_hub_models_cli.proto.shared import range_pb2, tool_versions_pb2
 from qai_hub_models_cli.proto_helpers._common import (
     read_proto_yaml,
@@ -93,7 +93,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
 
         @classmethod
         def from_proto(
-            cls, proto: numerics_pb2.ModelNumerics.NumericsMetric
+            cls, proto: model_numerics_pb2.ModelNumerics.NumericsMetric
         ) -> QAIHMModelNumerics.MetricDetails:
             # Insert in (device, precision, path) name order, the order the old
             # name-keyed YAML loaded in, so the release proto's order is unchanged.
@@ -210,14 +210,14 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
         aihm_version: str,
         model_id: str,
         perf: QAIHMModelPerf | None = None,
-    ) -> numerics_pb2.ModelNumerics:
+    ) -> model_numerics_pb2.ModelNumerics:
         # SDK/tool versions aren't stored in numerics; cross-reference them from
         # the matching perf record (same device/precision/runtime), when given.
         tool_versions_by_path = _perf_tool_versions_by_path(perf)
-        metrics: list[numerics_pb2.ModelNumerics.NumericsMetric] = []
+        metrics: list[model_numerics_pb2.ModelNumerics.NumericsMetric] = []
         for m in self.metrics:
             device_metrics: list[
-                numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics
+                model_numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics
             ] = []
             for device, prec_dict in m.device_metric.items():
                 for precision, path_dict in prec_dict.items():
@@ -228,7 +228,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                             (str(device), precision_proto, runtime_proto)
                         )
                         device_metrics.append(
-                            numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics(
+                            model_numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics(
                                 device=str(device),
                                 precision=precision_proto,
                                 runtime=runtime_proto,
@@ -242,7 +242,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                 min=m.metric_range.min, max=m.metric_range.max
             )
             metrics.append(
-                numerics_pb2.ModelNumerics.NumericsMetric(
+                model_numerics_pb2.ModelNumerics.NumericsMetric(
                     dataset_name=m.dataset_name,
                     dataset_link=m.dataset_link,
                     dataset_split_description=m.dataset_split_description,
@@ -259,14 +259,14 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                 )
             )
 
-        return numerics_pb2.ModelNumerics(
+        return model_numerics_pb2.ModelNumerics(
             aihm_version=aihm_version,
             model_id=model_id,
             metrics=metrics,
         )
 
     @classmethod
-    def from_proto(cls, proto: numerics_pb2.ModelNumerics) -> QAIHMModelNumerics:
+    def from_proto(cls, proto: model_numerics_pb2.ModelNumerics) -> QAIHMModelNumerics:
         """Build the in-memory representation from a ``ModelNumerics`` proto."""
         return cls(metrics=[cls.MetricDetails.from_proto(m) for m in proto.metrics])
 
@@ -279,7 +279,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
             not os.path.exists(path) or os.path.getsize(path) == 0
         ):
             return cls()
-        return cls.from_proto(read_proto_yaml(path, numerics_pb2.ModelNumerics))
+        return cls.from_proto(read_proto_yaml(path, model_numerics_pb2.ModelNumerics))
 
     def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
         """

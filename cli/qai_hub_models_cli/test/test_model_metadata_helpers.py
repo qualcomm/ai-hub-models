@@ -42,7 +42,7 @@ def test_get_model_metadata_downloads_beside_asset(tmp_path: Path) -> None:
     download = MagicMock(side_effect=_download)
     with (
         patch(f"{_MODULE}.get_asset_url", return_value=_ASSET_URL),
-        patch(f"{_MODULE}.get_manifest_entry", return_value=MagicMock(id="m")),
+        patch(f"{_MODULE}.get_release_manifest_entry", return_value=MagicMock(id="m")),
         patch(f"{_MODULE}.model_cache_path", return_value=tmp_path / "m.proto"),
         patch("qai_hub_models_cli.proto_helpers._common.download", download),
     ):

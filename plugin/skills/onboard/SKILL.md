@@ -325,11 +325,10 @@ Before your first `validate` run, verify:
 3. **External-repos bootstrap present?** If manifest declares `external_repos:`, `external_repos/__init__.py` exists — `qai-hub-models generate-files <path>` writes it.
 4. **No `status:` in manifest.yaml?** `grep '^status:' manifest.yaml` returns nothing.
 5. **`supported_precisions` is `[float]`?** No `w8a8` / `w8a16` here — that's `add-quantization`.
-6. **No `technical_details:` in manifest.yaml?** `grep '^technical_details:' manifest.yaml` returns nothing.
-7. **Dataset `__init__` takes `input_spec`?** Never raw `input_height` / `input_width` / `image_size` / `resolution`.
-8. **Dataset + evaluator wired?** Unless the user declined or the model has no accuracy notion: `model.py` implements `get_evaluator()` / `get_eval_dataset_classes()` / `get_calibration_dataset_cls()`. If not, wire it now — do NOT defer to `add-quantization`, which only flips the precision list.
-9. **Demo runs and its output looks right?** `qai-hub-models demo <target>` — you ran it and inspected the output, not just checked the exit code.
-10. **`has_on_target_demo` matches reality?** `true` only if `demo.py` goes through `get_on_device_demo_parser` + `validate_on_device_demo_args` + `demo_model_from_cli_args`. Never set it on a demo you haven't wired for on-device.
+6. **Dataset `__init__` takes `input_spec`?** Never raw `input_height` / `input_width` / `image_size` / `resolution`.
+7. **Dataset + evaluator wired?** Unless the user declined or the model has no accuracy notion: `model.py` implements `get_evaluator()` / `get_eval_dataset_classes()` / `get_calibration_dataset_cls()`. If not, wire it now — do NOT defer to `add-quantization`, which only flips the precision list.
+8. **Demo runs and its output looks right?** `qai-hub-models demo <target>` — you ran it and inspected the output, not just checked the exit code.
+9. **`has_on_target_demo` matches reality?** `true` only if `demo.py` goes through `get_on_device_demo_parser` + `validate_on_device_demo_args` + `demo_model_from_cli_args`. Never set it on a demo you haven't wired for on-device.
 
 ### Iterate-until-green
 

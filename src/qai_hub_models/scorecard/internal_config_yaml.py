@@ -17,10 +17,7 @@ from pydantic import Field, PrivateAttr, model_validator
 
 from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs._info_yaml_llm_details import LLMDetails
-from qai_hub_models.configs.manifest_yaml import (
-    QAIHMModelManifest,
-    TechnicalDetails,
-)
+from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import FormFactor
 from qai_hub_models.utils.path_helpers import (
@@ -153,14 +150,6 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
 
     # Whether the model has an animated asset uploaded in S3. This is optional.
     has_animated_banner: bool = False
-
-    # A list of a few technical details about the model.
-    #   Model checkpoint: The name of the downloaded model checkpoint file.
-    #   Input resolution: The size of the model's input. For example, `2048x1024`.
-    #   Number of parameters: The number of parameters in the model.
-    #   Model size: The file size of the downloaded model asset.
-    #   Number of output classes: The number of classes the model can classify or annotate.
-    technical_details: TechnicalDetails = Field(default_factory=dict)
 
     # Device form factors for which we don't publish performance data.
     private_perf_form_factors: list[FormFactor] | None = None
@@ -330,7 +319,7 @@ def write_publish_status(
     Set status / status_reason in the model's internal-config.yaml.
 
     Edits the two keys in place rather than re-dumping the config, so the rest of
-    the file (hand-ordered technical_details, explicit defaults) is left untouched.
+    the file (hand-ordered keys, explicit defaults) is left untouched.
     """
     path = SCORECARD_MODELS_ROOT / model_id / "internal-config.yaml"
     QAIHMModelInternalConfig.model_validate(

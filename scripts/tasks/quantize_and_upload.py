@@ -17,7 +17,7 @@ from .task import (
     RunCommandsWithVenvTask,
     Task,
 )
-from .util import check_manifest_field, get_manifest_str_field
+from .util import check_manifest_field, get_release_manifest_str_field
 
 # (task, num_samples, metric line prefix) run on both the quantized checkpoint and
 # the unquantized model; 0 runs the whole split.
@@ -233,7 +233,7 @@ class QuantizeAndUploadTask(CompositeTask):
         s3_key = f"{EPHEMERAL_QUANTIZE_ASSETS_PREFIX}/{run_id}/{zip_path.name}"
         # The license when the manifest forbids redistributing weights, else None.
         restriction = (
-            get_manifest_str_field(model_id, "license_type") or "unspecified"
+            get_release_manifest_str_field(model_id, "license_type") or "unspecified"
             if check_manifest_field(model_id, "restrict_model_sharing")
             else None
         )

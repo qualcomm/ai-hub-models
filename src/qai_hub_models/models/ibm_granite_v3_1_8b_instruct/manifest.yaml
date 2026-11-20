@@ -23,4 +23,41 @@ supported_precisions:
 tags:
 - MODEL_TAG_LLM
 - MODEL_TAG_GENERATIVE_AI
+technical_details:
+- key: Context length
+  string_value: '4096'
+- key: Information about the model parts
+  string_value: Prompt Processor and Token Generator are split into 5 parts each. Each corresponding Prompt Processor and Token Generator part share weights.
+- key: Input sequence length for Prompt Processor
+  string_value: '128'
+- key: Minimum QNN SDK version required
+  string_value: '2.3'
+- key: Num of key-value heads
+  string_value: '8'
+- key: Precision
+  string_value: w4a16 + w8a16 (few layers)
+- key: Prompt processor input (other parts)
+  string_value: 128 tokens + KVCache initialized with pad token
+- key: Prompt processor input (part1)
+  string_value: 128 tokens
+- key: Prompt processor output (other parts)
+  string_value: 128 output tokens + KVCache for token generator
+- key: Prompt processor output (part1)
+  string_value: Embeddings output
+- key: Response Rate
+  string_value: Rate of response generation after the first response token.
+- key: Supported natural languages
+  string_value: English
+- key: Supported programming languages
+  string_value: The Granite code foundation models support 116 programming languages including Python, Javascript, Java, C++, Go, and Rust.
+- key: Token generator input (other parts)
+  string_value: 1 input token + past KVCache
+- key: Token generator input (part1)
+  string_value: 1 token
+- key: Token generator output (other parts)
+  string_value: 1 output token + KVCache for next iteration
+- key: Token generator output (part1)
+  string_value: Embeddings output
+- key: Use
+  string_value: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 use_case: MODEL_USE_CASE_TEXT_GENERATION

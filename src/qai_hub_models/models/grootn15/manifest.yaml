@@ -31,4 +31,11 @@ supported_precisions:
 tags:
 - MODEL_TAG_GENERATIVE_AI
 - MODEL_TAG_ROBOTICS
+technical_details:
+- key: Input
+  string_value: |
+    RGB camera frames (one or more views), a natural language task instruction and robot proprioceptive state (joint positions/velocities).
+- key: Output
+  string_value: |
+    Action chunk representing predicted joint commands over the next N timesteps, generated via diffusion denoising.
 use_case: MODEL_USE_CASE_ROBOTICS

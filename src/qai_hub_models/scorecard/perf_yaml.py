@@ -24,7 +24,7 @@ from google.protobuf.internal.containers import (
     RepeatedCompositeFieldContainer,
     RepeatedScalarFieldContainer,
 )
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 from qai_hub_models_cli.proto_helpers._common import (
     read_proto_yaml,
     write_proto_yaml,
@@ -59,7 +59,7 @@ def _similar_device_names() -> frozenset[str]:
 MIXED_PRECISIONS = frozenset({Precision.mixed, Precision.mixed_with_float})
 
 
-def _entry_sort_key(entry: perf_pb2.ModelPerf.PerformanceDetails) -> tuple:
+def _entry_sort_key(entry: model_perf_pb2.ModelPerf.PerformanceDetails) -> tuple:
     return (entry.precision, entry.component, entry.device, entry.runtime)
 
 
@@ -83,7 +83,7 @@ class QAIHMModelPerf:
 
         @classmethod
         def from_details(
-            cls, details: perf_pb2.ModelPerf.PerformanceDetails
+            cls, details: model_perf_pb2.ModelPerf.PerformanceDetails
         ) -> QAIHMModelPerf.Key:
             """The key an entry's own precision, component, device and runtime identify."""
             return cls(
@@ -94,10 +94,10 @@ class QAIHMModelPerf:
             )
 
         def stamp(
-            self, details: perf_pb2.ModelPerf.PerformanceDetails
-        ) -> perf_pb2.ModelPerf.PerformanceDetails:
+            self, details: model_perf_pb2.ModelPerf.PerformanceDetails
+        ) -> model_perf_pb2.ModelPerf.PerformanceDetails:
             """A copy of ``details`` with this key's fields set."""
-            out = perf_pb2.ModelPerf.PerformanceDetails()
+            out = model_perf_pb2.ModelPerf.PerformanceDetails()
             out.CopyFrom(details)
             out.precision = precision_to_proto(self.precision)
             out.component = self.component
@@ -105,11 +105,13 @@ class QAIHMModelPerf:
             out.runtime = runtime_to_proto(self.path.runtime)
             return out
 
-    def __init__(self, model_id: str, proto: perf_pb2.ModelPerf | None = None) -> None:
+    def __init__(
+        self, model_id: str, proto: model_perf_pb2.ModelPerf | None = None
+    ) -> None:
         self.model_id = model_id
-        self._proto = proto if proto is not None else perf_pb2.ModelPerf()
+        self._proto = proto if proto is not None else model_perf_pb2.ModelPerf()
         self._entries: dict[
-            QAIHMModelPerf.Key, perf_pb2.ModelPerf.PerformanceDetails
+            QAIHMModelPerf.Key, model_perf_pb2.ModelPerf.PerformanceDetails
         ] = {}
         self._reindex()
 
@@ -125,7 +127,7 @@ class QAIHMModelPerf:
     @property
     def entries(
         self,
-    ) -> Mapping[QAIHMModelPerf.Key, perf_pb2.ModelPerf.PerformanceDetails]:
+    ) -> Mapping[QAIHMModelPerf.Key, model_perf_pb2.ModelPerf.PerformanceDetails]:
         """Read-only view of every entry, keyed by the ``Key`` that identifies it."""
         return MappingProxyType(self._entries)
 
@@ -159,15 +161,15 @@ class QAIHMModelPerf:
             real_chipset is added to ``supported_chipsets`` whenever the similar
             device lands in ``supported_devices``.
         """
-        groups: dict[tuple[int, str], list[perf_pb2.ModelPerf.PerformanceDetails]] = (
-            defaultdict(list)
-        )
+        groups: dict[
+            tuple[int, str], list[model_perf_pb2.ModelPerf.PerformanceDetails]
+        ] = defaultdict(list)
         for entry in self._proto.performance_metrics:
             groups[(entry.precision, entry.component)].append(entry)
 
-        new_entries: list[perf_pb2.ModelPerf.PerformanceDetails] = []
+        new_entries: list[model_perf_pb2.ModelPerf.PerformanceDetails] = []
         for entries in groups.values():
-            by_device: dict[str, list[perf_pb2.ModelPerf.PerformanceDetails]] = (
+            by_device: dict[str, list[model_perf_pb2.ModelPerf.PerformanceDetails]] = (
                 defaultdict(list)
             )
             for entry in entries:
@@ -183,7 +185,7 @@ class QAIHMModelPerf:
                         continue
                     copies = []
                     for entry in by_device[name]:
-                        entry_copy = perf_pb2.ModelPerf.PerformanceDetails()
+                        entry_copy = model_perf_pb2.ModelPerf.PerformanceDetails()
                         entry_copy.CopyFrom(entry)
                         entry_copy.device = unsupported_name
                         copies.append(entry_copy)
@@ -250,12 +252,12 @@ class QAIHMModelPerf:
         )
 
     def _set_entries(
-        self, entries: Iterable[perf_pb2.ModelPerf.PerformanceDetails]
+        self, entries: Iterable[model_perf_pb2.ModelPerf.PerformanceDetails]
     ) -> None:
         """Replace all entries with copies of ``entries`` (which may alias the current ones)."""
         copies = []
         for entry in entries:
-            entry_copy = perf_pb2.ModelPerf.PerformanceDetails()
+            entry_copy = model_perf_pb2.ModelPerf.PerformanceDetails()
             entry_copy.CopyFrom(entry)
             copies.append(entry_copy)
         del self._proto.performance_metrics[:]
@@ -281,11 +283,11 @@ class QAIHMModelPerf:
 
     def get_or_create_entry(
         self, key: QAIHMModelPerf.Key
-    ) -> perf_pb2.ModelPerf.PerformanceDetails:
+    ) -> model_perf_pb2.ModelPerf.PerformanceDetails:
         if (entry := self._entries.get(key)) is not None:
             return entry
         metrics: RepeatedCompositeFieldContainer[
-            perf_pb2.ModelPerf.PerformanceDetails
+            model_perf_pb2.ModelPerf.PerformanceDetails
         ] = self._proto.performance_metrics
         entry = metrics.add(
             precision=precision_to_proto(key.precision),
@@ -298,9 +300,9 @@ class QAIHMModelPerf:
 
     def update_entry(
         self,
-        details: perf_pb2.ModelPerf.PerformanceDetails,
+        details: model_perf_pb2.ModelPerf.PerformanceDetails,
         component_precision: Precision | None = None,
-    ) -> perf_pb2.ModelPerf.PerformanceDetails:
+    ) -> model_perf_pb2.ModelPerf.PerformanceDetails:
         """
         Set the entry that ``details`` identifies to ``details``.
 
@@ -319,7 +321,7 @@ class QAIHMModelPerf:
 
         Returns
         -------
-        entry : perf_pb2.ModelPerf.PerformanceDetails
+        entry : model_perf_pb2.ModelPerf.PerformanceDetails
             The entry that was added or replaced.
 
         Raises
@@ -434,9 +436,9 @@ class QAIHMModelPerf:
         self.to_yaml(out)
         return out
 
-    def to_proto(self) -> perf_pb2.ModelPerf:
+    def to_proto(self) -> model_perf_pb2.ModelPerf:
         """A copy of the underlying ``ModelPerf`` proto."""
-        out = perf_pb2.ModelPerf()
+        out = model_perf_pb2.ModelPerf()
         out.CopyFrom(self._proto)
         return out
 
@@ -445,7 +447,7 @@ class QAIHMModelPerf:
         aihm_version: str,
         model_id: str,
         exclude_similar_devices: bool = True,
-    ) -> perf_pb2.ModelPerf:
+    ) -> model_perf_pb2.ModelPerf:
         """
         Build a copy of the proto stamped with the release version and model id.
 
@@ -486,7 +488,7 @@ class QAIHMModelPerf:
             not os.path.exists(path) or os.path.getsize(path) == 0
         ):
             return cls(model_id)
-        return cls(model_id, read_proto_yaml(path, perf_pb2.ModelPerf))
+        return cls(model_id, read_proto_yaml(path, model_perf_pb2.ModelPerf))
 
     def to_yaml(self, path: str | os.PathLike) -> bool:
         """

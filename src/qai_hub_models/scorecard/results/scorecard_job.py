@@ -11,7 +11,7 @@ from typing import Any, Generic, TypeVar, cast
 
 import qai_hub as hub
 from qai_hub.public_rest_api import DatasetEntries
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 from qai_hub_models_cli.proto.shared import range_pb2
 
 from qai_hub_models.configs.tool_versions import ToolVersions
@@ -29,7 +29,7 @@ ScorecardJobTypeVar = TypeVar("ScorecardJobTypeVar", bound="ScorecardJob")
 
 
 def _primary_compute_unit(
-    layer_counts: perf_pb2.ModelPerf.PerfMetrics.LayerCounts,
+    layer_counts: model_perf_pb2.ModelPerf.PerfMetrics.LayerCounts,
 ) -> str:
     """The compute unit running the most layers ("null" if there are none)."""
     if layer_counts.npu == 0 and layer_counts.gpu == 0 and layer_counts.cpu == 0:
@@ -183,7 +183,7 @@ class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
         return float(self.profile_results["execution_summary"]["warm_load_time"] / 1000)
 
     @cached_property
-    def layer_counts(self) -> perf_pb2.ModelPerf.PerfMetrics.LayerCounts:
+    def layer_counts(self) -> model_perf_pb2.ModelPerf.PerfMetrics.LayerCounts:
         """Count layers per compute unit."""
 
         def _count_unit(unit: str) -> int:
@@ -194,7 +194,7 @@ class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
             )
 
         npu, gpu, cpu = _count_unit("NPU"), _count_unit("GPU"), _count_unit("CPU")
-        return perf_pb2.ModelPerf.PerfMetrics.LayerCounts(
+        return model_perf_pb2.ModelPerf.PerfMetrics.LayerCounts(
             total=npu + gpu + cpu, npu=npu, gpu=gpu, cpu=cpu
         )
 
@@ -210,20 +210,20 @@ class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
         )
 
     @cached_property
-    def performance_metrics(self) -> perf_pb2.ModelPerf.PerformanceDetails:
-        details = perf_pb2.ModelPerf.PerformanceDetails(
+    def performance_metrics(self) -> model_perf_pb2.ModelPerf.PerformanceDetails:
+        details = model_perf_pb2.ModelPerf.PerformanceDetails(
             tool_versions=self.tool_versions.to_proto(),
         )
         if self.job_id is not None or self.job_status is not None:
             details.profile_job.CopyFrom(
-                perf_pb2.ModelPerf.ProfileJob(
+                model_perf_pb2.ModelPerf.ProfileJob(
                     id=self.job_id or "", status=self.job_status or ""
                 )
             )
         if self.success:
             layer_counts = self.layer_counts
             details.metrics.CopyFrom(
-                perf_pb2.ModelPerf.PerfMetrics(
+                model_perf_pb2.ModelPerf.PerfMetrics(
                     inference_time_milliseconds=self.inference_time_milliseconds,
                     estimated_peak_memory_range_mb=self.estimated_peak_memory_range_mb,
                     primary_compute_unit=_primary_compute_unit(layer_counts),

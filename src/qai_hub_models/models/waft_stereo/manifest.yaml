@@ -41,6 +41,27 @@ source_repo: https://github.com/princeton-vl/WAFT-Stereo
 supported_precisions:
 - PRECISION_FLOAT
 - PRECISION_MIXED_WITH_FLOAT
+technical_details:
+- key: Input
+  string_value: Rectified stereo pair — left and right RGB images
+- key: Input resolution
+  string_value: 240x320
+- key: Model checkpoint
+  string_value: WAFT-Stereo SynLarge DAv2S-4 (DAv2S-4.pth)
+- key: Model size (classification) (float)
+  string_value: 98.2 MB
+- key: Model size (classification) (mixed_with_float)
+  string_value: 27.6 MB
+- key: Model size (encoder) (float)
+  string_value: 177 MB
+- key: Model size (encoder) (mixed_with_float)
+  string_value: 53.7 MB
+- key: Model size (regression) (float)
+  string_value: 262 MB
+- key: Model size (regression) (mixed_with_float)
+  string_value: 262 MB
+- key: Output
+  string_value: Disparity map
 templates:
 - corevision
 use_case: MODEL_USE_CASE_DEPTH_ESTIMATION

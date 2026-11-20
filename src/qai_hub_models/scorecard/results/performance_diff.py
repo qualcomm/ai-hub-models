@@ -11,7 +11,7 @@ from typing import Any, NamedTuple
 
 from prettytable import PrettyTable
 from pydantic import ConfigDict, Field, model_validator
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
@@ -294,7 +294,7 @@ class PerformanceDiff:
             if (prec, comp) in shared_components and not self._is_excluded(device)
         )
 
-        no_entry = perf_pb2.ModelPerf.PerformanceDetails()
+        no_entry = model_perf_pb2.ModelPerf.PerformanceDetails()
         for key in previous_entries.keys() | new_entries.keys():
             prec, comp, device = key.precision, key.component, key.device
             if self._is_excluded(device) or (prec, comp, device) not in shared_devices:

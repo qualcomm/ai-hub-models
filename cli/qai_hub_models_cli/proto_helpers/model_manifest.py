@@ -9,17 +9,17 @@ from pathlib import Path
 
 from packaging.version import Version
 
-from qai_hub_models_cli.proto.info_pb2 import ModelInfo
+from qai_hub_models_cli.proto.model_manifest_pb2 import ModelManifest
 from qai_hub_models_cli.proto_helpers._common import fetch_model_proto
 from qai_hub_models_cli.versions import CURRENT_VERSION
 
 
 @functools.lru_cache(maxsize=1)
-def get_model_info(
+def get_model_manifest(
     model: str,
     version: Version = CURRENT_VERSION,
     local_path: Path | None = None,
-) -> ModelInfo:
+) -> ModelManifest:
     """
     Fetch and cache the model info protobuf for a given model.
 
@@ -37,7 +37,7 @@ def get_model_info(
 
     Returns
     -------
-    ModelInfo
+    ModelManifest
         Parsed model info protobuf containing metadata such as name,
         description, domain, use case, tags, and license.
 
@@ -46,12 +46,13 @@ def get_model_info(
     KeyError
         If *model* is not found in the manifest for *version*.
     """
+    proto_name = "info" if version <= Version("0.67.0") else "manifest"
     return fetch_model_proto(
         model,
         version,
-        ModelInfo,
-        cache_filename="info.pb",
-        manifest_url_field="info",
-        source_getter="get_info_proto",
+        ModelManifest,
+        cache_filename=f"{proto_name}.pb",
+        manifest_url_field=proto_name,
+        source_getter="get_model_manifest_proto",
         local_path=local_path,
     )

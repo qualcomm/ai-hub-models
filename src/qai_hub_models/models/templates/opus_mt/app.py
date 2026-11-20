@@ -611,7 +611,7 @@ class OpusMTApp(CollectionAppQuantizeProtocol):
                 print(f"Error during translation: {e}")
                 print("Please try again.")
 
-    def get_model_info(self) -> dict[str, Any]:
+    def get_model_manifest(self) -> dict[str, Any]:
         """
         Get information about the loaded model.
 

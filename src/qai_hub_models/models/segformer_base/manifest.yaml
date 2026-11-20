@@ -23,6 +23,21 @@ supported_precisions:
 - PRECISION_W8A8
 tags:
 - MODEL_TAG_REAL_TIME
+technical_details:
+- key: Input resolution
+  string_value: 512x512
+- key: Model checkpoint
+  string_value: nvidia/segformer-b0-finetuned-ade-512-512
+- key: Model size (float)
+  string_value: 14.4 MB
+- key: Model size (w8a16)
+  string_value: 4.57 MB
+- key: Model size (w8a8)
+  string_value: 3.90 MB
+- key: Number of output classes
+  string_value: '150'
+- key: Number of parameters
+  string_value: 3.75M
 templates:
 - corevision
 - segmentation

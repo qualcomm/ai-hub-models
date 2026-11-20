@@ -12,7 +12,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import ruamel.yaml
 from google.protobuf.json_format import Parse
-from qai_hub_models_cli.proto import manifest_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2, release_manifest_pb2
+from qai_hub_models_cli.proto_helpers._common import read_proto_yaml
 
 from qai_hub_models import Precision
 from qai_hub_models._version import __version__
@@ -145,7 +146,17 @@ def test_cmd_website(output_dir: Path) -> None:
     for model_id in sorted(SAMPLE_MODELS):
         model_dir = output_dir / "models" / model_id
         assert model_dir.exists()
-        assert (model_dir / "info.yaml").exists()
+        assert not (model_dir / "info.yaml").exists()
+
+        internal_manifest = read_proto_yaml(
+            model_dir / "internal_manifest.yaml", model_manifest_pb2.ModelManifest
+        )
+        assert internal_manifest.id == model_id
+        assert internal_manifest.aihm_version == __version__
+        assert (
+            internal_manifest._internal.status
+            == model_manifest_pb2.ModelManifest.Internal.MODEL_STATUS_PUBLISHED
+        )
 
         release_assets_yaml = model_dir / "release-assets.yaml"
         if release_assets_yaml.exists():
@@ -182,7 +193,7 @@ def test_cmd_aws(output_dir: Path) -> None:
         assert manifest_pb.exists()
 
         for manifest_path, ext in [(manifest_json, ".json"), (manifest_pb, ".pb")]:
-            manifest = manifest_pb2.ReleaseManifest()
+            manifest = release_manifest_pb2.ReleaseManifest()
             if ext == ".json":
                 Parse(manifest_path.read_text(), manifest)
             else:
@@ -198,13 +209,33 @@ def test_cmd_aws(output_dir: Path) -> None:
             for entry in manifest.models:
                 assert entry.display_name
                 assert entry.domain
-                assert entry.manifest_urls.info.endswith(f"/info{ext}")
+                assert entry.manifest_urls.manifest.endswith(f"/manifest{ext}")
+                if variant == "internal":
+                    assert entry.manifest_urls.internal_manifest.endswith(
+                        f"/internal_manifest{ext}"
+                    )
+                else:
+                    assert not entry.manifest_urls.internal_manifest
 
         for model_id in sorted(SAMPLE_MODELS):
             model_dir = variant_dir / "models" / model_id
             assert model_dir.exists()
-            assert (model_dir / "info.json").exists()
-            assert (model_dir / "info.pb").exists()
+            assert (model_dir / "manifest.json").exists()
+            assert (model_dir / "manifest.pb").exists()
+
+            internal_json = model_dir / "internal_manifest.json"
+            internal_pb = model_dir / "internal_manifest.pb"
+            if variant == "public":
+                assert not internal_json.exists()
+                assert not internal_pb.exists()
+            else:
+                from_pb = model_manifest_pb2.ModelManifest()
+                from_pb.ParseFromString(internal_pb.read_bytes())
+                from_json = model_manifest_pb2.ModelManifest()
+                Parse(internal_json.read_text(), from_json)
+                assert from_pb == from_json
+                assert from_pb.id == model_id
+                assert from_pb.HasField("_internal")
 
             release_assets_json = model_dir / "release-assets.json"
             if release_assets_json.exists():

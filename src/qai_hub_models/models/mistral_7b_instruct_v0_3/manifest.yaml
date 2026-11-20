@@ -23,6 +23,39 @@ supported_precisions:
 tags:
 - MODEL_TAG_LLM
 - MODEL_TAG_GENERATIVE_AI
+technical_details:
+- key: Context length
+  string_value: '4096'
+- key: Information about the model parts
+  string_value: Prompt Processor and Token Generator are split into 4 parts each. Each corresponding Prompt Processor and Token Generator part share weights.
+- key: Input sequence length for Prompt Processor
+  string_value: '128'
+- key: Minimum QNN SDK version required
+  string_value: 2.27.7
+- key: Num of key-value heads
+  string_value: '8'
+- key: Number of parameters
+  string_value: 7.3B
+- key: Precision
+  string_value: w4a16 + w8a16 (few layers)
+- key: Prompt processor input
+  string_value: 128 tokens + KVCache initialized with pad token
+- key: Prompt processor model size
+  string_value: 4.17 GB
+- key: Prompt processor output
+  string_value: 128 output tokens + KVCache for token generator
+- key: Response Rate
+  string_value: Rate of response generation after the first response token.
+- key: Supported languages
+  string_value: English.
+- key: Token generator input
+  string_value: 1 input token + past KVCache
+- key: Token generator model size
+  string_value: 4.17 GB
+- key: Token generator output
+  string_value: 1 output token + KVCache for next iteration
+- key: Use
+  string_value: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 templates:
 - llm
 use_case: MODEL_USE_CASE_TEXT_GENERATION

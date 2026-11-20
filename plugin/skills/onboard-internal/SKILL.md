@@ -85,8 +85,8 @@ and MUST satisfy all of the following:
   `has_animated_banner`, `has_static_banner`, `imsdk_supported`,
   `llm_details`, `model_maker_id`, `numerics_benchmark`,
   `private_perf_form_factors`, `related_models`, `status`,
-  `status_reason`, `technical_details`. Every in-tree model must have
-  this file.
+  `status_reason`. Every in-tree model must have this file.
+  `technical_details` lives in `manifest.yaml`.
 - `related_models` does not include the recipe's own id (no self-links).
 - **`status:` is required in `scorecard-config.yaml`** (it is rejected in
   `manifest.yaml`). The onboarding PR always ships with `status: pending`

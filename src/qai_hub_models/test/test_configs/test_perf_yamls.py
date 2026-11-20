@@ -5,7 +5,7 @@
 
 from pathlib import Path
 
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import ScorecardDevice
@@ -18,7 +18,7 @@ from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
 )
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.test.test_configs.manifest_path_check import (
-    get_manifest_support_violations,
+    get_release_manifest_support_violations,
 )
 from qai_hub_models.utils.path_helpers import MODEL_IDS
 
@@ -69,7 +69,7 @@ def test_perf_yaml() -> None:
                 components = {k.component for k in entries if k.precision == precision}
 
                 path_errors.extend(
-                    get_manifest_support_violations(
+                    get_release_manifest_support_violations(
                         manifest, "perf.yaml", precision, measured_paths
                     )
                 )
@@ -227,7 +227,7 @@ def test_apply_similar_devices_refreshes_stale_entry() -> None:
             if not refs:
                 continue
             for ref in refs:
-                stale = perf_pb2.ModelPerf.PerformanceDetails()
+                stale = model_perf_pb2.ModelPerf.PerformanceDetails()
                 stale.CopyFrom(ref)
                 stale.device = similar_name
                 stale.metrics.inference_time_milliseconds = stale_time

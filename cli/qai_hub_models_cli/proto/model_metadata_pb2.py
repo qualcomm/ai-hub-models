@@ -16,7 +16,7 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-from qai_hub_models_cli.proto import info_pb2 as info__pb2
+from qai_hub_models_cli.proto import model_manifest_pb2 as model__manifest__pb2
 from qai_hub_models_cli.proto import platform_pb2 as platform__pb2
 from qai_hub_models_cli.proto.shared import precision_pb2 as shared_dot_precision__pb2
 from qai_hub_models_cli.proto.shared import runtime_pb2 as shared_dot_runtime__pb2
@@ -24,7 +24,7 @@ from qai_hub_models_cli.proto.shared import tensor_spec_pb2 as shared_dot_tensor
 from qai_hub_models_cli.proto.shared import tool_versions_pb2 as shared_dot_tool__versions__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14model_metadata.proto\x12\x05qaihm\x1a\ninfo.proto\x1a\x0eplatform.proto\x1a\x16shared/precision.proto\x1a\x14shared/runtime.proto\x1a\x18shared/tensor_spec.proto\x1a\x1ashared/tool_versions.proto\"l\n\x11ModelFileMetadata\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12!\n\x06inputs\x18\x02 \x03(\x0b\x32\x11.qaihm.TensorSpec\x12\"\n\x07outputs\x18\x03 \x03(\x0b\x32\x11.qaihm.TensorSpec\"B\n\x19SupplementaryFileMetadata\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\"\xbd\x02\n\x11GenieChatTemplate\x12\x15\n\rglobal_prefix\x18\x01 \x01(\t\x12\x15\n\rsystem_prefix\x18\x02 \x01(\t\x12\x15\n\rsystem_suffix\x18\x03 \x01(\t\x12\x13\n\x0buser_prefix\x18\x04 \x01(\t\x12\x13\n\x0buser_suffix\x18\x05 \x01(\t\x12\x18\n\x10\x61ssistant_prefix\x18\x06 \x01(\t\x12\x18\n\x10\x61ssistant_suffix\x18\x07 \x01(\t\x12\x14\n\x0cvision_start\x18\x08 \x01(\t\x12\x12\n\nvision_end\x18\t \x01(\t\x12\x1d\n\x15\x64\x65\x66\x61ult_system_prompt\x18\n \x01(\t\x12\x13\n\x0bthink_start\x18\x0b \x01(\t\x12\x11\n\tthink_end\x18\x0c \x01(\t\x12\x14\n\x0cthink_header\x18\r \x01(\t\"\xeb\x07\n\rGenieMetadata\x12/\n\rchat_template\x18\x01 \x01(\x0b\x32\x18.qaihm.GenieChatTemplate\x12\x17\n\x0f\x63ontext_lengths\x18\x02 \x03(\x05\x12\x1a\n\x12supports_streaming\x18\x03 \x01(\x08\x12\x17\n\x0fsupports_vision\x18\x04 \x01(\x08\x12\x39\n\x08pipeline\x18\x05 \x01(\x0b\x32\".qaihm.GenieMetadata.GeniePipelineH\x00\x88\x01\x01\x12<\n\rsample_inputs\x18\x06 \x03(\x0b\x32%.qaihm.GenieMetadata.GenieSampleInput\x12P\n\x14vision_preprocessing\x18\x07 \x01(\x0b\x32-.qaihm.GenieMetadata.GenieVisionPreprocessingH\x01\x88\x01\x01\x12\x19\n\x11supports_thinking\x18\x08 \x01(\x08\x1a\xc9\x02\n\rGeniePipeline\x12<\n\x05nodes\x18\x01 \x03(\x0b\x32-.qaihm.GenieMetadata.GeniePipeline.NodesEntry\x12O\n\x0b\x63onnections\x18\x02 \x03(\x0b\x32:.qaihm.GenieMetadata.GeniePipeline.GeniePipelineConnection\x1a,\n\nNodesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a{\n\x17GeniePipelineConnection\x12\x15\n\rproducer_node\x18\x01 \x01(\t\x12\x18\n\x10producer_node_io\x18\x02 \x01(\t\x12\x15\n\rconsumer_node\x18\x03 \x01(\t\x12\x18\n\x10\x63onsumer_node_io\x18\x04 \x01(\t\x1a?\n\x10GenieSampleInput\x12\x0c\n\x04node\x18\x01 \x01(\t\x12\x0f\n\x07node_io\x18\x02 \x01(\t\x12\x0c\n\x04\x66ile\x18\x03 \x01(\t\x1a\xc1\x01\n\x18GenieVisionPreprocessing\x12\x13\n\x0bimage_width\x18\x01 \x01(\x05\x12\x14\n\x0cimage_height\x18\x02 \x01(\x05\x12\x12\n\npatch_size\x18\x03 \x01(\x05\x12\x1b\n\x13temporal_patch_size\x18\x04 \x01(\x05\x12\x1a\n\x12spatial_merge_size\x18\x05 \x01(\x05\x12\x16\n\x0enormalize_mean\x18\x06 \x03(\x01\x12\x15\n\rnormalize_std\x18\x07 \x03(\x01\x42\x0b\n\t_pipelineB\x17\n\x15_vision_preprocessing\"`\n\x11TokenizerMetadata\x12\x12\n\nvocab_file\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x12\n\nmax_length\x18\x03 \x01(\x05\x12\x15\n\rdo_lower_case\x18\x04 \x01(\x08\"\x92\x04\n\rModelMetadata\x12\x14\n\x0c\x61ihm_version\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x02 \x01(\t\x12\x12\n\nmodel_name\x18\x03 \x01(\t\x12\x1f\n\x07runtime\x18\x04 \x01(\x0e\x32\x0e.qaihm.Runtime\x12#\n\tprecision\x18\x05 \x01(\x0e\x32\x10.qaihm.Precision\x12*\n\rtool_versions\x18\x06 \x01(\x0b\x32\x13.qaihm.ToolVersions\x12-\n\x0bmodel_files\x18\x07 \x03(\x0b\x32\x18.qaihm.ModelFileMetadata\x12=\n\x13supplementary_files\x18\x08 \x03(\x0b\x32 .qaihm.SupplementaryFileMetadata\x12(\n\x05genie\x18\t \x01(\x0b\x32\x14.qaihm.GenieMetadataH\x00\x88\x01\x01\x12\x33\n\x12\x63hipset_attributes\x18\n \x01(\x0b\x32\x12.qaihm.ChipsetInfoH\x01\x88\x01\x01\x12\x30\n\ttokenizer\x18\x0b \x01(\x0b\x32\x18.qaihm.TokenizerMetadataH\x02\x88\x01\x01\x12%\n\x08use_case\x18\x0c \x01(\x0e\x32\x13.qaihm.ModelUseCaseB\x08\n\x06_genieB\x15\n\x13_chipset_attributesB\x0c\n\n_tokenizerb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14model_metadata.proto\x12\x05qaihm\x1a\x14model_manifest.proto\x1a\x0eplatform.proto\x1a\x16shared/precision.proto\x1a\x14shared/runtime.proto\x1a\x18shared/tensor_spec.proto\x1a\x1ashared/tool_versions.proto\"l\n\x11ModelFileMetadata\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12!\n\x06inputs\x18\x02 \x03(\x0b\x32\x11.qaihm.TensorSpec\x12\"\n\x07outputs\x18\x03 \x03(\x0b\x32\x11.qaihm.TensorSpec\"B\n\x19SupplementaryFileMetadata\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\"\xbd\x02\n\x11GenieChatTemplate\x12\x15\n\rglobal_prefix\x18\x01 \x01(\t\x12\x15\n\rsystem_prefix\x18\x02 \x01(\t\x12\x15\n\rsystem_suffix\x18\x03 \x01(\t\x12\x13\n\x0buser_prefix\x18\x04 \x01(\t\x12\x13\n\x0buser_suffix\x18\x05 \x01(\t\x12\x18\n\x10\x61ssistant_prefix\x18\x06 \x01(\t\x12\x18\n\x10\x61ssistant_suffix\x18\x07 \x01(\t\x12\x14\n\x0cvision_start\x18\x08 \x01(\t\x12\x12\n\nvision_end\x18\t \x01(\t\x12\x1d\n\x15\x64\x65\x66\x61ult_system_prompt\x18\n \x01(\t\x12\x13\n\x0bthink_start\x18\x0b \x01(\t\x12\x11\n\tthink_end\x18\x0c \x01(\t\x12\x14\n\x0cthink_header\x18\r \x01(\t\"\xeb\x07\n\rGenieMetadata\x12/\n\rchat_template\x18\x01 \x01(\x0b\x32\x18.qaihm.GenieChatTemplate\x12\x17\n\x0f\x63ontext_lengths\x18\x02 \x03(\x05\x12\x1a\n\x12supports_streaming\x18\x03 \x01(\x08\x12\x17\n\x0fsupports_vision\x18\x04 \x01(\x08\x12\x39\n\x08pipeline\x18\x05 \x01(\x0b\x32\".qaihm.GenieMetadata.GeniePipelineH\x00\x88\x01\x01\x12<\n\rsample_inputs\x18\x06 \x03(\x0b\x32%.qaihm.GenieMetadata.GenieSampleInput\x12P\n\x14vision_preprocessing\x18\x07 \x01(\x0b\x32-.qaihm.GenieMetadata.GenieVisionPreprocessingH\x01\x88\x01\x01\x12\x19\n\x11supports_thinking\x18\x08 \x01(\x08\x1a\xc9\x02\n\rGeniePipeline\x12<\n\x05nodes\x18\x01 \x03(\x0b\x32-.qaihm.GenieMetadata.GeniePipeline.NodesEntry\x12O\n\x0b\x63onnections\x18\x02 \x03(\x0b\x32:.qaihm.GenieMetadata.GeniePipeline.GeniePipelineConnection\x1a,\n\nNodesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a{\n\x17GeniePipelineConnection\x12\x15\n\rproducer_node\x18\x01 \x01(\t\x12\x18\n\x10producer_node_io\x18\x02 \x01(\t\x12\x15\n\rconsumer_node\x18\x03 \x01(\t\x12\x18\n\x10\x63onsumer_node_io\x18\x04 \x01(\t\x1a?\n\x10GenieSampleInput\x12\x0c\n\x04node\x18\x01 \x01(\t\x12\x0f\n\x07node_io\x18\x02 \x01(\t\x12\x0c\n\x04\x66ile\x18\x03 \x01(\t\x1a\xc1\x01\n\x18GenieVisionPreprocessing\x12\x13\n\x0bimage_width\x18\x01 \x01(\x05\x12\x14\n\x0cimage_height\x18\x02 \x01(\x05\x12\x12\n\npatch_size\x18\x03 \x01(\x05\x12\x1b\n\x13temporal_patch_size\x18\x04 \x01(\x05\x12\x1a\n\x12spatial_merge_size\x18\x05 \x01(\x05\x12\x16\n\x0enormalize_mean\x18\x06 \x03(\x01\x12\x15\n\rnormalize_std\x18\x07 \x03(\x01\x42\x0b\n\t_pipelineB\x17\n\x15_vision_preprocessing\"`\n\x11TokenizerMetadata\x12\x12\n\nvocab_file\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x12\n\nmax_length\x18\x03 \x01(\x05\x12\x15\n\rdo_lower_case\x18\x04 \x01(\x08\"\x92\x04\n\rModelMetadata\x12\x14\n\x0c\x61ihm_version\x18\x01 \x01(\t\x12\x10\n\x08model_id\x18\x02 \x01(\t\x12\x12\n\nmodel_name\x18\x03 \x01(\t\x12\x1f\n\x07runtime\x18\x04 \x01(\x0e\x32\x0e.qaihm.Runtime\x12#\n\tprecision\x18\x05 \x01(\x0e\x32\x10.qaihm.Precision\x12*\n\rtool_versions\x18\x06 \x01(\x0b\x32\x13.qaihm.ToolVersions\x12-\n\x0bmodel_files\x18\x07 \x03(\x0b\x32\x18.qaihm.ModelFileMetadata\x12=\n\x13supplementary_files\x18\x08 \x03(\x0b\x32 .qaihm.SupplementaryFileMetadata\x12(\n\x05genie\x18\t \x01(\x0b\x32\x14.qaihm.GenieMetadataH\x00\x88\x01\x01\x12\x33\n\x12\x63hipset_attributes\x18\n \x01(\x0b\x32\x12.qaihm.ChipsetInfoH\x01\x88\x01\x01\x12\x30\n\ttokenizer\x18\x0b \x01(\x0b\x32\x18.qaihm.TokenizerMetadataH\x02\x88\x01\x01\x12%\n\x08use_case\x18\x0c \x01(\x0e\x32\x13.qaihm.ModelUseCaseB\x08\n\x06_genieB\x15\n\x13_chipset_attributesB\x0c\n\n_tokenizerb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,26 +33,26 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._options = None
   _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._serialized_options = b'8\001'
-  _globals['_MODELFILEMETADATA']._serialized_start=159
-  _globals['_MODELFILEMETADATA']._serialized_end=267
-  _globals['_SUPPLEMENTARYFILEMETADATA']._serialized_start=269
-  _globals['_SUPPLEMENTARYFILEMETADATA']._serialized_end=335
-  _globals['_GENIECHATTEMPLATE']._serialized_start=338
-  _globals['_GENIECHATTEMPLATE']._serialized_end=655
-  _globals['_GENIEMETADATA']._serialized_start=658
-  _globals['_GENIEMETADATA']._serialized_end=1661
-  _globals['_GENIEMETADATA_GENIEPIPELINE']._serialized_start=1033
-  _globals['_GENIEMETADATA_GENIEPIPELINE']._serialized_end=1362
-  _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._serialized_start=1193
-  _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._serialized_end=1237
-  _globals['_GENIEMETADATA_GENIEPIPELINE_GENIEPIPELINECONNECTION']._serialized_start=1239
-  _globals['_GENIEMETADATA_GENIEPIPELINE_GENIEPIPELINECONNECTION']._serialized_end=1362
-  _globals['_GENIEMETADATA_GENIESAMPLEINPUT']._serialized_start=1364
-  _globals['_GENIEMETADATA_GENIESAMPLEINPUT']._serialized_end=1427
-  _globals['_GENIEMETADATA_GENIEVISIONPREPROCESSING']._serialized_start=1430
-  _globals['_GENIEMETADATA_GENIEVISIONPREPROCESSING']._serialized_end=1623
-  _globals['_TOKENIZERMETADATA']._serialized_start=1663
-  _globals['_TOKENIZERMETADATA']._serialized_end=1759
-  _globals['_MODELMETADATA']._serialized_start=1762
-  _globals['_MODELMETADATA']._serialized_end=2292
+  _globals['_MODELFILEMETADATA']._serialized_start=169
+  _globals['_MODELFILEMETADATA']._serialized_end=277
+  _globals['_SUPPLEMENTARYFILEMETADATA']._serialized_start=279
+  _globals['_SUPPLEMENTARYFILEMETADATA']._serialized_end=345
+  _globals['_GENIECHATTEMPLATE']._serialized_start=348
+  _globals['_GENIECHATTEMPLATE']._serialized_end=665
+  _globals['_GENIEMETADATA']._serialized_start=668
+  _globals['_GENIEMETADATA']._serialized_end=1671
+  _globals['_GENIEMETADATA_GENIEPIPELINE']._serialized_start=1043
+  _globals['_GENIEMETADATA_GENIEPIPELINE']._serialized_end=1372
+  _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._serialized_start=1203
+  _globals['_GENIEMETADATA_GENIEPIPELINE_NODESENTRY']._serialized_end=1247
+  _globals['_GENIEMETADATA_GENIEPIPELINE_GENIEPIPELINECONNECTION']._serialized_start=1249
+  _globals['_GENIEMETADATA_GENIEPIPELINE_GENIEPIPELINECONNECTION']._serialized_end=1372
+  _globals['_GENIEMETADATA_GENIESAMPLEINPUT']._serialized_start=1374
+  _globals['_GENIEMETADATA_GENIESAMPLEINPUT']._serialized_end=1437
+  _globals['_GENIEMETADATA_GENIEVISIONPREPROCESSING']._serialized_start=1440
+  _globals['_GENIEMETADATA_GENIEVISIONPREPROCESSING']._serialized_end=1633
+  _globals['_TOKENIZERMETADATA']._serialized_start=1673
+  _globals['_TOKENIZERMETADATA']._serialized_end=1769
+  _globals['_MODELMETADATA']._serialized_start=1772
+  _globals['_MODELMETADATA']._serialized_end=2302
 # @@protoc_insertion_point(module_scope)

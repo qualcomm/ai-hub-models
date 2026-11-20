@@ -16,8 +16,8 @@ from typing import Any, Literal
 
 from google.protobuf.message import Message
 from mypy_boto3_s3.service_resource import Bucket
-from qai_hub_models_cli.proto import manifest_pb2
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto import release_manifest_pb2
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto_helpers._common import (
     write_proto_json,
     write_proto_yaml,
@@ -164,8 +164,18 @@ def _build_model_protos(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     written.extend(
-        _write_proto_multi(model_info.to_proto(aihm_version), output_dir / "info", fmts)
+        _write_proto_multi(
+            model_info.to_proto(aihm_version), output_dir / "manifest", fmts
+        )
     )
+    if internal:
+        written.extend(
+            _write_proto_multi(
+                model_info.to_internal_proto(aihm_version),
+                output_dir / "internal_manifest",
+                fmts,
+            )
+        )
 
     perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
     if not perf.empty:
@@ -274,14 +284,14 @@ def cmd_website(args: argparse.Namespace) -> None:
                         shutil.copy2(src, dst)
                     written += 1
 
-        # Derive info.yaml from manifest for the website
-        info_dst = model_dst / "info.yaml"
+        internal_manifest_dst = model_dst / "internal_manifest.yaml"
         if info.is_published:
-            info.to_website_info_yaml(info_dst)
+            _write_proto(
+                info.to_internal_proto(args.version),
+                internal_manifest_dst,
+                "yaml",
+            )
             written += 1
-        elif model_src.resolve() == model_dst.resolve() and info_dst.exists():
-            # Delete unpublished model's info.yaml in in-source builds
-            info_dst.unlink()
 
         if manifest.restrict_model_sharing or not info.is_published:
             dst_yml = model_dst / "release-assets.yaml"
@@ -336,7 +346,7 @@ def _manifest_filter_fields(
     Returns
     -------
     dict[str, Any]
-        Keyword arguments for ``ManifestModelEntry``.
+        Keyword arguments for ``ReleaseManifestModelEntry``.
     """
     assert manifest.use_case is not None
     precisions: set[Precision] = set(release_assets.precisions)
@@ -372,7 +382,8 @@ def _build_manifest(
     internal: bool = False,
 ) -> list[Path]:
     _STEM_TO_FIELD = [
-        ("info", "info"),
+        ("manifest", "manifest"),
+        ("internal_manifest", "internal_manifest"),
         ("perf", "perf"),
         ("numerics", "numerics"),
         ("release-assets", "release_assets"),
@@ -407,7 +418,7 @@ def _build_manifest(
     for fmt in fmts:
         ext = _EXT[fmt]
         platform_ref = os.path.join(global_s3_folder, f"platform{ext}")
-        manifest = manifest_pb2.ReleaseManifest(
+        manifest = release_manifest_pb2.ReleaseManifest(
             version=version,
             platform_url=f"s3://{QAIHM_PRIVATE_S3_BUCKET}/{platform_ref}"
             if internal
@@ -426,11 +437,13 @@ def _build_manifest(
                     url_kwargs[field] = os.path.join(s3_folder, f"{stem}{ext}")
             assert manifest_obj.domain is not None
             manifest.models.append(
-                manifest_pb2.ManifestModelEntry(
+                release_manifest_pb2.ReleaseManifestModelEntry(
                     id=model_id,
                     display_name=manifest_obj.name,
                     domain=domain_to_proto(manifest_obj.domain),
-                    manifest_urls=manifest_pb2.ModelManifestUrls(**url_kwargs),
+                    manifest_urls=release_manifest_pb2.ReleaseManifestModelUrls(
+                        **url_kwargs
+                    ),
                     **filter_fields,
                 )
             )

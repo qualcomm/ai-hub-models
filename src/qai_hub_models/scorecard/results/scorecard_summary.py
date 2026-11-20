@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Generic, final
 
 from qai_hub import JobType
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -160,8 +160,8 @@ class ScorecardJobSummary(Generic[ScorecardPathT]):
         details = (
             self.profile_job.performance_metrics
             if self.profile_job
-            else perf_pb2.ModelPerf.PerformanceDetails(
-                profile_job=perf_pb2.ModelPerf.ProfileJob(status="Failed")
+            else model_perf_pb2.ModelPerf.PerformanceDetails(
+                profile_job=model_perf_pb2.ModelPerf.ProfileJob(status="Failed")
             )
         )
         key = QAIHMModelPerf.Key(

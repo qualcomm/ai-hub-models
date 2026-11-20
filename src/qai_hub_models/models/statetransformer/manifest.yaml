@@ -19,6 +19,15 @@ post_pip_install_commands:
 - command: pip install git+https://github.com/motional/nuplan-devkit.git@d60b4cd2071de9bb041509c43f5226dd22f248c0#egg=nuplan_devkit
 tags:
 - MODEL_TAG_BU_AUTO
+technical_details:
+- key: Input resolution
+  string_value: 1x224x224x58, 1x224x224x58, 1x4x7
+- key: Model checkpoint
+  string_value: pretrained-mixtral-small
+- key: Model size (float)
+  string_value: 348 MB
+- key: Number of parameters
+  string_value: 90.7M
 templates:
 - corevision
 use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

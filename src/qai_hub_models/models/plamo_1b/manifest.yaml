@@ -19,4 +19,21 @@ supported_precisions:
 tags:
 - MODEL_TAG_LLM
 - MODEL_TAG_GENERATIVE_AI
+technical_details:
+- key: Context length
+  string_value: '4096'
+- key: Input sequence length for Prompt Processor
+  string_value: '128'
+- key: Minimum QNN SDK version required
+  string_value: 2.27.7
+- key: Number of parameters
+  string_value: 1B
+- key: Precision
+  string_value: w4a16 + w8a16 (few layers)
+- key: Response Rate
+  string_value: Rate of response generation after the first response token.
+- key: Supported languages
+  string_value: Japanese and English.
+- key: Use
+  string_value: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 use_case: MODEL_USE_CASE_TEXT_GENERATION

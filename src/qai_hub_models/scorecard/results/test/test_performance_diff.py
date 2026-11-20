@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.tool_versions import ToolVersions
@@ -35,9 +35,9 @@ COMPONENT_ID = "dummy_component"
 
 def _details(
     job_id: str, inference_time_milliseconds: float | None
-) -> perf_pb2.ModelPerf.PerformanceDetails:
-    details = perf_pb2.ModelPerf.PerformanceDetails(
-        profile_job=perf_pb2.ModelPerf.ProfileJob(id=job_id)
+) -> model_perf_pb2.ModelPerf.PerformanceDetails:
+    details = model_perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=model_perf_pb2.ModelPerf.ProfileJob(id=job_id)
     )
     if inference_time_milliseconds is not None:
         details.metrics.inference_time_milliseconds = inference_time_milliseconds

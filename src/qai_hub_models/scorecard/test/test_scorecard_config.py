@@ -44,7 +44,6 @@ WEBSITE_FIELDS = {
     "model_maker_id",
     "private_perf_form_factors",
     "related_models",
-    "technical_details",
 }
 
 # Regional Llama variants: test_split: llm, weekend_group: no_week. Never picked
@@ -147,8 +146,7 @@ def test_write_publish_status_edits_only_status_keys(tmp_path: Path) -> None:
     config.parent.mkdir()
     # Out-of-order keys and an explicit default, which a full re-dump would rewrite.
     config.write_text(
-        "technical_details:\n  b: 1\n  a: 2\nhas_animated_banner: false\n"
-        "status: published\n"
+        "has_animated_banner: false\nrelated_models:\n- b\n- a\nstatus: published\n"
     )
     with mock.patch(
         "qai_hub_models.scorecard.internal_config_yaml.SCORECARD_MODELS_ROOT",
@@ -156,13 +154,12 @@ def test_write_publish_status_edits_only_status_keys(tmp_path: Path) -> None:
     ):
         write_publish_status(model_id, MODEL_STATUS.PENDING, "no runtimes")
         assert config.read_text() == (
-            "technical_details:\n  b: 1\n  a: 2\nhas_animated_banner: false\n"
+            "has_animated_banner: false\nrelated_models:\n- b\n- a\n"
             "status: pending\nstatus_reason: no runtimes\n"
         )
         write_publish_status(model_id, MODEL_STATUS.PUBLISHED, None)
         assert config.read_text() == (
-            "technical_details:\n  b: 1\n  a: 2\nhas_animated_banner: false\n"
-            "status: published\n"
+            "has_animated_banner: false\nrelated_models:\n- b\n- a\nstatus: published\n"
         )
         with pytest.raises(ValueError, match="Unpublished models must set"):
             write_publish_status(model_id, MODEL_STATUS.UNPUBLISHED, None)

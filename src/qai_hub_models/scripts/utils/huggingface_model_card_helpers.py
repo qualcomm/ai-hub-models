@@ -314,7 +314,7 @@ def generate_hf_model_card(
             "hugging_face_metadata": string_stream.getvalue(),
             # Model info
             "use_case": str(manifest.use_case).lower().capitalize(),
-            "technical_details": internal_config.technical_details,
+            "technical_details": manifest.technical_details,
             "restrict_model_sharing": manifest.restrict_model_sharing,
             # Assets
             "static_image": ASSET_CONFIG.get_web_asset_url(

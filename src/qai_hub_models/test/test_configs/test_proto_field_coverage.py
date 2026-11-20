@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from google.protobuf.descriptor import Descriptor
 from qai_hub_models_cli.proto import (
-    info_pb2,
+    model_manifest_pb2,
     model_metadata_pb2,
-    numerics_pb2,
+    model_numerics_pb2,
+    model_release_assets_pb2,
     platform_pb2,
-    release_assets_pb2,
 )
 from qai_hub_models_cli.proto.shared import tensor_spec_pb2, tool_versions_pb2
 
@@ -180,48 +180,27 @@ class TestSharedFieldCoverage:
 
 
 # ---------------------------------------------------------------------------
-# info.proto
+# model_manifest.proto
 # ---------------------------------------------------------------------------
 
 
-# ModelInfo fields that come from internal-config.yaml rather than manifest.yaml.
-# Listed explicitly rather than imported from internal/model_info.py so the split
-# itself is pinned here: moving a field between the two files must edit this test.
-_INTERNAL_OWNED_INFO_FIELDS = {
-    "status",
-    "status_reason",
-    "applicable_scenarios",
-    "has_animated_banner",
-    "has_static_banner",
-    "imsdk_supported",
-    "llm_details",
-    "model_maker_id",
-    "private_perf_form_factors",
-    "related_models",
-    "technical_details",
-}
-
 # Still declared in the proto, but no longer carried by any YAML schema.
 _UNUSED_INFO_PROTO_FIELDS = {"dataset", "form_factors"}
-
-_ALL_INFO_PROTO_FIELDS = {f.name for f in info_pb2.ModelInfo.DESCRIPTOR.fields}
 
 
 class TestInfoFieldCoverage:
     def test_model_info_manifest_half(self) -> None:
         _check_coverage(
             QAIHMModelManifest,
-            info_pb2.ModelInfo.DESCRIPTOR,
+            model_manifest_pb2.ModelManifest.DESCRIPTOR,
             pydantic_field_renames={"license": "license_url"},
-            proto_only={"aihm_version"}
-            | _INTERNAL_OWNED_INFO_FIELDS
-            | _UNUSED_INFO_PROTO_FIELDS,
+            proto_only={"aihm_version", "_internal"} | _UNUSED_INFO_PROTO_FIELDS,
         )
 
     def test_model_info_internal_half(self) -> None:
         _check_coverage(
             QAIHMModelInternalConfig,
-            info_pb2.ModelInfo.DESCRIPTOR,
+            model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR,
             pydantic_only={
                 # Scorecard / CI knobs. Never reach the website feed.
                 "downloadable_llm_asset",
@@ -232,24 +211,21 @@ class TestInfoFieldCoverage:
                 "skip_export",
                 "skip_hub_tests_and_scorecard",
                 "skip_scorecard",
-                "standalone_components",
                 "test_split",
                 "weekend_group",
             },
-            proto_only=(_ALL_INFO_PROTO_FIELDS - _INTERNAL_OWNED_INFO_FIELDS)
-            | _UNUSED_INFO_PROTO_FIELDS,
         )
 
     def test_llm_details(self) -> None:
         _check_coverage(
             LLMDetails,
-            info_pb2.ModelInfo.LLMDetails.DESCRIPTOR,
+            model_manifest_pb2.ModelManifest.Internal.LLMDetails.DESCRIPTOR,
         )
 
     def test_numerics_accuracy_benchmark(self) -> None:
         _check_coverage(
             NumericsAccuracyBenchmark,
-            numerics_pb2.NumericsAccuracyBenchmark.DESCRIPTOR,
+            model_numerics_pb2.NumericsAccuracyBenchmark.DESCRIPTOR,
         )
 
 
@@ -275,7 +251,7 @@ class TestPlatformFieldCoverage:
 
 
 # ---------------------------------------------------------------------------
-# numerics.proto
+# model_numerics.proto
 # ---------------------------------------------------------------------------
 
 
@@ -283,20 +259,20 @@ class TestNumericsFieldCoverage:
     def test_numerics_metric(self) -> None:
         _check_coverage(
             QAIHMModelNumerics.MetricDetails,
-            numerics_pb2.ModelNumerics.NumericsMetric.DESCRIPTOR,
+            model_numerics_pb2.ModelNumerics.NumericsMetric.DESCRIPTOR,
             pydantic_field_renames={"device_metric": "device_metrics"},
         )
 
     def test_device_numerics_metrics(self) -> None:
         _check_coverage(
             QAIHMModelNumerics.DeviceDetails,
-            numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics.DESCRIPTOR,
+            model_numerics_pb2.ModelNumerics.NumericsMetric.DeviceNumericsMetrics.DESCRIPTOR,
             proto_only={"device", "precision", "runtime", "tool_versions"},
         )
 
 
 # ---------------------------------------------------------------------------
-# release_assets.proto
+# model_release_assets.proto
 # ---------------------------------------------------------------------------
 
 
@@ -304,6 +280,6 @@ class TestReleaseAssetsFieldCoverage:
     def test_asset_details(self) -> None:
         _check_coverage(
             QAIHMModelReleaseAssets.AssetDetails,
-            release_assets_pb2.ModelReleaseAssets.AssetDetails.DESCRIPTOR,
+            model_release_assets_pb2.ModelReleaseAssets.AssetDetails.DESCRIPTOR,
             proto_only={"precision", "runtime", "chipset"},
         )

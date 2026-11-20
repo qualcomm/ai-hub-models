@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 import pytest
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
@@ -75,8 +75,8 @@ MIXED_PATHS = [
 
 
 def _mixed_perf(*devices: ScorecardDevice) -> QAIHMModelPerf:
-    details = perf_pb2.ModelPerf.PerformanceDetails(
-        profile_job=perf_pb2.ModelPerf.ProfileJob(id="jabcd1234")
+    details = model_perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=model_perf_pb2.ModelPerf.ProfileJob(id="jabcd1234")
     )
     perf = QAIHMModelPerf("mixed")
     for name in ("A", "B"):
@@ -137,6 +137,6 @@ def test_drop_entries_with_mismatched_aot_removes_emptied_precision() -> None:
     key = QAIHMModelPerf.Key(
         Precision.float, "A", cs_x_elite, ScorecardProfilePath.QNN_CONTEXT_BINARY
     )
-    perf.update_entry(key.stamp(perf_pb2.ModelPerf.PerformanceDetails()))
+    perf.update_entry(key.stamp(model_perf_pb2.ModelPerf.PerformanceDetails()))
     perf.drop_entries_with_mismatched_aot(False)
     assert not any(key.precision == Precision.float for key in perf.entries)

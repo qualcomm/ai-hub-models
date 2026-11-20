@@ -22,6 +22,17 @@ research_paper_title: "BEVFormer: Learning Bird's-Eye-View Representation from M
 source_repo: https://github.com/fundamentalvision/BEVFormer/
 tags:
 - MODEL_TAG_BU_AUTO
+technical_details:
+- key: Input preprocessing
+  string_value: Images must be ImageNet mean/std normalized before inference; the model does not normalize internally.
+- key: Input resolution
+  string_value: 6 x 3 x 480 x 800
+- key: Model checkpoint
+  string_value: bevformer_tiny_deformable_optimized_exp_86_epoch_24.pth
+- key: Model size
+  string_value: 120 MB
+- key: Number of parameters
+  string_value: 27M
 templates:
 - corevision
 use_case: MODEL_USE_CASE_DRIVER_ASSISTANCE

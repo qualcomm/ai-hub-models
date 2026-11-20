@@ -10,7 +10,7 @@ from pathlib import Path
 
 from packaging.version import Version
 
-from qai_hub_models_cli.proto.numerics_pb2 import ModelNumerics
+from qai_hub_models_cli.proto.model_numerics_pb2 import ModelNumerics
 from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo, RuntimeInfo
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
@@ -69,7 +69,7 @@ def get_model_numerics(
         ModelNumerics,
         cache_filename="numerics.pb",
         manifest_url_field="numerics",
-        source_getter="get_numerics_proto",
+        source_getter="get_model_numerics_proto",
         local_path=local_path,
     )
 

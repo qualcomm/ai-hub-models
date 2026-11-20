@@ -14,8 +14,7 @@ from packaging.version import Version
 from qai_hub_models_cli.cli import _run_fetch, add_fetch_parser
 from qai_hub_models_cli.errors import AssetNotFoundError
 from qai_hub_models_cli.fetch import _asset_url, fetch, get_asset_url
-from qai_hub_models_cli.proto.info_pb2 import ModelInfo
-from qai_hub_models_cli.proto.manifest_pb2 import ManifestModelEntry
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import (
     ChipsetInfo,
     DeviceInfo,
@@ -24,7 +23,7 @@ from qai_hub_models_cli.proto.platform_pb2 import (
     PlatformInfo,
     RuntimeInfo,
 )
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.release_manifest_pb2 import ReleaseManifestModelEntry
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 
@@ -360,19 +359,13 @@ def _llama_cpp_platform(*_args: object) -> PlatformInfo:
 
 
 @patch("qai_hub_models_cli.fetch.get_platform", _llama_cpp_platform)
-@patch("qai_hub_models_cli.fetch.get_manifest_entry")
-@patch("qai_hub_models_cli.fetch.get_model_info")
+@patch("qai_hub_models_cli.fetch.get_release_manifest_entry")
 @patch("qai_hub_models_cli.fetch.get_model_release_assets")
 def test_get_asset_url_geniex_llamacpp_points_to_readme(
     mock_assets: MagicMock,
-    mock_info: MagicMock,
     mock_entry: MagicMock,
 ) -> None:
-    mock_info.return_value = ModelInfo(
-        id="qwen3_5_0_8b",
-        llm_details=ModelInfo.LLMDetails(geniex_llamacpp_compatible=True),
-    )
-    mock_entry.return_value = ManifestModelEntry(
+    mock_entry.return_value = ReleaseManifestModelEntry(
         id="qwen3_5_0_8b", display_name="Qwen3.5 0.8B"
     )
     with pytest.raises(AssetNotFoundError) as exc:

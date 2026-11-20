@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import Field
-from qai_hub_models_cli.proto import release_assets_pb2
+from qai_hub_models_cli.proto import model_release_assets_pb2
 from qai_hub_models_cli.proto_helpers._common import (
     read_proto_yaml,
     write_proto_yaml,
@@ -53,7 +53,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
 
         @classmethod
         def from_proto(
-            cls, proto: release_assets_pb2.ModelReleaseAssets.AssetDetails
+            cls, proto: model_release_assets_pb2.ModelReleaseAssets.AssetDetails
         ) -> QAIHMModelReleaseAssets.AssetDetails:
             return cls(
                 s3_key=proto.s3_key if proto.HasField("s3_key") else None,
@@ -186,7 +186,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         aihm_version: str,
         model_id: str,
         include_internal_fields: bool = False,
-    ) -> release_assets_pb2.ModelReleaseAssets:
+    ) -> model_release_assets_pb2.ModelReleaseAssets:
         """
         Build a ``ModelReleaseAssets`` proto.
 
@@ -195,7 +195,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         ``include_internal_fields`` it is the committed-file form instead: every
         asset, with its ``s3_key``, and ``tool_versions`` set only when present.
         """
-        proto = release_assets_pb2.ModelReleaseAssets(
+        proto = model_release_assets_pb2.ModelReleaseAssets(
             aihm_version=aihm_version, model_id=model_id
         )
         for precision, prec_details in self.precisions.items():
@@ -226,7 +226,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
 
     @classmethod
     def from_proto(
-        cls, proto: release_assets_pb2.ModelReleaseAssets
+        cls, proto: model_release_assets_pb2.ModelReleaseAssets
     ) -> QAIHMModelReleaseAssets:
         """Build the in-memory representation from a ``ModelReleaseAssets`` proto."""
         # Insert in (precision, chipset, path) name order, the order the old
@@ -260,7 +260,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         ):
             return cls()
         return cls.from_proto(
-            read_proto_yaml(path, release_assets_pb2.ModelReleaseAssets)
+            read_proto_yaml(path, model_release_assets_pb2.ModelReleaseAssets)
         )
 
     def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]

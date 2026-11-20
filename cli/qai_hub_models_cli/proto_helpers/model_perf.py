@@ -10,7 +10,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from qai_hub_models_cli.errors import CLIUnknownNameError
-from qai_hub_models_cli.proto.perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_perf_pb2 import ModelPerf
 from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.range_pb2 import IntRange
@@ -70,7 +70,7 @@ def get_model_perf(
         ModelPerf,
         cache_filename="perf.pb",
         manifest_url_field="perf",
-        source_getter="get_perf_proto",
+        source_getter="get_model_perf_proto",
         local_path=local_path,
     )
 

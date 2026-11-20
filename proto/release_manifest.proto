@@ -6,21 +6,25 @@ syntax = "proto3";
 
 package qaihm;
 
-import "info.proto";
+import "model_manifest.proto";
 import "shared/runtime.proto";
 
-message ModelManifestUrls {
-  string info = 1;
+message ReleaseManifestModelUrls {
+  string info = 1 [deprecated = true];  // Replaced by manifest; unused (and unset) starting in v0.68.0
+  string manifest = 5; // Used starting in v0.68.0; unset beforehand
   string perf = 2;
   string numerics = 3;
   string release_assets = 4;
+
+  // ModelManifest with `_internal` set. Only set in the internal (private bucket) release manifest.
+  string internal_manifest = 6;
 }
 
-message ManifestModelEntry {
+message ReleaseManifestModelEntry {
   string id = 1;
   string display_name = 2;
   ModelDomain domain = 3;
-  ModelManifestUrls manifest_urls = 4;
+  ReleaseManifestModelUrls manifest_urls = 4;
 
   // Fields 5-8 (the model-filter fields) were added in AI Hub Models 0.56.0.
   // They are unset/empty in manifests from earlier releases, so consumers must
@@ -35,10 +39,10 @@ message ManifestModelEntry {
   // Chipsets on which the model has been profiled.
   repeated string supported_chipsets = 7;
 
-  // Tags applied to the model (mirrors ModelInfo.tags).
+  // Tags applied to the model (mirrors ModelManifest.tags).
   repeated ModelTag tags = 8;
 
-  // The model's use case (mirrors ModelInfo.use_case). Added in AI Hub Models
+  // The model's use case (mirrors ModelManifest.use_case). Added in AI Hub Models
   // 0.56.0; unset (MODEL_USE_CASE_UNSPECIFIED) in earlier manifests.
   ModelUseCase use_case = 9;
 }
@@ -46,5 +50,5 @@ message ManifestModelEntry {
 message ReleaseManifest {
   string version = 1;
   string platform_url = 2;
-  repeated ManifestModelEntry models = 3;
+  repeated ReleaseManifestModelEntry models = 3;
 }

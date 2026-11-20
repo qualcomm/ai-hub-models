@@ -2,13 +2,13 @@
 # Copyright (c) 2025 Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
-"""Maps the legacy (pre-proto) manifest.yaml format to the ``ModelInfo`` proto's dict form."""
+"""Maps the legacy (pre-proto) manifest.yaml format to the ``ModelManifest`` proto's dict form."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from qai_hub_models_cli.proto import info_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs._info_yaml_enums import (
@@ -35,14 +35,14 @@ from qai_hub_models.configs.proto_helpers import (
 from qai_hub_models.utils.device import FormFactor
 
 _MACHINE_TO_PROTO_NAME = {
-    "any": info_pb2.ModelInfo.PipCommand.Machine.Name(
-        info_pb2.ModelInfo.PipCommand.MACHINE_UNSPECIFIED
+    "any": model_manifest_pb2.ModelManifest.PipCommand.Machine.Name(
+        model_manifest_pb2.ModelManifest.PipCommand.MACHINE_UNSPECIFIED
     ),
-    "gpu": info_pb2.ModelInfo.PipCommand.Machine.Name(
-        info_pb2.ModelInfo.PipCommand.MACHINE_GPU
+    "gpu": model_manifest_pb2.ModelManifest.PipCommand.Machine.Name(
+        model_manifest_pb2.ModelManifest.PipCommand.MACHINE_GPU
     ),
-    "cpu": info_pb2.ModelInfo.PipCommand.Machine.Name(
-        info_pb2.ModelInfo.PipCommand.MACHINE_CPU
+    "cpu": model_manifest_pb2.ModelManifest.PipCommand.Machine.Name(
+        model_manifest_pb2.ModelManifest.PipCommand.MACHINE_CPU
     ),
 }
 
@@ -78,7 +78,7 @@ def _disabled_paths(data: dict[str, dict[str, dict[str, Any]]]) -> list[dict[str
 
 def legacy_manifest_to_proto_dict(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Rewrite a legacy manifest.yaml dict into the dict form of a ``ModelInfo`` proto.
+    Rewrite a legacy manifest.yaml dict into the dict form of a ``ModelManifest`` proto.
 
     Keys the proto has no field for (e.g. ``lm_quantization_details``, which now
     lives in lm_recipe.yaml) are left in place; parse with
@@ -92,7 +92,7 @@ def legacy_manifest_to_proto_dict(data: dict[str, Any]) -> dict[str, Any]:
     Returns
     -------
     proto_dict : dict[str, Any]
-        A dict that ``json_format.ParseDict`` can load into a ``ModelInfo``.
+        A dict that ``json_format.ParseDict`` can load into a ``ModelManifest``.
     """
     out = dict(data)
 

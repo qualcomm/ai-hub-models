@@ -8,24 +8,24 @@ from unittest.mock import patch
 import pytest
 
 from qai_hub_models_cli.cli import main
-from qai_hub_models_cli.proto.info_pb2 import (
+from qai_hub_models_cli.proto.model_manifest_pb2 import (
     ModelDomain,
-    ModelInfo,
     ModelLicense,
+    ModelManifest,
     ModelTag,
     ModelUseCase,
 )
-from qai_hub_models_cli.proto.manifest_pb2 import ManifestModelEntry
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import ChipsetInfo, PlatformInfo
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.release_manifest_pb2 import ReleaseManifestModelEntry
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto.shared.tool_versions_pb2 import ToolVersions
 from qai_hub_models_cli.versions import MIN_MODEL_FILTER_VERSION
 
 
-def _fake_model_info() -> ModelInfo:
-    return ModelInfo(
+def _fake_model_info() -> ModelManifest:
+    return ModelManifest(
         id="mobilenet_v2",
         name="MobileNet V2",
         description="Imagenet classifier and general-purpose backbone.",
@@ -34,15 +34,19 @@ def _fake_model_info() -> ModelInfo:
         tags=[ModelTag.MODEL_TAG_REAL_TIME],
         license_type=ModelLicense.MODEL_LICENSE_APACHE_2_0,
         technical_details=[
-            ModelInfo.TechnicalDetail(key="Number of parameters", int_value=3500000),
-            ModelInfo.TechnicalDetail(key="Model size (MB)", float_value=14.2),
-            ModelInfo.TechnicalDetail(key="Architecture", string_value="CNN"),
+            ModelManifest.TechnicalDetail(
+                key="Number of parameters", int_value=3500000
+            ),
+            ModelManifest.TechnicalDetail(key="Model size (MB)", float_value=14.2),
+            ModelManifest.TechnicalDetail(key="Architecture", string_value="CNN"),
         ],
         runtime_technical_details=[
-            ModelInfo.RuntimeTechnicalDetails(
+            ModelManifest.RuntimeTechnicalDetails(
                 runtime=Runtime.RUNTIME_TFLITE,
                 technical_details=[
-                    ModelInfo.TechnicalDetail(key="Model size (MB)", float_value=5.1),
+                    ModelManifest.TechnicalDetail(
+                        key="Model size (MB)", float_value=5.1
+                    ),
                 ],
             ),
         ],
@@ -87,8 +91,8 @@ def _skip_version_check() -> Generator[None]:
         yield
 
 
-def _fake_manifest_entry() -> ManifestModelEntry:
-    return ManifestModelEntry(
+def _fake_manifest_entry() -> ReleaseManifestModelEntry:
+    return ReleaseManifestModelEntry(
         id="mobilenet_v2",
         is_quantized=True,
         supported_runtimes=[Runtime.RUNTIME_TFLITE, Runtime.RUNTIME_ONNX],
@@ -100,7 +104,7 @@ def _fake_manifest_entry() -> ManifestModelEntry:
 def info_mocks() -> Generator[None]:
     with (
         patch(
-            "qai_hub_models_cli.cli.get_model_info",
+            "qai_hub_models_cli.cli.get_model_manifest",
             return_value=_fake_model_info(),
         ),
         patch(
@@ -112,7 +116,7 @@ def info_mocks() -> Generator[None]:
             return_value=_fake_platform(),
         ),
         patch(
-            "qai_hub_models_cli.cli.get_manifest_entry",
+            "qai_hub_models_cli.cli.get_release_manifest_entry",
             return_value=_fake_manifest_entry(),
         ),
     ):
@@ -164,10 +168,10 @@ def test_info_download_options(
 
 
 def test_info_minimal_model(capsys: pytest.CaptureFixture[str]) -> None:
-    minimal_info = ModelInfo(id="my_model", name="My Model")
+    minimal_info = ModelManifest(id="my_model", name="My Model")
     empty_assets = ModelReleaseAssets(model_id="my_model", assets=[])
     with (
-        patch("qai_hub_models_cli.cli.get_model_info", return_value=minimal_info),
+        patch("qai_hub_models_cli.cli.get_model_manifest", return_value=minimal_info),
         patch(
             "qai_hub_models_cli.cli.get_model_release_assets",
             return_value=empty_assets,
@@ -177,7 +181,7 @@ def test_info_minimal_model(capsys: pytest.CaptureFixture[str]) -> None:
             return_value=_fake_platform(),
         ),
         patch(
-            "qai_hub_models_cli.cli.get_manifest_entry",
+            "qai_hub_models_cli.cli.get_release_manifest_entry",
             return_value=_fake_manifest_entry(),
         ),
     ):

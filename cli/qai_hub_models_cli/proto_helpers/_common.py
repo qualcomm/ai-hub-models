@@ -181,7 +181,7 @@ def fetch_release_proto(
     cache_filename
         Filename for the local cache (e.g. "manifest.pb").
     source_getter
-        Function name on qai_hub_models.cli module (e.g. "get_manifest_proto").
+        Function name on qai_hub_models.cli module (e.g. "get_release_manifest_proto").
     url
         URL to fetch from when not using source. Required unless local_path is set.
     local_path
@@ -243,9 +243,9 @@ def fetch_model_proto(
     cache_filename
         Filename for the local cache (e.g. "info.pb").
     manifest_url_field
-        Attribute name on ManifestModelEntry.manifest_urls (e.g. "info").
+        Attribute name on ReleaseManifestModelEntry.manifest_urls (e.g. "manifest").
     source_getter
-        Function name on qai_hub_models.cli module (e.g. "get_info_proto").
+        Function name on qai_hub_models.cli module (e.g. "get_model_manifest_proto").
     local_path
         If provided, read directly from this path instead of fetching.
 
@@ -262,9 +262,11 @@ def fetch_model_proto(
         verify_version_supported(version, verify_manifest_supported=True)
 
     # Avoids circular import.
-    from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+    from qai_hub_models_cli.proto_helpers.release_manifest import (
+        get_release_manifest_entry,
+    )
 
-    entry = get_manifest_entry(model, version)
+    entry = get_release_manifest_entry(model, version)
 
     if use_aihm_source(version):
         from qai_hub_models._version import __version__ as models_version

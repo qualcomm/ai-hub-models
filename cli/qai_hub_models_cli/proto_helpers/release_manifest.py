@@ -13,19 +13,19 @@ from packaging.version import Version
 from qai_hub_models_cli._internal.utils import use_internal_releases
 from qai_hub_models_cli.common import STORE_URL
 from qai_hub_models_cli.errors import CLIUnknownNameError
-from qai_hub_models_cli.proto.manifest_pb2 import (
-    ManifestModelEntry,
+from qai_hub_models_cli.proto.release_manifest_pb2 import (
     ReleaseManifest,
+    ReleaseManifestModelEntry,
 )
 from qai_hub_models_cli.proto_helpers._common import fetch_release_proto
 from qai_hub_models_cli.proto_helpers.platform_enums import normalize_label
 from qai_hub_models_cli.versions import CURRENT_VERSION
 
 
-def get_manifest_entry(
+def get_release_manifest_entry(
     model: str, version: Version = CURRENT_VERSION
-) -> ManifestModelEntry:
-    manifest = get_manifest(version)
+) -> ReleaseManifestModelEntry:
+    manifest = get_release_manifest(version)
     model_key = normalize_label(model)
     for entry in manifest.models:
         if model_key in (
@@ -40,7 +40,7 @@ def get_manifest_entry(
 
 
 @functools.lru_cache(maxsize=1)
-def get_manifest(
+def get_release_manifest(
     version: Version = CURRENT_VERSION,
     local_path: Path | None = None,
 ) -> ReleaseManifest:
@@ -83,7 +83,7 @@ def get_manifest(
         version,
         ReleaseManifest,
         cache_filename="manifest.pb",
-        source_getter="get_manifest_proto",
+        source_getter="get_release_manifest_proto",
         url=url,
         local_path=local_path,
     )

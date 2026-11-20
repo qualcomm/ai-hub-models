@@ -22,7 +22,7 @@ from qai_hub_models.scorecard.utils.numerics_yaml_helpers import (
     get_chipset_registry,
 )
 from qai_hub_models.test.test_configs.manifest_path_check import (
-    get_manifest_support_violations,
+    get_release_manifest_support_violations,
 )
 from qai_hub_models.utils.asset_loaders import load_yaml
 from qai_hub_models.utils.path_helpers import MODEL_IDS
@@ -51,7 +51,7 @@ def test_accuracy_yaml() -> None:
         manifest = QAIHMModelManifest.from_model(model_id)
         for precision, seen_paths in seen.items():
             path_errors.extend(
-                get_manifest_support_violations(
+                get_release_manifest_support_violations(
                     manifest, "numerics.yaml", precision, seen_paths
                 )
             )

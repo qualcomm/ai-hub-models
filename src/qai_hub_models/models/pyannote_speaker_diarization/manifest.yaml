@@ -18,4 +18,15 @@ supported_precisions:
 - PRECISION_MIXED_WITH_FLOAT
 tags:
 - MODEL_TAG_FOUNDATION
+technical_details:
+- key: Input resolution (embedding)
+  string_value: 32 x 498 x 80 (batch x frames x mel-bins)
+- key: Input resolution (segmentation)
+  string_value: 32 x 1 x 80000 (batch x channel x 5s at 16kHz)
+- key: Model checkpoint
+  string_value: pyannote/speaker-diarization-3.1
+- key: Number of speakers (segmentation output)
+  string_value: 7 (powerset encoding for up to 3 speakers)
+- key: Quantization
+  string_value: Segmentation float, Embedding W8A16 via AI Hub
 use_case: MODEL_USE_CASE_SPEAKER_DIARIZATION

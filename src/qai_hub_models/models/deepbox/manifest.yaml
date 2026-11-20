@@ -23,6 +23,25 @@ supported_precisions:
 - PRECISION_W8A16
 tags:
 - MODEL_TAG_REAL_TIME
+technical_details:
+- key: 2D detector
+  string_value: COCO-pretrained YOLOv3 (paper uses KITTI-trained MS-CNN)
+- key: Accuracy (2D AP E/M/H)
+  string_value: ~73/59/45 (COCO YOLOv3) vs 92.98/89.04/77.17 (paper MS-CNN). Gap is due to the 2D detector only; VGG 3D head weights are identical to the paper.
+- key: Input resolution(VGG)
+  string_value: 224x224
+- key: Input resolution(YOLO)
+  string_value: 416x416
+- key: Model checkpoint
+  string_value: YOLOv3
+- key: Model size (vgg_3d_detection) (float)
+  string_value: 176 MB
+- key: Model size (yolo_2d_detection) (float)
+  string_value: 236 MB
+- key: Number of parameters (vgg_3d_detection)
+  string_value: 46.1M
+- key: Number of parameters (yolo_2d_detection)
+  string_value: 61.9M
 templates:
 - corevision
 use_case: MODEL_USE_CASE_OBJECT_DETECTION

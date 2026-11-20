@@ -9,6 +9,21 @@ name: Distil-Whisper
 research_paper: https://arxiv.org/abs/2311.00430
 research_paper_title: Distil-Whisper - Robust Knowledge Distillation via Large-Scale Pseudo Labelling
 source_repo: https://github.com/huggingface/distil-whisper
+technical_details:
+- key: Input resolution
+  string_value: 80x3000 (30 seconds audio)
+- key: Max decoded sequence length
+  string_value: 200 tokens
+- key: Model checkpoint
+  string_value: distil-whisper/distil-small.en
+- key: Model size (decoder) (float)
+  string_value: 450MB
+- key: Model size (encoder) (float)
+  string_value: 332 MB
+- key: Number of parameters (decoder)
+  string_value: 211M
+- key: Number of parameters (encoder)
+  string_value: 166M
 templates:
 - hf_whisper
 use_case: MODEL_USE_CASE_SPEECH_RECOGNITION

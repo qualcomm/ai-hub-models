@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from qai_hub_models_cli.proto import numerics_pb2
+from qai_hub_models_cli.proto import model_numerics_pb2
 
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 
@@ -27,8 +27,8 @@ class NumericsAccuracyBenchmark(BaseQAIHMConfig):
     # Where the number came from (a paper, a repo, our own measurement).
     source: str
 
-    def to_proto(self) -> numerics_pb2.NumericsAccuracyBenchmark:
-        return numerics_pb2.NumericsAccuracyBenchmark(
+    def to_proto(self) -> model_numerics_pb2.NumericsAccuracyBenchmark:
+        return model_numerics_pb2.NumericsAccuracyBenchmark(
             dataset_name=self.dataset_name,
             metric_name=self.metric_name,
             value=self.value,
@@ -38,7 +38,7 @@ class NumericsAccuracyBenchmark(BaseQAIHMConfig):
 
     @classmethod
     def from_proto(
-        cls, proto: numerics_pb2.NumericsAccuracyBenchmark
+        cls, proto: model_numerics_pb2.NumericsAccuracyBenchmark
     ) -> NumericsAccuracyBenchmark:
         return cls(
             dataset_name=proto.dataset_name,

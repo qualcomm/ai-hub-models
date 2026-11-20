@@ -16,7 +16,7 @@ correct-looking perf.yaml with the standalone component simply missing.
 from __future__ import annotations
 
 import pytest
-from qai_hub_models_cli.proto import perf_pb2
+from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
@@ -32,10 +32,10 @@ PATH = ScorecardProfilePath.GENIEX_QAIRT
 MODEL_ID = "qwen2_5_vl_7b_instruct"
 
 
-def _llm_details() -> perf_pb2.ModelPerf.PerformanceDetails:
-    return perf_pb2.ModelPerf.PerformanceDetails(
+def _llm_details() -> model_perf_pb2.ModelPerf.PerformanceDetails:
+    return model_perf_pb2.ModelPerf.PerformanceDetails(
         llm_metrics=[
-            perf_pb2.ModelPerf.LLMPerfMetrics(
+            model_perf_pb2.ModelPerf.LLMPerfMetrics(
                 context_length=4096,
                 tokens_per_second=9.74,
                 prefill_tokens_per_second=580.7,
@@ -47,13 +47,15 @@ def _llm_details() -> perf_pb2.ModelPerf.PerformanceDetails:
 
 def _workbench_details(
     job_id: str = "jabcd1234",
-) -> perf_pb2.ModelPerf.PerformanceDetails:
-    return perf_pb2.ModelPerf.PerformanceDetails(
-        profile_job=perf_pb2.ModelPerf.ProfileJob(id=job_id, status="Passed"),
-        metrics=perf_pb2.ModelPerf.PerfMetrics(
+) -> model_perf_pb2.ModelPerf.PerformanceDetails:
+    return model_perf_pb2.ModelPerf.PerformanceDetails(
+        profile_job=model_perf_pb2.ModelPerf.ProfileJob(id=job_id, status="Passed"),
+        metrics=model_perf_pb2.ModelPerf.PerfMetrics(
             inference_time_milliseconds=12.34,
             primary_compute_unit="NPU",
-            layer_counts=perf_pb2.ModelPerf.PerfMetrics.LayerCounts(total=556, npu=556),
+            layer_counts=model_perf_pb2.ModelPerf.PerfMetrics.LayerCounts(
+                total=556, npu=556
+            ),
         ),
     )
 

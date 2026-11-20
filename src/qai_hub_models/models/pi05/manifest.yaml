@@ -28,6 +28,15 @@ supported_precisions:
 tags:
 - MODEL_TAG_GENERATIVE_AI
 - MODEL_TAG_ROBOTICS
+technical_details:
+- int_value: '50'
+  key: Action chunk size
+- int_value: '3'
+  key: Number of cameras
+- key: Quantization
+  string_value: Mixed (w4a16 backbone, w8a16 vision encoder and action expert)
+- key: Vision resolution
+  string_value: 224x224
 templates:
 - corevision
 - llm

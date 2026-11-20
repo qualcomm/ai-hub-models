@@ -231,21 +231,21 @@ Each getter takes a model ID (or display name) and an optional `version`, and
 results are cached:
 
 ```python
-from qai_hub_models_cli.proto_helpers.info import get_model_info
-from qai_hub_models_cli.proto_helpers.perf import get_model_perf
-from qai_hub_models_cli.proto_helpers.numerics import get_model_numerics
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest, get_manifest_entry
+from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
+from qai_hub_models_cli.proto_helpers.model_perf import get_model_perf
+from qai_hub_models_cli.proto_helpers.model_numerics import get_model_numerics
+from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest, get_release_manifest_entry
 from qai_hub_models_cli.proto_helpers.platform import get_platform
-from qai_hub_models_cli.proto_helpers.release_assets import get_model_release_assets
+from qai_hub_models_cli.proto_helpers.model_release_assets import get_model_release_assets
 
-info = get_model_info("mobilenet_v2")          # ModelInfo: name, description, license, tags, …
+info = get_model_manifest("mobilenet_v2")          # ModelManifest: name, description, license, tags, …
 print(info.name, info.domain)
 
 perf = get_model_perf("mobilenet_v2")          # ModelPerf: per-device performance metrics
 numerics = get_model_numerics("mobilenet_v2")  # ModelNumerics: per-device accuracy metrics
 assets = get_model_release_assets("mobilenet_v2")  # ModelReleaseAssets: available downloads
 
-manifest = get_manifest()                      # ReleaseManifest: every model in the release
+manifest = get_release_manifest()                      # ReleaseManifest: every model in the release
 for entry in manifest.models:
     print(entry.id, entry.display_name)
 
@@ -256,9 +256,9 @@ Each getter's module also provides a matching `filter_*` helper that applies the
 same filtering the CLI flags use:
 
 ```python
-from qai_hub_models_cli.proto_helpers.perf import filter_perf
-from qai_hub_models_cli.proto_helpers.numerics import filter_numerics
-from qai_hub_models_cli.proto_helpers.release_assets import filter_release_assets
+from qai_hub_models_cli.proto_helpers.model_perf import filter_perf
+from qai_hub_models_cli.proto_helpers.model_numerics import filter_numerics
+from qai_hub_models_cli.proto_helpers.model_release_assets import filter_release_assets
 from qai_hub_models_cli.proto_helpers.platform import filter_devices, filter_chipsets
 ```
 

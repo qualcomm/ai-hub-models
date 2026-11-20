@@ -91,6 +91,23 @@ tags:
 - MODEL_TAG_LLM
 - MODEL_TAG_VLM
 - MODEL_TAG_GENERATIVE_AI
+technical_details:
+- key: Input sequence length for Prompt Processor
+  string_value: '128'
+- key: Minimum QNN SDK version required
+  string_value: 2.45.0
+- key: Model architecture
+  string_value: Transformer with SigLIP-style ViT Vision Encoder, Per-Layer Embeddings (PLE), interleaved sliding-window/global attention with Grouped Query Attention (GQA), and shared KV layers.
+- key: Number of parameters
+  string_value: 4B (effective)
+- key: Precision
+  string_value: w4a16
+- key: Response Rate
+  string_value: Rate of response generation after the first response token.
+- key: Supported languages
+  string_value: Multilingual (trained on 140+ languages)
+- key: Use
+  string_value: Initiate conversation with prompt-processor and then token generator for subsequent iterations.
 templates:
 - gemma4
 use_case: MODEL_USE_CASE_TEXT_GENERATION

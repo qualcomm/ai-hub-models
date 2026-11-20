@@ -17,7 +17,7 @@ import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.internal.enum_type_wrapper
 import google.protobuf.message
-from qai_hub_models_cli.proto import numerics_pb2
+from qai_hub_models_cli.proto import model_numerics_pb2
 from qai_hub_models_cli.proto import platform_pb2
 import shared.precision_pb2
 import shared.runtime_pb2
@@ -150,27 +150,6 @@ MODEL_TAG_VLM: ModelTag.ValueType  # 10
 MODEL_TAG_ROBOTICS: ModelTag.ValueType  # 11
 global___ModelTag = ModelTag
 
-class _ModelStatus:
-    ValueType = typing.NewType("ValueType", builtins.int)
-    V: typing_extensions.TypeAlias = ValueType
-
-class _ModelStatusEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_ModelStatus.ValueType], builtins.type):
-    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
-    MODEL_STATUS_UNSPECIFIED: _ModelStatus.ValueType  # 0
-    MODEL_STATUS_PUBLISHED: _ModelStatus.ValueType  # 1
-    MODEL_STATUS_UNPUBLISHED: _ModelStatus.ValueType  # 2
-    MODEL_STATUS_PENDING: _ModelStatus.ValueType  # 3
-    """Pending models are waiting for scorecard to collect perf data before being published."""
-
-class ModelStatus(_ModelStatus, metaclass=_ModelStatusEnumTypeWrapper): ...
-
-MODEL_STATUS_UNSPECIFIED: ModelStatus.ValueType  # 0
-MODEL_STATUS_PUBLISHED: ModelStatus.ValueType  # 1
-MODEL_STATUS_UNPUBLISHED: ModelStatus.ValueType  # 2
-MODEL_STATUS_PENDING: ModelStatus.ValueType  # 3
-"""Pending models are waiting for scorecard to collect perf data before being published."""
-global___ModelStatus = ModelStatus
-
 class _VoiceAISdk:
     ValueType = typing.NewType("ValueType", builtins.int)
     V: typing_extensions.TypeAlias = ValueType
@@ -258,7 +237,7 @@ MODEL_USE_CASE_TEXT_GENERATION: ModelUseCase.ValueType  # 20
 global___ModelUseCase = ModelUseCase
 
 @typing.final
-class ModelInfo(google.protobuf.message.Message):
+class ModelManifest(google.protobuf.message.Message):
     """Everything known about a model: how it is presented, how it is built and
     exported, and which precision / runtime paths it supports.
 
@@ -318,34 +297,34 @@ class ModelInfo(google.protobuf.message.Message):
             ValueType = typing.NewType("ValueType", builtins.int)
             V: typing_extensions.TypeAlias = ValueType
 
-        class _MachineEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelInfo.PipCommand._Machine.ValueType], builtins.type):
+        class _MachineEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelManifest.PipCommand._Machine.ValueType], builtins.type):
             DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
-            MACHINE_UNSPECIFIED: ModelInfo.PipCommand._Machine.ValueType  # 0
+            MACHINE_UNSPECIFIED: ModelManifest.PipCommand._Machine.ValueType  # 0
             """Runs on every host."""
-            MACHINE_GPU: ModelInfo.PipCommand._Machine.ValueType  # 1
+            MACHINE_GPU: ModelManifest.PipCommand._Machine.ValueType  # 1
             """Runs only when a CUDA GPU is detected."""
-            MACHINE_CPU: ModelInfo.PipCommand._Machine.ValueType  # 2
+            MACHINE_CPU: ModelManifest.PipCommand._Machine.ValueType  # 2
             """Runs only when no CUDA GPU is detected."""
 
         class Machine(_Machine, metaclass=_MachineEnumTypeWrapper):
             """Which hosts the command runs on."""
 
-        MACHINE_UNSPECIFIED: ModelInfo.PipCommand.Machine.ValueType  # 0
+        MACHINE_UNSPECIFIED: ModelManifest.PipCommand.Machine.ValueType  # 0
         """Runs on every host."""
-        MACHINE_GPU: ModelInfo.PipCommand.Machine.ValueType  # 1
+        MACHINE_GPU: ModelManifest.PipCommand.Machine.ValueType  # 1
         """Runs only when a CUDA GPU is detected."""
-        MACHINE_CPU: ModelInfo.PipCommand.Machine.ValueType  # 2
+        MACHINE_CPU: ModelManifest.PipCommand.Machine.ValueType  # 2
         """Runs only when no CUDA GPU is detected."""
 
         COMMAND_FIELD_NUMBER: builtins.int
         MACHINE_FIELD_NUMBER: builtins.int
         command: builtins.str
-        machine: global___ModelInfo.PipCommand.Machine.ValueType
+        machine: global___ModelManifest.PipCommand.Machine.ValueType
         def __init__(
             self,
             *,
             command: builtins.str = ...,
-            machine: global___ModelInfo.PipCommand.Machine.ValueType = ...,
+            machine: global___ModelManifest.PipCommand.Machine.ValueType = ...,
         ) -> None: ...
         def ClearField(self, field_name: typing.Literal["command", b"command", "machine", b"machine"]) -> None: ...
 
@@ -428,91 +407,196 @@ class ModelInfo(google.protobuf.message.Message):
         TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
         runtime: shared.runtime_pb2.Runtime.ValueType
         @property
-        def technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.TechnicalDetail]: ...
+        def technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.TechnicalDetail]: ...
         def __init__(
             self,
             *,
             runtime: shared.runtime_pb2.Runtime.ValueType = ...,
-            technical_details: collections.abc.Iterable[global___ModelInfo.TechnicalDetail] | None = ...,
+            technical_details: collections.abc.Iterable[global___ModelManifest.TechnicalDetail] | None = ...,
         ) -> None: ...
         def ClearField(self, field_name: typing.Literal["runtime", b"runtime", "technical_details", b"technical_details"]) -> None: ...
 
     @typing.final
-    class LLMDetails(google.protobuf.message.Message):
+    class Internal(google.protobuf.message.Message):
+        """Fields sourced from internal-config.yaml."""
+
         DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-        class _CallToAction:
+        class _ModelStatus:
             ValueType = typing.NewType("ValueType", builtins.int)
             V: typing_extensions.TypeAlias = ValueType
 
-        class _CallToActionEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelInfo.LLMDetails._CallToAction.ValueType], builtins.type):
+        class _ModelStatusEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelManifest.Internal._ModelStatus.ValueType], builtins.type):
             DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
-            CALL_TO_ACTION_UNSPECIFIED: ModelInfo.LLMDetails._CallToAction.ValueType  # 0
-            CALL_TO_ACTION_DOWNLOAD: ModelInfo.LLMDetails._CallToAction.ValueType  # 1
-            CALL_TO_ACTION_VIEW_README: ModelInfo.LLMDetails._CallToAction.ValueType  # 2
-            CALL_TO_ACTION_DOWNLOAD_AND_VIEW_README: ModelInfo.LLMDetails._CallToAction.ValueType  # 3
-            CALL_TO_ACTION_CONTACT_FOR_PURCHASE: ModelInfo.LLMDetails._CallToAction.ValueType  # 4
-            CALL_TO_ACTION_CONTACT_FOR_DOWNLOAD: ModelInfo.LLMDetails._CallToAction.ValueType  # 5
-            CALL_TO_ACTION_COMING_SOON: ModelInfo.LLMDetails._CallToAction.ValueType  # 6
-            CALL_TO_ACTION_CONTACT_US: ModelInfo.LLMDetails._CallToAction.ValueType  # 7
+            MODEL_STATUS_UNSPECIFIED: ModelManifest.Internal._ModelStatus.ValueType  # 0
+            MODEL_STATUS_PUBLISHED: ModelManifest.Internal._ModelStatus.ValueType  # 1
+            MODEL_STATUS_UNPUBLISHED: ModelManifest.Internal._ModelStatus.ValueType  # 2
+            MODEL_STATUS_PENDING: ModelManifest.Internal._ModelStatus.ValueType  # 3
+            """Pending models are waiting for scorecard to collect perf data before being published."""
 
-        class CallToAction(_CallToAction, metaclass=_CallToActionEnumTypeWrapper): ...
-        CALL_TO_ACTION_UNSPECIFIED: ModelInfo.LLMDetails.CallToAction.ValueType  # 0
-        CALL_TO_ACTION_DOWNLOAD: ModelInfo.LLMDetails.CallToAction.ValueType  # 1
-        CALL_TO_ACTION_VIEW_README: ModelInfo.LLMDetails.CallToAction.ValueType  # 2
-        CALL_TO_ACTION_DOWNLOAD_AND_VIEW_README: ModelInfo.LLMDetails.CallToAction.ValueType  # 3
-        CALL_TO_ACTION_CONTACT_FOR_PURCHASE: ModelInfo.LLMDetails.CallToAction.ValueType  # 4
-        CALL_TO_ACTION_CONTACT_FOR_DOWNLOAD: ModelInfo.LLMDetails.CallToAction.ValueType  # 5
-        CALL_TO_ACTION_COMING_SOON: ModelInfo.LLMDetails.CallToAction.ValueType  # 6
-        CALL_TO_ACTION_CONTACT_US: ModelInfo.LLMDetails.CallToAction.ValueType  # 7
+        class ModelStatus(_ModelStatus, metaclass=_ModelStatusEnumTypeWrapper): ...
+        MODEL_STATUS_UNSPECIFIED: ModelManifest.Internal.ModelStatus.ValueType  # 0
+        MODEL_STATUS_PUBLISHED: ModelManifest.Internal.ModelStatus.ValueType  # 1
+        MODEL_STATUS_UNPUBLISHED: ModelManifest.Internal.ModelStatus.ValueType  # 2
+        MODEL_STATUS_PENDING: ModelManifest.Internal.ModelStatus.ValueType  # 3
+        """Pending models are waiting for scorecard to collect perf data before being published."""
 
-        CALL_TO_ACTION_FIELD_NUMBER: builtins.int
-        GENIE_COMPATIBLE_FIELD_NUMBER: builtins.int
-        GENIEX_LLAMACPP_COMPATIBLE_FIELD_NUMBER: builtins.int
-        call_to_action: global___ModelInfo.LLMDetails.CallToAction.ValueType
-        genie_compatible: builtins.bool
-        """Genie (QNN context binary) support"""
-        geniex_llamacpp_compatible: builtins.bool
-        """GenieX Llama.cpp (GGUF) support"""
+        @typing.final
+        class StandaloneComponentsEntry(google.protobuf.message.Message):
+            DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+            KEY_FIELD_NUMBER: builtins.int
+            VALUE_FIELD_NUMBER: builtins.int
+            key: builtins.str
+            value: builtins.str
+            def __init__(
+                self,
+                *,
+                key: builtins.str = ...,
+                value: builtins.str = ...,
+            ) -> None: ...
+            def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
+        @typing.final
+        class LLMDetails(google.protobuf.message.Message):
+            DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+            class _CallToAction:
+                ValueType = typing.NewType("ValueType", builtins.int)
+                V: typing_extensions.TypeAlias = ValueType
+
+            class _CallToActionEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[ModelManifest.Internal.LLMDetails._CallToAction.ValueType], builtins.type):
+                DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+                CALL_TO_ACTION_UNSPECIFIED: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 0
+                CALL_TO_ACTION_DOWNLOAD: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 1
+                CALL_TO_ACTION_VIEW_README: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 2
+                CALL_TO_ACTION_DOWNLOAD_AND_VIEW_README: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 3
+                CALL_TO_ACTION_CONTACT_FOR_PURCHASE: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 4
+                CALL_TO_ACTION_CONTACT_FOR_DOWNLOAD: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 5
+                CALL_TO_ACTION_COMING_SOON: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 6
+                CALL_TO_ACTION_CONTACT_US: ModelManifest.Internal.LLMDetails._CallToAction.ValueType  # 7
+
+            class CallToAction(_CallToAction, metaclass=_CallToActionEnumTypeWrapper): ...
+            CALL_TO_ACTION_UNSPECIFIED: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 0
+            CALL_TO_ACTION_DOWNLOAD: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 1
+            CALL_TO_ACTION_VIEW_README: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 2
+            CALL_TO_ACTION_DOWNLOAD_AND_VIEW_README: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 3
+            CALL_TO_ACTION_CONTACT_FOR_PURCHASE: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 4
+            CALL_TO_ACTION_CONTACT_FOR_DOWNLOAD: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 5
+            CALL_TO_ACTION_COMING_SOON: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 6
+            CALL_TO_ACTION_CONTACT_US: ModelManifest.Internal.LLMDetails.CallToAction.ValueType  # 7
+
+            CALL_TO_ACTION_FIELD_NUMBER: builtins.int
+            GENIE_COMPATIBLE_FIELD_NUMBER: builtins.int
+            GENIEX_LLAMACPP_COMPATIBLE_FIELD_NUMBER: builtins.int
+            call_to_action: global___ModelManifest.Internal.LLMDetails.CallToAction.ValueType
+            genie_compatible: builtins.bool
+            """Genie (QNN context binary) support"""
+            geniex_llamacpp_compatible: builtins.bool
+            """GenieX Llama.cpp (GGUF) support"""
+            def __init__(
+                self,
+                *,
+                call_to_action: global___ModelManifest.Internal.LLMDetails.CallToAction.ValueType = ...,
+                genie_compatible: builtins.bool = ...,
+                geniex_llamacpp_compatible: builtins.bool = ...,
+            ) -> None: ...
+            def ClearField(self, field_name: typing.Literal["call_to_action", b"call_to_action", "genie_compatible", b"genie_compatible", "geniex_llamacpp_compatible", b"geniex_llamacpp_compatible"]) -> None: ...
+
+        STATUS_FIELD_NUMBER: builtins.int
+        STATUS_REASON_FIELD_NUMBER: builtins.int
+        APPLICABLE_SCENARIOS_FIELD_NUMBER: builtins.int
+        RELATED_MODELS_FIELD_NUMBER: builtins.int
+        MODEL_MAKER_ID_FIELD_NUMBER: builtins.int
+        HAS_STATIC_BANNER_FIELD_NUMBER: builtins.int
+        HAS_ANIMATED_BANNER_FIELD_NUMBER: builtins.int
+        IMSDK_SUPPORTED_FIELD_NUMBER: builtins.int
+        PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
+        LLM_DETAILS_FIELD_NUMBER: builtins.int
+        STANDALONE_COMPONENTS_FIELD_NUMBER: builtins.int
+        status: global___ModelManifest.Internal.ModelStatus.ValueType
+        """Whether or not the model is published on the website.
+        This should be set to public unless the model has poor accuracy/perf.
+        """
+        status_reason: builtins.str
+        """If status is private, this must have a reference to an issue with an explanation."""
+        model_maker_id: builtins.str
+        """Some models are made by a company."""
+        has_static_banner: builtins.bool
+        """Whether the model has a static image uploaded in S3. All published models must have this."""
+        has_animated_banner: builtins.bool
+        """Whether the model has an animated asset uploaded in S3. This is optional."""
+        imsdk_supported: builtins.bool
+        """Whether the model is compatible with the IMSDK Plugin for IOT devices."""
+        @property
+        def applicable_scenarios(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+            """A list of real-world applications for which this model could be used.
+            This is free-form and almost anything reasonable here is fine.
+            """
+
+        @property
+        def related_models(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+            """A list of other similar models in the repo.
+            Typically, any model that performs the same task is fine.
+            If nothing fits, this can be left blank. Limit to 3 models.
+            """
+
+        @property
+        def private_perf_form_factors(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[platform_pb2.FormFactor.ValueType]:
+            """Device form factors for which we don't publish performance data."""
+
+        @property
+        def llm_details(self) -> global___ModelManifest.Internal.LLMDetails: ...
+        @property
+        def standalone_components(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]:
+            """Components benchmarked standalone, mapped to their model card tab label
+            (also the component's perf.yaml key).
+            """
+
         def __init__(
             self,
             *,
-            call_to_action: global___ModelInfo.LLMDetails.CallToAction.ValueType = ...,
-            genie_compatible: builtins.bool = ...,
-            geniex_llamacpp_compatible: builtins.bool = ...,
+            status: global___ModelManifest.Internal.ModelStatus.ValueType = ...,
+            status_reason: builtins.str | None = ...,
+            applicable_scenarios: collections.abc.Iterable[builtins.str] | None = ...,
+            related_models: collections.abc.Iterable[builtins.str] | None = ...,
+            model_maker_id: builtins.str | None = ...,
+            has_static_banner: builtins.bool = ...,
+            has_animated_banner: builtins.bool = ...,
+            imsdk_supported: builtins.bool = ...,
+            private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
+            llm_details: global___ModelManifest.Internal.LLMDetails | None = ...,
+            standalone_components: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         ) -> None: ...
-        def ClearField(self, field_name: typing.Literal["call_to_action", b"call_to_action", "genie_compatible", b"genie_compatible", "geniex_llamacpp_compatible", b"geniex_llamacpp_compatible"]) -> None: ...
+        def HasField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_status_reason", b"_status_reason", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "status_reason", b"status_reason"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_status_reason", b"_status_reason", "applicable_scenarios", b"applicable_scenarios", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "imsdk_supported", b"imsdk_supported", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "standalone_components", b"standalone_components", "status", b"status", "status_reason", b"status_reason"]) -> None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_llm_details", b"_llm_details"]) -> typing.Literal["llm_details"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_model_maker_id", b"_model_maker_id"]) -> typing.Literal["model_maker_id"] | None: ...
+        @typing.overload
+        def WhichOneof(self, oneof_group: typing.Literal["_status_reason", b"_status_reason"]) -> typing.Literal["status_reason"] | None: ...
 
     AIHM_VERSION_FIELD_NUMBER: builtins.int
     ID_FIELD_NUMBER: builtins.int
     NAME_FIELD_NUMBER: builtins.int
-    STATUS_FIELD_NUMBER: builtins.int
-    STATUS_REASON_FIELD_NUMBER: builtins.int
     HEADLINE_FIELD_NUMBER: builtins.int
     DOMAIN_FIELD_NUMBER: builtins.int
     DESCRIPTION_FIELD_NUMBER: builtins.int
     USE_CASE_FIELD_NUMBER: builtins.int
     TAGS_FIELD_NUMBER: builtins.int
-    APPLICABLE_SCENARIOS_FIELD_NUMBER: builtins.int
-    RELATED_MODELS_FIELD_NUMBER: builtins.int
     FORM_FACTORS_FIELD_NUMBER: builtins.int
     TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
     RUNTIME_TECHNICAL_DETAILS_FIELD_NUMBER: builtins.int
     LICENSE_TYPE_FIELD_NUMBER: builtins.int
-    MODEL_MAKER_ID_FIELD_NUMBER: builtins.int
     DATASET_FIELD_NUMBER: builtins.int
     RESEARCH_PAPER_FIELD_NUMBER: builtins.int
     RESEARCH_PAPER_TITLE_FIELD_NUMBER: builtins.int
     SOURCE_REPO_FIELD_NUMBER: builtins.int
     LICENSE_URL_FIELD_NUMBER: builtins.int
-    HAS_STATIC_BANNER_FIELD_NUMBER: builtins.int
-    HAS_ANIMATED_BANNER_FIELD_NUMBER: builtins.int
-    IMSDK_SUPPORTED_FIELD_NUMBER: builtins.int
     RESTRICT_MODEL_SHARING_FIELD_NUMBER: builtins.int
     VOICE_AI_SDK_FIELD_NUMBER: builtins.int
-    PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
     MODEL_TYPE_LLM_FIELD_NUMBER: builtins.int
-    LLM_DETAILS_FIELD_NUMBER: builtins.int
     TEMPLATES_FIELD_NUMBER: builtins.int
     DATASETS_FIELD_NUMBER: builtins.int
     MODELS_FIELD_NUMBER: builtins.int
@@ -543,6 +627,7 @@ class ModelInfo(google.protobuf.message.Message):
     ADDITIONAL_README_SECTION_FIELD_NUMBER: builtins.int
     SKIP_EXAMPLE_USAGE_FIELD_NUMBER: builtins.int
     LOCAL_DEVICE_DEPLOYMENT_FIELD_NUMBER: builtins.int
+    _INTERNAL_FIELD_NUMBER: builtins.int
     aihm_version: builtins.str
     id: builtins.str
     """---------------------------------------------------------------------------
@@ -555,12 +640,6 @@ class ModelInfo(google.protobuf.message.Message):
     Should have dashes instead of underscores and all
     words capitalized. For example, `Whisper-Base-En`.
     """
-    status: global___ModelStatus.ValueType
-    """Whether or not the model is published on the website.
-    This should be set to public unless the model has poor accuracy/perf.
-    """
-    status_reason: builtins.str
-    """If status is private, this must have a reference to an issue with an explanation."""
     headline: builtins.str
     """---------------------------------------------------------------------------
     Description & categorization
@@ -576,8 +655,6 @@ class ModelInfo(google.protobuf.message.Message):
     """What task the model is used to solve, such as object detection, classification, etc."""
     license_type: global___ModelLicense.ValueType
     """The license type of the original model repo."""
-    model_maker_id: builtins.str
-    """Some models are made by a company."""
     research_paper: builtins.str
     """---------------------------------------------------------------------------
     References
@@ -591,24 +668,13 @@ class ModelInfo(google.protobuf.message.Message):
     """A link to the original github repo with the model's code."""
     license_url: builtins.str
     """A link to the model's license. Most commonly found in the github repo it was cloned from."""
-    has_static_banner: builtins.bool
-    """---------------------------------------------------------------------------
-    Branding
-    ---------------------------------------------------------------------------
-
-    Whether the model has a static image uploaded in S3. All published models must have this.
-    """
-    has_animated_banner: builtins.bool
-    """Whether the model has an animated asset uploaded in S3. This is optional."""
-    imsdk_supported: builtins.bool
+    restrict_model_sharing: builtins.bool
     """---------------------------------------------------------------------------
     Distribution & integrations
     ---------------------------------------------------------------------------
 
-    Whether the model is compatible with the IMSDK Plugin for IOT devices.
+    If set, model assets shouldn't be distributed.
     """
-    restrict_model_sharing: builtins.bool
-    """If set, model assets shouldn't be distributed."""
     voice_ai_sdk: global___VoiceAISdk.ValueType
     """Which Qualcomm Voice AI SDK variant the model is compatible with.
     Unset means the model has no Voice AI SDK integration.
@@ -679,26 +745,13 @@ class ModelInfo(google.protobuf.message.Message):
         """A list of applicable tags to add to the model."""
 
     @property
-    def applicable_scenarios(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """A list of real-world applications for which this model could be used.
-        This is free-form and almost anything reasonable here is fine.
-        """
-
-    @property
-    def related_models(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
-        """A list of other similar models in the repo.
-        Typically, any model that performs the same task is fine.
-        If nothing fits, this can be left blank. Limit to 3 models.
-        """
-
-    @property
     def form_factors(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[platform_pb2.FormFactor.ValueType]:
         """A list of device types for which this model could be useful.
         If unsure what to put here, default to Phone and Tablet.
         """
 
     @property
-    def technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.TechnicalDetail]:
+    def technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.TechnicalDetail]:
         """---------------------------------------------------------------------------
         Metadata
         ---------------------------------------------------------------------------
@@ -712,7 +765,7 @@ class ModelInfo(google.protobuf.message.Message):
         """
 
     @property
-    def runtime_technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.RuntimeTechnicalDetails]:
+    def runtime_technical_details(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.RuntimeTechnicalDetails]:
         """Technical details that only apply to specific runtimes, e.g. a model size
         that differs per runtime. One entry per runtime that has such details.
         """
@@ -723,12 +776,6 @@ class ModelInfo(google.protobuf.message.Message):
         available as options in `model.py`. Typically only has one entry.
         """
 
-    @property
-    def private_perf_form_factors(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[platform_pb2.FormFactor.ValueType]:
-        """Device form factors for which we don't publish performance data."""
-
-    @property
-    def llm_details(self) -> global___ModelInfo.LLMDetails: ...
     @property
     def templates(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
         """---------------------------------------------------------------------------
@@ -747,15 +794,15 @@ class ModelInfo(google.protobuf.message.Message):
         """Direct dependencies on other model folders under qai_hub_models/models/."""
 
     @property
-    def external_repos(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.ExternalRepo]:
+    def external_repos(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.ExternalRepo]:
         """External repository dependencies, imported as external_repos.<name>."""
 
     @property
-    def pre_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.PipCommand]:
+    def pre_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.PipCommand]:
         """pip commands to run before / after `pip install -r requirements.txt`."""
 
     @property
-    def post_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.PipCommand]: ...
+    def post_pip_install_commands(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.PipCommand]: ...
     @property
     def supported_precisions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[shared.precision_pb2.Precision.ValueType]:
         """---------------------------------------------------------------------------
@@ -771,11 +818,11 @@ class ModelInfo(google.protobuf.message.Message):
         """Runtimes that need extra orchestration steps beyond running the model."""
 
     @property
-    def disabled_paths(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelInfo.DisabledPath]:
+    def disabled_paths(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ModelManifest.DisabledPath]:
         """Precision + runtime paths that are disabled, with the reason."""
 
     @property
-    def numerics_benchmark(self) -> numerics_pb2.NumericsAccuracyBenchmark:
+    def numerics_benchmark(self) -> model_numerics_pb2.NumericsAccuracyBenchmark:
         """---------------------------------------------------------------------------
         Validation
         ---------------------------------------------------------------------------
@@ -788,45 +835,45 @@ class ModelInfo(google.protobuf.message.Message):
     def outputs_to_skip_validation(self) -> google.protobuf.internal.containers.ScalarMap[builtins.int, builtins.str]:
         """Output index -> reason its PSNR should not be printed by export."""
 
+    @property
+    def _internal(self) -> global___ModelManifest.Internal:
+        """---------------------------------------------------------------------------
+        Internal
+        ---------------------------------------------------------------------------
+
+        Fields sourced from internal-config.yaml. Only set in the internal manifest
+        published to the private bucket; unset in public releases.
+        """
+
     def __init__(
         self,
         *,
         aihm_version: builtins.str = ...,
         id: builtins.str = ...,
         name: builtins.str = ...,
-        status: global___ModelStatus.ValueType = ...,
-        status_reason: builtins.str | None = ...,
         headline: builtins.str = ...,
         domain: global___ModelDomain.ValueType = ...,
         description: builtins.str = ...,
         use_case: global___ModelUseCase.ValueType = ...,
         tags: collections.abc.Iterable[global___ModelTag.ValueType] | None = ...,
-        applicable_scenarios: collections.abc.Iterable[builtins.str] | None = ...,
-        related_models: collections.abc.Iterable[builtins.str] | None = ...,
         form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
-        technical_details: collections.abc.Iterable[global___ModelInfo.TechnicalDetail] | None = ...,
-        runtime_technical_details: collections.abc.Iterable[global___ModelInfo.RuntimeTechnicalDetails] | None = ...,
+        technical_details: collections.abc.Iterable[global___ModelManifest.TechnicalDetail] | None = ...,
+        runtime_technical_details: collections.abc.Iterable[global___ModelManifest.RuntimeTechnicalDetails] | None = ...,
         license_type: global___ModelLicense.ValueType = ...,
-        model_maker_id: builtins.str | None = ...,
         dataset: collections.abc.Iterable[builtins.str] | None = ...,
         research_paper: builtins.str | None = ...,
         research_paper_title: builtins.str | None = ...,
         source_repo: builtins.str | None = ...,
         license_url: builtins.str | None = ...,
-        has_static_banner: builtins.bool = ...,
-        has_animated_banner: builtins.bool = ...,
-        imsdk_supported: builtins.bool = ...,
         restrict_model_sharing: builtins.bool = ...,
         voice_ai_sdk: global___VoiceAISdk.ValueType = ...,
-        private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
         model_type_llm: builtins.bool = ...,
-        llm_details: global___ModelInfo.LLMDetails | None = ...,
         templates: collections.abc.Iterable[builtins.str] | None = ...,
         datasets: collections.abc.Iterable[builtins.str] | None = ...,
         models: collections.abc.Iterable[builtins.str] | None = ...,
-        external_repos: collections.abc.Iterable[global___ModelInfo.ExternalRepo] | None = ...,
-        pre_pip_install_commands: collections.abc.Iterable[global___ModelInfo.PipCommand] | None = ...,
-        post_pip_install_commands: collections.abc.Iterable[global___ModelInfo.PipCommand] | None = ...,
+        external_repos: collections.abc.Iterable[global___ModelManifest.ExternalRepo] | None = ...,
+        pre_pip_install_commands: collections.abc.Iterable[global___ModelManifest.PipCommand] | None = ...,
+        post_pip_install_commands: collections.abc.Iterable[global___ModelManifest.PipCommand] | None = ...,
         readme_install_system_deps: builtins.str | None = ...,
         python_version_greater_than_or_equal_to: builtins.str | None = ...,
         python_version_greater_than_or_equal_to_reason: builtins.str | None = ...,
@@ -839,27 +886,26 @@ class ModelInfo(google.protobuf.message.Message):
         orchestrator_runtimes: collections.abc.Iterable[shared.runtime_pb2.Runtime.ValueType] | None = ...,
         only_allow_orchestrator_runtimes: builtins.bool = ...,
         requires_aot_prepare: builtins.bool = ...,
-        disabled_paths: collections.abc.Iterable[global___ModelInfo.DisabledPath] | None = ...,
+        disabled_paths: collections.abc.Iterable[global___ModelManifest.DisabledPath] | None = ...,
         is_aimet: builtins.bool = ...,
         num_calibration_samples: builtins.int | None = ...,
         separate_quantize_script: builtins.bool = ...,
         default_device: builtins.str = ...,
         has_on_target_demo: builtins.bool = ...,
-        numerics_benchmark: numerics_pb2.NumericsAccuracyBenchmark | None = ...,
+        numerics_benchmark: model_numerics_pb2.NumericsAccuracyBenchmark | None = ...,
         inference_metrics: builtins.str = ...,
         outputs_to_skip_validation: collections.abc.Mapping[builtins.int, builtins.str] | None = ...,
         additional_readme_section: builtins.str = ...,
         skip_example_usage: builtins.bool = ...,
         local_device_deployment: builtins.bool = ...,
+        _internal: global___ModelManifest.Internal | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "license_url", b"license_url", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "source_repo", b"source_repo", "status_reason", b"status_reason"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_license_url", b"_license_url", "_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "_status_reason", b"_status_reason", "additional_readme_section", b"additional_readme_section", "aihm_version", b"aihm_version", "applicable_scenarios", b"applicable_scenarios", "dataset", b"dataset", "datasets", b"datasets", "default_device", b"default_device", "description", b"description", "disabled_paths", b"disabled_paths", "domain", b"domain", "external_repos", b"external_repos", "form_factors", b"form_factors", "has_animated_banner", b"has_animated_banner", "has_multi_graph", b"has_multi_graph", "has_on_target_demo", b"has_on_target_demo", "has_static_banner", b"has_static_banner", "headline", b"headline", "id", b"id", "imsdk_supported", b"imsdk_supported", "inference_metrics", b"inference_metrics", "is_aimet", b"is_aimet", "is_collection_model", b"is_collection_model", "is_precompiled", b"is_precompiled", "license_type", b"license_type", "license_url", b"license_url", "llm_details", b"llm_details", "local_device_deployment", b"local_device_deployment", "model_maker_id", b"model_maker_id", "model_type_llm", b"model_type_llm", "models", b"models", "name", b"name", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "only_allow_orchestrator_runtimes", b"only_allow_orchestrator_runtimes", "orchestrator_runtimes", b"orchestrator_runtimes", "outputs_to_skip_validation", b"outputs_to_skip_validation", "post_pip_install_commands", b"post_pip_install_commands", "pre_pip_install_commands", b"pre_pip_install_commands", "private_perf_form_factors", b"private_perf_form_factors", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "related_models", b"related_models", "requires_aot_prepare", b"requires_aot_prepare", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "restrict_model_sharing", b"restrict_model_sharing", "runtime_technical_details", b"runtime_technical_details", "separate_quantize_script", b"separate_quantize_script", "skip_example_usage", b"skip_example_usage", "source_repo", b"source_repo", "status", b"status", "status_reason", b"status_reason", "supported_precisions", b"supported_precisions", "tags", b"tags", "technical_details", b"technical_details", "templates", b"templates", "use_case", b"use_case", "voice_ai_sdk", b"voice_ai_sdk"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["X_internal", b"X_internal", "_internal", b"_internal", "_license_url", b"_license_url", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "license_url", b"license_url", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "source_repo", b"source_repo"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["X_internal", b"X_internal", "_internal", b"_internal", "_license_url", b"_license_url", "_num_calibration_samples", b"_num_calibration_samples", "_numerics_benchmark", b"_numerics_benchmark", "_python_version_greater_than_or_equal_to", b"_python_version_greater_than_or_equal_to", "_python_version_greater_than_or_equal_to_reason", b"_python_version_greater_than_or_equal_to_reason", "_python_version_less_than", b"_python_version_less_than", "_python_version_less_than_reason", b"_python_version_less_than_reason", "_readme_install_system_deps", b"_readme_install_system_deps", "_research_paper", b"_research_paper", "_research_paper_title", b"_research_paper_title", "_source_repo", b"_source_repo", "additional_readme_section", b"additional_readme_section", "aihm_version", b"aihm_version", "dataset", b"dataset", "datasets", b"datasets", "default_device", b"default_device", "description", b"description", "disabled_paths", b"disabled_paths", "domain", b"domain", "external_repos", b"external_repos", "form_factors", b"form_factors", "has_multi_graph", b"has_multi_graph", "has_on_target_demo", b"has_on_target_demo", "headline", b"headline", "id", b"id", "inference_metrics", b"inference_metrics", "is_aimet", b"is_aimet", "is_collection_model", b"is_collection_model", "is_precompiled", b"is_precompiled", "license_type", b"license_type", "license_url", b"license_url", "local_device_deployment", b"local_device_deployment", "model_type_llm", b"model_type_llm", "models", b"models", "name", b"name", "num_calibration_samples", b"num_calibration_samples", "numerics_benchmark", b"numerics_benchmark", "only_allow_orchestrator_runtimes", b"only_allow_orchestrator_runtimes", "orchestrator_runtimes", b"orchestrator_runtimes", "outputs_to_skip_validation", b"outputs_to_skip_validation", "post_pip_install_commands", b"post_pip_install_commands", "pre_pip_install_commands", b"pre_pip_install_commands", "python_version_greater_than_or_equal_to", b"python_version_greater_than_or_equal_to", "python_version_greater_than_or_equal_to_reason", b"python_version_greater_than_or_equal_to_reason", "python_version_less_than", b"python_version_less_than", "python_version_less_than_reason", b"python_version_less_than_reason", "readme_install_system_deps", b"readme_install_system_deps", "requires_aot_prepare", b"requires_aot_prepare", "research_paper", b"research_paper", "research_paper_title", b"research_paper_title", "restrict_model_sharing", b"restrict_model_sharing", "runtime_technical_details", b"runtime_technical_details", "separate_quantize_script", b"separate_quantize_script", "skip_example_usage", b"skip_example_usage", "source_repo", b"source_repo", "supported_precisions", b"supported_precisions", "tags", b"tags", "technical_details", b"technical_details", "templates", b"templates", "use_case", b"use_case", "voice_ai_sdk", b"voice_ai_sdk"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["X_internal", b"X_internal"]) -> typing.Literal["_internal"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_license_url", b"_license_url"]) -> typing.Literal["license_url"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["_llm_details", b"_llm_details"]) -> typing.Literal["llm_details"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["_model_maker_id", b"_model_maker_id"]) -> typing.Literal["model_maker_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_num_calibration_samples", b"_num_calibration_samples"]) -> typing.Literal["num_calibration_samples"] | None: ...
     @typing.overload
@@ -880,7 +926,5 @@ class ModelInfo(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["_research_paper_title", b"_research_paper_title"]) -> typing.Literal["research_paper_title"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_source_repo", b"_source_repo"]) -> typing.Literal["source_repo"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["_status_reason", b"_status_reason"]) -> typing.Literal["status_reason"] | None: ...
 
-global___ModelInfo = ModelInfo
+global___ModelManifest = ModelManifest

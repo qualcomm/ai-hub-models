@@ -8,16 +8,16 @@ from unittest.mock import patch
 import pytest
 
 from qai_hub_models_cli.cli import main
-from qai_hub_models_cli.proto.info_pb2 import ModelDomain, ModelTag
-from qai_hub_models_cli.proto.manifest_pb2 import (
-    ManifestModelEntry,
-    ReleaseManifest,
-)
+from qai_hub_models_cli.proto.model_manifest_pb2 import ModelDomain, ModelTag
 from qai_hub_models_cli.proto.platform_pb2 import (
     ChipsetInfo,
     DeviceInfo,
     PlatformInfo,
     RuntimeInfo,
+)
+from qai_hub_models_cli.proto.release_manifest_pb2 import (
+    ReleaseManifest,
+    ReleaseManifestModelEntry,
 )
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 
@@ -26,7 +26,7 @@ def _fake_manifest() -> ReleaseManifest:
     return ReleaseManifest(
         version="0.99.0",
         models=[
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="mobilenet_v2",
                 display_name="MobileNet V2",
                 domain=ModelDomain.MODEL_DOMAIN_COMPUTER_VISION,
@@ -35,7 +35,7 @@ def _fake_manifest() -> ReleaseManifest:
                 supported_chipsets=["qualcomm-snapdragon-8gen3"],
                 tags=[ModelTag.MODEL_TAG_BACKBONE, ModelTag.MODEL_TAG_REAL_TIME],
             ),
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="whisper_small",
                 display_name="Whisper Small",
                 domain=ModelDomain.MODEL_DOMAIN_AUDIO,
@@ -44,7 +44,7 @@ def _fake_manifest() -> ReleaseManifest:
                 supported_chipsets=["qualcomm-snapdragon-x-elite"],
                 tags=[ModelTag.MODEL_TAG_FOUNDATION],
             ),
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="qwen3_5_2b",
                 display_name="Qwen3.5-2B",
                 domain=ModelDomain.MODEL_DOMAIN_GENERATIVE_AI,
@@ -53,7 +53,7 @@ def _fake_manifest() -> ReleaseManifest:
                 supported_chipsets=["qualcomm-snapdragon-x-elite"],
                 tags=[ModelTag.MODEL_TAG_LLM, ModelTag.MODEL_TAG_GENERATIVE_AI],
             ),
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="qwen3_vl_4b_instruct",
                 display_name="Qwen3-VL-4B-Instruct",
                 domain=ModelDomain.MODEL_DOMAIN_GENERATIVE_AI,
@@ -66,7 +66,7 @@ def _fake_manifest() -> ReleaseManifest:
                     ModelTag.MODEL_TAG_GENERATIVE_AI,
                 ],
             ),
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="pi05",
                 display_name="Pi0.5",
                 domain=ModelDomain.MODEL_DOMAIN_MULTIMODAL,
@@ -117,7 +117,9 @@ def _skip_version_check() -> Generator[None]:
 @pytest.fixture
 def manifest() -> Generator[None]:
     with (
-        patch("qai_hub_models_cli.cli.get_manifest", return_value=_fake_manifest()),
+        patch(
+            "qai_hub_models_cli.cli.get_release_manifest", return_value=_fake_manifest()
+        ),
         patch("qai_hub_models_cli.cli.get_platform", return_value=_fake_platform()),
     ):
         yield

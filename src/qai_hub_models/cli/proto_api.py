@@ -6,12 +6,15 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from qai_hub_models_cli.proto.info_pb2 import ModelInfo
-from qai_hub_models_cli.proto.manifest_pb2 import ManifestModelEntry, ReleaseManifest
-from qai_hub_models_cli.proto.numerics_pb2 import ModelNumerics
-from qai_hub_models_cli.proto.perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_manifest_pb2 import ModelManifest
+from qai_hub_models_cli.proto.model_numerics_pb2 import ModelNumerics
+from qai_hub_models_cli.proto.model_perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.release_manifest_pb2 import (
+    ReleaseManifest,
+    ReleaseManifestModelEntry,
+)
 from qai_hub_models_cli.versions import CURRENT_VERSION
 from tqdm import tqdm
 
@@ -19,7 +22,7 @@ from qai_hub_models._version import __version__
 from qai_hub_models.utils.path_helpers import MODEL_IDS, is_internal_repo
 
 
-def get_manifest_proto() -> ReleaseManifest:
+def get_release_manifest_proto() -> ReleaseManifest:
     """Build a ReleaseManifest from local model configs (dev installs)."""
     # Neither the scripts package nor the internal one is present in release
     # builds, so import from both here rather than at module scope.
@@ -30,7 +33,7 @@ def get_manifest_proto() -> ReleaseManifest:
     from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
     from qai_hub_models.scripts.build_release_proto import _manifest_filter_fields
 
-    def _build_entry(model_id: str) -> ManifestModelEntry | None:
+    def _build_entry(model_id: str) -> ReleaseManifestModelEntry | None:
         model_info = WebsiteModelInfo.from_model(model_id)
         info = model_info.manifest
         info_proto = model_info.to_proto(__version__)
@@ -40,7 +43,7 @@ def get_manifest_proto() -> ReleaseManifest:
             model_id, not_exists_ok=True
         )
         perf = QAIHMModelPerf.from_model(model_id, not_exists_ok=True)
-        return ManifestModelEntry(
+        return ReleaseManifestModelEntry(
             id=model_id,
             display_name=info.name,
             domain=info_proto.domain,
@@ -62,8 +65,8 @@ def get_manifest_proto() -> ReleaseManifest:
     )
 
 
-def get_info_proto(model_id: str) -> ModelInfo:
-    """Build a ModelInfo proto from local model config (dev installs)."""
+def get_model_manifest_proto(model_id: str) -> ModelManifest:
+    """Build a ModelManifest proto from local model config (dev installs)."""
     # The website feed spans manifest.yaml and internal-config.yaml, and the latter
     # is internal-only, so import here to keep this module importable without it.
     from qai_hub_models.scorecard.model_info import WebsiteModelInfo
@@ -71,7 +74,7 @@ def get_info_proto(model_id: str) -> ModelInfo:
     return WebsiteModelInfo.from_model(model_id).to_proto(__version__)
 
 
-def get_perf_proto(model_id: str) -> ModelPerf:
+def get_model_perf_proto(model_id: str) -> ModelPerf:
     """Build a ModelPerf proto from local model config (dev installs)."""
     # The scorecard artifact schemas live in the internal-only package, so
     # import them here to keep this module importable without it.
@@ -80,7 +83,7 @@ def get_perf_proto(model_id: str) -> ModelPerf:
     return QAIHMModelPerf.from_model(model_id, not_exists_ok=True).to_proto()
 
 
-def get_numerics_proto(model_id: str) -> ModelNumerics:
+def get_model_numerics_proto(model_id: str) -> ModelNumerics:
     """Build a ModelNumerics proto from local model config (dev installs)."""
     # The scorecard artifact schemas live in the internal-only package, so
     # import them here to keep this module importable without it.
@@ -106,7 +109,7 @@ def get_platform_proto() -> PlatformInfo:
     return DevicesAndChipsetsYaml.load().to_proto(__version__)
 
 
-def get_release_assets_proto(model_id: str) -> ModelReleaseAssets | None:
+def get_model_release_assets_proto(model_id: str) -> ModelReleaseAssets | None:
     """Build a ModelReleaseAssets proto from local model config (dev installs)."""
     # The scripts package is not available in release builds, so import here
     # to avoid failures.

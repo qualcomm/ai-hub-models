@@ -16,38 +16,47 @@ import collections.abc
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
-from qai_hub_models_cli.proto import info_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2
 import shared.runtime_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 @typing.final
-class ModelManifestUrls(google.protobuf.message.Message):
+class ReleaseManifestModelUrls(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     INFO_FIELD_NUMBER: builtins.int
+    MANIFEST_FIELD_NUMBER: builtins.int
     PERF_FIELD_NUMBER: builtins.int
     NUMERICS_FIELD_NUMBER: builtins.int
     RELEASE_ASSETS_FIELD_NUMBER: builtins.int
+    INTERNAL_MANIFEST_FIELD_NUMBER: builtins.int
     info: builtins.str
+    """Replaced by manifest; unused (and unset) starting in v0.68.0"""
+    manifest: builtins.str
+    """Used starting in v0.68.0; unset beforehand"""
     perf: builtins.str
     numerics: builtins.str
     release_assets: builtins.str
+    internal_manifest: builtins.str
+    """ModelManifest with `_internal` set. Only set in the internal (private bucket) release manifest."""
     def __init__(
         self,
         *,
         info: builtins.str = ...,
+        manifest: builtins.str = ...,
         perf: builtins.str = ...,
         numerics: builtins.str = ...,
         release_assets: builtins.str = ...,
+        internal_manifest: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["info", b"info", "numerics", b"numerics", "perf", b"perf", "release_assets", b"release_assets"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["info", b"info", "internal_manifest", b"internal_manifest", "manifest", b"manifest", "numerics", b"numerics", "perf", b"perf", "release_assets", b"release_assets"]) -> None: ...
 
-global___ModelManifestUrls = ModelManifestUrls
+global___ReleaseManifestModelUrls = ReleaseManifestModelUrls
 
 @typing.final
-class ManifestModelEntry(google.protobuf.message.Message):
+class ReleaseManifestModelEntry(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     ID_FIELD_NUMBER: builtins.int
@@ -61,7 +70,7 @@ class ManifestModelEntry(google.protobuf.message.Message):
     USE_CASE_FIELD_NUMBER: builtins.int
     id: builtins.str
     display_name: builtins.str
-    domain: info_pb2.ModelDomain.ValueType
+    domain: model_manifest_pb2.ModelDomain.ValueType
     is_quantized: builtins.bool
     """Fields 5-8 (the model-filter fields) were added in AI Hub Models 0.56.0.
     They are unset/empty in manifests from earlier releases, so consumers must
@@ -69,12 +78,12 @@ class ManifestModelEntry(google.protobuf.message.Message):
 
     Whether the model has any quantized (non-float) released assets.
     """
-    use_case: info_pb2.ModelUseCase.ValueType
-    """The model's use case (mirrors ModelInfo.use_case). Added in AI Hub Models
+    use_case: model_manifest_pb2.ModelUseCase.ValueType
+    """The model's use case (mirrors ModelManifest.use_case). Added in AI Hub Models
     0.56.0; unset (MODEL_USE_CASE_UNSPECIFIED) in earlier manifests.
     """
     @property
-    def manifest_urls(self) -> global___ModelManifestUrls: ...
+    def manifest_urls(self) -> global___ReleaseManifestModelUrls: ...
     @property
     def supported_runtimes(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[shared.runtime_pb2.Runtime.ValueType]:
         """Runtimes for which the model has released assets."""
@@ -84,26 +93,26 @@ class ManifestModelEntry(google.protobuf.message.Message):
         """Chipsets on which the model has been profiled."""
 
     @property
-    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[info_pb2.ModelTag.ValueType]:
-        """Tags applied to the model (mirrors ModelInfo.tags)."""
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[model_manifest_pb2.ModelTag.ValueType]:
+        """Tags applied to the model (mirrors ModelManifest.tags)."""
 
     def __init__(
         self,
         *,
         id: builtins.str = ...,
         display_name: builtins.str = ...,
-        domain: info_pb2.ModelDomain.ValueType = ...,
-        manifest_urls: global___ModelManifestUrls | None = ...,
+        domain: model_manifest_pb2.ModelDomain.ValueType = ...,
+        manifest_urls: global___ReleaseManifestModelUrls | None = ...,
         is_quantized: builtins.bool = ...,
         supported_runtimes: collections.abc.Iterable[shared.runtime_pb2.Runtime.ValueType] | None = ...,
         supported_chipsets: collections.abc.Iterable[builtins.str] | None = ...,
-        tags: collections.abc.Iterable[info_pb2.ModelTag.ValueType] | None = ...,
-        use_case: info_pb2.ModelUseCase.ValueType = ...,
+        tags: collections.abc.Iterable[model_manifest_pb2.ModelTag.ValueType] | None = ...,
+        use_case: model_manifest_pb2.ModelUseCase.ValueType = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["manifest_urls", b"manifest_urls"]) -> builtins.bool: ...
     def ClearField(self, field_name: typing.Literal["display_name", b"display_name", "domain", b"domain", "id", b"id", "is_quantized", b"is_quantized", "manifest_urls", b"manifest_urls", "supported_chipsets", b"supported_chipsets", "supported_runtimes", b"supported_runtimes", "tags", b"tags", "use_case", b"use_case"]) -> None: ...
 
-global___ManifestModelEntry = ManifestModelEntry
+global___ReleaseManifestModelEntry = ReleaseManifestModelEntry
 
 @typing.final
 class ReleaseManifest(google.protobuf.message.Message):
@@ -115,13 +124,13 @@ class ReleaseManifest(google.protobuf.message.Message):
     version: builtins.str
     platform_url: builtins.str
     @property
-    def models(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ManifestModelEntry]: ...
+    def models(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___ReleaseManifestModelEntry]: ...
     def __init__(
         self,
         *,
         version: builtins.str = ...,
         platform_url: builtins.str = ...,
-        models: collections.abc.Iterable[global___ManifestModelEntry] | None = ...,
+        models: collections.abc.Iterable[global___ReleaseManifestModelEntry] | None = ...,
     ) -> None: ...
     def ClearField(self, field_name: typing.Literal["models", b"models", "platform_url", b"platform_url", "version", b"version"]) -> None: ...
 

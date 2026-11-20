@@ -17,18 +17,16 @@ from qai_hub_models_cli.common import (
     sample_command,
 )
 from qai_hub_models_cli.errors import AssetNotFoundError, CLIUserError
-from qai_hub_models_cli.proto import info_pb2
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import (
     ChipsetInfo,
     PlatformInfo,
     RuntimeInfo,
 )
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 from qai_hub_models_cli.proto_helpers._common import fetch_model_proto
-from qai_hub_models_cli.proto_helpers.info import get_model_info
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
 from qai_hub_models_cli.proto_helpers.platform import (
     resolve_chipset,
     resolve_runtime,
@@ -40,6 +38,7 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     runtime_str_to_proto,
     runtimes_str_to_proto_set,
 )
+from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest_entry
 from qai_hub_models_cli.proto_helpers.tool_versions import (
     format_tool_versions,
     tool_versions_match,
@@ -87,44 +86,13 @@ def get_model_release_assets(
         ModelReleaseAssets,
         cache_filename="release_assets.pb",
         manifest_url_field="release_assets",
-        source_getter="get_release_assets_proto",
+        source_getter="get_model_release_assets_proto",
         local_path=local_path,
     )
 
     if not proto.assets:
-        entry = get_manifest_entry(model, version)
-        info_proto = get_model_info(model, version)
-
-        if info_proto.HasField("llm_details"):
-            if (
-                info_proto.llm_details.call_to_action
-                == info_pb2.ModelInfo.LLMDetails.CALL_TO_ACTION_COMING_SOON
-            ):
-                raise AssetNotFoundError(
-                    f"No pre-compiled model files are available for {entry.display_name}, but assets are coming soon. Stay tuned!"
-                )
-            if (
-                info_proto.llm_details.call_to_action
-                == info_pb2.ModelInfo.LLMDetails.CALL_TO_ACTION_CONTACT_US
-            ):
-                raise AssetNotFoundError(
-                    f"If you have interest in downloading {entry.display_name}, reach out to us at ai-hub-support@qti.qualcomm.com."
-                )
-            if (
-                info_proto.llm_details.call_to_action
-                == info_pb2.ModelInfo.LLMDetails.CALL_TO_ACTION_CONTACT_FOR_DOWNLOAD
-            ):
-                raise AssetNotFoundError(
-                    f"Pre-compiled model files for {entry.display_name} are available for download. Reach out to us at ai-hub-support@qti.qualcomm.com."
-                )
-            if (
-                info_proto.llm_details.call_to_action
-                == info_pb2.ModelInfo.LLMDetails.CALL_TO_ACTION_CONTACT_FOR_PURCHASE
-            ):
-                raise AssetNotFoundError(
-                    f"Pre-compiled model files for {entry.display_name} are available for purchase. Reach out to us at ai-hub-support@qti.qualcomm.com."
-                )
-
+        entry = get_release_manifest_entry(model, version)
+        info_proto = get_model_manifest(model, version)
         if info_proto.restrict_model_sharing:
             raise AssetNotFoundError(
                 f"No pre-compiled model files for {entry.display_name} are available due to licensing"

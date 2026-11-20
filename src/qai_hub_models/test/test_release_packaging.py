@@ -44,7 +44,7 @@ _SKIP_DIRS = {"scripts", "test"}
 
 # Pre-existing references, recorded so new ones fail. All three are dev-only
 # paths that cannot be reached from a release wheel:
-#   - cli/proto_api.py -- get_manifest_proto is for dev installs.
+#   - cli/proto_api.py -- get_release_manifest_proto is for dev installs.
 #   - cli/generate_files.py -- "generate-files is dev-only".
 #   - models/templates/llm/llm_response_evaluator.py -- the reference is a
 #     subprocess argv for a separate hand-built `qaihm-dev-grader` venv, not an

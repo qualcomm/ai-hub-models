@@ -34,7 +34,7 @@ from qai_hub_models_cli.proto_helpers._common import (
     read_proto_json,
     read_proto_yaml,
 )
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest_entry
 from qai_hub_models_cli.versions import CURRENT_VERSION
 
 # Longest first, so ".tar.gz" wins over ".gz".
@@ -131,7 +131,7 @@ def get_model_metadata(
         sdk_versions=sdk_versions,
     )
     metadata_url = metadata_url_for_asset(asset_url)
-    entry = get_manifest_entry(model, version)
+    entry = get_release_manifest_entry(model, version)
     cache_path = model_cache_path(version, entry.id, metadata_url.rsplit("/", 1)[-1])
     try:
         return fetch_proto(metadata_url, cache_path, ModelMetadata)

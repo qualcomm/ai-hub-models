@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from google.protobuf import json_format
 from pydantic import ConfigDict, Field, model_serializer, model_validator
-from qai_hub_models_cli.proto import info_pb2
+from qai_hub_models_cli.proto import model_manifest_pb2
 from qai_hub_models_cli.proto_helpers._common import (
     proto_from_dict,
     read_proto_yaml,
@@ -236,9 +236,9 @@ TechnicalDetails = dict[str, str | int | float]
 _DEFAULT_INFERENCE_METRICS = "psnr"
 
 _MACHINE_TO_PROTO: dict[PipCommandMachine, int] = {
-    "any": info_pb2.ModelInfo.PipCommand.MACHINE_UNSPECIFIED,
-    "gpu": info_pb2.ModelInfo.PipCommand.MACHINE_GPU,
-    "cpu": info_pb2.ModelInfo.PipCommand.MACHINE_CPU,
+    "any": model_manifest_pb2.ModelManifest.PipCommand.MACHINE_UNSPECIFIED,
+    "gpu": model_manifest_pb2.ModelManifest.PipCommand.MACHINE_GPU,
+    "cpu": model_manifest_pb2.ModelManifest.PipCommand.MACHINE_CPU,
 }
 _PROTO_TO_MACHINE: dict[int, PipCommandMachine] = {
     v: k for k, v in _MACHINE_TO_PROTO.items()
@@ -247,11 +247,11 @@ _PROTO_TO_MACHINE: dict[int, PipCommandMachine] = {
 
 def _technical_details_to_proto(
     details: TechnicalDetails,
-) -> list[info_pb2.ModelInfo.TechnicalDetail]:
+) -> list[model_manifest_pb2.ModelManifest.TechnicalDetail]:
     protos = []
     for key in sorted(details):
         val = details[key]
-        td = info_pb2.ModelInfo.TechnicalDetail(key=key)
+        td = model_manifest_pb2.ModelManifest.TechnicalDetail(key=key)
         if isinstance(val, int):
             td.int_value = val
         elif isinstance(val, float):
@@ -263,7 +263,7 @@ def _technical_details_to_proto(
 
 
 def _technical_details_from_proto(
-    protos: Iterable[info_pb2.ModelInfo.TechnicalDetail],
+    protos: Iterable[model_manifest_pb2.ModelManifest.TechnicalDetail],
 ) -> TechnicalDetails:
     details: TechnicalDetails = {}
     for td in protos:
@@ -274,7 +274,7 @@ def _technical_details_from_proto(
     return details
 
 
-def _optional_str(proto: info_pb2.ModelInfo, field: str) -> str | None:
+def _optional_str(proto: model_manifest_pb2.ModelManifest, field: str) -> str | None:
     return getattr(proto, field) if proto.HasField(field) else None
 
 
@@ -335,6 +335,14 @@ class QAIHMModelManifest(BaseQAIHMConfig):
 
     # A list of applicable tags to add to the model
     tags: list[MODEL_TAG] = Field(default_factory=list)
+
+    # A list of a few technical details about the model.
+    #   Model checkpoint: The name of the downloaded model checkpoint file.
+    #   Input resolution: The size of the model's input. For example, `2048x1024`.
+    #   Number of parameters: The number of parameters in the model.
+    #   Model size: The file size of the downloaded model asset.
+    #   Number of output classes: The number of classes the model can classify or annotate.
+    technical_details: TechnicalDetails = Field(default_factory=dict)
 
     # Technical details specific to certain runtimes. Keyed by runtime; empty
     # for models with no runtime-specific details.
@@ -518,7 +526,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
             ASSET_CONFIG.get_qaihm_repo(self.id, relative=False), "demo.py"
         )
 
-    def get_manifest_yaml_path(self, root: Path = QAIHM_PACKAGE_ROOT) -> Path:
+    def get_release_manifest_yaml_path(self, root: Path = QAIHM_PACKAGE_ROOT) -> Path:
         return self.get_package_path(root) / "manifest.yaml"
 
     def get_hf_pipeline_tag(self) -> str:
@@ -968,8 +976,10 @@ class QAIHMModelManifest(BaseQAIHMConfig):
     # Proto serialization
     # =============================================================================
 
-    def to_proto(self, include_defaults: bool = False) -> info_pb2.ModelInfo:
-        """Serialize the manifest half of ``ModelInfo``.
+    def to_proto(
+        self, include_defaults: bool = False
+    ) -> model_manifest_pb2.ModelManifest:
+        """Serialize the manifest half of ``ModelManifest``.
 
         Parameters
         ----------
@@ -980,10 +990,10 @@ class QAIHMModelManifest(BaseQAIHMConfig):
 
         Returns
         -------
-        info_pb2.ModelInfo
+        model_manifest_pb2.ModelManifest
             The serialized manifest fields.
         """
-        msg = info_pb2.ModelInfo(
+        msg = model_manifest_pb2.ModelManifest(
             id=self.id,
             name=self.name,
             headline=self.headline,
@@ -1004,8 +1014,9 @@ class QAIHMModelManifest(BaseQAIHMConfig):
             numerics_benchmark=(
                 self.numerics_benchmark.to_proto() if self.numerics_benchmark else None
             ),
+            technical_details=_technical_details_to_proto(self.technical_details),
             runtime_technical_details=[
-                info_pb2.ModelInfo.RuntimeTechnicalDetails(
+                model_manifest_pb2.ModelManifest.RuntimeTechnicalDetails(
                     runtime=runtime_to_proto(runtime),
                     technical_details=_technical_details_to_proto(details),
                 )
@@ -1017,7 +1028,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
             templates=self.templates,
             datasets=self.datasets,
             external_repos=[
-                info_pb2.ModelInfo.ExternalRepo(
+                model_manifest_pb2.ModelManifest.ExternalRepo(
                     name=name,
                     repo_url=repo.repo_url,
                     commit_sha=repo.commit_sha,
@@ -1070,14 +1081,18 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         return msg
 
     @staticmethod
-    def _pip_command_to_proto(cmd: PipCommand) -> info_pb2.ModelInfo.PipCommand:
-        return info_pb2.ModelInfo.PipCommand(
+    def _pip_command_to_proto(
+        cmd: PipCommand,
+    ) -> model_manifest_pb2.ModelManifest.PipCommand:
+        return model_manifest_pb2.ModelManifest.PipCommand(
             command=cmd.command, machine=_MACHINE_TO_PROTO[cmd.machine]
         )
 
-    def _disabled_paths_to_proto(self) -> list[info_pb2.ModelInfo.DisabledPath]:
+    def _disabled_paths_to_proto(
+        self,
+    ) -> list[model_manifest_pb2.ModelManifest.DisabledPath]:
         paths = [
-            info_pb2.ModelInfo.DisabledPath(
+            model_manifest_pb2.ModelManifest.DisabledPath(
                 precision=precision_to_proto(precision),
                 runtime=runtime_to_proto(runtime),
                 scorecard_failure=reasons.scorecard_failure,
@@ -1094,8 +1109,8 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         return paths
 
     @classmethod
-    def from_proto(cls, proto: info_pb2.ModelInfo) -> QAIHMModelManifest:
-        """Build a manifest from the manifest half of a ``ModelInfo`` proto."""
+    def from_proto(cls, proto: model_manifest_pb2.ModelManifest) -> QAIHMModelManifest:
+        """Build a manifest from the manifest half of a ``ModelManifest`` proto."""
         disabled_paths = ModelDisableReasonsMapping()
         for path in proto.disabled_paths:
             disabled_paths.data.setdefault(precision_from_proto(path.precision), {})[
@@ -1133,6 +1148,7 @@ class QAIHMModelManifest(BaseQAIHMConfig):
                 if proto.HasField("numerics_benchmark")
                 else None
             ),
+            "technical_details": _technical_details_from_proto(proto.technical_details),
             "runtime_technical_details": {
                 runtime_from_proto(r.runtime): _technical_details_from_proto(
                     r.technical_details
@@ -1218,28 +1234,28 @@ class QAIHMModelManifest(BaseQAIHMConfig):
         create_empty_if_no_file: bool = False,
     ) -> QAIHMModelManifest:
         """
-        Read a manifest.yaml, which is the YAML form of a ``ModelInfo`` proto.
+        Read a manifest.yaml, which is the YAML form of a ``ModelManifest`` proto.
 
         If the file does not parse as a proto, it is treated as the legacy
         (pre-proto) format: the raw YAML is rewritten into the proto's dict form
-        and parsed as a ``ModelInfo`` the same way.
+        and parsed as a ``ModelManifest`` the same way.
         """
         if create_empty_if_no_file and (
             not os.path.exists(path) or os.path.getsize(path) == 0
         ):
             return cls()
         try:
-            proto = read_proto_yaml(path, info_pb2.ModelInfo)
+            proto = read_proto_yaml(path, model_manifest_pb2.ModelManifest)
         except json_format.ParseError:
             proto = proto_from_dict(
                 legacy_manifest_to_proto_dict(load_yaml(Path(path))),
-                info_pb2.ModelInfo,
+                model_manifest_pb2.ModelManifest,
                 ignore_unknown_fields=True,
             )
         return cls.from_proto(proto)
 
     def to_yaml(self, path: str | os.PathLike, **kwargs: Any) -> bool:  # type: ignore[override]
-        """Write this manifest to ``path`` as the YAML form of a ``ModelInfo`` proto.
+        """Write this manifest to ``path`` as the YAML form of a ``ModelManifest`` proto.
 
         Parameters
         ----------

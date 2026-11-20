@@ -14,20 +14,16 @@ from packaging.version import Version
 
 from qai_hub_models_cli.envvars import FORCE_MANIFEST_ROOT_ENVVAR
 from qai_hub_models_cli.errors import CLIUserError
-from qai_hub_models_cli.proto.info_pb2 import (
+from qai_hub_models_cli.proto.model_manifest_pb2 import (
     ModelDomain,
-    ModelInfo,
     ModelLicense,
+    ModelManifest,
     ModelTag,
     ModelUseCase,
 )
-from qai_hub_models_cli.proto.manifest_pb2 import (
-    ManifestModelEntry,
-    ModelManifestUrls,
-    ReleaseManifest,
-)
-from qai_hub_models_cli.proto.numerics_pb2 import ModelNumerics
-from qai_hub_models_cli.proto.perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_numerics_pb2 import ModelNumerics
+from qai_hub_models_cli.proto.model_perf_pb2 import ModelPerf
+from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
 from qai_hub_models_cli.proto.platform_pb2 import (
     ChipsetInfo,
     DeviceInfo,
@@ -36,7 +32,11 @@ from qai_hub_models_cli.proto.platform_pb2 import (
     PlatformInfo,
     RuntimeInfo,
 )
-from qai_hub_models_cli.proto.release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.release_manifest_pb2 import (
+    ReleaseManifest,
+    ReleaseManifestModelEntry,
+    ReleaseManifestModelUrls,
+)
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
 
@@ -51,23 +51,23 @@ def _manifest() -> ReleaseManifest:
         version="0.45.0",
         platform_url="https://example.com/platform.pb",
         models=[
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="mobilenet_v2",
                 display_name="MobileNet V2",
                 domain=ModelDomain.MODEL_DOMAIN_COMPUTER_VISION,
-                manifest_urls=ModelManifestUrls(
-                    info="https://example.com/mobilenet_v2/info.pb",
+                manifest_urls=ReleaseManifestModelUrls(
+                    manifest="https://example.com/mobilenet_v2/manifest.pb",
                     perf="https://example.com/mobilenet_v2/perf.pb",
                     numerics="https://example.com/mobilenet_v2/numerics.pb",
                     release_assets="https://example.com/mobilenet_v2/release_assets.pb",
                 ),
             ),
-            ManifestModelEntry(
+            ReleaseManifestModelEntry(
                 id="whisper_small",
                 display_name="Whisper Small",
                 domain=ModelDomain.MODEL_DOMAIN_AUDIO,
-                manifest_urls=ModelManifestUrls(
-                    info="https://example.com/whisper_small/info.pb",
+                manifest_urls=ReleaseManifestModelUrls(
+                    manifest="https://example.com/whisper_small/manifest.pb",
                     perf="https://example.com/whisper_small/perf.pb",
                     numerics="https://example.com/whisper_small/numerics.pb",
                     release_assets="https://example.com/whisper_small/release_assets.pb",
@@ -77,8 +77,8 @@ def _manifest() -> ReleaseManifest:
     )
 
 
-def _model_info() -> ModelInfo:
-    return ModelInfo(
+def _model_info() -> ModelManifest:
+    return ModelManifest(
         id="mobilenet_v2",
         name="MobileNet V2",
         domain=ModelDomain.MODEL_DOMAIN_COMPUTER_VISION,
@@ -185,18 +185,18 @@ def _platform_info() -> PlatformInfo:
 
 @pytest.fixture(autouse=True)
 def _clear_lru_caches() -> Generator[None, None, None]:
-    from qai_hub_models_cli.proto_helpers.info import get_model_info
-    from qai_hub_models_cli.proto_helpers.manifest import get_manifest
-    from qai_hub_models_cli.proto_helpers.numerics import get_model_numerics
-    from qai_hub_models_cli.proto_helpers.perf import get_model_perf
-    from qai_hub_models_cli.proto_helpers.platform import get_platform
-    from qai_hub_models_cli.proto_helpers.release_assets import (
+    from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
+    from qai_hub_models_cli.proto_helpers.model_numerics import get_model_numerics
+    from qai_hub_models_cli.proto_helpers.model_perf import get_model_perf
+    from qai_hub_models_cli.proto_helpers.model_release_assets import (
         get_model_release_assets,
     )
+    from qai_hub_models_cli.proto_helpers.platform import get_platform
+    from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest
 
     fns = (
-        get_manifest,
-        get_model_info,
+        get_release_manifest,
+        get_model_manifest,
         get_model_perf,
         get_model_numerics,
         get_model_release_assets,
@@ -294,16 +294,20 @@ class TestCommon:
 
 class TestGetManifest:
     def test_local_path(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest,
+        )
 
         path = tmp_path / "manifest.pb"
         path.write_bytes(_manifest().SerializeToString())
-        result = get_manifest(local_path=path)
+        result = get_release_manifest(local_path=path)
         assert result.version == "0.45.0"
         assert len(result.models) == 2
 
     def test_fetches_from_s3(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest,
+        )
 
         cache_path = tmp_path / "releases" / "v0.45.0" / "manifest.pb"
         cache_path.parent.mkdir(parents=True)
@@ -317,33 +321,37 @@ class TestGetManifest:
                 return_value=tmp_path / "releases" / "v0.45.0",
             ),
         ):
-            result = get_manifest(_RELEASE_VERSION)
+            result = get_release_manifest(_RELEASE_VERSION)
         assert result.version == "0.45.0"
 
 
 class TestGetManifestEntry:
     def test_lookup_by_id(self) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest_entry,
+        )
 
         with patch(
-            "qai_hub_models_cli.proto_helpers.manifest.get_manifest",
+            "qai_hub_models_cli.proto_helpers.release_manifest.get_release_manifest",
             return_value=_manifest(),
         ):
-            entry = get_manifest_entry("mobilenet_v2", _RELEASE_VERSION)
+            entry = get_release_manifest_entry("mobilenet_v2", _RELEASE_VERSION)
         assert entry.id == "mobilenet_v2"
         assert entry.display_name == "MobileNet V2"
 
     def test_not_found(self) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest_entry,
+        )
 
         with (
             patch(
-                "qai_hub_models_cli.proto_helpers.manifest.get_manifest",
+                "qai_hub_models_cli.proto_helpers.release_manifest.get_release_manifest",
                 return_value=_manifest(),
             ),
             pytest.raises(KeyError, match="No model exists"),
         ):
-            get_manifest_entry("nonexistent_model", _RELEASE_VERSION)
+            get_release_manifest_entry("nonexistent_model", _RELEASE_VERSION)
 
     @pytest.mark.parametrize(
         "user_input",
@@ -352,13 +360,15 @@ class TestGetManifestEntry:
     def test_lookup_normalizes_separators_and_case(self, user_input: str) -> None:
         # Users copy the display name from aihub.qualcomm.com/models — that
         # rendering may separate words with spaces, hyphens, or underscores.
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest_entry,
+        )
 
         with patch(
-            "qai_hub_models_cli.proto_helpers.manifest.get_manifest",
+            "qai_hub_models_cli.proto_helpers.release_manifest.get_release_manifest",
             return_value=_manifest(),
         ):
-            entry = get_manifest_entry(user_input, _RELEASE_VERSION)
+            entry = get_release_manifest_entry(user_input, _RELEASE_VERSION)
         assert entry.id == "mobilenet_v2"
 
 
@@ -367,11 +377,11 @@ class TestGetManifestEntry:
 
 class TestGetModelInfo:
     def test_local_path(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.info import get_model_info
+        from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
 
         path = tmp_path / "info.pb"
         path.write_bytes(_model_info().SerializeToString())
-        result = get_model_info("mobilenet_v2", local_path=path)
+        result = get_model_manifest("mobilenet_v2", local_path=path)
         assert result.id == "mobilenet_v2"
         assert result.name == "MobileNet V2"
 
@@ -383,7 +393,7 @@ class TestGetModelInfo:
 
 class TestGetModelPerf:
     def test_local_path(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.perf import get_model_perf
+        from qai_hub_models_cli.proto_helpers.model_perf import get_model_perf
 
         path = tmp_path / "perf.pb"
         path.write_bytes(_model_perf().SerializeToString())
@@ -394,7 +404,7 @@ class TestGetModelPerf:
 
 class TestGetModelNumerics:
     def test_local_path(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.numerics import get_model_numerics
+        from qai_hub_models_cli.proto_helpers.model_numerics import get_model_numerics
 
         path = tmp_path / "numerics.pb"
         path.write_bytes(_model_numerics().SerializeToString())
@@ -405,7 +415,7 @@ class TestGetModelNumerics:
 
 class TestGetModelReleaseAssets:
     def test_local_path(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             get_model_release_assets,
         )
 
@@ -418,7 +428,7 @@ class TestGetModelReleaseAssets:
 
 class TestGetModelAssetDetails:
     def test_universal_lookup(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             get_model_asset_details,
         )
 
@@ -428,7 +438,7 @@ class TestGetModelAssetDetails:
         assert asset.runtime == Runtime.RUNTIME_TFLITE
 
     def test_chipset_required_for_aot(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             get_model_asset_details,
         )
 
@@ -446,7 +456,7 @@ class TestGetModelAssetDetails:
         ],
     )
     def test_aot_lookup_by_chipset_or_device(self, target: dict[str, str]) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             get_model_asset_details,
         )
 
@@ -462,7 +472,7 @@ class TestGetModelAssetDetails:
 
 class TestFilterReleaseAssets:
     def test_filters_by_each_field(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             filter_release_assets,
         )
 
@@ -483,7 +493,7 @@ class TestFilterReleaseAssets:
         )
 
     def test_chipset_and_device_keep_universal_assets(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             filter_release_assets,
         )
 
@@ -508,7 +518,7 @@ class TestFilterReleaseAssets:
     def test_sdk_version_filter(self) -> None:
         from qai_hub_models_cli.common import parse_sdk_version_filters
         from qai_hub_models_cli.proto.shared.tool_versions_pb2 import ToolVersions
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             filter_release_assets,
         )
 
@@ -569,7 +579,7 @@ class TestFilterReleaseAssets:
 
 class TestFormatFetchCommands:
     def test_prefills_known_values_and_chipset_hints(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             format_fetch_commands,
         )
 
@@ -589,7 +599,7 @@ class TestFormatFetchCommands:
         assert "-c 'Snapdragon 8 Gen 3'" in out
 
     def test_echoes_sdk_version_filters(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             format_fetch_commands,
         )
 
@@ -602,7 +612,7 @@ class TestFormatFetchCommands:
         assert "-s 'litert=1.4.4'" in out
 
     def test_subset_adds_see_all_hint(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             format_fetch_commands,
         )
 
@@ -614,7 +624,7 @@ class TestFormatFetchCommands:
         )
 
     def test_url_only_relabels_and_adds_flag(self) -> None:
-        from qai_hub_models_cli.proto_helpers.release_assets import (
+        from qai_hub_models_cli.proto_helpers.model_release_assets import (
             format_fetch_commands,
         )
 
@@ -649,7 +659,7 @@ class TestGetPlatform:
                 return_value=False,
             ),
             patch(
-                "qai_hub_models_cli.proto_helpers.platform.get_manifest",
+                "qai_hub_models_cli.proto_helpers.platform.get_release_manifest",
                 return_value=_manifest(),
             ),
             patch(
@@ -750,35 +760,39 @@ class TestManifestDiskCache:
         )
 
     def test_cache_miss_writes_file(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest,
+        )
 
         cache_dir = tmp_path / "releases" / "v0.45.0.dev1"
         mock_cli = MagicMock()
-        mock_cli.get_manifest_proto = MagicMock(return_value=_manifest())
+        mock_cli.get_release_manifest_proto = MagicMock(return_value=_manifest())
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_dir, mock_cli))
-            result = get_manifest(_DEV_VERSION)
+            result = get_release_manifest(_DEV_VERSION)
 
-        mock_cli.get_manifest_proto.assert_called_once()
+        mock_cli.get_release_manifest_proto.assert_called_once()
         assert (cache_dir / "manifest.pb").exists()
         assert result.version == "0.45.0"
 
     def test_cache_hit_skips_getter(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.manifest import get_manifest
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest,
+        )
 
         cache_dir = tmp_path / "releases" / "v0.45.0.dev1"
         cache_dir.mkdir(parents=True)
         (cache_dir / "manifest.pb").write_bytes(_manifest().SerializeToString())
 
         mock_cli = MagicMock()
-        mock_cli.get_manifest_proto = MagicMock()
+        mock_cli.get_release_manifest_proto = MagicMock()
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_dir, mock_cli))
-            result = get_manifest(_DEV_VERSION)
+            result = get_release_manifest(_DEV_VERSION)
 
-        mock_cli.get_manifest_proto.assert_not_called()
+        mock_cli.get_release_manifest_proto.assert_not_called()
         assert result.version == "0.45.0"
 
 
@@ -794,40 +808,40 @@ class TestInfoDiskCache:
                 return_value=cache_path,
             ),
             patch(
-                "qai_hub_models_cli.proto_helpers.manifest.get_manifest",
+                "qai_hub_models_cli.proto_helpers.release_manifest.get_release_manifest",
                 return_value=_manifest(),
             ),
             patch.dict("sys.modules", _aihm_sys_modules(mock_cli)),
         )
 
     def test_cache_miss_writes_file(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.info import get_model_info
+        from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
 
         cache_path = tmp_path / "info.pb"
         mock_cli = MagicMock()
-        mock_cli.get_info_proto = MagicMock(return_value=_model_info())
+        mock_cli.get_model_manifest_proto = MagicMock(return_value=_model_info())
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_path, mock_cli))
-            result = get_model_info("mobilenet_v2", _DEV_VERSION)
+            result = get_model_manifest("mobilenet_v2", _DEV_VERSION)
 
-        mock_cli.get_info_proto.assert_called_once_with("mobilenet_v2")
+        mock_cli.get_model_manifest_proto.assert_called_once_with("mobilenet_v2")
         assert cache_path.exists()
         assert result.id == "mobilenet_v2"
 
     def test_cache_hit_skips_getter(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.info import get_model_info
+        from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
 
         cache_path = tmp_path / "info.pb"
         cache_path.write_bytes(_model_info().SerializeToString())
         mock_cli = MagicMock()
-        mock_cli.get_info_proto = MagicMock()
+        mock_cli.get_model_manifest_proto = MagicMock()
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_path, mock_cli))
-            result = get_model_info("mobilenet_v2", _DEV_VERSION)
+            result = get_model_manifest("mobilenet_v2", _DEV_VERSION)
 
-        mock_cli.get_info_proto.assert_not_called()
+        mock_cli.get_model_manifest_proto.assert_not_called()
         assert result.id == "mobilenet_v2"
 
 

@@ -24,8 +24,12 @@ from qai_hub_models_cli.errors import (
 )
 from qai_hub_models_cli.proto.shared.precision_pb2 import Precision
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
-from qai_hub_models_cli.proto_helpers.info import get_model_info
-from qai_hub_models_cli.proto_helpers.manifest import get_manifest_entry
+from qai_hub_models_cli.proto_helpers.model_release_assets import (
+    filter_release_assets,
+    format_fetch_commands,
+    format_release_assets_table,
+    get_model_release_assets,
+)
 from qai_hub_models_cli.proto_helpers.platform import (
     get_platform,
     resolve_runtime,
@@ -34,12 +38,7 @@ from qai_hub_models_cli.proto_helpers.platform_enums import (
     precision_proto_to_str,
     runtime_proto_to_str,
 )
-from qai_hub_models_cli.proto_helpers.release_assets import (
-    filter_release_assets,
-    format_fetch_commands,
-    format_release_assets_table,
-    get_model_release_assets,
-)
+from qai_hub_models_cli.proto_helpers.release_manifest import get_release_manifest_entry
 from qai_hub_models_cli.utils import download, get_next_free_path
 from qai_hub_models_cli.versions import (
     CURRENT_VERSION,
@@ -183,15 +182,13 @@ def get_asset_url(
                 runtime_info is not None
                 and runtime_info.runtime == Runtime.RUNTIME_GENIEX_LLAMACPP
             ):
-                info_proto = get_model_info(model, version)
-                if info_proto.llm_details.geniex_llamacpp_compatible:
-                    entry = get_manifest_entry(model, version)
-                    raise AssetNotFoundError(
-                        f"geniex_llamacpp assets for {entry.display_name} are not "
-                        "distributed via qai-hub-models fetch. See the model "
-                        f"README for setup instructions: "
-                        f"{model_repo_url(entry.id, version)}"
-                    )
+                entry = get_release_manifest_entry(model, version)
+                raise AssetNotFoundError(
+                    f"geniex_llamacpp assets for {entry.display_name} are not "
+                    "distributed via qai-hub-models fetch. See the model "
+                    f"README for setup instructions: "
+                    f"{model_repo_url(entry.id, version)}"
+                )
 
         release_assets = get_model_release_assets(model, version)
 
