@@ -15,11 +15,10 @@ from qai_hub_models.scorecard.envvars import (
     StaticModelsDirEnvvar,
 )
 from qai_hub_models.scorecard.internal_config_yaml import (
-    LLMWeekendGroup,
     QAIHMModelInternalConfig,
     TestRunnerSplit,
-    get_downloadable_llm_model_ids,
-    get_week_model_ids,
+    get_on_demand_llm_model_ids,
+    get_weekly_llm_model_ids,
 )
 from qai_hub_models.scorecard.static.model_config import DEFAULT_MODELS_DIR
 from qai_hub_models.utils.path_helpers import MODEL_IDS as PYTORCH_RECIPE_MODEL_IDS
@@ -152,21 +151,13 @@ def validate_and_split_enabled_models(
             enabled_torch_model_ids = enabled_torch_model_ids.union(
                 get_pytorch_no_llm_model_ids()
             )
-        elif model_id == SpecialModelSetting.LLM_WEEK1:
+        elif model_id == SpecialModelSetting.LLM:
             enabled_torch_model_ids = enabled_torch_model_ids.union(
-                get_week_model_ids(LLMWeekendGroup.WEEK1)
+                get_weekly_llm_model_ids()
             )
-        elif model_id == SpecialModelSetting.LLM_WEEK2:
+        elif model_id == SpecialModelSetting.LLM_ON_DEMAND:
             enabled_torch_model_ids = enabled_torch_model_ids.union(
-                get_week_model_ids(LLMWeekendGroup.WEEK2)
-            )
-        elif model_id == SpecialModelSetting.LLM_NO_WEEK:
-            enabled_torch_model_ids = enabled_torch_model_ids.union(
-                get_week_model_ids(LLMWeekendGroup.NO_WEEK)
-            )
-        elif model_id == SpecialModelSetting.LLM_DOWNLOADABLE:
-            enabled_torch_model_ids = enabled_torch_model_ids.union(
-                get_downloadable_llm_model_ids()
+                get_on_demand_llm_model_ids()
             )
         else:
             model_id = model_id.lower()

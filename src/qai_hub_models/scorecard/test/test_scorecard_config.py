@@ -13,12 +13,10 @@ from qai_hub_models.configs._info_yaml_enums import MODEL_STATUS
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.envvars import SpecialModelSetting
 from qai_hub_models.scorecard.internal_config_yaml import (
-    LLMWeekendGroup,
     QAIHMModelInternalConfig,
-    get_downloadable_llm_model_ids,
     get_llm_model_ids,
-    get_week_model_ids,
-    validate_llm_weekend_coverage,
+    get_on_demand_llm_model_ids,
+    get_weekly_llm_model_ids,
     write_publish_status,
 )
 from qai_hub_models.scorecard.results.yaml import ComponentNamesYaml
@@ -46,8 +44,8 @@ WEBSITE_FIELDS = {
     "related_models",
 }
 
-# Regional Llama variants: test_split: llm, weekend_group: no_week. Never picked
-# up by the week1/week2 rotation; only enabled via the llm_no_week token.
+# Regional Llama variants: test_split: llm, on_demand_only: true. Never picked
+# up by the weekly schedule; only enabled via the llm_on_demand token.
 REGIONAL_MODELS = {
     "llama_v3_1_sea_lion_3_5_8b_r",
     "llama_v3_elyza_jp_8b",
@@ -279,50 +277,30 @@ def test_standalone_components_are_real_components() -> None:
     assert not errors, "\n".join(errors)
 
 
-def test_all_llms_have_weekend_group() -> None:
-    """Every scorecard-eligible test_split: llm model must set weekend_group."""
-    validate_llm_weekend_coverage()
+def test_weekly_and_on_demand_partition_all_llms() -> None:
+    weekly = get_weekly_llm_model_ids()
+    on_demand = get_on_demand_llm_model_ids()
+    assert weekly
+    assert on_demand
+    assert weekly.isdisjoint(on_demand)
+    assert weekly | on_demand == get_llm_model_ids()
 
 
-def test_weeks_are_disjoint_and_cover_all_llms() -> None:
-    w1 = get_week_model_ids(LLMWeekendGroup.WEEK1)
-    w2 = get_week_model_ids(LLMWeekendGroup.WEEK2)
-    no_week = get_week_model_ids(LLMWeekendGroup.NO_WEEK)
-    assert w1 and w2 and no_week
-    assert w1.isdisjoint(w2)
-    assert w1.isdisjoint(no_week)
-    assert w2.isdisjoint(no_week)
-    assert w1 | w2 | no_week == get_llm_model_ids()
-
-
-def test_downloadable_is_nonempty_subset() -> None:
-    downloadable = get_downloadable_llm_model_ids()
-    assert downloadable
-    assert downloadable <= get_llm_model_ids()
-
-
-def test_regional_models_are_no_week() -> None:
-    """Regional variants run only on-demand via llm_no_week, never on a schedule."""
+def test_regional_models_are_on_demand() -> None:
+    """Regional variants run only on-demand via llm_on_demand, never on a schedule."""
     llm_ids = get_llm_model_ids()
-    no_week = get_week_model_ids(LLMWeekendGroup.NO_WEEK)
-    w1 = get_week_model_ids(LLMWeekendGroup.WEEK1)
-    w2 = get_week_model_ids(LLMWeekendGroup.WEEK2)
+    on_demand = get_on_demand_llm_model_ids()
+    weekly = get_weekly_llm_model_ids()
     for model_id in REGIONAL_MODELS:
         assert model_id in llm_ids
-        assert model_id in no_week
-        assert model_id not in w1
-        assert model_id not in w2
+        assert model_id in on_demand
+        assert model_id not in weekly
 
 
 def test_tokens_resolve_to_expected_llm_sets() -> None:
     for token, expected in [
-        (SpecialModelSetting.LLM_WEEK1, get_week_model_ids(LLMWeekendGroup.WEEK1)),
-        (SpecialModelSetting.LLM_WEEK2, get_week_model_ids(LLMWeekendGroup.WEEK2)),
-        (
-            SpecialModelSetting.LLM_NO_WEEK,
-            get_week_model_ids(LLMWeekendGroup.NO_WEEK),
-        ),
-        (SpecialModelSetting.LLM_DOWNLOADABLE, get_downloadable_llm_model_ids()),
+        (SpecialModelSetting.LLM, get_weekly_llm_model_ids()),
+        (SpecialModelSetting.LLM_ON_DEMAND, get_on_demand_llm_model_ids()),
     ]:
         torch_ids, static_ids = validate_and_split_enabled_models({token})
         assert torch_ids == expected
@@ -330,14 +308,12 @@ def test_tokens_resolve_to_expected_llm_sets() -> None:
 
 
 def test_combined_weekend_tokens_round_trip() -> None:
-    """The workflow's 'pytorch_no_llm,static,llm_week1,llm_downloadable' string is valid."""
+    """The workflow's 'pytorch_no_llm,static,llm' string is valid."""
     tokens: set = {
         SpecialModelSetting.PYTORCH_NO_LLM,
         SpecialModelSetting.STATIC,
-        SpecialModelSetting.LLM_WEEK1,
-        SpecialModelSetting.LLM_DOWNLOADABLE,
+        SpecialModelSetting.LLM,
     }
     torch_ids, static_ids = validate_and_split_enabled_models(tokens)
-    assert get_week_model_ids(LLMWeekendGroup.WEEK1) <= torch_ids
-    assert get_downloadable_llm_model_ids() <= torch_ids
+    assert get_weekly_llm_model_ids() <= torch_ids
     assert static_ids

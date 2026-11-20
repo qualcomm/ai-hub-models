@@ -44,16 +44,12 @@ class SpecialModelSetting(Enum):
     #  Models enabled for the weekly "bench" scorecard.
     BENCH = "bench"
 
-    # LLMs assigned to weekend rotation week1 / week2 via internal-config.yaml weekend_group.
-    LLM_WEEK1 = "llm_week1"
-    LLM_WEEK2 = "llm_week2"
+    # All scorecard LLMs except those flagged on_demand_only in internal-config.yaml.
+    LLM = "llm"
 
-    # LLMs explicitly excluded from the week1/week2 rotation (weekend_group: no_week).
+    # LLMs flagged on_demand_only in internal-config.yaml.
     # Never run on a schedule; only enabled when a caller passes this token by hand.
-    LLM_NO_WEEK = "llm_no_week"
-
-    # LLMs that publish downloadable release assets (rerun together on a QAIRT bump).
-    LLM_DOWNLOADABLE = "llm_downloadable"
+    LLM_ON_DEMAND = "llm_on_demand"
 
     def __repr__(self) -> str:
         return self.value
@@ -98,9 +94,8 @@ Special options:
  * 'pytorch' -- Enable pytorch model recipes (all models under qai_hub_models/models)
  * 'pytorch_no_llm' -- Enable pytorch recipes except those flagged test_split: llm
  * 'static' -- Enable test models in qai_hub_models/scorecard/static
- * 'llm_week1' / 'llm_week2' -- Enable the LLMs in that weekend rotation (internal-config.yaml weekend_group)
- * 'llm_no_week' -- Enable LLMs excluded from the week1/week2 rotation (weekend_group: no_week). Never run on a schedule; on-demand only.
- * 'llm_downloadable' -- Enable LLMs that publish downloadable release assets
+ * 'llm' -- Enable all scorecard LLMs except on-demand-only ones
+ * 'llm_on_demand' -- Enable LLMs flagged on_demand_only in internal-config.yaml. Never run on a schedule.
 """
     SPECIAL_SETTING_ENUM = SpecialModelSetting
 

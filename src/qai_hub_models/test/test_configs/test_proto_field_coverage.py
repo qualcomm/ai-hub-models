@@ -203,16 +203,15 @@ class TestInfoFieldCoverage:
             model_manifest_pb2.ModelManifest.Internal.DESCRIPTOR,
             pydantic_only={
                 # Scorecard / CI knobs. Never reach the website feed.
-                "downloadable_llm_asset",
                 "freeze_perf_yaml",
                 "global_requirements_incompatible",
                 "numerics_threshold_override",
+                "on_demand_only",
                 "skip_evaluate",
                 "skip_export",
                 "skip_hub_tests_and_scorecard",
                 "skip_scorecard",
                 "test_split",
-                "weekend_group",
             },
         )
 

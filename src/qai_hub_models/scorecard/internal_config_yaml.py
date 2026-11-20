@@ -8,7 +8,7 @@ from __future__ import annotations
 import functools
 import os
 import sys
-from enum import Enum, unique
+from enum import Enum
 from pathlib import Path
 from typing import Literal
 
@@ -25,23 +25,6 @@ from qai_hub_models.utils.path_helpers import (
     QAIHM_MODELS_ROOT,
     SCORECARD_MODELS_ROOT,
 )
-
-
-@unique
-class LLMWeekendGroup(Enum):
-    WEEK1 = "week1"
-    WEEK2 = "week2"
-
-    # Never included in the week1/week2 rotation. Used for models (e.g. regional
-    # Llama variants) that should only run when explicitly requested via the
-    # 'llm_no_week' token, never on a schedule.
-    NO_WEEK = "no_week"
-
-    def __repr__(self) -> str:
-        return self.value
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class TestRunnerSplit(Enum):
@@ -116,11 +99,9 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
     # When this is not possible, set this field to indicate an inconsistency.
     global_requirements_incompatible: bool = False
 
-    # Weekend LLM scorecard rotation bucket. Required for scorecard-eligible LLMs.
-    weekend_group: LLMWeekendGroup | None = None
-
-    # True if the LLM publishes downloadable release assets (rerun on a QAIRT bump).
-    downloadable_llm_asset: bool = False
+    # If true, this LLM is excluded from the weekly schedule and only runs when
+    # explicitly requested via the 'llm_on_demand' token.
+    on_demand_only: bool = False
 
     # Components benchmarked standalone, mapped to their model card tab label (also the
     # component's perf.yaml key). Unlisted components are LLM backbone parts, measured
@@ -368,25 +349,11 @@ def get_llm_model_ids() -> set[str]:
     return set(_scorecard_llm_configs())
 
 
-def get_week_model_ids(week: LLMWeekendGroup) -> set[str]:
-    """LLM model IDs assigned to the given weekend rotation bucket."""
-    return {m for m, sc in _scorecard_llm_configs().items() if sc.weekend_group is week}
+def get_weekly_llm_model_ids() -> set[str]:
+    """Scorecard LLM model IDs that run on the weekly schedule."""
+    return {m for m, sc in _scorecard_llm_configs().items() if not sc.on_demand_only}
 
 
-def get_downloadable_llm_model_ids() -> set[str]:
-    """LLM model IDs that publish downloadable release assets."""
-    return {
-        m for m, sc in _scorecard_llm_configs().items() if sc.downloadable_llm_asset
-    }
-
-
-def validate_llm_weekend_coverage() -> None:
-    """Every scorecard-eligible test_split: llm model must set weekend_group. Raises on drift."""
-    missing = sorted(
-        m for m, sc in _scorecard_llm_configs().items() if sc.weekend_group is None
-    )
-    if missing:
-        raise ValueError(
-            "Scorecard-eligible test_split: llm models are missing weekend_group in "
-            f"internal-config.yaml (must be week1 or week2): {missing}."
-        )
+def get_on_demand_llm_model_ids() -> set[str]:
+    """Scorecard LLM model IDs that only run when explicitly requested."""
+    return {m for m, sc in _scorecard_llm_configs().items() if sc.on_demand_only}

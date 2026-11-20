@@ -6,48 +6,13 @@ on:
         # 10 PM PST (11 PM PDT) on Fridays -- (Cron is in UTC, since GitHub Actions run in UTC)
         - cron: '0 6 * * SAT'
 jobs:
-    select-llm-models:
-        name: Select Weekend LLM Models
-        runs-on: aihub-models-ubuntu-2404-ec2
-        outputs:
-          # The base models plus this weekend's LLM group tokens.
-          models: ${{ steps.pick.outputs.models }}
-        env:
-          VENV_PATH: build/ci-envs/qaihm-build
-          BASE_MODELS: pytorch_no_llm,static
-        steps:
-          - uses: actions/checkout@v7
-
-          - name: CI Setup
-            uses: ./.github/actions/ci-setup
-            with:
-              venv-path: ${{ env.VENV_PATH }}
-
-          - name: Select models
-            id: pick
-            run: |
-              source "${{ env.VENV_PATH }}/bin/activate"
-              # Temporarily run both LLM groups instead of alternating by ISO-week parity.
-              MODELS="${BASE_MODELS},llm_week1,llm_week2"
-              # On a geniex_qairt QAIRT bump, also rebuild every downloadable LLM.
-              if ! CHANGED="$(python -m qai_hub_models.scripts.qairt_geniex_changed)"; then
-                echo "::error::qairt_geniex_changed failed"
-                exit 1
-              fi
-              if [ "$CHANGED" = "true" ]; then
-                MODELS="${MODELS},llm_downloadable"
-              fi
-              echo "models=${MODELS}" >> "$GITHUB_OUTPUT"
-
     run-scorecard:
         name: Run Prod ("Release") Scorecard
-        needs: select-llm-models
         secrets: inherit
         uses: ./.github/workflows/scorecard.yml
         with:
           deployment: prod
-          # Base models + this weekend's rotating LLM group token(s).
-          models: ${{ needs.select-llm-models.outputs.models }}
+          models: pytorch_no_llm,static,llm
           test_devices: all
           # 'default' covers geniex_qairt (default_sweep_paths); genie is
           # opt-in. Genie compile fans out across all LLM devices; Genie

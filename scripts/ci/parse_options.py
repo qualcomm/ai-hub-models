@@ -88,9 +88,8 @@ _SPECIAL_MODEL_SETTINGS = frozenset(
         "pytorch_no_llm",
         "static",
         "bench",
-        "llm_week1",
-        "llm_week2",
-        "llm_downloadable",
+        "llm",
+        "llm_on_demand",
     }
 )
 
