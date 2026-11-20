@@ -26,6 +26,8 @@ post_pip_install_commands:
   machine: MACHINE_GPU
 - command: pip install --force-reinstall --no-deps onnxruntime-gpu==1.23.2
   machine: MACHINE_GPU
+python_version_greater_than_or_equal_to: '3.11'
+python_version_greater_than_or_equal_to_reason: onnxruntime 1.31.0 has no Python 3.10 wheels
 requires_aot_prepare: true
 research_paper: https://arxiv.org/abs/2508.18265
 research_paper_title: InternVL3.5 Advancing Open-Source Multimodal Models in Versatility, Reasoning, and Efficiency
