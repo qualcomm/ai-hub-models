@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generic, TypeVar
 
-import ruamel.yaml
 from pydantic import Field, field_validator
 from qai_hub import JobType
+from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.tool_versions import ToolVersions
@@ -166,7 +166,7 @@ class ScorecardJobYaml(ScorecardYamlFile[str], Generic[ScorecardJobTypeVar]):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         if len(self.mapping) > 0:
             with open(path, "a" if append else "w") as yaml_file:
-                ruamel.yaml.YAML().dump(sorted_mappings(self.mapping), yaml_file)
+                dump_yaml(sorted_mappings(self.mapping), yaml_file)
         elif not append:
             Path(path).touch()
 

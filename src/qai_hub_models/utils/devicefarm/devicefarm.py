@@ -23,8 +23,8 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 import qai_hub as hub
-import ruamel.yaml
 from filelock import FileLock
+from qai_hub_models_cli.proto_helpers._common import dump_yaml, safe_load_yaml
 
 from qai_hub_models.scorecard.device import ScorecardDevice
 
@@ -197,7 +197,7 @@ def load_jobs(jobs_file: str | Path) -> dict[str, JobRecord]:
     if not p.exists() or p.stat().st_size == 0:
         return {}
     with p.open(encoding="utf-8") as f:
-        raw = ruamel.yaml.YAML().load(f) or {}
+        raw = safe_load_yaml(f) or {}
     return {
         k: JobRecord(
             job_id=str(v["job_id"]),
@@ -235,16 +235,14 @@ def save_job(
     with FileLock(f"{p}.lock"), p.open("a+", encoding="utf-8") as f:
         f.seek(0)
         raw = f.read()
-        mapping: dict[str, Any] = (
-            dict(ruamel.yaml.YAML().load(raw) or {}) if raw.strip() else {}
-        )
+        mapping: dict[str, Any] = dict(safe_load_yaml(raw) or {}) if raw.strip() else {}
         row: dict[str, Any] = {"job_id": job_id}
         if context_lengths is not None:
             row["context_lengths"] = list(context_lengths)
         mapping[key] = row
         f.seek(0)
         f.truncate(0)
-        ruamel.yaml.YAML().dump(mapping, f)
+        dump_yaml(mapping, f)
         f.flush()
 
 

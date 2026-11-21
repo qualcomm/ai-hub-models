@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models.scorecard.artifacts import (
     RUNTIME_ALL_STAGES,
@@ -129,11 +129,8 @@ def write_runtime_estimates_yaml(
         payload["source_action_id"] = source_action_id
     payload["models"] = estimates
 
-    yaml = ruamel.yaml.YAML()
-    yaml.default_flow_style = False
-    yaml.indent(mapping=2, sequence=4, offset=2)
     with open(output_path, "w") as f:
-        yaml.dump(sorted_mappings(payload), f)
+        dump_yaml(sorted_mappings(payload), f)
 
 
 _ACTION_ID_RE = re.compile(r"[0-9]+")

@@ -6,17 +6,16 @@
 Asserts that ``BaseQAIHMConfig.to_yaml``'s representers stay per-dump.
 
 ``add_representer`` is a classmethod that mutates a class-level registry, so
-registering on a shared ``RoundTripRepresenter`` reconfigures every instance in
-the process. That made one ``flow_lists=True`` dump change the style of every
-later dump, anywhere, including unrelated ruamel users.
+registering on a shared dumper class reconfigures every instance in the
+process. That would make one ``flow_lists=True`` dump change the style of every
+later dump, anywhere, including unrelated PyYAML users.
 """
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 
-import ruamel.yaml
+import yaml
 
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 
@@ -45,9 +44,8 @@ def test_flow_lists_does_not_leak_into_later_dumps(tmp_path: Path) -> None:
 
 def test_flow_lists_does_not_leak_into_unrelated_yaml(tmp_path: Path) -> None:
     _dump(tmp_path / "flow.yaml", flow_lists=True)
-    buf = io.StringIO()
-    ruamel.yaml.YAML().dump({"x": [1, 2, 3]}, buf)
-    assert buf.getvalue() == "x:\n- 1\n- 2\n- 3\n"
+    assert yaml.safe_dump({"x": [1, 2, 3]}) == "x:\n- 1\n- 2\n- 3\n"
+    assert yaml.safe_dump({"x": "a\nb"}) == "x: 'a\n\n  b'\n"
 
 
 def test_newlines_dump_as_literal_block(tmp_path: Path) -> None:

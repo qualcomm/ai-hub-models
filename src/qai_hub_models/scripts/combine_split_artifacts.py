@@ -10,7 +10,7 @@ import os
 import shutil
 from pathlib import Path
 
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml, safe_load_yaml
 
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar, SpecialModelSetting
 from qai_hub_models.utils.base_config import sorted_mappings
@@ -44,15 +44,13 @@ COPY_FILES = [
 def load_yaml(yaml_filepath: Path) -> dict:
     """Load a YAML file and return its contents as a dict."""
     with open(yaml_filepath) as yaml_file:
-        return ruamel.yaml.YAML(typ="safe", pure=True).load(yaml_file) or {}
+        return safe_load_yaml(yaml_file) or {}
 
 
 def save_yaml(yaml_filepath: Path, data: dict) -> None:
     """Save a dict to a YAML file."""
-    yaml = ruamel.yaml.YAML()
-    yaml.default_flow_style = False
     with open(yaml_filepath, "w") as yaml_file:
-        yaml.dump(sorted_mappings(data), yaml_file)
+        dump_yaml(sorted_mappings(data), yaml_file)
 
 
 def write_empty_release_assets(output_dir: Path) -> None:

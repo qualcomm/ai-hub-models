@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from ruamel.yaml import YAML
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
@@ -83,9 +83,9 @@ class RangeNetPlusPlus(BaseModel):
 
         model_dir = Path(model_dir)
         with open(model_dir / "arch_cfg.yaml") as f:
-            arch_cfg = YAML(typ="safe", pure=True).load(f)
+            arch_cfg = safe_load_yaml(f)
         with open(model_dir / "data_cfg.yaml") as f:
-            data_cfg = YAML(typ="safe", pure=True).load(f)
+            data_cfg = safe_load_yaml(f)
 
         model = Segmentator(arch_cfg, NUM_CLASSES, path=str(model_dir))
         model.cpu()

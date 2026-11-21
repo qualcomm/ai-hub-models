@@ -371,6 +371,43 @@ class TestGetManifestEntry:
             entry = get_release_manifest_entry(user_input, _RELEASE_VERSION)
         assert entry.id == "mobilenet_v2"
 
+    def test_source_model_id_skips_full_manifest(self) -> None:
+        from qai_hub_models_cli.proto_helpers.release_manifest import (
+            get_release_manifest_entry,
+        )
+
+        built = _manifest().models[0]
+        proto_api = MagicMock()
+        proto_api._build_release_manifest_entry.return_value = built
+        modules = {
+            "qai_hub_models": MagicMock(),
+            "qai_hub_models.cli": MagicMock(proto_api=proto_api),
+            "qai_hub_models.cli.proto_api": proto_api,
+            "qai_hub_models.scripts": MagicMock(),
+            "qai_hub_models.scripts.build_release_proto": MagicMock(
+                _similar_chipsets=MagicMock(return_value=frozenset())
+            ),
+            "qai_hub_models.utils": MagicMock(),
+            "qai_hub_models.utils.path_helpers": MagicMock(MODEL_IDS=["mobilenet_v2"]),
+        }
+        with (
+            patch(
+                "qai_hub_models_cli.proto_helpers.release_manifest.use_aihm_source",
+                return_value=True,
+            ),
+            patch(
+                "qai_hub_models_cli.proto_helpers.release_manifest.get_release_manifest"
+            ) as full_manifest,
+            patch.dict("sys.modules", modules),
+        ):
+            entry = get_release_manifest_entry("Mobilenet-V2", _DEV_VERSION)
+
+        assert entry == built
+        assert proto_api._build_release_manifest_entry.call_args.args[0] == (
+            "mobilenet_v2"
+        )
+        full_manifest.assert_not_called()
+
 
 # ── info.py ───────────────────────────────────────────────────────────
 

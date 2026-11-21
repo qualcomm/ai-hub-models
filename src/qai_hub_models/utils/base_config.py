@@ -5,16 +5,19 @@
 
 from __future__ import annotations
 
+import json
 import os
 from enum import Enum
 from pathlib import Path
 from typing import Any, Generic
 
-import ruamel.yaml
 from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler
 from pydantic_core import core_schema
-from pydantic_yaml import parse_yaml_file_as, to_yaml_str
-from qai_hub_models_cli.proto_helpers._common import yaml_writer
+from qai_hub_models_cli.proto_helpers._common import (
+    dump_yaml,
+    dump_yaml_str,
+    safe_load_yaml,
+)
 from typing_extensions import Self, TypeVar
 
 # Size of an 'empty' YAML serialization. When a BaseQAIHMConfig's values are all defaults, it will serialize to the below string.
@@ -42,7 +45,7 @@ def dump_yaml_dict(data: Any, path: str | Path, flow_lists: bool = False) -> Non
     website's info.yaml) get byte-identical output to a single config's dump.
     """
     with open(path, "w") as f:
-        yaml_writer(flow_lists).dump(sorted_mappings(data), f)
+        dump_yaml(sorted_mappings(data), f, flow_lists)
 
 
 class BaseQAIHMConfig(BaseModel):
@@ -61,26 +64,19 @@ class BaseQAIHMConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     def __str__(self) -> str:
-        return to_yaml_str(
-            self,
-            exclude_defaults=True,
-            exclude_none=True,
-        )
+        return dump_yaml_str(self.to_yaml_dict())
 
     def to_yaml_dict(self, exclude_defaults: bool = True, **kwargs: Any) -> Any:
         """This config as a plain dict, exactly as to_yaml would write it.
 
-        Rendered via pydantic_yaml first (which handles JSON-mode serializers and
-        custom types) and re-parsed, so the result contains only YAML primitives.
+        Goes through JSON mode (which handles JSON-mode serializers and custom
+        types), so the result contains only YAML primitives.
         """
-        rendered = to_yaml_str(
-            self,
-            custom_yaml_writer=yaml_writer(),
-            exclude_defaults=exclude_defaults,
-            exclude_none=True,
-            **kwargs,
+        return json.loads(
+            self.model_dump_json(
+                exclude_defaults=exclude_defaults, exclude_none=True, **kwargs
+            )
         )
-        return ruamel.yaml.YAML(typ="safe", pure=True).load(rendered)
 
     def to_yaml(
         self,
@@ -188,7 +184,8 @@ class BaseQAIHMConfig(BaseModel):
             not os.path.exists(path) or os.path.getsize(path) == 0
         ):
             return cls()
-        return parse_yaml_file_as(cls, path)
+        with open(path) as f:
+            return cls.model_validate(safe_load_yaml(f))
 
 
 BaseQAIHMConfigTypeVar = TypeVar("BaseQAIHMConfigTypeVar", bound=BaseQAIHMConfig)

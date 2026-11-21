@@ -4,11 +4,14 @@
 # ---------------------------------------------------------------------
 from __future__ import annotations
 
+import io
 import os
+import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import IO, Any, TypeVar
 
+import yaml
 from google.protobuf import json_format
 from google.protobuf.message import Message
 from packaging.version import Version
@@ -22,6 +25,11 @@ from qai_hub_models_cli.versions import (
     verify_not_dev_release,
     verify_version_supported,
 )
+
+try:
+    from yaml import CSafeLoader as _BaseLoader
+except ImportError:
+    from yaml import SafeLoader as _BaseLoader  # type: ignore[assignment]
 
 _M = TypeVar("_M", bound=Message)
 
@@ -86,55 +94,89 @@ def write_proto_json(msg: Message, path: str | os.PathLike) -> None:
         f.write(json)
 
 
-# ruamel.yaml is not a dependency of the CLI package; so we import it only when these functions are called.
+class _YamlLoader(_BaseLoader):
+    """Safe loader that reads only true/false as booleans, so bare yes/no/on/off stay strings."""
+
+
+_YamlLoader.yaml_implicit_resolvers = {
+    first_char: [r for r in resolvers if r[0] != "tag:yaml.org,2002:bool"]
+    for first_char, resolvers in _BaseLoader.yaml_implicit_resolvers.items()
+}
+_YamlLoader.add_implicit_resolver(
+    "tag:yaml.org,2002:bool",
+    re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
+    list("tTfF"),
+)
+
+
+def safe_load_yaml(stream: str | IO[str]) -> Any:
+    """Parse YAML from a string or text stream into plain Python objects."""
+    return yaml.load(stream, Loader=_YamlLoader)
+
+
 def read_proto_yaml(path: str | os.PathLike, proto_type: type[_M]) -> _M:
     """Read a YAML file written by ``write_proto_yaml`` into a protobuf message."""
-    import ruamel.yaml
-
     with open(path) as f:
-        data = ruamel.yaml.YAML(typ="safe", pure=True).load(f)
+        data = safe_load_yaml(f)
     return proto_from_dict(data, proto_type)
 
 
-def yaml_writer(flow_lists: bool = False) -> Any:
-    """A ruamel writer configured the way every QAIHM YAML file is written."""
-    import ruamel.yaml
-    from ruamel.yaml.representer import RoundTripRepresenter
+class _Dumper(yaml.SafeDumper):
+    def choose_scalar_style(self) -> str | None:
+        style: str | None = super().choose_scalar_style()
+        # Double-quote strings containing an apostrophe rather than doubling it.
+        if style == "'" and "'" in self.analysis.scalar:
+            return '"'
+        return style
 
-    # add_representer is a classmethod, so registering on yaml.representer would
-    # reconfigure every RoundTripRepresenter in the process. A throwaway subclass
-    # gets its own registry; register new representers on it.
-    class _Representer(RoundTripRepresenter):
-        pass
 
-    def _represent_str(dumper: RoundTripRepresenter, data: str) -> Any:
-        style = "|" if "\n" in data else None
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+def _represent_str(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+    return dumper.represent_scalar(
+        "tag:yaml.org,2002:str", data, style="|" if "\n" in data else None
+    )
 
-    _Representer.add_representer(str, _represent_str)
 
-    if flow_lists:
+def _represent_flow_list(dumper: yaml.SafeDumper, data: list[Any]) -> yaml.SequenceNode:
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
 
-        def _represent_list(dumper: RoundTripRepresenter, data: list) -> Any:
-            return dumper.represent_sequence(
-                "tag:yaml.org,2002:seq", data, flow_style=True
-            )
 
-        _Representer.add_representer(list, _represent_list)
+_Dumper.add_representer(str, _represent_str)
 
-    yaml = ruamel.yaml.YAML()
-    yaml.Representer = _Representer
-    # Simplistic YAML readers can't read multi-line strings, and wrapping long
-    # values (e.g. S3 keys) leaves trailing whitespace; never wrap.
-    yaml.width = 4096
-    return yaml
+
+# add_representer copies the registry per class, so this does not affect _Dumper.
+class _FlowListDumper(_Dumper):
+    pass
+
+
+_FlowListDumper.add_representer(list, _represent_flow_list)
+
+
+def dump_yaml(data: Any, stream: IO[str], flow_lists: bool = False) -> None:
+    """Write ``data`` to ``stream`` the way every QAIHM YAML file is written."""
+    yaml.dump(
+        data,
+        stream,
+        Dumper=_FlowListDumper if flow_lists else _Dumper,
+        default_flow_style=False,
+        sort_keys=False,
+        # Wrapping long values (e.g. S3 keys) leaves trailing whitespace.
+        width=4096,
+        allow_unicode=True,
+    )
+
+
+def dump_yaml_str(data: Any, flow_lists: bool = False) -> str:
+    """Like ``dump_yaml``, returning the YAML as a string."""
+    stream = io.StringIO()
+    dump_yaml(data, stream, flow_lists)
+    return stream.getvalue()
 
 
 def write_proto_yaml(msg: Message, path: str | os.PathLike) -> None:
     """Write a protobuf message to a YAML file (proto field names, sorted keys)."""
     proto_dict = proto_to_dict(msg)
     with open(path, "w") as f:
-        yaml_writer().dump(proto_dict, f)
+        dump_yaml(proto_dict, f)
 
 
 def fetch_proto(url: str, cache_path: Path, proto_type: type[_M]) -> _M:
@@ -264,15 +306,15 @@ def fetch_model_proto(
     # Avoids circular import.
     from qai_hub_models_cli.proto_helpers.release_manifest import (
         get_release_manifest_entry,
+        resolve_model_id,
     )
-
-    entry = get_release_manifest_entry(model, version)
 
     if use_aihm_source(version):
         from qai_hub_models._version import __version__ as models_version
 
+        model_id = resolve_model_id(model, version)
         cache_path = model_cache_path(
-            Version(models_version), entry.id, cache_filename, internal=True
+            Version(models_version), model_id, cache_filename, internal=True
         )
         if cache_path.exists():
             return read_proto(cache_path, proto_type)
@@ -280,12 +322,13 @@ def fetch_model_proto(
         from qai_hub_models import cli as models_cli
 
         getter: Callable[[str], _M] = getattr(models_cli, source_getter)
-        proto = getter(entry.id)
+        proto = getter(model_id)
         if proto is None:
             return proto_type()
         write_proto(cache_path, proto)
         return proto
 
+    entry = get_release_manifest_entry(model, version)
     url = getattr(entry.manifest_urls, manifest_url_field)
     if not url:
         return proto_type()

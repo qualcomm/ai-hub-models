@@ -10,7 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Generic, TypeVar
 
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml, safe_load_yaml
 from typing_extensions import Self
 
 from qai_hub_models.scorecard.envvars import ArtifactsDirEnvvar
@@ -121,9 +121,8 @@ class ScorecardYamlFile(Generic[ValT]):
             if create_empty_if_no_file:
                 return cls({}, config_path)
             raise FileNotFoundError(f"File not found: {config_path}")
-        yaml = ruamel.yaml.YAML()
         with open(config_path) as f:
-            data = yaml.load(f) or {}
+            data = safe_load_yaml(f) or {}
         return cls(data, config_path)
 
     @classmethod
@@ -176,6 +175,6 @@ class ScorecardYamlFile(Generic[ValT]):
         assert path is not None
         if self.mapping:
             with open(path, "w") as f:
-                ruamel.yaml.YAML().dump(sorted_mappings(self.mapping), f)
+                dump_yaml(sorted_mappings(self.mapping), f)
         else:
             Path(path).touch()

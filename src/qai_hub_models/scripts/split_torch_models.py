@@ -12,7 +12,7 @@ import statistics
 from pathlib import Path
 from typing import Literal
 
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.artifacts import (
@@ -44,7 +44,7 @@ def _load_runtime_estimates(
     if not yaml_path.exists() or yaml_path.stat().st_size == 0:
         return {}
     with open(yaml_path) as f:
-        data = ruamel.yaml.YAML(typ="safe", pure=True).load(f) or {}
+        data = safe_load_yaml(f) or {}
     models = data.get("models") or {}
     return {m: dict(v or {}) for m, v in models.items()}
 

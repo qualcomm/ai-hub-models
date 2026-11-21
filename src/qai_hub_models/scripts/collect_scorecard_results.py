@@ -20,8 +20,8 @@ from itertools import cycle
 from pathlib import Path
 
 import pandas as pd
-import ruamel.yaml
 from qai_hub_models_cli.proto import model_perf_pb2
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -333,9 +333,8 @@ def _merge_numerics(
 
 def read_jobs_config(config_path: str) -> dict:
     """Read yaml files."""
-    yaml = ruamel.yaml.YAML()
     with open(config_path) as file:
-        return yaml.load(file)
+        return safe_load_yaml(file)
 
 
 def _merge_existing_accuracy_data(

@@ -20,14 +20,14 @@ import os
 import sys
 from pathlib import Path
 
-import ruamel.yaml
+import yaml
 
 
 def load_models(release_assets: Path) -> list[str]:
     if not release_assets.exists():
         return []
     with open(release_assets) as f:
-        data = ruamel.yaml.YAML(typ="safe", pure=True).load(f) or {}
+        data = yaml.safe_load(f) or {}
     return sorted((data.get("models") or {}).keys())
 
 

@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 
 import pytest
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.artifacts import RUNTIME_STAGE_JOB_SUBMISSION
@@ -199,7 +199,7 @@ def test_load_runtime_estimates_reads_models_section(tmp_path: Path) -> None:
         },
     }
     with open(yaml_path, "w") as f:
-        ruamel.yaml.YAML().dump(payload, f)
+        dump_yaml(payload, f)
 
     estimates = _load_runtime_estimates(yaml_path)
     assert estimates == {

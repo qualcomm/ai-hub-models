@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 import torch
-from ruamel.yaml import YAML
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 from qai_hub_models.models.salsanext.external_repos.salsanext.train.common.laserscan import (
     SemLaserScan,
@@ -26,9 +26,9 @@ class SalsaNextApp:
     def __init__(self, model: Callable[[torch.Tensor], torch.Tensor]) -> None:
         self._model = model
         with open(ARCH_ADDRESS) as f:
-            self.arch = YAML(typ="safe", pure=True).load(f)
+            self.arch = safe_load_yaml(f)
         with open(DATA_ADDRESS) as f:
-            self.data = YAML(typ="safe", pure=True).load(f)
+            self.data = safe_load_yaml(f)
         self.nclasses = len(self.data["learning_map_inv"])
 
     def preprocess_lidar(self, lidar_input: str) -> tuple[torch.Tensor, Any]:

@@ -12,7 +12,7 @@ from typing import Any, Literal, overload
 import numpy as np
 import torch
 from PIL import Image
-from ruamel.yaml import YAML
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 _NUM_CLASSES = 20
 
@@ -37,7 +37,7 @@ def _build_color_lut() -> np.ndarray:
             tar.extractall(tar_path.parent)
 
     with open(model_dir / "data_cfg.yaml") as f:
-        cfg = YAML(typ="safe", pure=True).load(f)
+        cfg = safe_load_yaml(f)
 
     learning_map_inv = {int(k): int(v) for k, v in cfg["learning_map_inv"].items()}
     color_map_bgr = {int(k): tuple(v) for k, v in cfg["color_map"].items()}

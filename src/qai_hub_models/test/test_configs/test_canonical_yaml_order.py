@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml, safe_load_yaml
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
@@ -52,13 +52,12 @@ def _assert_to_yaml_is_order_independent(
     if not yaml_path.exists():
         pytest.skip(f"{yaml_path.name} does not exist for this model")
 
-    yaml = ruamel.yaml.YAML(typ="safe", pure=True)
     with open(yaml_path) as f:
-        data = yaml.load(f)
+        data = safe_load_yaml(f)
 
     scrambled_path = tmp_path / f"scrambled-{yaml_path.name}"
     with open(scrambled_path, "w") as f:
-        yaml.dump(_reverse_mappings(data), f)
+        dump_yaml(_reverse_mappings(data), f)
 
     out_path = tmp_path / f"rewritten-{yaml_path.name}"
     if config_cls is None:

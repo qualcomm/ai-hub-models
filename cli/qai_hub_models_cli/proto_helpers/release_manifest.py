@@ -17,14 +17,55 @@ from qai_hub_models_cli.proto.release_manifest_pb2 import (
     ReleaseManifest,
     ReleaseManifestModelEntry,
 )
-from qai_hub_models_cli.proto_helpers._common import fetch_release_proto
+from qai_hub_models_cli.proto_helpers._common import (
+    fetch_release_proto,
+    use_aihm_source,
+)
 from qai_hub_models_cli.proto_helpers.platform_enums import normalize_label
 from qai_hub_models_cli.versions import CURRENT_VERSION
 
 
+def resolve_model_id(model: str, version: Version = CURRENT_VERSION) -> str:
+    """Converts the model (name or ID) to the model's unique ID."""
+    if use_aihm_source(version):
+        # In-source builds must rebuild the entire release manifest to do correct
+        # model name -> ID lookups. To construct each entry in the release manifest,
+        # several model YAML files need to be read. This is very expensive.
+        #
+        # Instead, we load the current MODEL_IDs and attempt to do a fast lookup first.
+        from qai_hub_models.utils.path_helpers import MODEL_IDS
+
+        # Maximize our chance at a "ID cache hit" by applying common name -> ID mappings.
+        model_sanitized = model.replace("-", "_").replace(".", "_").lower()
+        if model_sanitized in MODEL_IDS:
+            return model_sanitized
+
+    # Standard lookup.
+    return get_release_manifest_entry(model, version, _check_source_model_ids=False).id
+
+
 def get_release_manifest_entry(
-    model: str, version: Version = CURRENT_VERSION
+    model: str, version: Version = CURRENT_VERSION, _check_source_model_ids: bool = True
 ) -> ReleaseManifestModelEntry:
+    if _check_source_model_ids and use_aihm_source(version):
+        # In-source builds must rebuild the entire release manifest to do currect
+        # model name -> ID lookups. To construct each entry in the release manifest,
+        # several model YAML files need to be read. This is very expensive.
+        #
+        # Instead, we load the current MODEL_IDs and attempt to do a fast lookup first.
+        from qai_hub_models.utils.path_helpers import MODEL_IDS
+
+        # Maximize our chance at a "ID cache hit" by applying common name -> ID mappings.
+        model_sanitized = model.replace("-", "_").replace(".", "_").lower()
+        if model_sanitized in MODEL_IDS:
+            from qai_hub_models.cli.proto_api import _build_release_manifest_entry
+            from qai_hub_models.scripts.build_release_proto import _similar_chipsets
+
+            if entry := _build_release_manifest_entry(
+                model_sanitized, _similar_chipsets(), True
+            ):
+                return entry
+
     manifest = get_release_manifest(version)
     model_key = normalize_label(model)
     for entry in manifest.models:

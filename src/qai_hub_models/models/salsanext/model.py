@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from ruamel.yaml import YAML
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 from typing_extensions import Self
 
 from qai_hub_models import SampleInputsType
@@ -66,9 +66,9 @@ class SalsaNext(BaseModel):
 
     def load_lidar_bin(self, lidar_bin_path: str) -> tuple[torch.Tensor, Any]:
         with open(ARCH_ADDRESS) as f:
-            arch = YAML(typ="safe", pure=True).load(f)
+            arch = safe_load_yaml(f)
         with open(DATA_ADDRESS) as f:
-            data = YAML(typ="safe", pure=True).load(f)
+            data = safe_load_yaml(f)
         color_map = data["color_map"]
         sensor = arch["dataset"]["sensor"]
         img_H = sensor["img_prop"]["height"]
@@ -140,7 +140,7 @@ class SalsaNext(BaseModel):
 
     def get_evaluator(self) -> BaseEvaluator:
         with open(DATA_ADDRESS) as f:
-            data = YAML(typ="safe", pure=True).load(f)
+            data = safe_load_yaml(f)
         n_classes = len(data["learning_map_inv"])
         return SemanticKittiEvaluator(
             n_classes, data["learning_map"], data["learning_ignore"]

@@ -28,13 +28,13 @@ import gdown
 import h5py
 import numpy as np
 import requests
-import ruamel.yaml
 import torch
 from inputimeout import TimeoutOccurred, inputimeout
 from packaging.version import Version
 from PIL import Image
 from qai_hub.util.dataset_entries_converters import h5_to_dataset_entries
 from qai_hub_models_cli.common import LOCAL_STORE_DEFAULT_PATH
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 from schema import And, Schema, SchemaError
 from tqdm import tqdm
 
@@ -313,7 +313,7 @@ def load_json(json_filepath: PathType) -> dict:
 def load_yaml(yaml_filepath: PathType) -> dict:
     def _load_yaml_helper(file_path: str) -> Any:
         with open(file_path) as yaml_file:
-            return ruamel.yaml.YAML(typ="safe", pure=True).load(yaml_file)
+            return safe_load_yaml(yaml_file)
 
     return _load_file(yaml_filepath, _load_yaml_helper)
 

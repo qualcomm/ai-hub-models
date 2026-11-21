@@ -12,7 +12,7 @@ from pathlib import Path
 from threading import Lock
 
 import requests
-from ruamel.yaml import YAML
+import yaml
 
 sys.path.insert(0, str(Path(__file__).parent))
 from qai_hub import Client, JobType, Model, api_utils
@@ -464,9 +464,6 @@ def main() -> int:
                         f"  [{completed}/{total_jobs}] {job_type} {model_name}: FAILED"
                     )
 
-        yaml_writer = YAML()
-        yaml_writer.default_flow_style = False
-
         output_files = {
             "compile": args.output_dir / f"dev-compile-scorecard__{aihm_tag}.yaml",
             "link": args.output_dir / f"link-scorecard__{aihm_tag}.yaml",
@@ -475,7 +472,9 @@ def main() -> int:
 
         for job_type, output_file in output_files.items():
             with open(output_file, "w") as f:
-                yaml_writer.dump(scorecards[job_type], f)
+                yaml.safe_dump(
+                    scorecards[job_type], f, default_flow_style=False, sort_keys=False
+                )
             log_and_print(
                 f"{job_type.capitalize()}: {len(scorecards[job_type])}/{len(all_jobs[job_type])} -> {output_file}",
                 logger,

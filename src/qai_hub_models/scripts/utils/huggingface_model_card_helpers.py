@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import jinja2
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models._version import __version__ as qaihm_version
@@ -288,7 +288,7 @@ def generate_hf_model_card(
 
     # Generate HuggingFace metadata YAML
     string_stream = StringIO()
-    ruamel.yaml.YAML().dump(manifest.get_hugging_face_metadata(), stream=string_stream)
+    dump_yaml(manifest.get_hugging_face_metadata(), string_stream)
 
     # Build performance table rows
     perf_rows, is_llm = get_performance_table_rows(model_perf)

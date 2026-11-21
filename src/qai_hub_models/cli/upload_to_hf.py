@@ -47,7 +47,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-import ruamel.yaml
 from huggingface_hub import (
     create_repo,
     create_tag,
@@ -62,6 +61,7 @@ from huggingface_hub import (
 from huggingface_hub.errors import HfHubHTTPError
 from huggingface_hub.utils import HFValidationError, validate_repo_id
 from qai_hub_models_cli.errors import CLIUserError
+from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models.cli.generate_files import write_readme
 from qai_hub_models.cli.hf_common import (
@@ -323,8 +323,7 @@ def _hf_front_matter(manifest: QAIHMModelManifest) -> str:
         metadata["pipeline_tag"] = manifest.get_hf_pipeline_tag()
 
     stream = StringIO()
-    yaml = ruamel.yaml.YAML()
-    yaml.dump(metadata, stream=stream)
+    dump_yaml(metadata, stream)
     return stream.getvalue()
 
 

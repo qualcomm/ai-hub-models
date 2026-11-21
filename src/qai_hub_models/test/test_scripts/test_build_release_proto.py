@@ -10,10 +10,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import ruamel.yaml
 from google.protobuf.json_format import Parse
 from qai_hub_models_cli.proto import model_manifest_pb2, release_manifest_pb2
-from qai_hub_models_cli.proto_helpers._common import read_proto_yaml
+from qai_hub_models_cli.proto_helpers._common import read_proto_yaml, safe_load_yaml
 
 from qai_hub_models import Precision
 from qai_hub_models._version import __version__
@@ -161,7 +160,7 @@ def test_cmd_website(output_dir: Path) -> None:
         release_assets_yaml = model_dir / "release-assets.yaml"
         if release_assets_yaml.exists():
             text = release_assets_yaml.read_text()
-            data = ruamel.yaml.YAML().load(text)
+            data = safe_load_yaml(text)
             assert isinstance(data, dict)
             assert data["assets"]
             assert all(a["precision"].startswith("PRECISION_") for a in data["assets"])

@@ -8,7 +8,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-import ruamel.yaml
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 from qai_hub_models.scorecard.artifacts import (
     RUNTIME_STAGE_ACCURACY,
@@ -166,6 +166,6 @@ def test_write_runtime_estimates_yaml_roundtrip(tmp_path: Path) -> None:
     }
     write_runtime_estimates_yaml(out, estimates, source_action_id="42")
     with open(out) as f:
-        loaded = ruamel.yaml.YAML(typ="safe", pure=True).load(f)
+        loaded = safe_load_yaml(f)
     assert loaded["source_action_id"] == "42"
     assert loaded["models"] == estimates

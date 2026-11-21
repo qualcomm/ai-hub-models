@@ -18,9 +18,9 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
+import yaml
 from prettytable import PrettyTable
 from qai_hub import Client, CompileJob, Job, JobType, LinkJob
-from ruamel.yaml import YAML
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,8 @@ def load_client(profile: str) -> Client:
 def load_yaml_safe(yaml_path: Path, return_empty_on_not_found: bool = False) -> dict:
     logger = logging.getLogger(__name__)
     try:
-        yaml = YAML(typ="safe", pure=True)
         with open(yaml_path) as f:
-            return yaml.load(f) or {}
+            return yaml.safe_load(f) or {}
     except FileNotFoundError:
         if return_empty_on_not_found:
             logger.warning(f"File not found: {yaml_path}")
@@ -120,10 +119,8 @@ def load_yaml_safe(yaml_path: Path, return_empty_on_not_found: bool = False) -> 
 def save_yaml_results(data: dict, output_path: Path) -> None:
     logger = logging.getLogger(__name__)
     logger.info(f"Saving results to {output_path}")
-    yaml = YAML()
-    yaml.default_flow_style = False
     with open(output_path, "w") as f:
-        yaml.dump(data, f)
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
 
 
 def setup_script_logging(

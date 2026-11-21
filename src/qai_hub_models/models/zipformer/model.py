@@ -8,7 +8,7 @@ from pathlib import Path
 import torch
 from huggingface_hub import hf_hub_download
 from qai_hub.client import Device
-from ruamel.yaml import YAML
+from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 from torch import Tensor, nn
 
 from qai_hub_models import (
@@ -438,9 +438,8 @@ class HfZipformer(WorkbenchModelCollection):
     @classmethod
     def from_pretrained(cls) -> "HfZipformer":
         model_config_file = os.path.join(os.path.dirname(__file__), "model_config.yaml")
-        yaml = YAML(typ="safe")
         with open(model_config_file) as file:
-            config = yaml.load(file)
+            config = safe_load_yaml(file)
         encoder = Zipformer(
             num_features=config["num_features"],
             output_downsampling_factor=config["output_downsampling_factor"],
