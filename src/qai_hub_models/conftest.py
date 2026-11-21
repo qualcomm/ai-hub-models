@@ -131,13 +131,13 @@ def _install_retry_patches() -> list[mock._patch[Any]]:
 
     # HF: datasets.load_dataset — not always installed
     try:
-        import datasets
+        from datasets import load_dataset
 
         patches.append(
             mock.patch(
                 "datasets.load_dataset",
                 _wrap_with_retry(
-                    datasets.load_dataset,
+                    load_dataset,
                     _is_transient_hf_error,
                     "hf-retry",
                 ),
