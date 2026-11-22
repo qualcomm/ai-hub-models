@@ -3,11 +3,9 @@
 
 """Per-layer cache descriptors for models with heterogeneous attention types."""
 
-from collections.abc import Collection
 from dataclasses import dataclass
 from enum import Enum
 
-import torch
 from transformers import PretrainedConfig
 
 
@@ -25,56 +23,7 @@ _HF_LAYER_TYPE_MAP: dict[str, AttentionType] = {
     "sliding_attention": AttentionType.SLIDING_WINDOW,
     "linear_attention": AttentionType.LINEAR,
     "recurrent": AttentionType.LINEAR,
-    # Qwen4-Exp's sparse attention keeps a full KV cache plus indexer keys
-    "qwen_sparse_attention": AttentionType.FULL,
-    "indexed_attention": AttentionType.FULL,
 }
-
-#: Qwen4-Exp QSA layer type names. transformers >= 5.22 calls them
-#: ``indexed_attention`` and its config rewrites any other name to that.
-_QSA_LAYER_TYPES = frozenset({"qwen_sparse_attention", "indexed_attention"})
-
-
-class StateKind(Enum):
-    """How a cache state evolves between generation steps."""
-
-    #: Grows along ``seq_dim`` by the valid tokens of each call, clipped to the
-    #: retained context.
-    APPEND = "append"
-    #: Replaced wholesale by each call's output.
-    REPLACE = "replace"
-
-
-@dataclass(frozen=True)
-class CacheState:
-    """One state tensor a layer carries between calls, as a graph input/output.
-
-    ``shape`` gives the trailing dims after batch for REPLACE states. APPEND
-    states have their sequence axis at ``seq_dim`` (counting batch as dim 0),
-    and ``shape`` holds the remaining non-batch dims in order.
-    """
-
-    name: str
-    kind: StateKind
-    shape: tuple[int, ...]
-    seq_dim: int | None = None
-    dtype: torch.dtype | None = None
-
-    def dummy_shape(self, batch_size: int, kv_length: int) -> tuple[int, ...]:
-        """Shape of the empty state fed on the first call."""
-        if self.kind == StateKind.REPLACE:
-            return (batch_size, *self.shape)
-        dims = list(self.shape)
-        dims.insert(self.seq_dim - 1, kv_length)
-        return (batch_size, *dims)
-
-
-#: Name of the model-level state holding the position ids of every cached key.
-PAST_POSITION_IDS = "past_position_ids"
-
-#: Conv-state slot of a Qwen4-Exp linear-attention cache layer that holds the
-#: PLE short-conv window (slot 0 is the GatedDeltaNet conv window).
-PLE_CONV_STATE_IDX = 1
 
 
 @dataclass
@@ -92,72 +41,37 @@ class LayerCacheDescriptor:
     linear_num_v_heads: int | None = None
     linear_head_k_dim: int | None = None
     linear_head_v_dim: int | None = None
-    #: Head dim of Qwen4-Exp's QSA indexer keys; ``None`` for layers without one.
-    indexer_head_dim: int | None = None
-    #: ``(channels, length)`` of a Qwen4-Exp PLE layer's dilated short-conv
-    #: window; ``None`` for layers without PLE.
-    ple_conv_shape: tuple[int, int] | None = None
-
-    @property
-    def states(self) -> tuple[CacheState, ...]:
-        """The states this layer carries, in graph input/output order."""
-        i = self.layer_idx
-        if self.attention_type == AttentionType.LINEAR:
-            # Genie finds linear-attention state by these exact prefixes.
-            return (
-                CacheState(
-                    f"conv_state_{i}",
-                    StateKind.REPLACE,
-                    (self.conv_dim, self.conv_kernel_size),
-                ),
-                CacheState(
-                    f"recurrent_state_{i}",
-                    StateKind.REPLACE,
-                    (
-                        self.linear_num_v_heads,
-                        self.linear_head_k_dim,
-                        self.linear_head_v_dim,
-                    ),
-                ),
-            ) + (
-                (
-                    CacheState(
-                        f"ple_conv_state_{i}", StateKind.REPLACE, self.ple_conv_shape
-                    ),
-                )
-                if self.ple_conv_shape is not None
-                else ()
-            )
-        if self.attention_type in (AttentionType.FULL, AttentionType.SLIDING_WINDOW):
-            kv = (self.num_kv_heads, self.head_dim)
-            states = (
-                CacheState(f"past_key_{i}", StateKind.APPEND, kv, seq_dim=2),
-                CacheState(f"past_value_{i}", StateKind.APPEND, kv, seq_dim=2),
-            )
-            if self.indexer_head_dim is not None:
-                states += (
-                    CacheState(
-                        f"past_indexer_key_{i}",
-                        StateKind.APPEND,
-                        (self.indexer_head_dim,),
-                        seq_dim=1,
-                    ),
-                )
-            return states
-        raise ValueError(f"Unknown attention type: {self.attention_type}")
 
     def dummy_state_shapes(
         self, batch_size: int, context_length: int, sequence_length: int
-    ) -> tuple[tuple[int, ...], ...]:
-        """Shapes of this layer's states during prepare_inputs, in ``states`` order.
+    ) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        """Shapes for the two state tensors of this layer during prepare_inputs.
+
+        Returns a pair ``(shape_a, shape_b)`` where *shape_a* corresponds to the
+        first flattened tensor (key or conv_state) and *shape_b* to the second
+        (value or recurrent_state).
 
         Full and sliding_window layers are padded to the full context length so
         that a single 4D attention mask can be applied across all layers.
         """
-        return tuple(
-            state.dummy_shape(batch_size, context_length - sequence_length)
-            for state in self.states
-        )
+        if self.attention_type in (AttentionType.FULL, AttentionType.SLIDING_WINDOW):
+            shape = (
+                batch_size,
+                self.num_kv_heads,
+                context_length - sequence_length,
+                self.head_dim,
+            )
+            return shape, shape
+        if self.attention_type == AttentionType.LINEAR:
+            conv_shape = (batch_size, self.conv_dim, self.conv_kernel_size)
+            recurrent_shape = (
+                batch_size,
+                self.linear_num_v_heads,
+                self.linear_head_k_dim,
+                self.linear_head_v_dim,
+            )
+            return conv_shape, recurrent_shape
+        raise ValueError(f"Unknown attention type: {self.attention_type}")
 
     def clip_length(self, max_length: int) -> int | None:
         """Maximum number of KV entries to retain between generation steps.
@@ -173,7 +87,7 @@ class LayerCacheDescriptor:
         raise ValueError(f"Unknown attention type: {self.attention_type}")
 
 
-def resolve_text_config(config: PretrainedConfig) -> PretrainedConfig:
+def _resolve_text_config(config: PretrainedConfig) -> PretrainedConfig:
     """Resolve a composite VLM config to its text decoder config.
 
     VLM configs (e.g. Gemma3Config) nest text decoder attributes under
@@ -189,20 +103,6 @@ def resolve_text_config(config: PretrainedConfig) -> PretrainedConfig:
     return config
 
 
-def resolve_model_type(config: PretrainedConfig, known: Collection[str]) -> str:
-    """Return the ``model_type`` to look ``config`` up by in a table keyed on it.
-
-    ``config.model_type`` if ``known`` has it, else that of its text decoder
-    config (:func:`resolve_text_config`). Tables like AdaScale's list some
-    composite models only under their top-level name (``qwen3_vl``, not
-    ``qwen3_vl_text``), so those keep it; a composite model around an
-    already-listed decoder (Qwen3-ASR around ``qwen3``) needs no entry.
-    """
-    if config.model_type in known:
-        return config.model_type
-    return resolve_text_config(config).model_type
-
-
 def build_layer_cache_descriptors(
     config: PretrainedConfig,
 ) -> list[LayerCacheDescriptor]:
@@ -212,9 +112,9 @@ def build_layer_cache_descriptors(
     ``config.sliding_window_pattern`` to determine each layer's cache type.
 
     For composite VLM configs the text decoder sub-config is resolved
-    automatically via :func:`resolve_text_config`.
+    automatically via :func:`_resolve_text_config`.
     """
-    config = resolve_text_config(config)
+    config = _resolve_text_config(config)
     num_kv_shared = getattr(config, "num_kv_shared_layers", 0)
     num_layers = config.num_hidden_layers - num_kv_shared
     sliding_window = getattr(config, "sliding_window", None)
@@ -273,17 +173,6 @@ def build_layer_cache_descriptors(
                 linear_head_v_dim=linear_head_v_dim,
             )
 
-        indexer_kwargs = {}
-        if hf_layer_type in _QSA_LAYER_TYPES:
-            indexer_kwargs = dict(indexer_head_dim=config.indexer_head_dim)
-        if i + 1 in ple_layer_ids(config):
-            # Qwen4-Exp PLE: depthwise conv over every residual stream, dilated by
-            # the n-gram size, so it keeps (kernel - 1) * ngram_size past columns
-            indexer_kwargs["ple_conv_shape"] = (
-                config.hidden_size * config.hc_count,
-                (config.ple_conv_kernel_size - 1) * config.ngram_size,
-            )
-
         descriptors.append(
             LayerCacheDescriptor(
                 layer_idx=i,
@@ -292,17 +181,10 @@ def build_layer_cache_descriptors(
                 head_dim=head_dim,
                 sliding_window_size=sw_size,
                 **linear_kwargs,
-                **indexer_kwargs,
             )
         )
 
     return descriptors
-
-
-def ple_layer_ids(config: PretrainedConfig) -> list[int]:
-    """One-indexed ids of Qwen4-Exp's per-layer-embedding (PLE) layers, if any."""
-    ids = getattr(resolve_text_config(config), "ple_layer_ids", None)
-    return list(ids) if isinstance(ids, (list, tuple)) else []
 
 
 def _layer_config(config: PretrainedConfig, layer_idx: int) -> PretrainedConfig:
@@ -356,59 +238,23 @@ def attention_mask_input_names(
     return ["attention_mask"]
 
 
-def model_states(
-    layer_cache_descriptors: list[LayerCacheDescriptor],
-) -> tuple[CacheState, ...]:
-    """States carried once per model rather than per layer, after the layers'.
-
-    Qwen4-Exp's QSA indexer ropes each compressed key block at its first token's
-    position, so it reads past positions back from the cache: the model keeps
-    them as its 3-axis mrope ids (see ``indexer_position_ids_owner`` for where),
-    carried here as ``(batch, 3, kv_length)``.
-    """
-    if any(d.indexer_head_dim is not None for d in layer_cache_descriptors):
-        return (
-            CacheState(
-                PAST_POSITION_IDS,
-                StateKind.APPEND,
-                (3,),
-                seq_dim=2,
-                dtype=torch.int64,
-            ),
-        )
-    return ()
-
-
-def all_states(
-    layer_cache_descriptors: list[LayerCacheDescriptor],
-) -> tuple[CacheState, ...]:
-    """Every carried state, layers first, in graph input/output order."""
-    layer_states = tuple(
-        state for desc in layer_cache_descriptors for state in desc.states
-    )
-    return layer_states + model_states(layer_cache_descriptors)
-
-
 def cache_state_names(
     layer_cache_descriptors: list[LayerCacheDescriptor],
     suffix: str = "in",
 ) -> list[str]:
-    """Return the names of every carried state, in graph order.
+    """Return per-layer state names for the KV / recurrent cache.
 
     *suffix* is ``"in"`` for input names and ``"out"`` for output names.
     """
-    return [f"{state.name}_{suffix}" for state in all_states(layer_cache_descriptors)]
-
-
-def kv_length_dynamic_axes(
-    layer_cache_descriptors: list[LayerCacheDescriptor],
-) -> dict[str, dict[int, str]]:
-    """``dynamic_axes`` entries for every input that grows with the KV cache."""
-    return {
-        f"{state.name}_in": {state.seq_dim: "kv_cache_length"}
-        for state in all_states(layer_cache_descriptors)
-        if state.kind == StateKind.APPEND
-    }
+    names: list[str] = []
+    for desc in layer_cache_descriptors:
+        i = desc.layer_idx
+        if desc.attention_type == AttentionType.LINEAR:
+            # Genie finds linear-attention state by these exact prefixes.
+            names += [f"conv_state_{i}_{suffix}", f"recurrent_state_{i}_{suffix}"]
+        else:
+            names += [f"past_key_{i}_{suffix}", f"past_value_{i}_{suffix}"]
+    return names
 
 
 def _is_sliding_window_layer(config: PretrainedConfig, layer_idx: int) -> bool:
