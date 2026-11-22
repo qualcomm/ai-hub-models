@@ -53,6 +53,10 @@ These require a code fix in `ai-hub-models` but the root cause is external.
 | Model dependency (ultralytics/yolov11) API change | Mar 14-16 | Update model code to new API. |
 | Workbench client backwards-incompatible change | Mar 3-4 | Update client usage in our code. Private API, expect breakage. |
 
+| `ml-dtypes` version breaks `import onnx` in per-model venvs with NumPy 1.x | Nov 17, 2026 (tetracode#22514) | `ml-dtypes>=0.7.0` compiled against NumPy 2.x C-API; model envs that downgrade numpy to 1.26.x crash on `import onnx` → `import ml_dtypes`. Fix: pin `ml_dtypes<0.7` in `global_requirements.txt`. See PR #5157. |
+| Dataset package `__init__.py` eager import pulls cv2 transitively | Nov 18, 2026 (tetracode#22532) | `datasets/pandaset/__init__.py` eagerly imports all submodules including one needing cv2. Per-model venvs without opencv fail at collection. Fix: use specific submodule imports or add opencv to affected models. See PR #5169, PR #5060 (cause). |
+| Protobuf `perf_pb2` pickle failure in scorecard multiprocessing pool | Nov 19, 2026 (tetracode#22545) | `QAIHMModelPerf` wrapping raw `perf_pb2.ModelPerf` can't be pickled across pool workers because the proto module registers under bare name, not full package path. Fix: PR #5188 (regenerate or add pickle helpers). |
+
 **Detection heuristic:** If a passing nightly suddenly fails with ImportError, ModuleNotFoundError, or AttributeError on a *third-party* package, and no relevant commit was pushed, it's a dependency breakage.
 
 **Multi-day dependency issues:** Often take 2-3 days to fully resolve because:

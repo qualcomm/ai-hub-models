@@ -24,6 +24,16 @@ Use alongside `error-patterns.md` and `runtime-guide.md` for triage.
 | All TFLite models regress | HIGH | Compiler/ONNX2EP (delegate) |
 | Only context binary path affected | HIGH | Compiler/ONNX2EP |
 | QNN models regress across all devices | HIGH | Tungsten (QNN runtime update) |
+| TFLite regressions concentrated on one device, only on `tfl_converter` path (not `onnx2tf` / LiteRT) | HIGH | AI Hub Models (TFL Converter experimental). **Important:** Distinguish TFL Converter (experimental, `tfl_converter` test path) from LiteRT runtime (QNN delegate via `onnx2tf`). Same `tflite` label in scorecard but different compile paths. If the same model's `onnx2tf` profile is fine but `tfl_converter` is slow, the regression is in the experimental converter, NOT the QNN delegate or QAIRT. See tetracode#22548, #22552 (Nov 2026). |
+
+### Device Pool / Firmware Failures (Scattered `-inf` on IoT Devices)
+
+| Signal | Confidence | Team |
+|--------|-----------|------|
+| 20+ unrelated models report `-inf` on IQ-9075 EVK, all runtimes | HIGH | Cloud Services (QDC device pool). "Failed to extract zip package" or timeout pattern. See QDC-6141 (Nov 2026). |
+| 20+ unrelated models report `-inf` on Arduino VENTUNO Q, all runtimes | HIGH | Cloud Services (QDC device pool). Network issue downloading model. See QDC-6140 (Nov 2026). |
+| 10+ unrelated models report `-inf` on Dragonwing RB3 Gen 2, all runtimes | HIGH | Cloud Services (QDC device pool). "Failed to configure device" pattern. See QDC-6142 (Nov 2026). |
+| Scattered `-inf` concentrated on 2-3 IoT/automotive devices, other devices fine | HIGH | Cloud Services (device pool health), NOT compiler/model. Cross-runtime failures on same device = device issue. See tetracode#22492 C4 cluster (Nov 2026). |
 
 ### Noise vs Real (Threshold Guidance)
 
