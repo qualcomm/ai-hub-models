@@ -70,7 +70,7 @@ def get_model_perf(
         ModelPerf,
         cache_filename="perf.pb",
         manifest_url_field="perf",
-        source_getter="get_model_perf_proto",
+        source_getter="get_model_perf",
         local_path=local_path,
     )
 

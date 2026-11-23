@@ -208,7 +208,7 @@ def _build_model_protos(
     return written, None
 
 
-def _build_platform_proto(
+def _get_platform_proto(
     aihm_version: str,
     output_dir: Path,
     fmts: list[Format],
@@ -468,7 +468,7 @@ def _build_and_collect(
     all_files: list[tuple[Path, str]] = []
     global_s3_folder = ASSET_CONFIG.get_global_release_s3_folder(version)
 
-    platform_paths = _build_platform_proto(version, variant_root, fmts)
+    platform_paths = _get_platform_proto(version, variant_root, fmts)
     all_files.extend(
         (path, os.path.join(global_s3_folder, path.name)) for path in platform_paths
     )

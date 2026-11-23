@@ -58,7 +58,7 @@ def get_release_manifest_entry(
         # Maximize our chance at a "ID cache hit" by applying common name -> ID mappings.
         model_sanitized = model.replace("-", "_").replace(".", "_").lower()
         if model_sanitized in MODEL_IDS:
-            from qai_hub_models.cli.proto_api import _build_release_manifest_entry
+            from qai_hub_models.core.configs import _build_release_manifest_entry
             from qai_hub_models.scripts.build_release_proto import _similar_chipsets
 
             if entry := _build_release_manifest_entry(
@@ -124,7 +124,7 @@ def get_release_manifest(
         version,
         ReleaseManifest,
         cache_filename="manifest.pb",
-        source_getter="get_release_manifest_proto",
+        source_getter="get_release_manifest",
         url=url,
         local_path=local_path,
     )

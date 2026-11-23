@@ -53,6 +53,6 @@ def get_model_manifest(
         ModelManifest,
         cache_filename=f"{proto_name}.pb",
         manifest_url_field=proto_name,
-        source_getter="get_model_manifest_proto",
+        source_getter="get_model_manifest",
         local_path=local_path,
     )

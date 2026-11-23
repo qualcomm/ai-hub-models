@@ -23,7 +23,10 @@ from qai_hub_models_cli.proto.platform_pb2 import (
     WebsiteWorld,
 )
 from qai_hub_models_cli.proto.shared.runtime_pb2 import Runtime
-from qai_hub_models_cli.proto_helpers._common import fetch_release_proto
+from qai_hub_models_cli.proto_helpers._common import (
+    fetch_release_proto,
+    use_aihm_source,
+)
 from qai_hub_models_cli.proto_helpers.platform_enums import (
     form_factor_proto_to_str,
     normalize_label,
@@ -101,14 +104,16 @@ def get_platform(
     """
     if local_path is not None:
         url = None
-    else:
+    elif not use_aihm_source(version):
         manifest = get_release_manifest(version)
         url = manifest.platform_url
+    else:
+        url = None
     return fetch_release_proto(
         version,
         PlatformInfo,
         cache_filename="platform.pb",
-        source_getter="get_platform_proto",
+        source_getter="get_platform",
         url=url,
         local_path=local_path,
     )

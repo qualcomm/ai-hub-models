@@ -223,7 +223,7 @@ def fetch_release_proto(
     cache_filename
         Filename for the local cache (e.g. "manifest.pb").
     source_getter
-        Function name on qai_hub_models.cli module (e.g. "get_release_manifest_proto").
+        Function name on qai_hub_models.core.configs module (e.g. "get_release_manifest").
     url
         URL to fetch from when not using source. Required unless local_path is set.
     local_path
@@ -241,21 +241,10 @@ def fetch_release_proto(
         verify_not_dev_release(version)
         verify_version_supported(version, verify_manifest_supported=True)
     else:
-        from qai_hub_models._version import __version__ as models_version
+        from qai_hub_models.core import configs as models_configs
 
-        cache_path = (
-            get_release_cache_dir(Version(models_version), internal=True)
-            / cache_filename
-        )
-        if cache_path.exists():
-            return read_proto(cache_path, proto_type)
-
-        from qai_hub_models import cli as models_cli
-
-        getter: Callable[[], _M] = getattr(models_cli, source_getter)
-        proto = getter()
-        write_proto(cache_path, proto)
-        return proto
+        getter: Callable[[], _M] = getattr(models_configs, source_getter)
+        return getter()
 
     assert url is not None
     cache_path = get_release_cache_dir(version) / cache_filename
@@ -287,7 +276,7 @@ def fetch_model_proto(
     manifest_url_field
         Attribute name on ReleaseManifestModelEntry.manifest_urls (e.g. "manifest").
     source_getter
-        Function name on qai_hub_models.cli module (e.g. "get_model_manifest_proto").
+        Function name on qai_hub_models.core.configs module (e.g. "get_model_manifest").
     local_path
         If provided, read directly from this path instead of fetching.
 
@@ -310,22 +299,12 @@ def fetch_model_proto(
     )
 
     if use_aihm_source(version):
-        from qai_hub_models._version import __version__ as models_version
+        from qai_hub_models.core import configs as models_configs
 
-        model_id = resolve_model_id(model, version)
-        cache_path = model_cache_path(
-            Version(models_version), model_id, cache_filename, internal=True
-        )
-        if cache_path.exists():
-            return read_proto(cache_path, proto_type)
-
-        from qai_hub_models import cli as models_cli
-
-        getter: Callable[[str], _M] = getattr(models_cli, source_getter)
-        proto = getter(model_id)
+        getter: Callable[[str], _M] = getattr(models_configs, source_getter)
+        proto = getter(resolve_model_id(model, version))
         if proto is None:
             return proto_type()
-        write_proto(cache_path, proto)
         return proto
 
     entry = get_release_manifest_entry(model, version)

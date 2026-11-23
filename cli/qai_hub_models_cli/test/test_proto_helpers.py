@@ -377,12 +377,12 @@ class TestGetManifestEntry:
         )
 
         built = _manifest().models[0]
-        proto_api = MagicMock()
-        proto_api._build_release_manifest_entry.return_value = built
+        configs = MagicMock()
+        configs._build_release_manifest_entry.return_value = built
         modules = {
             "qai_hub_models": MagicMock(),
-            "qai_hub_models.cli": MagicMock(proto_api=proto_api),
-            "qai_hub_models.cli.proto_api": proto_api,
+            "qai_hub_models.core": MagicMock(configs=configs),
+            "qai_hub_models.core.configs": configs,
             "qai_hub_models.scripts": MagicMock(),
             "qai_hub_models.scripts.build_release_proto": MagicMock(
                 _similar_chipsets=MagicMock(return_value=frozenset())
@@ -403,9 +403,7 @@ class TestGetManifestEntry:
             entry = get_release_manifest_entry("Mobilenet-V2", _DEV_VERSION)
 
         assert entry == built
-        assert proto_api._build_release_manifest_entry.call_args.args[0] == (
-            "mobilenet_v2"
-        )
+        assert configs._build_release_manifest_entry.call_args.args[0] == "mobilenet_v2"
         full_manifest.assert_not_called()
 
 
@@ -772,17 +770,20 @@ def _enter_mocks(stack: contextlib.ExitStack, mocks: tuple) -> None:
 def _aihm_sys_modules(mock_cli: MagicMock) -> dict:
     mock_version_mod = MagicMock()
     mock_version_mod.__version__ = "0.45.0.dev1"
+    mock_core = MagicMock()
+    mock_core.configs = mock_cli
     mock_pkg = MagicMock()
     mock_pkg._version = mock_version_mod
-    mock_pkg.cli = mock_cli
+    mock_pkg.core = mock_core
     return {
         "qai_hub_models": mock_pkg,
         "qai_hub_models._version": mock_version_mod,
-        "qai_hub_models.cli": mock_cli,
+        "qai_hub_models.core": mock_core,
+        "qai_hub_models.core.configs": mock_cli,
     }
 
 
-class TestManifestDiskCache:
+class TestManifestFromSource:
     def _mocks(self, cache_dir: Path, mock_cli: MagicMock) -> tuple:
         return (
             patch(
@@ -796,44 +797,25 @@ class TestManifestDiskCache:
             patch.dict("sys.modules", _aihm_sys_modules(mock_cli)),
         )
 
-    def test_cache_miss_writes_file(self, tmp_path: Path) -> None:
+    def test_calls_getter_and_does_not_cache(self, tmp_path: Path) -> None:
         from qai_hub_models_cli.proto_helpers.release_manifest import (
             get_release_manifest,
         )
 
         cache_dir = tmp_path / "releases" / "v0.45.0.dev1"
         mock_cli = MagicMock()
-        mock_cli.get_release_manifest_proto = MagicMock(return_value=_manifest())
+        mock_cli.get_release_manifest = MagicMock(return_value=_manifest())
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_dir, mock_cli))
             result = get_release_manifest(_DEV_VERSION)
 
-        mock_cli.get_release_manifest_proto.assert_called_once()
-        assert (cache_dir / "manifest.pb").exists()
-        assert result.version == "0.45.0"
-
-    def test_cache_hit_skips_getter(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.release_manifest import (
-            get_release_manifest,
-        )
-
-        cache_dir = tmp_path / "releases" / "v0.45.0.dev1"
-        cache_dir.mkdir(parents=True)
-        (cache_dir / "manifest.pb").write_bytes(_manifest().SerializeToString())
-
-        mock_cli = MagicMock()
-        mock_cli.get_release_manifest_proto = MagicMock()
-
-        with contextlib.ExitStack() as stack:
-            _enter_mocks(stack, self._mocks(cache_dir, mock_cli))
-            result = get_release_manifest(_DEV_VERSION)
-
-        mock_cli.get_release_manifest_proto.assert_not_called()
+        mock_cli.get_release_manifest.assert_called_once()
+        assert not cache_dir.exists()
         assert result.version == "0.45.0"
 
 
-class TestInfoDiskCache:
+class TestModelProtoFromSource:
     def _mocks(self, cache_path: Path, mock_cli: MagicMock) -> tuple:
         return (
             patch(
@@ -851,34 +833,19 @@ class TestInfoDiskCache:
             patch.dict("sys.modules", _aihm_sys_modules(mock_cli)),
         )
 
-    def test_cache_miss_writes_file(self, tmp_path: Path) -> None:
+    def test_calls_getter_and_does_not_cache(self, tmp_path: Path) -> None:
         from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
 
         cache_path = tmp_path / "info.pb"
         mock_cli = MagicMock()
-        mock_cli.get_model_manifest_proto = MagicMock(return_value=_model_info())
+        mock_cli.get_model_manifest = MagicMock(return_value=_model_info())
 
         with contextlib.ExitStack() as stack:
             _enter_mocks(stack, self._mocks(cache_path, mock_cli))
             result = get_model_manifest("mobilenet_v2", _DEV_VERSION)
 
-        mock_cli.get_model_manifest_proto.assert_called_once_with("mobilenet_v2")
-        assert cache_path.exists()
-        assert result.id == "mobilenet_v2"
-
-    def test_cache_hit_skips_getter(self, tmp_path: Path) -> None:
-        from qai_hub_models_cli.proto_helpers.model_manifest import get_model_manifest
-
-        cache_path = tmp_path / "info.pb"
-        cache_path.write_bytes(_model_info().SerializeToString())
-        mock_cli = MagicMock()
-        mock_cli.get_model_manifest_proto = MagicMock()
-
-        with contextlib.ExitStack() as stack:
-            _enter_mocks(stack, self._mocks(cache_path, mock_cli))
-            result = get_model_manifest("mobilenet_v2", _DEV_VERSION)
-
-        mock_cli.get_model_manifest_proto.assert_not_called()
+        mock_cli.get_model_manifest.assert_called_once_with("mobilenet_v2")
+        assert not cache_path.exists()
         assert result.id == "mobilenet_v2"
 
 

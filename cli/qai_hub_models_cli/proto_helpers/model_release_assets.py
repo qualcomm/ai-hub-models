@@ -86,7 +86,7 @@ def get_model_release_assets(
         ModelReleaseAssets,
         cache_filename="release_assets.pb",
         manifest_url_field="release_assets",
-        source_getter="get_model_release_assets_proto",
+        source_getter="get_model_release_assets",
         local_path=local_path,
     )
 

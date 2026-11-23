@@ -69,7 +69,7 @@ def get_model_numerics(
         ModelNumerics,
         cache_filename="numerics.pb",
         manifest_url_field="numerics",
-        source_getter="get_model_numerics_proto",
+        source_getter="get_model_numerics",
         local_path=local_path,
     )
 

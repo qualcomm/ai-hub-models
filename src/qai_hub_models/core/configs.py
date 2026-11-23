@@ -48,7 +48,7 @@ def _build_release_manifest_entry(
 
     Module-level and returns bytes so it can run in a worker process.
     """
-    manifest = get_model_manifest_proto(model_id, include_internal=True)
+    manifest = get_model_manifest(model_id, include_internal=True)
     published = (
         manifest._internal.status == ModelManifest.Internal.MODEL_STATUS_PUBLISHED
     )
@@ -56,7 +56,7 @@ def _build_release_manifest_entry(
         return None
 
     assets = _read_model_proto(model_id, "release-assets.yaml", ModelReleaseAssets)
-    perf = get_model_perf_proto(model_id)
+    perf = get_model_perf(model_id)
     precisions = {a.precision for a in assets.assets}
     precisions.update(e.precision for e in perf.performance_metrics)
     runtimes = {a.runtime for a in assets.assets}
@@ -85,7 +85,7 @@ def _build_release_manifest_entry_bytes(
     return None
 
 
-def get_release_manifest_proto() -> ReleaseManifest:
+def get_release_manifest() -> ReleaseManifest:
     """Build a ReleaseManifest from the local model manifest files."""
     # The scripts package is not present in release builds, so import it here.
     from qai_hub_models.scripts.build_release_proto import _similar_chipsets
@@ -121,9 +121,7 @@ def _read_model_proto(model_id: str, filename: str, proto_type: type[_M]) -> _M:
     return read_proto_yaml(path, proto_type)
 
 
-def get_model_manifest_proto(
-    model_id: str, include_internal: bool = True
-) -> ModelManifest:
+def get_model_manifest(model_id: str, include_internal: bool = True) -> ModelManifest:
     """
     Read a ModelManifest proto from the model's manifest.yaml.
 
@@ -141,19 +139,19 @@ def get_model_manifest_proto(
     return manifest
 
 
-def get_model_perf_proto(model_id: str) -> ModelPerf:
+def get_model_perf(model_id: str) -> ModelPerf:
     """Read a ModelPerf proto from the model's perf.yaml."""
     return _read_model_proto(model_id, "perf.yaml", ModelPerf)
 
 
-def get_model_numerics_proto(model_id: str) -> ModelNumerics:
+def get_model_numerics(model_id: str) -> ModelNumerics:
     """Read a ModelNumerics proto from the model's numerics.yaml."""
     numerics = _read_model_proto(model_id, "numerics.yaml", ModelNumerics)
     if not numerics.metrics:
         return ModelNumerics()
 
     # Numerics carries no tool versions; borrow them from the matching perf entry.
-    perf = get_model_perf_proto(model_id)
+    perf = get_model_perf(model_id)
     tool_versions = {
         (e.device, e.precision, e.runtime): e.tool_versions
         for e in perf.performance_metrics
@@ -168,7 +166,7 @@ def get_model_numerics_proto(model_id: str) -> ModelNumerics:
     return numerics
 
 
-def get_platform_proto() -> PlatformInfo:
+def get_platform() -> PlatformInfo:
     """Build a PlatformInfo proto from local config (dev installs)."""
     # The scorecard artifact schemas live in the internal-only package, so
     # import them here to keep this module importable without it.
@@ -197,7 +195,7 @@ def _resolve_download_url(
     return ""
 
 
-def get_model_release_assets_proto(model_id: str) -> ModelReleaseAssets | None:
+def get_model_release_assets(model_id: str) -> ModelReleaseAssets | None:
     """Read a ModelReleaseAssets proto from the model's release-assets.yaml."""
     # The scorecard package is not available in release builds, so import here.
     from qai_hub_models.scorecard.device import compute_peer_chipsets
