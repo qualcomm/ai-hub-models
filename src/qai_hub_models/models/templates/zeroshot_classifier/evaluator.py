@@ -58,7 +58,7 @@ class ZeroShotClassificationEvaluator(BaseEvaluator):
         self.total_samples += batch_size
 
         gt_tensor = torch.tensor([gt]) if isinstance(gt, int) else gt.view(-1).long()
-
+        gt_tensor = gt_tensor.to(output.device)
         assert gt_tensor.shape[0] == batch_size, (
             f"gt size {gt_tensor.shape[0]} != output batch size {batch_size}"
         )
@@ -81,9 +81,9 @@ class ZeroShotClassificationEvaluator(BaseEvaluator):
         return ACCURACY_TOP1
 
 
-class SigLIP2Evaluator(ZeroShotClassificationEvaluator):
+class CollectionZeroShotEvaluator(ZeroShotClassificationEvaluator):
     """
-    Wraps ZeroShotClassificationEvaluator for SigLIP2.
+    Wraps ZeroShotClassificationEvaluator for SigLIP2 and OpenAI-CLIP.
 
     The on-device image encoder returns raw L2-normalised image embeddings
     ``[B, D]``.  Text embeddings are pre-computed once before the eval loop
@@ -131,7 +131,11 @@ class SigLIP2Evaluator(ZeroShotClassificationEvaluator):
             Each value must be in ``[0, N)`` where N is the number of text classes.
         """
         image_embeds = output[0] if isinstance(output, (list, tuple)) else output
+        # On-device models return fp16; cast to match text_embeds dtype before matmul.
         logits = (
-            self.logit_scale * image_embeds @ self.text_embeds.t() + self.logit_bias
+            self.logit_scale
+            * image_embeds.to(self.text_embeds.dtype)
+            @ self.text_embeds.t()
+            + self.logit_bias
         )
         super().add_batch(logits, gt)

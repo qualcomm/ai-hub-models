@@ -3,50 +3,51 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ---------------------------------------------------------------------
 
-import numpy as np
-import torch
+from __future__ import annotations
 
-from qai_hub_models.models.openai_clip.app import _DEFAULT_IMAGE_PREPROCESSOR, ClipApp
-from qai_hub_models.models.openai_clip.demo import DEFAULT_TEXTS
+import numpy as np
+
+from qai_hub_models.models.openai_clip.app import ClipApp
 from qai_hub_models.models.openai_clip.demo import main as demo_main
 from qai_hub_models.models.openai_clip.model import (
     MODEL_ASSET_VERSION,
     MODEL_ID,
     OpenAIClip,
 )
-from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
+from qai_hub_models.utils.asset_loaders import (
+    CachedWebModelAsset,
+    load_image,
+    load_numpy,
+)
 
-IMAGE_ADDRESS = CachedWebModelAsset.from_asset_store(
+IMAGE_ASSET = CachedWebModelAsset.from_asset_store(
     MODEL_ID, MODEL_ASSET_VERSION, "image1.jpg"
+)
+TEXTS = ["a pyramid in the desert", "a dog on a beach", "a cat on a sofa"]
+GOLDEN_OUTPUT = CachedWebModelAsset.from_asset_store(
+    MODEL_ID, MODEL_ASSET_VERSION, "golden_logits.npy"
 )
 
 
 def test_task() -> None:
-    """Verify that app output matches direct model inference."""
-    source_clip_model = OpenAIClip.from_pretrained()
-
-    clip_app = ClipApp(
-        source_clip_model,
-        source_clip_model.text_tokenizer,
-        source_clip_model.get_input_spec(),
+    model = OpenAIClip.from_pretrained()
+    app = ClipApp(
+        image_encoder=model.image_encoder,
+        text_encoder=model.text_encoder,
+        logit_scale=model.logit_scale,
     )
+    image = load_image(IMAGE_ASSET)
+    logits = app.predict_similarity([image], TEXTS)
+    assert logits.shape == (1, len(TEXTS))
 
-    image = load_image(IMAGE_ADDRESS)
-    texts = DEFAULT_TEXTS[:5]
-
-    # App output
-    app_out = clip_app.predict_best_caption(image, texts)
-    assert app_out.shape == (1, 5)
-
-    # Direct model inference using the same preprocessing
-    img = _DEFAULT_IMAGE_PREPROCESSOR(image).unsqueeze(0)
-    tokenized = torch.cat([source_clip_model.text_tokenizer(t) for t in texts])
-    text = tokenized.unsqueeze(0)
-    image_features, text_features = source_clip_model(img, text)
-    direct_out = (100.0 * image_features) @ text_features.t()
+    golden_logits = load_numpy(GOLDEN_OUTPUT.fetch())
+    logits_np = logits.detach().cpu().numpy()
 
     np.testing.assert_allclose(
-        app_out.detach().numpy(), direct_out.detach().numpy(), rtol=1e-4
+        logits_np,
+        golden_logits,
+        rtol=1e-2,
+        atol=1e-2,
     )
 
 

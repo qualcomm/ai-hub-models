@@ -11,15 +11,12 @@ from collections.abc import Generator
 import torch
 import torch.nn.functional as F
 from torch import Tensor
-from transformers import AutoModel, AutoTokenizer, SiglipModel
+from transformers import AutoModel, SiglipModel
 from typing_extensions import Self
 
 from qai_hub_models.datasets.common import BaseDataset
 from qai_hub_models.datasets.imagenet.imagenet_zeroshot import (
     ImagenetZeroshotDataset,
-)
-from qai_hub_models.models.siglip2.evaluator import (
-    SigLIP2Evaluator,
 )
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.base_model import BaseModel
@@ -32,7 +29,6 @@ from qai_hub_models.utils.input_spec import (
     OutputSpec,
     TensorSpec,
 )
-from qai_hub_models.utils.labels import get_class_names
 
 MODEL_ID = __name__.split(".")[-2]
 MODEL_ASSET_VERSION = 1
@@ -288,24 +284,5 @@ class SigLIP2(WorkbenchModelCollection):
     def get_eval_dataset_classes(cls) -> list[type[BaseDataset]]:
         return [ImagenetZeroshotDataset]
 
-    def get_evaluator(self) -> SigLIP2Evaluator:
-        """Return a SigLIP2 evaluator for ImageNet zero-shot classification.
-
-        Both local and on-device eval paths return raw L2-normalised image
-        embeddings from run_model_for_eval.  SigLIP2Evaluator converts them
-        to logits using pre-computed text embeddings before scoring.
-        """
-        tokenizer = AutoTokenizer.from_pretrained(DEFAULT_WEIGHTS, use_fast=True)
-        prompts = [f"a photo of a {lbl}" for lbl in get_class_names("imagenet")]
-        token_out = tokenizer(
-            prompts,
-            return_tensors="pt",
-            padding="max_length",
-            truncation=True,
-            max_length=TEXT_SEQ_LEN,
-        )
-        input_ids = token_out["input_ids"].to(torch.int32)
-        with torch.no_grad():
-            text_embeds = self.text_encoder(input_ids)
-        text_embeds = F.normalize(text_embeds, dim=-1)
-        return SigLIP2Evaluator(text_embeds, self.logit_scale, self.logit_bias)
+    def get_evaluator(self) -> None:
+        raise NotImplementedError("Must be implemented by the app")

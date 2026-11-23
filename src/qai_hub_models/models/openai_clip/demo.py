@@ -5,68 +5,77 @@
 
 from __future__ import annotations
 
+import torch
+
 from qai_hub_models.models.openai_clip.app import ClipApp
 from qai_hub_models.models.openai_clip.model import (
     MODEL_ASSET_VERSION,
     MODEL_ID,
     OpenAIClip,
 )
+from qai_hub_models.models.templates.corevision.display import display_or_save_image
 from qai_hub_models.utils.args import (
-    demo_model_from_cli_args,
+    demo_model_components_from_cli_args,
     get_model_cli_parser,
     get_on_device_demo_parser,
-    model_from_cli_args,
     validate_on_device_demo_args,
 )
 from qai_hub_models.utils.asset_loaders import CachedWebModelAsset, load_image
 
-DEFAULT_IMAGE = CachedWebModelAsset.from_asset_store(
-    MODEL_ID, MODEL_ASSET_VERSION, "image1.jpg"
-)
-DEFAULT_TEXTS = [
-    "a photo of a pyramid in the desert",
-    "a photo of a beach at sunset",
-    "a photo of a mountain covered in snow",
-    "a photo of a city skyline at night",
-    "a photo of a forest in autumn",
-]
+DEFAULT_DEMO_IMAGES = ["image1.jpg", "image2.jpg", "image3.jpg"]
+DEFAULT_TEXT_PROMPT = "a photo of a pyramid in the desert"
 
 
-# Run CLIP on a single image with a list of text prompts and return the most relevant.
-# Supports both local PyTorch inference and on-device inference via AI Hub.
 def main(is_test: bool = False) -> None:
     parser = get_model_cli_parser(OpenAIClip)
-    parser = get_on_device_demo_parser(parser)
+    parser = get_on_device_demo_parser(parser, add_output_dir=True)
     parser.add_argument(
-        "--image",
-        type=str,
-        default=DEFAULT_IMAGE,
-        help="Path to the input image.",
-    )
-    parser.add_argument(
-        "--texts",
+        "--image-paths",
         type=str,
         default="",
-        help=f"Comma-separated list of exactly {len(DEFAULT_TEXTS)} text prompts.",
+        help="Comma-separated image file paths or URLs.",
+    )
+    parser.add_argument(
+        "--text",
+        type=str,
+        default=DEFAULT_TEXT_PROMPT,
+        help="Text prompt to rank images against.",
     )
     args = parser.parse_args([] if is_test else None)
     validate_on_device_demo_args(args, MODEL_ID)
 
-    torch_model = model_from_cli_args(OpenAIClip, args)
-    model = demo_model_from_cli_args(OpenAIClip, MODEL_ID, args)
+    wrapper, (image_encoder, text_encoder) = demo_model_components_from_cli_args(
+        OpenAIClip, MODEL_ID, args
+    )
 
-    app = ClipApp(model, torch_model.text_tokenizer, torch_model.get_input_spec())  # type: ignore[arg-type]
+    app = ClipApp(
+        image_encoder=image_encoder,
+        text_encoder=text_encoder,
+        logit_scale=wrapper.logit_scale,
+    )
 
-    image = load_image(args.image)
-    texts = [t.strip() for t in args.texts.split(",")] if args.texts else DEFAULT_TEXTS
+    image_paths: list[str] = []
+    if args.image_paths:
+        image_paths = [p.strip() for p in args.image_paths.split(",")]
+    else:
+        for fname in DEFAULT_DEMO_IMAGES:
+            asset = CachedWebModelAsset.from_asset_store(
+                MODEL_ID, MODEL_ASSET_VERSION, fname
+            )
+            asset.fetch()
+            image_paths.append(str(asset.path))
 
-    similarities = app.predict_best_caption(image, texts).flatten()
+    predictions = app.predict_similarity(image_paths, [args.text]).flatten()
 
-    best_idx = int(similarities.argmax())
+    print(f"Searching images by prompt: {args.text}")
+    for i, path in enumerate(image_paths):
+        print(f"  {path}: similarity score = {predictions[i]:.4f}")
 
-    for i, (text, score) in enumerate(zip(texts, similarities, strict=False)):
-        marker = " <-- best match" if i == best_idx else ""
-        print(f"  [{score:.2f}] {text}{marker}")
+    print("Displaying the most relevant image")
+    best_idx = int(torch.argmax(predictions).item())
+    most_relevant = load_image(image_paths[best_idx])
+    if not is_test:
+        display_or_save_image(most_relevant, args.output_dir)
 
 
 if __name__ == "__main__":

@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Generator, Sequence
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import torch
@@ -27,30 +27,27 @@ from qai_hub_models.datasets.open_images.open_images_zeroshot import (
     OpenImagesV7ZeroshotDataset,
 )
 from qai_hub_models.models.protocols import ExecutableModelProtocol
-from qai_hub_models.models.siglip2.evaluator import SigLIP2Evaluator
 from qai_hub_models.models.siglip2.model import DEFAULT_WEIGHTS, TEXT_SEQ_LEN
 from qai_hub_models.models.templates.corevision.image_processing import (
     preprocess_PIL_image,
 )
-from qai_hub_models.utils.asset_loaders import load_image
-from qai_hub_models.utils.base_app import (
-    CollectionAppEvaluateProtocol,
-    CollectionAppQuantizeProtocol,
-    CollectionModelEvalGenerator,
+from qai_hub_models.models.templates.zeroshot_classifier.app import (
+    ZeroShotCollectionApp,
 )
+from qai_hub_models.models.templates.zeroshot_classifier.evaluator import (
+    CollectionZeroShotEvaluator,
+)
+from qai_hub_models.utils.asset_loaders import load_image
 from qai_hub_models.utils.base_collection_model import WorkbenchModelCollection
 from qai_hub_models.utils.evaluate.helpers import sample_dataset
 from qai_hub_models.utils.inference import (
     AsyncOnDeviceModel,
-    AsyncOnDeviceResult,
-    OnDeviceModel,
-    dataset_entries_from_batch,
 )
 from qai_hub_models.utils.input_spec import InputSpec, get_batch_size
 from qai_hub_models.utils.qai_hub_helpers import make_hub_dataset_entries
 
 
-class SigLIP2App(CollectionAppEvaluateProtocol, CollectionAppQuantizeProtocol):
+class SigLIP2App(ZeroShotCollectionApp):
     """
     End-to-end app for SigLIP2 zero-shot image-text similarity.
 
@@ -141,7 +138,7 @@ class SigLIP2App(CollectionAppEvaluateProtocol, CollectionAppQuantizeProtocol):
     @classmethod
     def from_components(
         cls,
-        models: list[ExecutableModelProtocol] | list[AsyncOnDeviceModel],
+        models: Sequence[ExecutableModelProtocol] | Sequence[AsyncOnDeviceModel],
     ) -> SigLIP2App:
         """
         Construct a SigLIP2App from a list of model components.
@@ -168,36 +165,11 @@ class SigLIP2App(CollectionAppEvaluateProtocol, CollectionAppQuantizeProtocol):
             logit_bias=logit_bias,
         )
 
-    @staticmethod
-    def _run_encoder(
-        encoder: ExecutableModelProtocol[torch.Tensor] | AsyncOnDeviceModel,
-        inputs: torch.Tensor,
-    ) -> torch.Tensor:
-        """Run encoder on N inputs as a single Hub job (batch-1 compiled model).
-
-        Compiled on-device models have batch size 1.  Passing a raw [N, ...]
-        tensor would submit it as a single entry of shape [N, ...] which Hub
-        rejects.  Instead we split into N batch-1 entries and submit one job.
-        Local models are passed the tensor directly.
-        """
-        if isinstance(encoder, (OnDeviceModel, AsyncOnDeviceModel)):
-            entries, _ = dataset_entries_from_batch(
-                (inputs, torch.empty(0)),
-                list(encoder.input_names),
-                encoder.channel_last_input,
-            )
-            result = encoder(entries)
-            waited = (
-                result.wait() if isinstance(result, AsyncOnDeviceResult) else result
-            )
-            return waited[0] if isinstance(waited, tuple) else waited
-        return encoder(inputs)
-
     # ------------------------------------------------------------------
     # CollectionAppEvaluateProtocol
     # ------------------------------------------------------------------
-    def get_evaluator(self) -> SigLIP2Evaluator:
-        """Return a SigLIP2Evaluator backed by this app's text encoder.
+    def get_evaluator(self) -> CollectionZeroShotEvaluator:
+        """Return a CollectionZeroShotEvaluator backed by this app's text encoder.
 
         On the first call the text encoder (local or on-device) is run once
         over all 1 000 ImageNet zero-shot prompts and the resulting embeddings
@@ -218,43 +190,9 @@ class SigLIP2App(CollectionAppEvaluateProtocol, CollectionAppQuantizeProtocol):
             with torch.no_grad():
                 text_embeds = self._run_encoder(self.text_encoder, input_ids)
             self._cached_text_embeds = F.normalize(text_embeds, dim=-1)
-        return SigLIP2Evaluator(
+        return CollectionZeroShotEvaluator(
             self._cached_text_embeds, self.logit_scale, self.logit_bias
         )
-
-    def run_model_for_eval(
-        self,
-        model_input: Generator[AsyncOnDeviceResult] | tuple[torch.Tensor, ...],
-        model_batch_size: int,
-    ) -> CollectionModelEvalGenerator:
-        """Run image encoder and return raw L2-normalised image embeddings.
-
-        Both local and on-device paths return image embeddings ``[B, D]``.
-        The evaluator (SigLIP2Evaluator) converts them to logits using
-        pre-computed text embeddings.
-
-        Local eval: model_input is a tuple of tensors; image encoder runs
-        locally and embeddings are returned directly.
-
-        On-device eval: model_input is a generator of per-component input
-        tensors.  We call the image encoder (an AsyncOnDeviceModel) with the
-        image tensor, yield the AsyncOnDeviceResult so the harness can track
-        the job, then return it as the StopIteration value.  The harness calls
-        .wait() and passes the raw embeddings to SigLIP2Evaluator.add_batch.
-        """
-        if isinstance(model_input, tuple):
-            # Local torch eval path: return image embeddings directly.
-            image_embeds = self._run_encoder(self.image_encoder, model_input[0])
-            assert isinstance(image_embeds, torch.Tensor)
-            embeds: tuple[torch.Tensor, ...] = (image_embeds,)
-            yield embeds
-            return embeds
-        else:
-            # On-device eval path: submit image encoder job, yield async result.
-            image_tensor = cast(torch.Tensor, next(model_input))
-            async_result = cast(AsyncOnDeviceResult, self.image_encoder(image_tensor))
-            yield async_result
-            return async_result
 
     # ------------------------------------------------------------------
     # CollectionAppQuantizeProtocol
