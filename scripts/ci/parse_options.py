@@ -17,6 +17,10 @@ a single ``_OPTIONS`` entry.
 
 ``checkpoint`` additionally requires ``--models`` (or MODELS) to name exactly one
 model, since one checkpoint cannot be correct for a whole scorecard split.
+
+``--test-runtimes`` (or TEST_RUNTIMES), when given, is written back to
+``$GITHUB_OUTPUT`` as ``test_runtimes`` with whitespace stripped, because the LLM
+collect jobs match its ``,name,`` tokens in workflow expressions.
 """
 
 from __future__ import annotations
@@ -127,6 +131,11 @@ def validate_single_model(checkpoint: str, models: str | None) -> None:
         )
 
 
+def normalize_test_runtimes(raw: str) -> str:
+    """Strip whitespace and empty entries from a comma-separated runtime list."""
+    return ",".join(t.strip() for t in raw.split(",") if t.strip())
+
+
 def parse(raw: str) -> dict[str, str]:
     values: dict[str, str] = {}
     for seg in raw.split(","):
@@ -175,6 +184,11 @@ def main() -> int:
         default=os.environ.get("MODELS"),
         help="The scorecard `models` input, checked against the checkpoint option.",
     )
+    ap.add_argument(
+        "--test-runtimes",
+        default=os.environ.get("TEST_RUNTIMES"),
+        help="The scorecard `test_runtimes` input, written back whitespace-stripped.",
+    )
     ap.add_argument("--github-output", default=os.environ.get("GITHUB_OUTPUT"))
     ap.add_argument("--github-env", default=os.environ.get("GITHUB_ENV"))
     ap.add_argument(
@@ -188,8 +202,13 @@ def main() -> int:
         options = parse(args.raw)
         validate_single_model(options["checkpoint"], args.models)
         print("Parsed: " + " ".join(f"{k}={v!r}" for k, v in options.items()))
+        outputs = list(options.items())
+        if args.test_runtimes is not None:
+            outputs.append(
+                ("test_runtimes", normalize_test_runtimes(args.test_runtimes))
+            )
         if args.github_output:
-            _write_kv_file(args.github_output, list(options.items()))
+            _write_kv_file(args.github_output, outputs)
         if args.emit_env and args.github_env:
             _write_kv_file(
                 args.github_env,

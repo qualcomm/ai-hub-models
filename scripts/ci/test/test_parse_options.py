@@ -14,7 +14,11 @@ import pytest
 
 _CI_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_CI_DIR))
-from parse_options import parse, validate_single_model  # noqa: E402
+from parse_options import (  # noqa: E402
+    normalize_test_runtimes,
+    parse,
+    validate_single_model,
+)
 
 _SCRIPT = _CI_DIR / "parse_options.py"
 
@@ -114,6 +118,56 @@ def test_validate_single_model_rejects(models: str) -> None:
 
 def test_validate_single_model_accepts_one_model() -> None:
     validate_single_model(_CHECKPOINT_KEY, "qwen3_0_6b")
+
+
+@pytest.mark.parametrize(
+    ("raw", "want"),
+    [
+        ("genie,geniex_qairt", "genie,geniex_qairt"),
+        # A space after the comma used to skip the GenieX collect job.
+        ("genie, geniex_qairt", "genie,geniex_qairt"),
+        (" genie ,  geniex_qairt ", "genie,geniex_qairt"),
+        ("genie,,geniex_qairt,", "genie,geniex_qairt"),
+        ("default", "default"),
+        ("", ""),
+    ],
+)
+def test_normalize_test_runtimes(raw: str, want: str) -> None:
+    assert normalize_test_runtimes(raw) == want
+
+
+def test_cli_writes_normalized_test_runtimes(tmp_path: Path) -> None:
+    out = tmp_path / "gh_output"
+    res = subprocess.run(
+        [
+            sys.executable,
+            str(_SCRIPT),
+            "--raw",
+            "",
+            "--test-runtimes",
+            "genie, geniex_qairt",
+            "--github-output",
+            str(out),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, res.stderr
+    assert "test_runtimes=genie,geniex_qairt\n" in out.read_text()
+
+
+def test_cli_omits_test_runtimes_when_not_given(tmp_path: Path) -> None:
+    out = tmp_path / "gh_output"
+    res = subprocess.run(
+        [sys.executable, str(_SCRIPT), "--raw", "", "--github-output", str(out)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env={"PATH": ""},
+    )
+    assert res.returncode == 0, res.stderr
+    assert "test_runtimes=" not in out.read_text()
 
 
 def test_cli_writes_github_output(tmp_path: Path) -> None:
