@@ -153,6 +153,10 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
     # Whether the model has an animated asset uploaded in S3. This is optional.
     has_animated_banner: bool = False
 
+    # Shows a Preview badge on the website. Independent of status: preview models are
+    # published and exported as usual, the badge only signals results aren't final yet.
+    preview: bool = False
+
     # Device form factors for which we don't publish performance data.
     private_perf_form_factors: list[FormFactor] | None = None
 
@@ -310,6 +314,7 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
             model_maker_id=self.model_maker_id,
             has_static_banner=self.has_static_banner,
             has_animated_banner=self.has_animated_banner,
+            preview=self.preview,
             imsdk_supported=self.imsdk_supported,
             private_perf_form_factors=[
                 form_factor_to_proto(ff)
@@ -369,6 +374,7 @@ class QAIHMModelInternalConfig(BaseQAIHMConfig):
             ),
             has_static_banner=proto.has_static_banner,
             has_animated_banner=proto.has_animated_banner,
+            preview=proto.preview,
             imsdk_supported=proto.imsdk_supported,
             private_perf_form_factors=[
                 form_factor_from_proto(ff) for ff in proto.private_perf_form_factors

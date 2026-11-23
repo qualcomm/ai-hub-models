@@ -47,6 +47,7 @@ WEBSITE_FIELDS = {
     "imsdk_supported",
     "llm_details",
     "model_maker_id",
+    "preview",
     "private_perf_form_factors",
     "related_models",
 }

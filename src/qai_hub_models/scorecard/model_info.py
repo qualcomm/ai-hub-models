@@ -85,6 +85,7 @@ class WebsiteModelInfo:
                 model_maker_id=internal.model_maker_id,
                 has_static_banner=internal.has_static_banner,
                 has_animated_banner=internal.has_animated_banner,
+                preview=internal.preview,
                 imsdk_supported=internal.imsdk_supported,
                 private_perf_form_factors=[
                     form_factor_to_proto(ff)

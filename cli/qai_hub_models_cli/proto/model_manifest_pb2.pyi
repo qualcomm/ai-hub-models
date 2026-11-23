@@ -525,6 +525,7 @@ class ModelManifest(google.protobuf.message.Message):
         MODEL_MAKER_ID_FIELD_NUMBER: builtins.int
         HAS_STATIC_BANNER_FIELD_NUMBER: builtins.int
         HAS_ANIMATED_BANNER_FIELD_NUMBER: builtins.int
+        PREVIEW_FIELD_NUMBER: builtins.int
         IMSDK_SUPPORTED_FIELD_NUMBER: builtins.int
         PRIVATE_PERF_FORM_FACTORS_FIELD_NUMBER: builtins.int
         LLM_DETAILS_FIELD_NUMBER: builtins.int
@@ -550,6 +551,8 @@ class ModelManifest(google.protobuf.message.Message):
         """Whether the model has a static image uploaded in S3. All published models must have this."""
         has_animated_banner: builtins.bool
         """Whether the model has an animated asset uploaded in S3. This is optional."""
+        preview: builtins.bool
+        """Shows a Preview badge on the website. Independent of status."""
         imsdk_supported: builtins.bool
         """Whether the model is compatible with the IMSDK Plugin for IOT devices."""
         skip_hub_tests_and_scorecard: builtins.bool
@@ -616,6 +619,7 @@ class ModelManifest(google.protobuf.message.Message):
             model_maker_id: builtins.str | None = ...,
             has_static_banner: builtins.bool = ...,
             has_animated_banner: builtins.bool = ...,
+            preview: builtins.bool = ...,
             imsdk_supported: builtins.bool = ...,
             private_perf_form_factors: collections.abc.Iterable[platform_pb2.FormFactor.ValueType] | None = ...,
             llm_details: global___ModelManifest.Internal.LLMDetails | None = ...,
@@ -631,7 +635,7 @@ class ModelManifest(google.protobuf.message.Message):
             on_demand_only: builtins.bool = ...,
         ) -> None: ...
         def HasField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_threshold_override", b"_numerics_threshold_override", "_status_reason", b"_status_reason", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_threshold_override", b"numerics_threshold_override", "status_reason", b"status_reason"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_threshold_override", b"_numerics_threshold_override", "_status_reason", b"_status_reason", "applicable_scenarios", b"applicable_scenarios", "freeze_perf_yaml", b"freeze_perf_yaml", "global_requirements_incompatible", b"global_requirements_incompatible", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "imsdk_supported", b"imsdk_supported", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_threshold_override", b"numerics_threshold_override", "on_demand_only", b"on_demand_only", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "skip_evaluate", b"skip_evaluate", "skip_export", b"skip_export", "skip_hub_tests_and_scorecard", b"skip_hub_tests_and_scorecard", "skip_scorecard", b"skip_scorecard", "standalone_components", b"standalone_components", "status", b"status", "status_reason", b"status_reason", "test_split", b"test_split"]) -> None: ...
+        def ClearField(self, field_name: typing.Literal["_llm_details", b"_llm_details", "_model_maker_id", b"_model_maker_id", "_numerics_threshold_override", b"_numerics_threshold_override", "_status_reason", b"_status_reason", "applicable_scenarios", b"applicable_scenarios", "freeze_perf_yaml", b"freeze_perf_yaml", "global_requirements_incompatible", b"global_requirements_incompatible", "has_animated_banner", b"has_animated_banner", "has_static_banner", b"has_static_banner", "imsdk_supported", b"imsdk_supported", "llm_details", b"llm_details", "model_maker_id", b"model_maker_id", "numerics_threshold_override", b"numerics_threshold_override", "on_demand_only", b"on_demand_only", "preview", b"preview", "private_perf_form_factors", b"private_perf_form_factors", "related_models", b"related_models", "skip_evaluate", b"skip_evaluate", "skip_export", b"skip_export", "skip_hub_tests_and_scorecard", b"skip_hub_tests_and_scorecard", "skip_scorecard", b"skip_scorecard", "standalone_components", b"standalone_components", "status", b"status", "status_reason", b"status_reason", "test_split", b"test_split"]) -> None: ...
         @typing.overload
         def WhichOneof(self, oneof_group: typing.Literal["_llm_details", b"_llm_details"]) -> typing.Literal["llm_details"] | None: ...
         @typing.overload
