@@ -894,25 +894,30 @@ class DynamicQuantizablePreSplitMixin(
     def fetch_default_checkpoint(cls, precision: Precision) -> str:
         """Download and extract the DEFAULT asset zip for *precision*.
 
-        QAIHM_TEST_CHECKPOINT redirects this to a zip in the private bucket, so a
-        quantization can be evaluated before it is published.
+        QAIHM_TEST_CHECKPOINT redirects this to a zip, or to a bare
+        ``model.encodings``, in the private bucket, so a quantization can be
+        evaluated before it is published.
 
         Returns the local path to the extracted checkpoint directory.
         """
         private_key = CheckpointEnvvar.get()
         if private_key:
-            return str(
-                CachedPrivateAsset(
-                    private_key,
-                    # Distinct version segment: fetch() short-circuits on an
-                    # extracted dir, so sharing one would serve public weights.
-                    ASSET_CONFIG.get_local_store_model_path(
-                        cls.model_id,
-                        f"{cls.model_asset_version}-private",
-                        Path(private_key).name,
-                    ),
-                ).fetch(extract=True)
+            # Distinct version segment: fetch() short-circuits on an extracted
+            # dir, so sharing one would serve public weights. The full key keeps
+            # two runs' same-named files (model.encodings) apart.
+            local_path = ASSET_CONFIG.get_local_store_model_path(
+                cls.model_id,
+                f"{cls.model_asset_version}-private",
+                private_key,
             )
+            private_asset = CachedPrivateAsset(private_key, local_path)
+            if private_asset.archive_ext:
+                return str(private_asset.fetch(extract=True))
+            # A bare encodings file: the loader wants a directory holding it.
+            checkpoint_dir = local_path.parent / f"{local_path.name}-checkpoint"
+            checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(private_asset.fetch(), checkpoint_dir / "model.encodings")
+            return str(checkpoint_dir)
 
         precision_checkpoint = cls.default_checkpoint[precision]
         return str(

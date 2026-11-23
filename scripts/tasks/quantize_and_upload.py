@@ -28,11 +28,17 @@ FAILURE_LOG_TAIL_LINES = 40
 AWS_PROFILE = "qaihm"
 PRIVATE_BUCKET = "qai-hub-models-private-assets"
 EPHEMERAL_QUANTIZE_ASSETS_PREFIX = "ephemeral_quantize_assets/gh_actions"
+# Where a validated checkpoint is published; mirrors asset_bases.yaml's
+# model_asset_folder.
+PUBLIC_BUCKET = "qaihub-public-assets"
+PUBLIC_MODEL_PREFIX = "qai-hub-models/models"
 
-SHARING_RESTRICTED_FILENAME = "SHARING_RESTRICTED.txt"
-# The exported graph and its weights: the model itself, as opposed to the
-# encodings, which are our own work. Left out of the zip for restricted models.
-WEIGHT_FILENAMES = ("model_dynamic.onnx", "model.data")
+# The one file a restricted model publishes: its encodings are our own work, while
+# the exported graph and weights are the model itself and stay private.
+ENCODINGS_FILENAME = "model.encodings"
+# evaluate writes its logs into the checkpoint dir; they are reported in the run
+# summary and are not part of the checkpoint.
+ARCHIVE_EXCLUDE_GLOBS = ("eval_*.log",)
 
 
 def format_eval_logs(checkpoint_dir: Path) -> str:
@@ -63,22 +69,24 @@ def format_eval_logs(checkpoint_dir: Path) -> str:
     return "\n".join(rows)
 
 
-def archive_checkpoint(
-    checkpoint_dir: Path, zip_path: Path, exclude_weights: bool
-) -> None:
-    """Zip *checkpoint_dir*, leaving WEIGHT_FILENAMES out when *exclude_weights*."""
-    skipped: list[str] = []
+def archive_checkpoint(checkpoint_dir: Path, zip_path: Path) -> None:
+    """Zip *checkpoint_dir*, leaving out files matching ARCHIVE_EXCLUDE_GLOBS."""
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(checkpoint_dir.rglob("*")):
             if not path.is_file():
                 continue
-            name = path.relative_to(checkpoint_dir).as_posix()
-            if exclude_weights and path.name in WEIGHT_FILENAMES:
-                skipped.append(name)
+            if any(path.match(pattern) for pattern in ARCHIVE_EXCLUDE_GLOBS):
                 continue
-            archive.write(path, name)
-    if skipped:
-        print(f"Excluded from the archive (license-restricted): {', '.join(skipped)}")
+            archive.write(path, path.relative_to(checkpoint_dir).as_posix())
+
+
+def public_upload_cmd(source: str, model_id: str, name: str) -> str:
+    """``aws s3 cp`` of *source* to ``v<N>/<name>`` in the public asset store."""
+    dest = f"s3://{PUBLIC_BUCKET}/{PUBLIC_MODEL_PREFIX}/{model_id}/v<N>/{name}"
+    return (
+        f"aws s3 cp \\\n  {source} \\\n  {dest} \\\n"
+        f"  --acl public-read --profile {AWS_PROFILE}"
+    )
 
 
 def build_upload_report(
@@ -86,10 +94,14 @@ def build_upload_report(
     precision: str,
     s3_key: str,
     eval_logs: str,
-    restriction: str | None,
+    restrict_model_sharing: str | None,
     local_commands: list[str],
 ) -> str:
-    """Markdown report for the run summary: where the zip is and how to use it."""
+    """Markdown report for the run summary: where the zip is and how to use it.
+
+    ``restrict_model_sharing`` is the model's license when its manifest forbids sharing
+    weights, else None.
+    """
     s3_url = f"s3://{PRIVATE_BUCKET}/{s3_key}"
     sections = [f"## Quantized `{model_id}` {precision}"]
     if eval_logs:
@@ -103,15 +115,32 @@ def build_upload_report(
         f"`models` = `{model_id}` and `options` = (paste exactly, the bucket name "
         f"is not part of it):\n\n```\ncheckpoint={s3_key}\n```"
     )
-    if restriction:
+    if not restrict_model_sharing:
+        sections.append(
+            "### Publish it\n\nOnce the scorecard looks good, copy the zip to the "
+            "public asset store. `<N>` is a new, empty version folder; bump "
+            f"`MODEL_ASSET_VERSION` in `{model_id}/model.py` to match. `<name>` is "
+            "that precision's value in the model's `DEFAULT_CHECKPOINT`, since "
+            "that is what the loader looks for. It is not the zip's own name "
+            f"(`{Path(s3_key).name}`) and differs per model, so read it from "
+            "`model.py`.\n\n```bash\n"
+            f"{public_upload_cmd(s3_url, model_id, '<name>.zip')}"
+            "\n```\n\n"
+            "See "
+            "https://github.com/qualcomm/ai-hub-models/blob/main/CONTRIBUTING.md#uploading-assets-to-s3"
+            " for AWS auth and versioning."
+        )
+    else:
         sections.append(
             f"### :warning: Sharing restricted\n\n`{model_id}` restricts model "
-            f"sharing (license: `{restriction}`), so "
-            f"`{'` and `'.join(WEIGHT_FILENAMES)}` are **excluded** from the "
-            "archive above: it carries the encodings, configs and tokenizer "
-            "only. A consumer re-exports the ONNX from the source weights under "
-            "its own license acceptance. The archive must still not be copied to "
-            "the public asset store."
+            f"sharing (license: `{restrict_model_sharing}`), so only the "
+            "encodings were uploaded, not the weights. A consumer re-exports the "
+            "ONNX from the source weights under its own license acceptance.\n\n"
+            "To publish, copy the encodings. `<N>` is a new, empty version "
+            "folder (bump "
+            f"`MODEL_ASSET_VERSION` in `{model_id}/model.py` to match) and `<name>` "
+            "is that precision's value in `DEFAULT_CHECKPOINT`.\n\n```bash\n"
+            f"{public_upload_cmd(s3_url, model_id, '<name>/model.encodings')}\n```"
         )
     return "\n\n".join(sections)
 
@@ -229,26 +258,22 @@ class QuantizeAndUploadTask(CompositeTask):
         # precision cannot overwrite each other.
         run_id = os.environ["GITHUB_RUN_ID"]
         checkpoint_dir = Path(out_dir)
-        zip_path = checkpoint_dir.parent / f"{model_id}-{precision}.zip"
-        s3_key = f"{EPHEMERAL_QUANTIZE_ASSETS_PREFIX}/{run_id}/{zip_path.name}"
         # The license when the manifest forbids redistributing weights, else None.
-        restriction = (
+        restrict_model_sharing = (
             get_release_manifest_str_field(model_id, "license_type") or "unspecified"
             if check_manifest_field(model_id, "restrict_model_sharing")
             else None
         )
+        # A restricted model uploads only its encodings, never the weights.
+        if restrict_model_sharing:
+            upload_path = checkpoint_dir / ENCODINGS_FILENAME
+        else:
+            upload_path = checkpoint_dir.parent / f"{model_id}-{precision}.zip"
+        s3_key = f"{EPHEMERAL_QUANTIZE_ASSETS_PREFIX}/{run_id}/{upload_path.name}"
 
         def package() -> None:
-            # Before zipping, so the marker rides along.
-            if restriction:
-                (checkpoint_dir / SHARING_RESTRICTED_FILENAME).write_text(
-                    f"Sharing is restricted for {model_id} per its manifest.yaml "
-                    f"(license: {restriction}).\n"
-                    f"{' and '.join(WEIGHT_FILENAMES)} are excluded from this "
-                    "archive; the consumer re-exports the ONNX from the source "
-                    "weights under its own license acceptance.\n"
-                )
-            archive_checkpoint(checkpoint_dir, zip_path, bool(restriction))
+            if not restrict_model_sharing:
+                archive_checkpoint(checkpoint_dir, upload_path)
 
         def report() -> None:
             append_to_summary(
@@ -257,7 +282,7 @@ class QuantizeAndUploadTask(CompositeTask):
                     precision,
                     s3_key,
                     format_eval_logs(checkpoint_dir),
-                    restriction,
+                    restrict_model_sharing,
                     local_commands,
                 )
             )
@@ -266,7 +291,7 @@ class QuantizeAndUploadTask(CompositeTask):
             FunctionTask("Package checkpoint", package),
             RunCommandsTask(
                 "Upload to S3",
-                f"aws s3 cp {q(str(zip_path))} {q(f's3://{PRIVATE_BUCKET}/{s3_key}')} "
+                f"aws s3 cp {q(str(upload_path))} {q(f's3://{PRIVATE_BUCKET}/{s3_key}')} "
                 f"--profile {AWS_PROFILE}",
             ),
             FunctionTask("Write upload report", report),

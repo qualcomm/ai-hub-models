@@ -150,6 +150,13 @@ jobs:
     - name: Quantize, Evaluate and Upload
       run: python3 scripts/build_and_test.py --venv="${{ env.VENV_PATH }}" quantize_and_upload --only
 
+    - name: Upload evaluation logs
+      if: ${{ !cancelled() && inputs.evaluate }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: eval-logs-${{ inputs.model_id }}-${{ inputs.precision }}
+        path: ${{ env.QAIHM_QUANTIZE_CHECKPOINT_DIR }}/eval_*.log
+
     - name: Restore workspace ownership (GPU node only)
       # The container ran as root; hand the workspace back to the
       # unprivileged runner user so the next host-side job can unlink files.

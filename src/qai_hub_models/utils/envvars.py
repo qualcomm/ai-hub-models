@@ -54,12 +54,13 @@ class DevModeEnvvar(QAIHMBoolEnvvar):
 
 class CheckpointEnvvar(QAIHMStringEnvvar):
     """
-    Key of a quantize_and_upload zip in the private S3 bucket, used instead of the
-    model's published DEFAULT checkpoint.
+    Key of a quantize_and_upload checkpoint in the private S3 bucket, used instead
+    of the model's published DEFAULT checkpoint.
 
     Envvar:
         A bare key such as
-        ``ephemeral_quantize_assets/gh_actions/<run_id>/<model_id>-w4a16.zip``;
+        ``ephemeral_quantize_assets/gh_actions/<run_id>/<model_id>-w4a16.zip``,
+        or ``.../<run_id>/model.encodings`` for a model that restricts sharing;
         the bucket is added for you. Empty means use the published asset. It is
         only correct for the one model it was quantized from.
     """
@@ -67,8 +68,9 @@ class CheckpointEnvvar(QAIHMStringEnvvar):
     VARNAME = "QAIHM_TEST_CHECKPOINT"
     CLI_ARGNAMES = ["--checkpoint-s3-key"]
     CLI_HELP_MESSAGE = (
-        "Private-bucket key of a calibrated checkpoint zip to use instead of the "
-        "model's published DEFAULT checkpoint."
+        "Private-bucket key of a calibrated checkpoint (a .zip, or a model.encodings "
+        "for models that restrict sharing) to use instead of the model's published "
+        "DEFAULT checkpoint."
     )
 
     @classmethod

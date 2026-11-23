@@ -23,6 +23,7 @@ from parse_options import (  # noqa: E402
 _SCRIPT = _CI_DIR / "parse_options.py"
 
 _CHECKPOINT_KEY = "ephemeral_quantize_assets/gh_actions/123/qwen3_0_6b-w4a16.zip"
+_ENCODINGS_KEY = "ephemeral_quantize_assets/gh_actions/123/model.encodings"
 
 
 @pytest.mark.parametrize(
@@ -44,6 +45,10 @@ _CHECKPOINT_KEY = "ephemeral_quantize_assets/gh_actions/123/qwen3_0_6b-w4a16.zip
         ("qairt_version=", {}),
         ("genie_scope=perf", {"genie_scope": "perf"}),
         (f"checkpoint={_CHECKPOINT_KEY}", {"checkpoint": _CHECKPOINT_KEY}),
+        (
+            f"checkpoint={_ENCODINGS_KEY}",
+            {"checkpoint": _ENCODINGS_KEY},
+        ),
         (
             f"qairt_version=2.45,checkpoint={_CHECKPOINT_KEY}",
             {"qairt_version": "2.45", "checkpoint": _CHECKPOINT_KEY},
@@ -85,9 +90,18 @@ def test_parse_ok(raw: str, want: dict[str, str]) -> None:
         (f"checkpoint=/{_CHECKPOINT_KEY}", "without '\\.\\.'"),
         ("checkpoint=a/../../etc/passwd.zip", "without '\\.\\.'"),
         ("checkpoint=a\\b.zip", "without '\\.\\.'"),
-        # The override points at a quantize_and_upload zip, not a directory.
+        # The override points at a quantize_and_upload zip or encodings file, not a
+        # directory or some other file.
         ("checkpoint=ephemeral_quantize_assets/gh_actions/123/w4a16", "must name a"),
-        ("checkpoint=some/key/model.encodings", "must name a"),
+        (
+            "checkpoint=ephemeral_quantize_assets/gh_actions/123/model.onnx",
+            "must name a",
+        ),
+        (
+            "checkpoint=ephemeral_quantize_assets/gh_actions/123/my.encodings",
+            "must name a",
+        ),
+        ("checkpoint=model.encodings", "must name a"),
     ],
 )
 def test_parse_errors(raw: str, expected_msg: str) -> None:

@@ -66,9 +66,10 @@ def _checkpoint(key: str, val: str) -> str:
         )
     if val.startswith("/") or "\\" in val or ".." in val.split("/"):
         raise ValueError(f"{key} must be a relative key without '..'; got {val!r}")
-    if not val.endswith(".zip"):
+    if not val.endswith((".zip", "/model.encodings")):
         raise ValueError(
-            f"{key} must name a .zip produced by quantize_and_upload; got {val!r}"
+            f"{key} must name a .zip or a model.encodings produced by "
+            f"quantize_and_upload; got {val!r}"
         )
     return val
 
