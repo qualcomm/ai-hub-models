@@ -26,7 +26,7 @@ from qai_hub_models.models.templates.llm.perf_collection import update_perf_yaml
 from qai_hub_models.scorecard.device import DEFAULT_QDC_DEVICE, ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
 from qai_hub_models.scorecard.internal_config_yaml import model_perf_component_key
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -72,7 +72,7 @@ def _drop_release_assets(model_id: str, precision: Precision) -> set[str]:
     prec_details = assets.precisions.get(precision)
     if prec_details is None:
         return set()
-    scope: set[tuple[Precision, str | None, ScorecardProfilePath]] = {
+    scope: set[tuple[Precision, str | None, ScorecardInferencePath]] = {
         (precision, None, path) for path in prec_details.universal_assets
     }
     for chipset, paths in prec_details.chipset_assets.items():
@@ -85,11 +85,13 @@ def _drop_release_assets(model_id: str, precision: Precision) -> set[str]:
     return removed
 
 
-def _scope_key(u: dict) -> tuple[str, Precision, ScorecardProfilePath, ScorecardDevice]:
+def _scope_key(
+    u: dict,
+) -> tuple[str, Precision, ScorecardInferencePath, ScorecardDevice]:
     return (
         u["model_id"],
         Precision.parse(u["precision"]),
-        ScorecardProfilePath(u["profile_path"]),
+        ScorecardInferencePath(u["profile_path"]),
         ScorecardDevice.get(u["device_name"], return_unregistered=True),
     )
 
@@ -103,10 +105,10 @@ def apply_updates(updates: list[dict]) -> int:
 
     # Scope is the matrix this run intended to measure, not what it managed to
     # measure, so an in-scope device that failed is dropped and never re-added.
-    # Matches the non-LLM writer, which scopes from ModelTestConfig.profile_tests.
+    # Matches the non-LLM writer, which scopes from ModelTestConfig.inference_tests.
     # Metrics imply intent, covering logs written before scope records existed.
     scope_by_model: dict[
-        str, set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]
+        str, set[tuple[Precision, ScorecardInferencePath, ScorecardDevice]]
     ] = defaultdict(set)
     for u in updates:
         model_id, precision, path, device = _scope_key(u)
@@ -133,7 +135,7 @@ def apply_updates(updates: list[dict]) -> int:
             context_length=u["context_length"],
             tps=u["tps"],
             prefill_tps=u["prefill_tps"],
-            profile_path=ScorecardProfilePath(u["profile_path"]),
+            profile_path=ScorecardInferencePath(u["profile_path"]),
             desired_compute_unit=u["desired_compute_unit"],
             tool_versions=ToolVersions(**u["tool_versions"])
             if u.get("tool_versions")
@@ -156,7 +158,7 @@ def apply_updates(updates: list[dict]) -> int:
         {
             (m, p)
             for (m, p, path, device) in intended - measured
-            if path is ScorecardProfilePath.GENIE and device == DEFAULT_QDC_DEVICE
+            if path is ScorecardInferencePath.GENIE and device == DEFAULT_QDC_DEVICE
         },
         key=lambda k: (k[0], str(k[1])),
     ):

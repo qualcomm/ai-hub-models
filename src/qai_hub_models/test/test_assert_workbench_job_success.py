@@ -23,7 +23,6 @@ from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
     InferenceScorecardJobYaml,
     LinkScorecardJobYaml,
-    ProfileScorecardJobYaml,
     QuantizeScorecardJobYaml,
 )
 
@@ -202,14 +201,6 @@ def test_compile_jobs_success() -> None:
 def test_link_jobs_success() -> None:
     job_ids = LinkScorecardJobYaml.from_test_artifacts().mapping
     _verify_jobs_successful(job_ids, "link")
-
-
-@pytest.mark.skipif(
-    not ScorecardArtifact.PROFILE_YAML.exists(), reason="No profile jobs found"
-)
-def test_profile_jobs_success() -> None:
-    job_ids = ProfileScorecardJobYaml.from_test_artifacts().mapping
-    _verify_jobs_successful(job_ids, "profile")
 
 
 @pytest.mark.skipif(

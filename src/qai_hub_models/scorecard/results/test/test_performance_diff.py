@@ -14,7 +14,7 @@ from qai_hub_models import Precision
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_8_gen_3
 from qai_hub_models.scorecard.params import ScJobParams
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -46,7 +46,7 @@ def _details(
 
 def _report(
     device: ScorecardDevice,
-    times: dict[ScorecardProfilePath, float | None],
+    times: dict[ScorecardInferencePath, float | None],
     job_id: str = JOB_ID,
 ) -> QAIHMModelPerf:
     perf = QAIHMModelPerf(MODEL_ID)
@@ -67,9 +67,9 @@ def get_basic_speedup_report(
     return _report(
         cs_8_gen_3,
         {
-            ScorecardProfilePath.TFLITE: onnx_tf_inference_time,
-            ScorecardProfilePath.ONNX: 5.0,
-            ScorecardProfilePath.QNN_DLC: onnx_ort_qnn_inference_time,
+            ScorecardInferencePath.TFLITE: onnx_tf_inference_time,
+            ScorecardInferencePath.ONNX: 5.0,
+            ScorecardInferencePath.QNN_DLC: onnx_ort_qnn_inference_time,
         },
         job_id,
     )
@@ -77,7 +77,7 @@ def get_basic_speedup_report(
 
 def _compile_mapping_for(
     compile_job_id: str,
-    path: ScorecardProfilePath,
+    path: ScorecardInferencePath,
     device: ScorecardDevice = cs_8_gen_3,
 ) -> CompileScorecardJobYaml:
     """Build a CompileScorecardJobYaml that matches what
@@ -118,10 +118,10 @@ def test_model_inference_run_toggle() -> None:
 
     perf_diff = PerformanceDiff(
         current_compile_jobs=_compile_mapping_for(
-            COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
         previous_compile_jobs=_compile_mapping_for(
-            PREV_COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            PREV_COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
     )
     validate_perf_diff_is_empty(perf_diff)
@@ -135,7 +135,7 @@ def test_model_inference_run_toggle() -> None:
             Precision.float,
             COMPONENT_ID,
             cs_8_gen_3,
-            ScorecardProfilePath.TFLITE,
+            ScorecardInferencePath.TFLITE,
             float("-inf"),
             10.0,
             float("inf"),
@@ -159,10 +159,10 @@ def test_perf_progression_basic() -> None:
 
     perf_diff = PerformanceDiff(
         current_compile_jobs=_compile_mapping_for(
-            COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
         previous_compile_jobs=_compile_mapping_for(
-            PREV_COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            PREV_COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
     )
     validate_perf_diff_is_empty(perf_diff)
@@ -176,7 +176,7 @@ def test_perf_progression_basic() -> None:
             Precision.float,
             COMPONENT_ID,
             cs_8_gen_3,
-            ScorecardProfilePath.TFLITE,
+            ScorecardInferencePath.TFLITE,
             10.0,
             0.5,
             20.0,
@@ -201,10 +201,10 @@ def test_perf_regression_basic() -> None:
 
     perf_diff = PerformanceDiff(
         current_compile_jobs=_compile_mapping_for(
-            COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
         previous_compile_jobs=_compile_mapping_for(
-            PREV_COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            PREV_COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
     )
     validate_perf_diff_is_empty(perf_diff)
@@ -218,7 +218,7 @@ def test_perf_regression_basic() -> None:
             Precision.float,
             COMPONENT_ID,
             cs_8_gen_3,
-            ScorecardProfilePath.TFLITE,
+            ScorecardInferencePath.TFLITE,
             10.0,
             20.0,
             2.0,
@@ -247,7 +247,7 @@ def test_missing_devices() -> None:
                 Precision.float,
                 COMPONENT_ID,
                 other_device,
-                ScorecardProfilePath.TFLITE,
+                ScorecardInferencePath.TFLITE,
             ).stamp(_details(JOB_ID, 5.0))
         )
     new_perf_metrics.drop_entries(lambda key: key.device == cs_8_gen_3)
@@ -289,8 +289,8 @@ def test_auto_device_excluded() -> None:
     )
 
     # Build reports with a clear 2x regression on the auto device
-    auto_report = _report(auto_device, {ScorecardProfilePath.TFLITE: 10.0})
-    auto_report_regressed = _report(auto_device, {ScorecardProfilePath.TFLITE: 20.0})
+    auto_report = _report(auto_device, {ScorecardInferencePath.TFLITE: 10.0})
+    auto_report_regressed = _report(auto_device, {ScorecardInferencePath.TFLITE: 20.0})
 
     perf_diff = PerformanceDiff()
     perf_diff.update_summary(MODEL_ID, auto_report, auto_report_regressed)
@@ -334,10 +334,10 @@ def test_get_severe_regressions() -> None:
 
     perf_diff = PerformanceDiff(
         current_compile_jobs=_compile_mapping_for(
-            COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
         previous_compile_jobs=_compile_mapping_for(
-            PREV_COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            PREV_COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
     )
     perf_diff.update_summary(MODEL_ID, prev, new)
@@ -374,7 +374,7 @@ def test_get_severe_regressions_compile_id_fallback_without_component() -> None:
 
     params_no_component = ScJobParams(
         model_id=MODEL_ID,
-        path=ScorecardProfilePath.TFLITE,
+        path=ScorecardInferencePath.TFLITE,
         precision=Precision.float,
         device=cs_8_gen_3,
         component=None,
@@ -427,10 +427,10 @@ def test_dump_severe_regressions_json(tmp_path: Path) -> None:
 
     perf_diff = PerformanceDiff(
         current_compile_jobs=_compile_mapping_for(
-            COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
         previous_compile_jobs=_compile_mapping_for(
-            PREV_COMPILE_JOB_ID, ScorecardProfilePath.TFLITE
+            PREV_COMPILE_JOB_ID, ScorecardInferencePath.TFLITE
         ),
     )
     perf_diff.update_summary(MODEL_ID, prev, new)
@@ -453,43 +453,43 @@ def test_tool_versions_diff_detects_changes() -> None:
     """ToolVersionsByPathYaml.diff returns one row per changed field, skips equal fields."""
     previous = ToolVersionsByPathYaml(
         tool_versions={
-            ScorecardProfilePath.TFLITE: ToolVersions(tflite="2.10.0", onnx="1.16.0"),
-            ScorecardProfilePath.ONNX: ToolVersions(onnx="1.16.0"),
+            ScorecardInferencePath.TFLITE: ToolVersions(tflite="2.10.0", onnx="1.16.0"),
+            ScorecardInferencePath.ONNX: ToolVersions(onnx="1.16.0"),
         }
     )
     current = ToolVersionsByPathYaml(
         tool_versions={
-            ScorecardProfilePath.TFLITE: ToolVersions(tflite="2.11.0", onnx="1.16.0"),
-            ScorecardProfilePath.ONNX: ToolVersions(onnx="1.17.0"),
-            ScorecardProfilePath.QNN_DLC: ToolVersions(onnx="1.17.0"),
+            ScorecardInferencePath.TFLITE: ToolVersions(tflite="2.11.0", onnx="1.16.0"),
+            ScorecardInferencePath.ONNX: ToolVersions(onnx="1.17.0"),
+            ScorecardInferencePath.QNN_DLC: ToolVersions(onnx="1.17.0"),
         }
     )
 
     rows = current.diff(previous)
     assert (
         ToolVersionChange(
-            ScorecardProfilePath.TFLITE.name, "tflite", "2.10.0", "2.11.0"
+            ScorecardInferencePath.TFLITE.name, "tflite", "2.10.0", "2.11.0"
         )
         in rows
     )
     assert (
-        ToolVersionChange(ScorecardProfilePath.ONNX.name, "onnx", "1.16.0", "1.17.0")
+        ToolVersionChange(ScorecardInferencePath.ONNX.name, "onnx", "1.16.0", "1.17.0")
         in rows
     )
     assert (
-        ToolVersionChange(ScorecardProfilePath.QNN_DLC.name, "onnx", "N/A", "1.17.0")
+        ToolVersionChange(ScorecardInferencePath.QNN_DLC.name, "onnx", "N/A", "1.17.0")
         in rows
     )
     # Unchanged fields must not appear (TFLITE.onnx stayed 1.16.0).
     assert not any(
-        r.path == ScorecardProfilePath.TFLITE.name and r.tool == "onnx" for r in rows
+        r.path == ScorecardInferencePath.TFLITE.name and r.tool == "onnx" for r in rows
     )
 
 
 def test_tool_versions_diff_empty_when_identical() -> None:
     yaml = ToolVersionsByPathYaml(
         tool_versions={
-            ScorecardProfilePath.TFLITE: ToolVersions(tflite="2.11.0"),
+            ScorecardInferencePath.TFLITE: ToolVersions(tflite="2.11.0"),
         }
     )
     assert yaml.diff(yaml) == []
@@ -501,7 +501,7 @@ def test_dump_summary_includes_toolchain_section(tmp_path: Path) -> None:
     summary_path = str(tmp_path / "summary.txt")
     toolchain_changes = [
         ToolVersionChange(
-            ScorecardProfilePath.TFLITE.name, "tflite", "2.10.0", "2.11.0"
+            ScorecardInferencePath.TFLITE.name, "tflite", "2.10.0", "2.11.0"
         ),
     ]
     perf_diff.dump_summary(summary_path, toolchain_changes=toolchain_changes)

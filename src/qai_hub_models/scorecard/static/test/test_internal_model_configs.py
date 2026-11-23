@@ -54,7 +54,6 @@ def test_yaml_roundtrip() -> None:
     del x_dict["channel_first_outputs"]
     del x_dict["precision"]
     del x_dict["enabled_profile_runtimes"]
-    del x_dict["eval_device"]
 
     assert x_dict == roundtrip_dict
 

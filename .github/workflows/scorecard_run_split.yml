@@ -1,0 +1,379 @@
+name: Run Scorecard Split
+
+# Runs scripts/run_scorecard.py over the models in this split. Models that fit
+# the global requirements run in the shared venv; the others get their own.
+# This bypasses build_and_test.py and pytest entirely.
+
+on:
+  workflow_call:
+    inputs:
+      deployment:
+        type: string
+        default: prod
+
+      models:
+        description: Comma separated model ids in this split.
+        type: string
+        required: true
+
+      test_devices:
+        type: string
+        default: default
+
+      test_runtimes:
+        type: string
+        default: default
+
+      test_precisions:
+        type: string
+        default: default
+
+      options:
+        description: 'Comma-separated scorecard options. See scripts/ci/parse_options.py.'
+        type: string
+        default: ''
+
+      test_scope:
+        description: compile_only stops before inference jobs; any other scope runs the full pipeline.
+        type: string
+        default: perf
+
+      split_name:
+        type: string
+        default: ''
+
+      phase:
+        description: |
+          submit: compile and link jobs for all models, then inference jobs for all models.
+          accuracy: release asset upload (if s3_prefix is set) and on-device accuracy, from the job IDs of action_id.
+          upload: release asset upload only (for compile_only runs).
+        type: string
+        default: submit
+
+      action_id:
+        description: Scorecard run whose job IDs the accuracy and upload phases use. Defaults to this run.
+        type: string
+        default: ''
+
+      s3_prefix:
+        description: S3 prefix for release asset uploads ("pre_release_assets" or "ephemeral_test_assets"). Empty disables uploads.
+        type: string
+        default: ''
+
+      runs_on:
+        description: JSON array of runner tags (e.g. '["aihub-models-ubuntu-2404-ec2"]')
+        type: string
+
+      is_gpu_node:
+        description: Run in the CUDA container on a GPU node (LLMs).
+        type: boolean
+        default: false
+
+      sync_assets_branch:
+        type: string
+        default: ''
+
+      python_version:
+        type: string
+        default: ''
+
+      disable_override_workbench_job_timeout:
+        type: boolean
+        default: false
+
+      ignore_job_cache:
+        description: Submit new inference jobs even when the model assets match the last scorecard's (CI reuses them by default).
+        type: boolean
+        default: false
+
+env:
+  PYTHONUNBUFFERED: 1
+  QAIHM_CI: 1
+  VENV_PATH: build/ci-envs/qaihm-build
+  CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  run_scorecard:
+    name: Run Scorecard${{ inputs.split_name != '' && format(' ({0})', inputs.split_name) || '' }}
+    runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["aihub-models-ubuntu-2404-ec2"]') }}
+    container: ${{ inputs.is_gpu_node && fromJson('{"image":"docker-registry.qualcomm.com/library/nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04","options":"--gpus all -v /local:/local"}') || null }}
+    timeout-minutes: 960
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
+    env:
+      QAIHM_TEST_DEPLOYMENT: ${{ inputs.deployment }}
+      QAIHM_TEST_ARTIFACTS_DIR: build/scorecard-yamls/${{ github.run_id }}
+      QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT: ${{ inputs.disable_override_workbench_job_timeout && '1' || '0' }}
+      QAIHM_TEST_DEVICES: ${{ inputs.test_devices }}
+      QAIHM_TEST_PATHS: ${{ inputs.test_runtimes }}
+      QAIHM_TEST_PRECISIONS: ${{ inputs.test_precisions }}
+      QAIHM_TEST_SCOPE: ${{ inputs.test_scope }}
+      QAIHM_TEST_IGNORE_KNOWN_FAILURES: '1'
+      QAIHM_TEST_USE_MODEL_HASH_CACHE: ${{ inputs.ignore_job_cache && '0' || '1' }}
+      QAIHM_TEST_S3_ARTIFACTS_DIR: ${{ inputs.s3_prefix != '' && format('{0}/gh_actions/{1}', inputs.s3_prefix, inputs.action_id != '' && inputs.action_id || github.run_id) || '' }}
+      ACTION_ID: ${{ inputs.action_id != '' && inputs.action_id || github.run_id }}
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
+
+    steps:
+      - name: Setup container environment (Kube/GPU node only)
+        if: ${{ !contains(runner.name, 'aihub-models') }}
+        run: |
+          if [ "${{ inputs.is_gpu_node }}" = "true" ]; then
+            groupadd -g 200 qaihm_bot_group || true
+            useradd -m -u 4552456 -g 200 -d /home/qaihm_bot -s /bin/bash qaihm_bot || true
+            echo "CUDA_VISIBLE_DEVICES=7" >> $GITHUB_ENV
+            echo "HOME=/local/mnt2/workspace2/qaihm_bot" >> $GITHUB_ENV
+            echo "TMPDIR=/local/mnt2/workspace2/qaihm_bot/tmp" >> $GITHUB_ENV
+            mkdir -p /local/mnt2/workspace2/qaihm_bot/tmp
+            chown 4552456:200 /local/mnt2/workspace2/qaihm_bot/tmp
+          else
+            echo "CUDA_VISIBLE_DEVICES=" >> $GITHUB_ENV
+          fi
+
+      - name: Install git (Kube/container only)
+        if: ${{ !contains(runner.name, 'aihub-models') }}
+        run: |
+          if ! command -v git &>/dev/null; then
+            if [ "$(id -u)" -eq 0 ]; then
+              apt-get clean
+              apt-get update
+              apt-get install -y git
+            else
+              sudo apt-get clean
+              sudo apt-get update
+              sudo apt-get install -y git
+            fi
+          fi
+
+      - uses: actions/checkout@v7
+
+      # Per-model venvs and wheels persist on self-hosted runners; drop any
+      # left by an earlier run so none are built from another checkout.
+      - name: Remove Lingering Scorecard Envs
+        run: rm -rf "${QAIHM_STORE_ROOT:-$HOME}/.qaihm/scorecard-envs"
+
+      - name: Remove Lingering Dataset Cache
+        run: rm -rf "${QAIHM_STORE_ROOT:-$HOME}/.qaihm/hub_datasets_v2"
+
+      - name: Resolve Python Version
+        env:
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: echo "PYTHON_VERSION=${PYTHON_VERSION:-$(cat .github/python-version)}" >> "$GITHUB_ENV"
+
+      - name: Mark workspace as a safe git directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install system dependencies (Kube/container only)
+        if: ${{ !contains(runner.name, 'aihub-models') }}
+        env:
+          QAIHM_POD_PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+        run: bash src/qai_hub_models/scripts/kube/setup_pod.sh
+
+      - name: Check Out Updated Static Asset Configs
+        if: ${{ inputs.sync_assets_branch != '' }}
+        env:
+          BRANCH: ${{ inputs.sync_assets_branch }}
+        run: |
+          git fetch origin -- "$BRANCH"
+          git checkout "origin/$BRANCH" -- src/qai_hub_models/scorecard/static/models
+
+      # The combined job IDs, as updated by the fix flaky jobs workflow.
+      - name: Download Fixed Job IDs
+        id: download-fixed-job-ids
+        if: ${{ inputs.phase != 'submit' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ env.ACTION_ID }}
+          github-token: ${{ github.token }}
+          name: Scorecard Cached Artifact (Job-IDs, ${{ env.ACTION_ID }})
+          path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
+
+      # Fix flaky jobs didn't run or failed: use the job IDs the submit phase recorded.
+      - name: Download Flaky-Job IDs
+        if: ${{ inputs.phase != 'submit' && steps.download-fixed-job-ids.outcome == 'failure' }}
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ env.ACTION_ID }}
+          github-token: ${{ github.token }}
+          name: Scorecard Cached Artifact (Flaky-Job-IDs, ${{ env.ACTION_ID }})
+          path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
+
+      # Start this phase's timings from scratch; the submit phase's rows are already in the combined artifact.
+      - name: Reset Stage Timings
+        if: ${{ inputs.phase != 'submit' }}
+        run: rm -f "$QAIHM_TEST_ARTIFACTS_DIR/stage-timings.csv"
+
+      - name: Parse options
+        env:
+          RAW: ${{ inputs.options }}
+          MODELS: ${{ inputs.models }}
+        run: python3 scripts/ci/parse_options.py --emit-env
+
+      # After Parse options, which writes defaults for any option this run was not given.
+      - name: Restore Scorecard Environment Variables
+        if: ${{ inputs.phase != 'submit' }}
+        run: grep -v '^QAIHM_TEST_MODELS=' "$QAIHM_TEST_ARTIFACTS_DIR/environment.env" >> "$GITHUB_ENV"
+
+      - name: CI Setup
+        id: ci_setup
+        uses: ./.github/actions/ci-setup
+        with:
+          python-version: ${{ contains(runner.name, 'aihub-models') && env.PYTHON_VERSION || 'USE_EXISTING_INSTALL' }}
+          venv-path: ${{ env.VENV_PATH }}
+          bnt-venv-install-cmd: install_global_requirements
+          aws-role-arn: ${{ secrets.QAIHM_CI_AWS_ROLE_ARN }}
+          hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }},prod
+          hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
+          hub-user-token-staging: ${{ secrets.HUB_USER_TOKEN_STAGING }}
+          hub-user-token-dev: ${{ secrets.HUB_USER_TOKEN_DEV }}
+          hub-user-token-sandbox: ${{ secrets.HUB_USER_TOKEN_SANDBOX }}
+          hub-private-user-token-prod: ${{ secrets.HUB_PRIVATE_USER_TOKEN_PROD }}
+          hub-private-user-token-staging: ${{ secrets.HUB_PRIVATE_USER_TOKEN_STAGING }}
+          hub-private-user-token-dev: ${{ secrets.HUB_PRIVATE_USER_TOKEN_DEV }}
+
+      # Read back by the collection job (Restore Scorecard Environment Variables).
+      - name: Dump Environment Variables to File
+        if: ${{ inputs.phase == 'submit' }}
+        env:
+          MODELS: ${{ inputs.models }}
+          TEST_SCOPE: ${{ inputs.test_scope }}
+        run: |
+          mkdir -p "$QAIHM_TEST_ARTIFACTS_DIR"
+          {
+            echo "QAIHM_TEST_DEPLOYMENT=$QAIHM_TEST_DEPLOYMENT"
+            echo "QAIHM_TEST_MODELS=$MODELS"
+            echo "QAIHM_TEST_DEVICES=$QAIHM_TEST_DEVICES"
+            echo "QAIHM_TEST_PATHS=$QAIHM_TEST_PATHS"
+            echo "QAIHM_TEST_PRECISIONS=$QAIHM_TEST_PRECISIONS"
+            echo "QAIHM_TEST_QAIRT_VERSION=$QAIHM_TEST_QAIRT_VERSION"
+            echo "QAIHM_TEST_CHECKPOINT=$QAIHM_TEST_CHECKPOINT"
+            echo "QAIHM_TEST_IGNORE_KNOWN_FAILURES=$QAIHM_TEST_IGNORE_KNOWN_FAILURES"
+            echo "QAIHM_TEST_SCOPE=$TEST_SCOPE"
+            echo "QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT=$QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT"
+          } >> "$QAIHM_TEST_ARTIFACTS_DIR/environment.env"
+
+      - name: Dump QAIRT Versions to Disk
+        if: ${{ inputs.phase == 'submit' }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          python -m qai_hub_models.scripts.dump_scorecard_tool_versions
+
+      # run_scorecard loops over the models itself: global-requirements models
+      # run in this venv, the rest in per-model venvs it creates under
+      # --envs-dir. A failing model does not stop the others; the step fails at
+      # the end if any model failed, except in the submit phase, where later
+      # phases still run on whatever was submitted. The submit phase is two
+      # steps: every model through link, then every model through inference.
+      # Static (non-recipe) models aren't supported by run_scorecard; their
+      # exec_models script does compile and inference in the first step.
+      - name: Submit compile and link jobs
+        if: ${{ inputs.phase == 'submit' }}
+        continue-on-error: true
+        env:
+          MODELS: ${{ inputs.models }}
+          TEST_SCOPE: ${{ inputs.test_scope }}
+          SPLIT_NAME: ${{ inputs.split_name }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          RUN_ARGS=(--models "$MODELS" --deployment "$QAIHM_TEST_DEPLOYMENT" --artifacts-dir "$QAIHM_TEST_ARTIFACTS_DIR")
+          if [[ "$SPLIT_NAME" == "static" ]]; then
+            if [[ "$TEST_SCOPE" == "compile_only" ]]; then
+              RUN_ARGS+=(--skip-inference)
+            fi
+            python -m qai_hub_models.scorecard.static.scripts.exec_models "${RUN_ARGS[@]}"
+          else
+            python -m qai_hub_models.scripts.run_scorecard "${RUN_ARGS[@]}" --end-before inference
+          fi
+
+      - name: Submit inference jobs
+        if: ${{ inputs.phase == 'submit' && inputs.test_scope != 'compile_only' && inputs.split_name != 'static' }}
+        continue-on-error: true
+        env:
+          MODELS: ${{ inputs.models }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          python -m qai_hub_models.scripts.run_scorecard --models "$MODELS" --deployment "$QAIHM_TEST_DEPLOYMENT" --artifacts-dir "$QAIHM_TEST_ARTIFACTS_DIR" --start-at inference --end-before upload_assets --use-cached link
+
+      - name: Run Scorecard ${{ inputs.phase }} phase
+        if: ${{ inputs.phase != 'submit' }}
+        continue-on-error: true
+        env:
+          MODELS: ${{ inputs.models }}
+          PHASE: ${{ inputs.phase }}
+          SPLIT_NAME: ${{ inputs.split_name }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          RUN_ARGS=(--models "$MODELS" --deployment "$QAIHM_TEST_DEPLOYMENT" --artifacts-dir "$QAIHM_TEST_ARTIFACTS_DIR")
+          if [[ "$SPLIT_NAME" == "static" ]]; then
+            if [[ "$PHASE" == "accuracy" ]]; then
+              python -m qai_hub_models.scorecard.static.scripts.evaluate_static_accuracy "${RUN_ARGS[@]}"
+            fi
+            exit 0
+          fi
+          if [[ "$PHASE" == "upload" ]]; then
+            PHASE_ARGS=(--start-at upload_assets --end-before device_accuracy --use-cached link --upload-assets)
+          else
+            PHASE_ARGS=(--start-at upload_assets --end-before collect --use-cached inference)
+            if [[ -n "$QAIHM_TEST_S3_ARTIFACTS_DIR" ]]; then
+              PHASE_ARGS+=(--upload-assets)
+            fi
+          fi
+          python -m qai_hub_models.scripts.run_scorecard "${RUN_ARGS[@]}" "${PHASE_ARGS[@]}"
+
+      - name: Remove Scorecard Envs
+        if: ${{ always() }}
+        run: rm -rf "${QAIHM_STORE_ROOT:-$HOME}/.qaihm/scorecard-envs"
+
+      - name: Remove Dataset Cache
+        if: ${{ always() }}
+        run: rm -rf "${QAIHM_STORE_ROOT:-$HOME}/.qaihm/hub_datasets_v2"
+
+      # Names match what scorecard_collect_results.yml downloads.
+      - name: Upload Scorecard Job IDs
+        if: ${{ always() && inputs.phase == 'submit' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Scorecard Cached Artifact (Flaky-Job-IDs, ${{ github.run_id }}${{ inputs.split_name != '' && format(', {0}', inputs.split_name) || '' }})
+          path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
+          if-no-files-found: ignore
+
+      # Keyed on the run whose job IDs were used, so collect finds them with action_id.
+      - name: Upload Accuracy CSV
+        if: ${{ always() && inputs.phase == 'accuracy' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Scorecard Cached Artifact (accuracy.csv, ${{ env.ACTION_ID }}${{ inputs.split_name != '' && format(', {0}', inputs.split_name) || '' }})
+          path: |
+            ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/accuracy.csv
+            ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/stage-timings.csv
+          if-no-files-found: ignore
+
+      - name: Upload Release Assets
+        if: ${{ always() && inputs.phase != 'submit' && inputs.s3_prefix != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Scorecard Cached Artifact (release-assets.yaml, ${{ env.ACTION_ID }}${{ inputs.split_name != '' && format(', {0}', inputs.split_name) || '' }})
+          path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/release-assets.yaml
+          if-no-files-found: ignore
+
+      # The LLM perf jobs run hours later; this name is outside the delete glob for the copy above.
+      - name: Upload LLM Perf Release Assets
+        if: ${{ always() && inputs.phase == 'upload' && startsWith(inputs.split_name, 'llm') && inputs.s3_prefix != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Scorecard LLM Perf Release Assets (${{ env.ACTION_ID }}, ${{ inputs.split_name }})
+          path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/release-assets.yaml
+          if-no-files-found: ignore
+
+      - name: Restore workspace ownership (GPU node only)
+        # The container ran as root; hand the workspace back so the next host-side job can unlink files.
+        if: ${{ always() && inputs.is_gpu_node }}
+        run: chown -R 4552456:200 "$GITHUB_WORKSPACE" || true

@@ -44,7 +44,7 @@ on:
 
         test_scope:
           description: |
-            Test scope: 'perf', 'accuracy', or 'perf_and_accuracy'. Controls
+            Test scope: 'perf' or 'perf_and_accuracy'. Controls
             whether the on-device accuracy evaluation (100 default prompts) runs.
           type: string
           default: perf
@@ -111,16 +111,24 @@ jobs:
       fail-fast: false
       matrix:
         split: ${{ fromJson(needs.determine_llm_models.outputs.llm_split_matrix) }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
     secrets: inherit
-    uses: ./.github/workflows/scorecard_test_export_scripts.yml
+    uses: ./.github/workflows/scorecard_run_split.yml
     with:
-      action_id: ${{ inputs.action_id }}
-      s3_prefix: ${{ inputs.s3_prefix }}
+      deployment: ${{ inputs.deployment }}
       models: ${{ matrix.split.models }}
+      test_devices: ${{ inputs.device }}
+      test_runtimes: ${{ inputs.test_runtimes }}
+      test_precisions: ${{ inputs.test_precisions }}
       split_name: ${{ matrix.split.split_name }}
       runs_on: '["aihub-models-ubuntu-2404-ec2"]'
-      build_and_test_target: test_llm_export_scripts
-      expect_post_flaky_artifact: false
+      phase: upload
+      action_id: ${{ inputs.action_id }}
+      s3_prefix: ${{ inputs.s3_prefix }}
 
   combine_llm_release_assets:
     name: Combine LLM Release Assets

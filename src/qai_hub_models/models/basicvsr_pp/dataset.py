@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import torch
 from PIL import Image
-from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
@@ -161,16 +160,18 @@ class REDS4Dataset(BaseDataset):
         lr_clip = torch.stack([_load_lr(lr_path_t), _load_lr(lr_path_t1)], dim=0)
         return lr_clip, hr_tensor
 
-    def get_dataloader(
-        self, num_samples: int, samples_per_job: int | None = None
-    ) -> DataLoader:
-        count = min(num_samples, len(self))
-        indices = list(np.linspace(0, len(self) - 1, count, dtype=int))
-        return DataLoader(
-            Subset(self, indices),
-            batch_size=1,
-            collate_fn=self.collate_fn,
-        )
+    def eval_order(
+        self, num_samples: int, samples_per_job: int, seed: int | None = None
+    ) -> list[int]:
+        """Evenly spread over all clips; the rest follow in ascending order."""
+        if seed is not None:
+            return super().eval_order(num_samples, samples_per_job, seed)
+        count = min(samples_per_job, len(self))
+        spread = [int(i) for i in np.linspace(0, len(self) - 1, count, dtype=int)]
+        if num_samples <= len(spread):
+            return spread[:num_samples]
+        chosen = set(spread)
+        return (spread + [i for i in range(len(self)) if i not in chosen])[:num_samples]
 
     @staticmethod
     def default_samples_per_job() -> int:

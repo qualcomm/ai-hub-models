@@ -21,7 +21,7 @@ from qai_hub_models.scorecard.execution_helpers import (
     get_profile_parameterized_pytest_config,
     get_quantize_parameterized_pytest_config,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 
 
 @pytest.fixture(autouse=True)
@@ -301,7 +301,7 @@ def test_engine_prefix_does_not_enable_unpublished_paths(
     qnn_dlc_gpu shares the QNN_DLC runtime, so a bare 'qnn' used to select it
     via should_run_path_for_model while the `enabled` property (which gates
     the same rule on default_paths) reported it off.
-    count_device_jobs keys its tally on `enabled` and raised KeyError.
+    count_inference_jobs keys its tally on `enabled` and raised KeyError.
     """
     EnabledPathsEnvvar.patchenv(monkeypatch, {"qnn"})
     EnabledPrecisionsEnvvar.patchenv(monkeypatch, {SpecialPrecisionSetting.DEFAULT})
@@ -333,17 +333,17 @@ def test_should_run_paths_are_all_enabled(
     """
     Every path should_run_path_for_model selects must also report `enabled`.
 
-    Callers build lookup tables keyed on `enabled` (e.g. count_device_jobs'
+    Callers build lookup tables keyed on `enabled` (e.g. count_inference_jobs'
     job_count_by_path) and then index them with the paths parameterization
     yields, so any path in should_run but not enabled is a crash.
     """
     EnabledPathsEnvvar.patchenv(monkeypatch, requested)
 
     all_runtimes = {Precision.float: list(TargetRuntime)}
-    enabled = {p for p in ScorecardProfilePath if p.enabled}
+    enabled = {p for p in ScorecardInferencePath if p.enabled}
     should_run = {
         p
-        for p in ScorecardProfilePath
+        for p in ScorecardInferencePath
         if p.should_run_path_for_model(Precision.float, all_runtimes)
     }
     assert should_run, "expected at least one path to run"

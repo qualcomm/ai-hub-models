@@ -100,7 +100,6 @@ def compile_model_from_args(
         component_kwargs = {"components": [component]}
     export_output = export_model(
         device=cli_args.device,
-        skip_profiling=True,
         skip_inferencing=True,
         skip_downloading=True,
         skip_summary=True,
@@ -196,6 +195,39 @@ def dataset_entries_from_batch(
     return input_entries, gt_entries
 
 
+class WorkbenchJobFailed(ValueError):
+    """A Workbench job ended unsuccessfully, which is a result rather than a bug."""
+
+
+def _failed_producers(job: hub.Job) -> list[hub.Job]:
+    """The failed jobs that produced the models `job` consumes."""
+    inputs = getattr(job, "models", None) or [getattr(job, "model", None)]
+    producers = (m.get_producer() for m in inputs if m is not None)
+    return [
+        p
+        for p in producers
+        if p is not None and p.get_status().state == hub.JobStatus.State.FAILED
+    ]
+
+
+def root_cause_job(job: hub.Job) -> hub.Job:
+    """Follow "producer failed" failures back to the job that actually failed."""
+    while "producer failed" in (job.get_status().message or ""):
+        if not (producers := _failed_producers(job)):
+            break
+        job = producers[0]
+    return job
+
+
+def job_failed_error(job: hub.Job) -> WorkbenchJobFailed:
+    """The error for a failed job, carrying its type, id, Hub failure message and URL."""
+    job = root_cause_job(job)
+    message = job.get_status().message or "(no job failure message)"
+    return WorkbenchJobFailed(
+        f"{job.job_type.capitalize()} Job {job.job_id} failed: {message} ({job.url})"
+    )
+
+
 class AsyncOnDeviceResult:
     def __init__(
         self,
@@ -229,10 +261,7 @@ class AsyncOnDeviceResult:
             self.inference_job = ijob
 
         if not self.inference_job.wait().success:
-            job_msg = (
-                self.inference_job.get_status().message or "(no job failure message)"
-            )
-            raise ValueError(f"Inference job {self.inference_job} failed: {job_msg}")
+            raise job_failed_error(self.inference_job)
 
         output_ds_handle = self.inference_job.get_output_dataset()
         assert output_ds_handle is not None

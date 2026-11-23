@@ -17,7 +17,7 @@ from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.params import ScJobParams
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
@@ -31,7 +31,7 @@ InferenceInfo = tuple[
     Precision,
     str,  # Component Name (same as Model ID if model does not have multiple components)
     ScorecardDevice,
-    ScorecardProfilePath,
+    ScorecardInferencePath,
     float,  # prev inference time (millisecs)
     float,  # new inference time (millisecs),
     float,  # inference time diff
@@ -104,7 +104,7 @@ class NPUNotPrimaryCUInfo(NamedTuple):
     model_id: str  # Model ID
     precision: Precision
     component: str  # Component Name (same as Model ID if model does not have multiple components)
-    path: ScorecardProfilePath
+    path: ScorecardInferencePath
     cpu_count: int  # cpu compute unit count
     gpu_count: int  # gpu compute unit count
     npu_count: int  # npu compute unit count

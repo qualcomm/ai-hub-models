@@ -15,14 +15,14 @@ from qai_hub_models import (
 )
 from qai_hub_models.scorecard.device import cs_universal
 from qai_hub_models.scorecard.envvars import QAIRTVersionEnvvar
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.test.test_models.test_common import reset_hub_frameworks_patches
 from qai_hub_models.utils.set_env import set_temp_env
 
 
 def test_profile_qnn_version() -> None:
     """
-    This verifies behavior of ScorecardProfilePath.get_inference_options(Precision.float, cs_universal) with
+    This verifies behavior of ScorecardInferencePath.get_inference_options(Precision.float, cs_universal) with
     different combinations of:
       * default AI Hub Workbench QAIRT version
       * default AI Hub Models QAIRT version
@@ -58,7 +58,7 @@ def test_profile_qnn_version() -> None:
         with reset_hub_frameworks_patches(
             frameworks, api_version, per_runtime_api_version
         ):
-            profile_path = ScorecardProfilePath.TFLITE
+            profile_path = ScorecardInferencePath.TFLITE
             assert not profile_path.runtime.qairt_version_changes_compilation
             assert profile_path.runtime not in per_runtime_api_version
             default_qaihm_qnn_flag = (
@@ -67,9 +67,9 @@ def test_profile_qnn_version() -> None:
 
             # Spome paths have a special QAIRT version that differs from AI Hub Models' default.
             paths_with_different_qairt_version: list[
-                tuple[ScorecardProfilePath, str]
+                tuple[ScorecardInferencePath, str]
             ] = []
-            for profile_path_with_different_qairt_version in ScorecardProfilePath:
+            for profile_path_with_different_qairt_version in ScorecardInferencePath:
                 if (
                     profile_path_with_different_qairt_version.runtime.inference_engine
                     not in per_runtime_api_version
@@ -255,11 +255,11 @@ def test_profile_qnn_version() -> None:
 
 
 def test_single_public_path_per_runtime() -> None:
-    public_paths_per_runtime: dict[TargetRuntime, ScorecardProfilePath] = {}
-    for path in ScorecardProfilePath:
+    public_paths_per_runtime: dict[TargetRuntime, ScorecardInferencePath] = {}
+    for path in ScorecardInferencePath:
         if path.is_published:
             if other_path := public_paths_per_runtime.get(path.runtime):
                 raise ValueError(
-                    f"Only one ScorecardProfilePath can be public for each runtime. Both {path} and {other_path} are public and use {path.runtime}."
+                    f"Only one ScorecardInferencePath can be public for each runtime. Both {path} and {other_path} are public and use {path.runtime}."
                 )
             public_paths_per_runtime[path.runtime] = path

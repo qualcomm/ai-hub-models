@@ -2,6 +2,11 @@ name: QAI Hub Models Weekly Prod Scorecard
 
 on:
     workflow_dispatch: # Allows users to start this manually from the GitHub Actions UI.
+      inputs:
+        notify_failures:
+          description: Notify Slack of the results
+          default: true
+          type: boolean
     schedule:
         # 10 PM PST (11 PM PDT) on Fridays -- (Cron is in UTC, since GitHub Actions run in UTC)
         - cron: '0 6 * * SAT'
@@ -27,3 +32,4 @@ jobs:
           release_scope: upload_export_assets_and_create_pr
           ignore_job_cache: false
           tableau_branch_name: weekly-prod
+          notify_failures: ${{ inputs.notify_failures == null || inputs.notify_failures }}

@@ -218,7 +218,8 @@ class CocoVocSegDataset(CocoDatasetBase):
 
     @staticmethod
     def default_samples_per_job() -> int:
-        return 1000
+        # 520x520 float32 inputs: 1000 samples exceed Hub's 2 GB dataset limit.
+        return 500
 
     @staticmethod
     def get_dataset_metadata() -> DatasetMetadata:

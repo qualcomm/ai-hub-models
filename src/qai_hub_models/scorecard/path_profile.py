@@ -34,15 +34,15 @@ if TYPE_CHECKING:
     from qai_hub_models.scorecard import ScorecardDevice
 
 
-class ScorecardProfilePathMeta(EnumMeta):
-    def __iter__(self) -> Iterator[ScorecardProfilePath]:  # type: ignore[override]
+class ScorecardInferencePathMeta(EnumMeta):
+    def __iter__(self) -> Iterator[ScorecardInferencePath]:  # type: ignore[override]
         return (  # type:ignore[var-annotated]
-            cast(ScorecardProfilePath, member) for member in super().__iter__()
+            cast(ScorecardInferencePath, member) for member in super().__iter__()
         )
 
 
 @unique
-class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
+class ScorecardInferencePath(Enum, metaclass=ScorecardInferencePathMeta):
     TFLITE = "tflite"
     TFL_CONVERTER = "tfl_converter"
     QNN_DLC = "qnn_dlc"
@@ -60,9 +60,9 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         return self.name.lower()
 
     @staticmethod
-    def from_runtime(runtime: TargetRuntime) -> ScorecardProfilePath:
+    def from_runtime(runtime: TargetRuntime) -> ScorecardInferencePath:
         """Get the scorecard path that corresponds with default behavior of the given target runtime."""
-        return ScorecardProfilePath(runtime.value)
+        return ScorecardInferencePath(runtime.value)
 
     @property
     def tool_versions(self) -> ToolVersions:
@@ -75,7 +75,7 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         return tool_versions
 
     @staticmethod
-    def default_paths() -> list[ScorecardProfilePath]:
+    def default_paths() -> list[ScorecardInferencePath]:
         """
         The set of first-class scorecard paths.
 
@@ -85,19 +85,19 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         exercised in a default scorecard sweep -- see default_sweep_paths().
         """
         return [
-            ScorecardProfilePath.TFLITE,
-            ScorecardProfilePath.ONNX,
-            ScorecardProfilePath.PRECOMPILED_QNN_ONNX,
-            ScorecardProfilePath.QNN_DLC,
-            ScorecardProfilePath.QNN_CONTEXT_BINARY,
-            ScorecardProfilePath.GENIE,
-            ScorecardProfilePath.GENIEX_QAIRT,
-            ScorecardProfilePath.GENIEX_LLAMACPP,
-            ScorecardProfilePath.VOICE_AI,
+            ScorecardInferencePath.TFLITE,
+            ScorecardInferencePath.ONNX,
+            ScorecardInferencePath.PRECOMPILED_QNN_ONNX,
+            ScorecardInferencePath.QNN_DLC,
+            ScorecardInferencePath.QNN_CONTEXT_BINARY,
+            ScorecardInferencePath.GENIE,
+            ScorecardInferencePath.GENIEX_QAIRT,
+            ScorecardInferencePath.GENIEX_LLAMACPP,
+            ScorecardInferencePath.VOICE_AI,
         ]
 
     @staticmethod
-    def default_sweep_paths() -> list[ScorecardProfilePath]:
+    def default_sweep_paths() -> list[ScorecardInferencePath]:
         """
         Paths compiled/profiled when test_runtimes resolves to 'default'.
 
@@ -107,14 +107,14 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         """
         return [
             p
-            for p in ScorecardProfilePath.default_paths()
-            if p is not ScorecardProfilePath.GENIE
+            for p in ScorecardInferencePath.default_paths()
+            if p is not ScorecardInferencePath.GENIE
         ]
 
     @property
     def spreadsheet_name(self) -> str:
         """Returns the name used for the 'runtime' column in the scorecard results spreadsheet."""
-        if self in ScorecardProfilePath.default_paths():
+        if self in ScorecardInferencePath.default_paths():
             # Maps both precompiled_context_binary and dlc to "qnn",
             # and both onnx and precompiled onnx to "onnx".
             return self.runtime.inference_engine.value
@@ -142,8 +142,8 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
             If any requested name is not a path value, an inference engine
             prefix, or a SpecialPathSetting.
         """
-        recognized = {p.value for p in ScorecardProfilePath} | {
-            p.runtime.inference_engine.value for p in ScorecardProfilePath
+        recognized = {p.value for p in ScorecardInferencePath} | {
+            p.runtime.inference_engine.value for p in ScorecardInferencePath
         }
         if unknown := sorted(
             x for x in valid_test_runtimes if isinstance(x, str) and x not in recognized
@@ -151,9 +151,9 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
             raise ValueError(
                 f"Unrecognized {EnabledPathsEnvvar.VARNAME} value(s): "
                 f"{', '.join(unknown)}. "
-                f"Valid path names: {', '.join(sorted(p.value for p in ScorecardProfilePath))}. "
+                f"Valid path names: {', '.join(sorted(p.value for p in ScorecardInferencePath))}. "
                 f"Valid engine prefixes: "
-                f"{', '.join(sorted({p.runtime.inference_engine.value for p in ScorecardProfilePath}))}. "
+                f"{', '.join(sorted({p.runtime.inference_engine.value for p in ScorecardInferencePath}))}. "
                 f"Valid special settings: "
                 f"{', '.join(sorted(s.value for s in SpecialPathSetting))}."
             )
@@ -168,14 +168,14 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         # published paths by naming them explicitly.
         if (
             SpecialPathSetting.DEFAULT in valid_test_runtimes
-            and self in ScorecardProfilePath.default_sweep_paths()
+            and self in ScorecardInferencePath.default_sweep_paths()
         ):
             return True
 
         # Allows users to set 'qnn' to enable both precompiled and dlc,
         # or to set 'onnx' to enable onnx and precompiled onnx.
         if (
-            self in ScorecardProfilePath.default_paths()
+            self in ScorecardInferencePath.default_paths()
             and self.runtime.inference_engine.value in valid_test_runtimes
         ):
             return True
@@ -249,14 +249,14 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
         # unpublished paths (qnn_dlc_gpu) that `enabled` reports as off, and
         # callers keyed on `enabled` blow up.
         return (
-            self in ScorecardProfilePath.default_paths()
+            self in ScorecardInferencePath.default_paths()
             and self.runtime.inference_engine.value in valid_test_runtimes
             and self.runtime in supported_runtimes
         )
 
     def supports_precision(self, precision: Precision) -> bool:
         """Whether this profile path applies to the given model precision."""
-        if self == ScorecardProfilePath.QNN_DLC_GPU:
+        if self == ScorecardInferencePath.QNN_DLC_GPU:
             return not precision.has_quantized_activations
 
         return self.compile_path.supports_precision(precision)
@@ -264,65 +264,65 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
     @property
     def is_published(self) -> bool:
         """Whether a path is included in perf.yaml, numerics.yaml, allowed in export scripts, etc."""
-        return self in ScorecardProfilePath.default_paths()
+        return self in ScorecardInferencePath.default_paths()
 
     @property
     def runtime(self) -> TargetRuntime:
         if (
-            self == ScorecardProfilePath.TFLITE  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardProfilePath.TFL_CONVERTER
+            self == ScorecardInferencePath.TFLITE  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+            or self == ScorecardInferencePath.TFL_CONVERTER
         ):
             return TargetRuntime.TFLITE
         if (
-            self == ScorecardProfilePath.ONNX  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardProfilePath.ONNX_DML_GPU
+            self == ScorecardInferencePath.ONNX  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+            or self == ScorecardInferencePath.ONNX_DML_GPU
         ):
             return TargetRuntime.ONNX
-        if self == ScorecardProfilePath.PRECOMPILED_QNN_ONNX:
+        if self == ScorecardInferencePath.PRECOMPILED_QNN_ONNX:
             return TargetRuntime.PRECOMPILED_QNN_ONNX
-        if self == ScorecardProfilePath.QNN_CONTEXT_BINARY:
+        if self == ScorecardInferencePath.QNN_CONTEXT_BINARY:
             return TargetRuntime.QNN_CONTEXT_BINARY
         if (
-            self == ScorecardProfilePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardProfilePath.QNN_DLC_GPU
+            self == ScorecardInferencePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+            or self == ScorecardInferencePath.QNN_DLC_GPU
         ):
             return TargetRuntime.QNN_DLC
-        if self == ScorecardProfilePath.GENIE:
+        if self == ScorecardInferencePath.GENIE:
             return TargetRuntime.GENIE
-        if self == ScorecardProfilePath.GENIEX_QAIRT:
+        if self == ScorecardInferencePath.GENIEX_QAIRT:
             return TargetRuntime.GENIEX_QAIRT
-        if self == ScorecardProfilePath.GENIEX_LLAMACPP:
+        if self == ScorecardInferencePath.GENIEX_LLAMACPP:
             return TargetRuntime.GENIEX_LLAMACPP
-        if self == ScorecardProfilePath.VOICE_AI:
+        if self == ScorecardInferencePath.VOICE_AI:
             return TargetRuntime.VOICE_AI
         assert_never(self)
 
     @property
     def compile_path(self) -> ScorecardCompilePath:
-        if self == ScorecardProfilePath.TFLITE:
+        if self == ScorecardInferencePath.TFLITE:
             return ScorecardCompilePath.TFLITE
-        if self == ScorecardProfilePath.TFL_CONVERTER:
+        if self == ScorecardInferencePath.TFL_CONVERTER:
             return ScorecardCompilePath.TFL_CONVERTER
-        if self == ScorecardProfilePath.ONNX:
+        if self == ScorecardInferencePath.ONNX:
             return ScorecardCompilePath.ONNX
-        if self == ScorecardProfilePath.PRECOMPILED_QNN_ONNX:
+        if self == ScorecardInferencePath.PRECOMPILED_QNN_ONNX:
             return ScorecardCompilePath.PRECOMPILED_QNN_ONNX
-        if self == ScorecardProfilePath.ONNX_DML_GPU:
+        if self == ScorecardInferencePath.ONNX_DML_GPU:
             return ScorecardCompilePath.ONNX_FP16
-        if self == ScorecardProfilePath.QNN_CONTEXT_BINARY:
+        if self == ScorecardInferencePath.QNN_CONTEXT_BINARY:
             return ScorecardCompilePath.QNN_CONTEXT_BINARY
         if (
-            self == ScorecardProfilePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
-            or self == ScorecardProfilePath.QNN_DLC_GPU
+            self == ScorecardInferencePath.QNN_DLC  # noqa: PLR1714 | Can't merge comparisons and use assert_never
+            or self == ScorecardInferencePath.QNN_DLC_GPU
         ):
             return ScorecardCompilePath.QNN_DLC
-        if self == ScorecardProfilePath.GENIE:
+        if self == ScorecardInferencePath.GENIE:
             return ScorecardCompilePath.GENIE
-        if self == ScorecardProfilePath.GENIEX_QAIRT:
+        if self == ScorecardInferencePath.GENIEX_QAIRT:
             return ScorecardCompilePath.GENIEX_QAIRT
-        if self == ScorecardProfilePath.GENIEX_LLAMACPP:
+        if self == ScorecardInferencePath.GENIEX_LLAMACPP:
             return ScorecardCompilePath.GENIEX_LLAMACPP
-        if self == ScorecardProfilePath.VOICE_AI:
+        if self == ScorecardInferencePath.VOICE_AI:
             return ScorecardCompilePath.VOICE_AI
         assert_never(self)
 
@@ -334,14 +334,14 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
     ) -> str:
         out = ""
         if (
-            self == ScorecardProfilePath.ONNX
+            self == ScorecardInferencePath.ONNX
             and not precision.has_float_activations
             and not device.supports_fp16_npu
         ):
             out = out + " --onnx_execution_providers qnn"
-        if self == ScorecardProfilePath.ONNX_DML_GPU:
+        if self == ScorecardInferencePath.ONNX_DML_GPU:
             out = out + " --onnx_execution_providers directml"
-        if self == ScorecardProfilePath.QNN_DLC_GPU:
+        if self == ScorecardInferencePath.QNN_DLC_GPU:
             out = (
                 out
                 + " --compute_unit gpu --qnn_options default_graph_gpu_precision=FLOAT16"
@@ -374,17 +374,17 @@ class ScorecardProfilePath(Enum, metaclass=ScorecardProfilePathMeta):
     def website_runtime_name(self) -> str:
         """The name of the runtime on the website that corresponds to this path."""
         if self in [
-            ScorecardProfilePath.VOICE_AI,
-            ScorecardProfilePath.GENIEX_QAIRT,
-            ScorecardProfilePath.GENIE,
-            ScorecardProfilePath.GENIEX_LLAMACPP,
+            ScorecardInferencePath.VOICE_AI,
+            ScorecardInferencePath.GENIEX_QAIRT,
+            ScorecardInferencePath.GENIE,
+            ScorecardInferencePath.GENIEX_LLAMACPP,
         ]:
             return self.value
         return self.runtime.inference_engine.value
 
 
-class ScorecardProfilePathJITParseableAllList(
-    EnumListWithParseableAll[ScorecardProfilePath]
+class ScorecardInferencePathJITParseableAllList(
+    EnumListWithParseableAll[ScorecardInferencePath]
 ):
     """
     Helper class for parsing.
@@ -392,9 +392,9 @@ class ScorecardProfilePathJITParseableAllList(
     (on device prepare) profile path values.
     """
 
-    EnumType = ScorecardProfilePath
+    EnumType = ScorecardInferencePath
     ALL = [
         x
-        for x in ScorecardProfilePath
+        for x in ScorecardInferencePath
         if not x.runtime.is_aot_compiled and not x.runtime.is_orchestrator_runtime
     ]

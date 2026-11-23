@@ -6,6 +6,6 @@
 
 from .device import ScorecardDevice
 from .path_compile import ScorecardCompilePath
-from .path_profile import ScorecardProfilePath
+from .path_profile import ScorecardInferencePath
 
-__all__ = ["ScorecardCompilePath", "ScorecardDevice", "ScorecardProfilePath"]
+__all__ = ["ScorecardCompilePath", "ScorecardDevice", "ScorecardInferencePath"]

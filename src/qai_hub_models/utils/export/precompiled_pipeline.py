@@ -34,9 +34,9 @@ from qai_hub_models.utils.export.download import (
     save_precompiled_collection_models,
     save_precompiled_model,
 )
-from qai_hub_models.utils.export.profile import (
-    run_collection_profile,
-    run_profile,
+from qai_hub_models.utils.export.inference import (
+    run_collection_inference,
+    run_inference,
 )
 from qai_hub_models.utils.export.result import (
     CollectionExportResult,
@@ -62,7 +62,7 @@ def _export_precompiled_single(
     model_id: str,
     manifest: QAIHMModelManifest,
     device: hub.Device,
-    skip_profiling: bool,
+    skip_inferencing: bool,
     skip_downloading: bool,
     skip_summary: bool,
     download_dir: Path,
@@ -74,24 +74,23 @@ def _export_precompiled_single(
     model = model_cls.from_pretrained()
 
     uploaded = (
-        hub.upload_model(model.get_target_model_path()) if not skip_profiling else None
-    )
-
-    inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
-    profile_job = (
-        run_profile(model_id, device, inference_opts, uploaded)
-        if uploaded is not None
+        hub.upload_model(model.get_target_model_path())
+        if not skip_inferencing
         else None
     )
 
+    inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
+    inference_job: hub.client.InferenceJob | None = None
+    if uploaded is not None:
+        inference_job = run_inference(None, model_id, device, inference_opts, uploaded)
+
     if not skip_summary or not skip_downloading:
-        tool_versions, tool_versions_from_device = extract_tool_versions(
-            profile_job,
-            None,
+        tool_versions, tool_versions_from_inference = extract_tool_versions(
+            inference_job,
             None,
         )
     else:
-        tool_versions, tool_versions_from_device = None, False
+        tool_versions, tool_versions_from_inference = None, False
 
     download_path = (
         save_precompiled_model(download_dir, model, zip_assets)
@@ -100,16 +99,16 @@ def _export_precompiled_single(
     )
 
     if not skip_summary:
-        if profile_job is not None:
-            print_profile_summary(profile_job)
-        print_tool_versions(tool_versions, tool_versions_from_device)
+        if inference_job is not None:
+            print_profile_summary(inference_job)
+        print_tool_versions(tool_versions, tool_versions_from_inference)
         if download_path is not None:
             print(f"{model_id} was saved to {download_path}\n")
         if target_runtime in (TargetRuntime.GENIE, TargetRuntime.GENIEX_QAIRT):
             print(_GENIE_BLURB)
 
     return ExportResult(
-        profile_job=profile_job,
+        inference_job=inference_job,
         download_path=download_path,
         tool_versions=tool_versions,
     )
@@ -121,7 +120,7 @@ def _export_precompiled_collection(
     manifest: QAIHMModelManifest,
     device: hub.Device,
     components: list[str] | None,
-    skip_profiling: bool,
+    skip_inferencing: bool,
     skip_downloading: bool,
     skip_summary: bool,
     download_dir: Path,
@@ -137,7 +136,7 @@ def _export_precompiled_collection(
             raise CLIUserError(f"Invalid component {name}.")
 
     uploaded = ComponentGroup[hub.Model]()
-    if not skip_profiling:
+    if not skip_inferencing:
         print("Uploading model assets on hub")
         for name in components:
             uploaded[name] = hub.upload_model(
@@ -145,21 +144,20 @@ def _export_precompiled_collection(
             )
 
     inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
-    profile_jobs: ComponentGroup[hub.client.ProfileJob] | None = (
-        run_collection_profile(model_id, device, inference_opts, uploaded, components)
-        if not skip_profiling
-        else None
-    )
+    inference_jobs: ComponentGroup[hub.client.InferenceJob] | None = None
+    if not skip_inferencing:
+        inference_jobs = run_collection_inference(
+            None, model_id, device, inference_opts, uploaded, components
+        )
 
     if not skip_summary or not skip_downloading:
-        first_pj = next(iter(profile_jobs.values()), None) if profile_jobs else None
-        tool_versions, tool_versions_from_device = extract_tool_versions(
-            first_pj,
-            None,
+        first_ij = next(iter(inference_jobs.values()), None) if inference_jobs else None
+        tool_versions, tool_versions_from_inference = extract_tool_versions(
+            first_ij,
             None,
         )
     else:
-        tool_versions, tool_versions_from_device = None, False
+        tool_versions, tool_versions_from_inference = None, False
 
     download_path = (
         save_precompiled_collection_models(download_dir, model, components, zip_assets)
@@ -168,17 +166,17 @@ def _export_precompiled_collection(
     )
 
     if not skip_summary:
-        if profile_jobs:
-            for job in profile_jobs.values():
-                print_profile_summary(job)
-        print_tool_versions(tool_versions, tool_versions_from_device)
+        if inference_jobs:
+            for inference_job in inference_jobs.values():
+                print_profile_summary(inference_job)
+        print_tool_versions(tool_versions, tool_versions_from_inference)
         if download_path is not None:
             print(f"{model_id} was saved to {download_path}\n")
         if target_runtime in (TargetRuntime.GENIE, TargetRuntime.GENIEX_QAIRT):
             print(_GENIE_BLURB)
 
     return CollectionExportResult(
-        profile_jobs=profile_jobs,
+        inference_jobs=inference_jobs,
         download_path=download_path,
         tool_versions=tool_versions,
     )
@@ -188,7 +186,7 @@ def export_model(
     source_dir: Path,
     device: hub.Device,
     components: list[str] | None = None,
-    skip_profiling: bool = False,
+    skip_inferencing: bool = False,
     skip_downloading: bool = False,
     skip_summary: bool = False,
     output_dir: str | None = None,
@@ -214,8 +212,8 @@ def export_model(
         Hub device to export for.
     components
         Optional subset of components for collection precompiled models.
-    skip_profiling
-        If set, skips profiling on real devices.
+    skip_inferencing
+        If set, skips running the model on a real device.
     skip_downloading
         If set, skips saving the precompiled asset(s) locally.
     skip_summary
@@ -223,7 +221,7 @@ def export_model(
     output_dir
         Directory to store generated assets. Defaults to ``<cwd>/export_assets``.
     inference_options
-        Extra options for the profile job.
+        Extra options for the inference job.
     zip_assets
         If set, zip the assets after downloading.
     **additional_model_kwargs
@@ -264,7 +262,7 @@ def export_model(
             manifest,
             device,
             components,
-            skip_profiling,
+            skip_inferencing,
             skip_downloading,
             skip_summary,
             download_dir,
@@ -277,7 +275,7 @@ def export_model(
         model_id,
         manifest,
         device,
-        skip_profiling,
+        skip_inferencing,
         skip_downloading,
         skip_summary,
         download_dir,

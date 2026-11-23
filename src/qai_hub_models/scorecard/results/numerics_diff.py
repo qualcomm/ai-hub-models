@@ -16,7 +16,7 @@ from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.params import ScJobParams
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.yaml import InferenceScorecardJobYaml
 from qai_hub_models.utils.device import FormFactor
 
@@ -58,10 +58,10 @@ class NumericsDiff:
 
         # tuple<Model ID, Dataset Name, Metric Name, Device, Precision, Path>
         self.missing_paths: list[
-            tuple[str, str, str, ScorecardDevice, Precision, ScorecardProfilePath]
+            tuple[str, str, str, ScorecardDevice, Precision, ScorecardInferencePath]
         ] = []
         self.new_paths: list[
-            tuple[str, str, str, ScorecardDevice, Precision, ScorecardProfilePath]
+            tuple[str, str, str, ScorecardDevice, Precision, ScorecardInferencePath]
         ] = []
 
         # Off-target (quantized ONNX on CPU) accuracy, keyed by
@@ -79,7 +79,7 @@ class NumericsDiff:
                 str,
                 ScorecardDevice,
                 Precision,
-                ScorecardProfilePath,
+                ScorecardInferencePath,
                 str,
                 str,
                 str,
@@ -96,7 +96,7 @@ class NumericsDiff:
                 str,
                 ScorecardDevice,
                 Precision,
-                ScorecardProfilePath,
+                ScorecardInferencePath,
                 str,
                 str,
                 str,
@@ -116,7 +116,7 @@ class NumericsDiff:
                 str,
                 str,
                 Precision | None,
-                ScorecardProfilePath | None,
+                ScorecardInferencePath | None,
                 str,
                 str,
                 str,
@@ -142,7 +142,7 @@ class NumericsDiff:
                 str,
                 ScorecardDevice,
                 Precision,
-                ScorecardProfilePath,
+                ScorecardInferencePath,
                 str,
                 str,
                 str,
@@ -157,7 +157,7 @@ class NumericsDiff:
         inference_jobs: InferenceScorecardJobYaml,
         model_id: str,
         precision: Precision,
-        path: ScorecardProfilePath,
+        path: ScorecardInferencePath,
         device: ScorecardDevice,
     ) -> str:
         """Return the inference-job ID for these params, or "null" if missing.
@@ -220,10 +220,10 @@ class NumericsDiff:
         new_metric_details: QAIHMModelNumerics.MetricDetails,
         device: ScorecardDevice,
         precision: Precision,
-        path: ScorecardProfilePath,
-        previous_report: dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+        path: ScorecardInferencePath,
+        previous_report: dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails]
         | None,
-        new_report: dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails],
+        new_report: dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
         benchmark: NumericsAccuracyBenchmark | None = None,
     ) -> None:
         prev_metric = previous_report.get(path) if previous_report else None
@@ -395,11 +395,11 @@ class NumericsDiff:
         device: ScorecardDevice,
         precision: Precision,
         previous_report: dict[
-            Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+            Precision, dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails]
         ]
         | None,
         new_report: dict[
-            Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+            Precision, dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails]
         ],
         benchmark: NumericsAccuracyBenchmark | None = None,
     ) -> None:
@@ -432,7 +432,7 @@ class NumericsDiff:
             )
 
         if new_report_precision:
-            all_paths: set[ScorecardProfilePath] = set()
+            all_paths: set[ScorecardInferencePath] = set()
             if previous_report_precision:
                 all_paths.update(previous_report_precision.keys())
             all_paths.update(new_report_precision.keys())
@@ -459,14 +459,16 @@ class NumericsDiff:
         previous_report: dict[
             ScorecardDevice,
             dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ],
         ]
         | None,
         new_report: dict[
             ScorecardDevice,
             dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ],
         ],
         benchmark: NumericsAccuracyBenchmark | None = None,
@@ -648,7 +650,7 @@ class NumericsDiff:
                 str,
                 ScorecardDevice,
                 Precision,
-                ScorecardProfilePath,
+                ScorecardInferencePath,
                 str,
                 str,
                 str,

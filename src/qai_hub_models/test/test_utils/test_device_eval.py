@@ -22,7 +22,7 @@ from qai_hub_models.models.templates.llm.grader.grace import (
     load_default_eval_prompts,
     load_eval_prompts,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scripts import run_genie_benchmarks
 from qai_hub_models.scripts.llm import collect_llm_accuracy_csv
 from qai_hub_models.scripts.llm.grade_responses import _sidecar_metric_name
@@ -97,7 +97,7 @@ def test_genie_runner_passes_the_eval_dataset(
 def test_sidecar_carries_dataset_and_metric(tmp_path: Path) -> None:
     meta = tmp_path / "m_eval.meta.json"
     save_eval_metadata_json(
-        "m", "chip", "w4a16", str(meta), ScorecardProfilePath.GENIE, "grace2"
+        "m", "chip", "w4a16", str(meta), ScorecardInferencePath.GENIE, "grace2"
     )
     assert json.loads(meta.read_text())["dataset_name"] == "grace2"
     assert _sidecar_metric_name(str(tmp_path / "m_eval.json")) == "Grace2"
@@ -109,7 +109,7 @@ def test_collect_files_the_row_under_the_dataset_metric(tmp_path: Path) -> None:
         "chip",
         "w4a16",
         str(tmp_path / "m_eval.meta.json"),
-        ScorecardProfilePath.GENIE,
+        ScorecardInferencePath.GENIE,
         "grace2",
     )
     (tmp_path / "m_eval_grade.json").write_text(

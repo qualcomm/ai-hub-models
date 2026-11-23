@@ -25,7 +25,7 @@ from qai_hub_models_cli.proto_helpers._common import safe_load_yaml
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
@@ -66,7 +66,6 @@ from qai_hub_models.scorecard.results.yaml import (
     InferenceScorecardJobYaml,
     LinkScorecardJobYaml,
     PreQDQCompileScorecardJobYaml,
-    ProfileScorecardJobYaml,
     QuantizeScorecardJobYaml,
     ToolVersionsByPathYaml,
     get_model_component_and_graph_names,
@@ -84,6 +83,9 @@ from qai_hub_models.scripts.download_scorecard_results import (
     download_single_artifact,
     find_latest_run,
 )
+from qai_hub_models.scripts.scorecard.timings import write_stage_timings
+from qai_hub_models.utils.aws import can_access_private_s3
+from qai_hub_models.utils.envvars import IsOnCIEnvvar
 from qai_hub_models.utils.hub_clients import (
     default_hub_client_as,
     deployment_is_prod,
@@ -127,7 +129,6 @@ class _IntermediateState:
     quantize_jobs: QuantizeScorecardJobYaml
     compile_jobs: CompileScorecardJobYaml
     link_jobs: LinkScorecardJobYaml
-    profile_jobs: ProfileScorecardJobYaml
     inference_jobs: InferenceScorecardJobYaml
     # Pre-clear snapshot for the regression reports' "Previous *" columns.
     previous_compile_jobs: CompileScorecardJobYaml
@@ -150,7 +151,6 @@ def _load_intermediate_state(
             QuantizeScorecardJobYaml(),
             CompileScorecardJobYaml(),
             LinkScorecardJobYaml(),
-            ProfileScorecardJobYaml(),
             InferenceScorecardJobYaml(),
             CompileScorecardJobYaml.from_intermediates(),
             InferenceScorecardJobYaml.from_intermediates(),
@@ -162,7 +162,6 @@ def _load_intermediate_state(
     quantize_job_yamls = QuantizeScorecardJobYaml.from_intermediates()
     compile_job_yamls = CompileScorecardJobYaml.from_intermediates()
     link_job_yamls = LinkScorecardJobYaml.from_intermediates()
-    profile_job_yamls = ProfileScorecardJobYaml.from_intermediates()
     inference_job_yamls = InferenceScorecardJobYaml.from_intermediates()
 
     # Snapshot before the ignore-existing clear below; CI always sets it, and
@@ -191,7 +190,6 @@ def _load_intermediate_state(
             quantize_job_yamls.clear()
             compile_job_yamls.clear()
             link_job_yamls.clear()
-            profile_job_yamls.clear()
             inference_job_yamls.clear()
         else:
             for model in model_list:
@@ -207,14 +205,12 @@ def _load_intermediate_state(
                     quantize_job_yamls.clear(model)
                     compile_job_yamls.clear(model)
                     link_job_yamls.clear(model)
-                    profile_job_yamls.clear(model)
                     inference_job_yamls.clear(model)
                     continue
                 pre_qdq_job_yamls.drop_in_scope(scope_params)
                 quantize_job_yamls.drop_in_scope(scope_params)
                 compile_job_yamls.drop_in_scope(scope_params)
                 link_job_yamls.drop_in_scope(scope_params)
-                profile_job_yamls.drop_in_scope(scope_params)
                 inference_job_yamls.drop_in_scope(scope_params)
 
     return _IntermediateState(
@@ -224,7 +220,6 @@ def _load_intermediate_state(
         quantize_job_yamls,
         compile_job_yamls,
         link_job_yamls,
-        profile_job_yamls,
         inference_job_yamls,
         previous_compile_jobs,
         previous_inference_jobs,
@@ -251,9 +246,9 @@ def _resolve_test_params(
 
 def _scope_from_test_config(
     test_params: ModelTestConfig,
-) -> set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]:
+) -> set[tuple[Precision, ScorecardInferencePath, ScorecardDevice]]:
     """The (precision, path, device) tuples this run was configured to measure."""
-    return {(prec, path, device) for prec, path, device in test_params.profile_tests}
+    return {(prec, path, device) for prec, path, device in test_params.inference_tests}
 
 
 def _perf_components_owned_here(sc: QAIHMModelInternalConfig) -> set[str] | None:
@@ -276,7 +271,7 @@ def _accuracy_scope_from_test_config(
     """accuracy.csv row keys for the tuples this run was configured to measure."""
     return {
         accuracy_row_key(model_id, device.chipset, precision, path)
-        for precision, path, device in test_params.profile_tests
+        for precision, path, device in test_params.inference_tests
     }
 
 
@@ -379,13 +374,17 @@ def _load_previous_tool_versions(deployment: str) -> ToolVersionsByPathYaml:
     refreshes when a prod scorecard PR merges to main — so a dev run's
     "previous" would silently stay pinned to the last merged prod run.
     """
+    fallback = ScorecardArtifact.TOOL_VERSIONS.intermediates_path
+    if not can_access_private_s3():
+        print("No S3 access; using checked-in intermediates as the toolchain baseline.")
+        return ToolVersionsByPathYaml.from_yaml(fallback, create_empty_if_no_file=True)
+
     try:
         previous = find_latest_run(deployment)
     except Exception:
         logging.warning(
             "Could not query scorecard S3 history; falling back to checked-in "
-            "intermediates for the toolchain diff baseline.",
-            exc_info=True,
+            "intermediates for the toolchain diff baseline."
         )
         previous = None
 
@@ -412,10 +411,7 @@ def _load_previous_tool_versions(deployment: str) -> ToolVersionsByPathYaml:
             f"falling back to intermediates for the toolchain diff baseline."
         )
 
-    return ToolVersionsByPathYaml.from_yaml(
-        ScorecardArtifact.TOOL_VERSIONS.intermediates_path,
-        create_empty_if_no_file=True,
-    )
+    return ToolVersionsByPathYaml.from_yaml(fallback, create_empty_if_no_file=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -446,6 +442,12 @@ def parse_args() -> argparse.Namespace:
     DateFormatEnvvar.add_arg_group(parser)
     ArtifactsDirEnvvar.add_arg(parser)
     parser.add_argument(
+        "--skip-publish-numbers",
+        action="store_false",
+        dest="publish_numbers",
+        help="Do not update perf.yaml, numerics.yaml or the checked-in intermediates.",
+    )
+    parser.add_argument(
         "--accuracy-csv-path",
         type=str,
         default=str(ScorecardArtifact.ACCURACY_CSV.path),
@@ -464,7 +466,6 @@ def process_model(
     quantize_job_yamls: QuantizeScorecardJobYaml,
     compile_job_yamls: CompileScorecardJobYaml,
     link_job_yamls: LinkScorecardJobYaml,
-    profile_job_yamls: ProfileScorecardJobYaml,
     inference_job_yamls: InferenceScorecardJobYaml,
     gen_csv: bool,
     sync_code_gen: bool,
@@ -497,8 +498,6 @@ def process_model(
         YAML containing compile job information.
     link_job_yamls
         YAML containing link job information.
-    profile_job_yamls
-        YAML containing profile job information.
     inference_job_yamls
         YAML containing inference job information.
     gen_csv
@@ -533,7 +532,6 @@ def process_model(
                 quantize_job_yamls,
                 compile_job_yamls,
                 link_job_yamls,
-                profile_job_yamls,
                 inference_job_yamls,
                 gen_csv,
                 sync_code_gen,
@@ -548,7 +546,6 @@ def process_model(
                 static_models_dir,
                 compile_job_yamls,
                 link_job_yamls,
-                profile_job_yamls,
                 inference_job_yamls,
             )
         else:
@@ -590,7 +587,6 @@ def process_e2e_recipe_model(
     quantize_job_yamls: QuantizeScorecardJobYaml,
     compile_job_yamls: CompileScorecardJobYaml,
     link_job_yamls: LinkScorecardJobYaml,
-    profile_job_yamls: ProfileScorecardJobYaml,
     inference_job_yamls: InferenceScorecardJobYaml,
     gen_csv: bool,
     sync_code_gen: bool,
@@ -616,8 +612,6 @@ def process_e2e_recipe_model(
         YAML containing compile job information.
     link_job_yamls
         YAML containing link job information.
-    profile_job_yamls
-        YAML containing profile job information.
     inference_job_yamls
         YAML containing inference job information.
     gen_csv
@@ -660,7 +654,6 @@ def process_e2e_recipe_model(
         quantize_job_yamls,
         compile_job_yamls,
         link_job_yamls,
-        profile_job_yamls,
         inference_job_yamls,
     )
 
@@ -761,7 +754,6 @@ def process_static_file_model(
     models_dir: Path,
     compile_job_yamls: CompileScorecardJobYaml | None,
     link_job_yamls: LinkScorecardJobYaml | None,
-    profile_job_yamls: ProfileScorecardJobYaml | None,
     inference_job_yamls: InferenceScorecardJobYaml | None,
 ) -> ResultsSpreadsheet:
     """
@@ -786,7 +778,6 @@ def process_static_file_model(
             None,
             compile_job_yamls,
             link_job_yamls,
-            profile_job_yamls,
             inference_job_yamls,
         )
 
@@ -806,8 +797,7 @@ def process_static_file_model(
         return entries
 
 
-if __name__ == "__main__":
-    args = parse_args()
+def collect(args: argparse.Namespace) -> None:
     static_model_dir: Path = args.static_models_dir
 
     # Verify args are compatible with the chosen deployment.
@@ -845,7 +835,6 @@ if __name__ == "__main__":
     quantize_job_yamls = state.quantize_jobs
     compile_job_yamls = state.compile_jobs
     link_job_yamls = state.link_jobs
-    profile_job_yamls = state.profile_jobs
     inference_job_yamls = state.inference_jobs
     previous_compile_jobs = state.previous_compile_jobs
     previous_inference_jobs = state.previous_inference_jobs
@@ -859,7 +848,6 @@ if __name__ == "__main__":
     quantize_job_yamls.update(QuantizeScorecardJobYaml.from_test_artifacts())
     compile_job_yamls.update(CompileScorecardJobYaml.from_test_artifacts())
     link_job_yamls.update(LinkScorecardJobYaml.from_test_artifacts())
-    profile_job_yamls.update(ProfileScorecardJobYaml.from_test_artifacts())
     inference_job_yamls.update(InferenceScorecardJobYaml.from_test_artifacts())
     current_compile_jobs = CompileScorecardJobYaml.from_test_artifacts()
     current_inference_jobs = InferenceScorecardJobYaml.from_test_artifacts()
@@ -880,12 +868,11 @@ if __name__ == "__main__":
                 cycle([quantize_job_yamls]),
                 cycle([compile_job_yamls]),
                 cycle([link_job_yamls]),
-                cycle([profile_job_yamls]),
                 cycle([inference_job_yamls]),
                 cycle([args.gen_csv]),
                 cycle([args.sync_code_gen]),
                 cycle([args.gen_perf_summary]),
-                cycle([using_prod_hub]),
+                cycle([using_prod_hub and args.publish_numbers]),
             ),
         )
         pool.close()
@@ -905,12 +892,11 @@ if __name__ == "__main__":
                 quantize_job_yamls,
                 compile_job_yamls,
                 link_job_yamls,
-                profile_job_yamls,
                 inference_job_yamls,
                 args.gen_csv,
                 args.sync_code_gen,
                 args.gen_perf_summary,
-                using_prod_hub,
+                using_prod_hub and args.publish_numbers,
             )
         ]
 
@@ -1000,6 +986,10 @@ if __name__ == "__main__":
             ):
                 continue
 
+            # No rows means the model didn't run; keep its committed numerics and accuracy rows.
+            if accuracy_df[accuracy_df.model_id == model_id].empty:
+                continue
+
             model_diff = NumericsDiff(
                 current_inference_jobs=current_inference_jobs,
                 previous_inference_jobs=previous_inference_jobs,
@@ -1030,8 +1020,9 @@ if __name__ == "__main__":
 
             if numerics is None:
                 # Nothing measured; write the committed remainder (may be empty).
-                out = committed_numerics or QAIHMModelNumerics()
-                out.to_model_yaml(model_id)
+                if args.publish_numbers:
+                    out = committed_numerics or QAIHMModelNumerics()
+                    out.to_model_yaml(model_id)
                 continue
 
             if committed_numerics is not None and not committed_numerics.is_empty():
@@ -1045,7 +1036,7 @@ if __name__ == "__main__":
                 # Update numerics.yaml to remove failing paths
                 numerics = remove_numerics_failures(numerics, manifest.disabled_paths)
 
-                if args.sync_code_gen and using_prod_hub:
+                if args.sync_code_gen and using_prod_hub and args.publish_numbers:
                     # If sync-code-gen is on, save the updated failure reasons to disk.
                     manifest.to_model_yaml()
 
@@ -1064,8 +1055,9 @@ if __name__ == "__main__":
                     # Un-publish or re-publish the model if needed.
                     update_model_publish_status(manifest)
 
-            numerics.to_model_yaml(model_id)
-            print(f"{model_id} numerics update complete")
+            if args.publish_numbers:
+                numerics.to_model_yaml(model_id)
+                print(f"{model_id} numerics update complete")
         except Exception:
             # Skip this model so one bad input doesn't kill the batch; the
             # aggregate raise at the end of __main__ still fails the job
@@ -1123,7 +1115,7 @@ if __name__ == "__main__":
         global_numerics_diff.dump_quantized_failures_json(quantized_failures_path)
 
         # Write accuracy to intermediates folder, scoped-merged onto the committed CSV.
-        if args.sync_code_gen and using_prod_hub:
+        if args.sync_code_gen and using_prod_hub and args.publish_numbers:
             assert accuracy_df is not None
             accuracy_df = _merge_existing_accuracy_data(
                 accuracy_df, accuracy_scope_keys
@@ -1135,20 +1127,18 @@ if __name__ == "__main__":
         print("No accuracy CSV found. Skipping numerics-yaml updates.")
 
     # Write jobs and environment to intermediates folder.
-    if using_prod_hub:
+    if using_prod_hub and args.publish_numbers:
         component_names_yaml.to_file()
         graph_names_yaml.to_file()
         quantize_job_yamls.to_file()
         compile_job_yamls.to_file()
         link_job_yamls.to_file()
-        profile_job_yamls.to_file()
         inference_job_yamls.to_file()
         print(f"Component Names written to {component_names_yaml.path}")
         print(f"Graph Names written to {graph_names_yaml.path}")
         print(f"Quantize Job IDs written to {quantize_job_yamls.path}")
         print(f"Compile Job IDs written to {compile_job_yamls.path}")
         print(f"Link Job IDs written to {link_job_yamls.path}")
-        print(f"Profile Job IDs written to {profile_job_yamls.path}")
         print(f"Inference Job IDs written to {inference_job_yamls.path}")
 
         try:
@@ -1161,6 +1151,11 @@ if __name__ == "__main__":
             )
         except (shutil.SameFileError, FileNotFoundError):
             pass
+
+        if IsOnCIEnvvar.get() and write_stage_timings():
+            print(
+                f"Stage timings written to {ScorecardArtifact.MODEL_RUNTIME_ESTIMATES.intermediates_path}"
+            )
 
         try:
             shutil.copy(
@@ -1180,3 +1175,7 @@ if __name__ == "__main__":
             f"collection (assets were still written; see stderr above for "
             f"per-model tracebacks): {', '.join(failed_model_ids)}"
         )
+
+
+if __name__ == "__main__":
+    collect(parse_args())

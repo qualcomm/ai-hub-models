@@ -1,0 +1,178 @@
+name: Scorecard - Accuracy and Release Asset Upload
+
+# Runs the on-device accuracy and/or release asset upload phases from the job IDs
+# of an earlier scorecard run (action_id), e.g. one that only finished the submit
+# phase. Results are uploaded as this run's artifacts; pass this run's ID as
+# accuracy_action_id / export_tests_action_id to scorecard_collect_results.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action_id:
+        description: Scorecard Kickoff GitHub Action Run ID
+        required: true
+        type: string
+
+      s3_prefix:
+        description: |
+          S3 prefix under qai-hub-models-private-assets to upload release assets to.
+          Empty disables uploads. "pre_release_assets" is kept forever;
+          "ephemeral_test_assets" is purged after 7 days.
+        type: string
+        default: ''
+
+      run_accuracy:
+        description: Run on-device accuracy computation
+        type: boolean
+        default: true
+
+      models:
+        description: Models to run. If unset, uses the models of the scorecard run.
+        type: string
+        required: false
+
+      max_models_per_split:
+        description: Maximum number of PyTorch models per split when auto-splitting
+        default: 30
+        type: number
+
+      max_num_splits:
+        description: Maximum number of PyTorch model splits to create (0 = no limit)
+        type: number
+        default: 0
+
+  workflow_call:
+    inputs:
+      action_id:
+        type: string
+        required: true
+
+      s3_prefix:
+        type: string
+        default: ''
+
+      run_accuracy:
+        type: boolean
+        default: true
+
+      models:
+        type: string
+        required: false
+
+      max_models_per_split:
+        default: 30
+        type: number
+
+      max_num_splits:
+        type: number
+        default: 0
+
+env:
+  VENV_PATH: build/ci-envs/qaihm-build
+
+jobs:
+  split_models:
+    name: Split Models Into Runner Batches
+    runs-on: aihub-models-ubuntu-2404-ec2
+    outputs:
+      matrix: ${{ steps.split.outputs.matrix }}
+      deployment: ${{ steps.env.outputs.deployment }}
+      devices: ${{ steps.env.outputs.devices }}
+      runtimes: ${{ steps.env.outputs.runtimes }}
+      precisions: ${{ steps.env.outputs.precisions }}
+      test_scope: ${{ steps.env.outputs.test_scope }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          venv-path: ${{ env.VENV_PATH }}
+          bnt-venv-install-cmd: install_global_requirements
+
+      - name: Download Post-Flaky-Job-Retry Artifacts
+        id: download-post-flaky-job-retry-artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ inputs.action_id }}
+          github-token: ${{ github.token }}
+          name: Scorecard Cached Artifact (Job-IDs, ${{ inputs.action_id }})
+          path: build/scorecard-yamls/${{ inputs.action_id }}
+
+      - name: Download Flaky-Job Artifacts
+        if: steps.download-post-flaky-job-retry-artifacts.outcome == 'failure'
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ inputs.action_id }}
+          github-token: ${{ github.token }}
+          name: Scorecard Cached Artifact (Flaky-Job-IDs, ${{ inputs.action_id }})
+          path: build/scorecard-yamls/${{ inputs.action_id }}
+
+      - name: Read Scorecard Environment
+        id: env
+        run: |
+          set -eo pipefail
+          ENV_FILE=build/scorecard-yamls/${{ inputs.action_id }}/environment.env
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "::error::$ENV_FILE not found: run ${{ inputs.action_id }} recorded no scorecard environment."
+            exit 1
+          fi
+          read_var() {
+            local line
+            line=$(grep -m1 "^$1=" "$ENV_FILE") || { echo "::error::$1 is not in $ENV_FILE" >&2; return 1; }
+            echo "${line#*=}"
+          }
+          {
+            echo "deployment=$(read_var QAIHM_TEST_DEPLOYMENT)"
+            echo "devices=$(read_var QAIHM_TEST_DEVICES)"
+            echo "runtimes=$(read_var QAIHM_TEST_PATHS)"
+            echo "precisions=$(read_var QAIHM_TEST_PRECISIONS)"
+            echo "test_scope=$(read_var QAIHM_TEST_SCOPE)"
+            echo "models=$(read_var QAIHM_TEST_MODELS)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Split Models
+        id: split
+        env:
+          MODELS_INPUT: ${{ inputs.models }}
+          MODELS_FROM_RUN: ${{ steps.env.outputs.models }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          MODELS="${MODELS_INPUT:-$MODELS_FROM_RUN}"
+          SPLIT_ARGS="--models $MODELS --max-models-per-pt-split ${{ inputs.max_models_per_split }} --stage accuracy --exclude-test-splits llm"
+          if [[ "${{ inputs.max_num_splits }}" != "0" ]]; then
+            SPLIT_ARGS="$SPLIT_ARGS --max-num-pt-splits ${{ inputs.max_num_splits }}"
+          fi
+          MATRIX=$(python -m qai_hub_models.scripts.split_torch_models $SPLIT_ARGS --output-format github)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Splits: $MATRIX"
+
+  run_phase:
+    name: ${{ inputs.run_accuracy && 'On-Device Accuracy' || 'Upload Release Assets' }} (${{ matrix.split.split_name }})
+    needs: split_models
+    if: ${{ needs.split_models.outputs.matrix != '[]' && (inputs.run_accuracy || inputs.s3_prefix != '') }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
+    secrets: inherit
+    strategy:
+      matrix:
+        split: ${{ fromJson(needs.split_models.outputs.matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/scorecard_run_split.yml
+    with:
+      deployment: ${{ needs.split_models.outputs.deployment }}
+      models: ${{ matrix.split.models }}
+      test_devices: ${{ needs.split_models.outputs.devices }}
+      test_runtimes: ${{ needs.split_models.outputs.runtimes }}
+      test_precisions: ${{ needs.split_models.outputs.precisions }}
+      test_scope: ${{ needs.split_models.outputs.test_scope }}
+      split_name: ${{ matrix.split.split_name }}
+      runs_on: ${{ toJson(matrix.split.runs_on) }}
+      disable_override_workbench_job_timeout: true
+      phase: ${{ inputs.run_accuracy && 'accuracy' || 'upload' }}
+      action_id: ${{ inputs.action_id }}
+      s3_prefix: ${{ inputs.s3_prefix }}

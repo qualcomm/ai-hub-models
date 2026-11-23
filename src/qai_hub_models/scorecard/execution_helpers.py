@@ -16,7 +16,7 @@ import qai_hub as hub
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard import ScorecardCompilePath, ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardCompilePath, ScorecardInferencePath
 from qai_hub_models.scorecard.device import (
     DEFAULT_QDC_DEVICE,
     LLM_COMPILE_DEVICES,
@@ -37,7 +37,7 @@ from qai_hub_models.scorecard.static.list_models import (
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
 ScorecardPathTypeVar = TypeVar(
-    "ScorecardPathTypeVar", ScorecardCompilePath, ScorecardProfilePath
+    "ScorecardPathTypeVar", ScorecardCompilePath, ScorecardInferencePath
 )
 
 
@@ -432,7 +432,7 @@ def get_model_test_parameterizations(
                 ):
                     continue
                 if (
-                    isinstance(sc_path, ScorecardProfilePath)
+                    isinstance(sc_path, ScorecardInferencePath)
                     and sc_path not in device.profile_paths
                 ):
                     continue
@@ -556,64 +556,15 @@ def get_profile_parameterized_pytest_config(
     passing_test_paths: dict[Precision, list[TargetRuntime]],
     can_use_quantize_job: bool = True,
     is_llm: bool = False,
-) -> list[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]:
+) -> list[tuple[Precision, ScorecardInferencePath, ScorecardDevice]]:
     """Get a pytest parameterization list of all enabled (device, profile path) pairs."""
     return get_model_test_parameterizations(
         model_id,
         enabled_test_paths,
         passing_test_paths,
-        ScorecardProfilePath,
+        ScorecardInferencePath,
         can_use_quantize_job,
         is_llm=is_llm,
-    )
-
-
-def get_export_parameterized_pytest_config(
-    model_id: str,
-    device: ScorecardDevice,
-    enabled_test_paths: dict[Precision, list[TargetRuntime]],
-    passing_test_paths: dict[Precision, list[TargetRuntime]],
-    can_use_quantize_job: bool = True,
-    requires_aot_prepare: bool = False,
-    is_llm: bool = False,
-) -> list[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]:
-    """Get a pytest parameterization list of all enabled (device, profile path) pairs."""
-    return get_model_test_parameterizations(
-        model_id,
-        enabled_test_paths,
-        passing_test_paths,
-        ScorecardProfilePath,
-        can_use_quantize_job,
-        ScorecardDevice.all_devices(enabled=True, include_universal=False)
-        if requires_aot_prepare
-        else [device],
-        is_llm=is_llm,
-    )
-
-
-def get_evaluation_parameterized_pytest_config(
-    model_id: str,
-    device: ScorecardDevice,
-    enabled_test_paths: dict[Precision, list[TargetRuntime]],
-    passing_test_paths: dict[Precision, list[TargetRuntime]],
-    can_use_quantize_job: bool = True,
-) -> list[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]:
-    """Get a pytest parameterization list of all enabled (device, profile path) pairs."""
-    enabled_devices = ScorecardDevice.all_devices(enabled=True, include_universal=False)
-    if device not in enabled_devices:
-        if len(enabled_devices) == 1:
-            device = enabled_devices[0]
-        else:
-            # "When running numerical evaluation, must specify exactly one device or have {device} as part of the device list."
-            return []
-
-    return get_model_test_parameterizations(
-        model_id,
-        enabled_test_paths,
-        passing_test_paths,
-        ScorecardProfilePath,
-        can_use_quantize_job,
-        [device],
     )
 
 

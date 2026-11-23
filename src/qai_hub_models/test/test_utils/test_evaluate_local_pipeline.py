@@ -47,6 +47,7 @@ def patched_pipeline() -> Generator[SimpleNamespace]:
     ):
         yield SimpleNamespace(
             model=model,
+            model_cls=model_cls,
             evaluate_on_dataset=evaluate_on_dataset,
             compile_model=compile_model,
             local_model=local_model,

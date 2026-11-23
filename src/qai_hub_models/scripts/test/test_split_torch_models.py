@@ -11,7 +11,7 @@ import pytest
 from qai_hub_models_cli.proto_helpers._common import dump_yaml
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.artifacts import RUNTIME_STAGE_JOB_SUBMISSION
+from qai_hub_models.scorecard.artifacts import RUNTIME_STAGE_SUBMIT
 from qai_hub_models.scorecard.envvars import SpecialModelSetting
 from qai_hub_models.scorecard.internal_config_yaml import (
     QAIHMModelInternalConfig,
@@ -69,7 +69,7 @@ def test_split_aot_jit_falls_back_when_no_estimates() -> None:
     aot = ["aot1", "aot2", "aot3"]
     jit = ["jit1", "jit2", "jit3"]
     bins = _split_aot_jit(
-        aot, jit, num_splits=3, stage=RUNTIME_STAGE_JOB_SUBMISSION, estimates={}
+        aot, jit, num_splits=3, stage=RUNTIME_STAGE_SUBMIT, estimates={}
     )
     assert len(bins) == 3
     # AOT models come first within each split.
@@ -84,18 +84,18 @@ def test_split_aot_jit_uses_lpt_with_estimates() -> None:
     aot = ["aot_heavy", "aot_light_a", "aot_light_b"]
     jit = ["jit_x", "jit_y"]
     estimates = {
-        "aot_heavy": {RUNTIME_STAGE_JOB_SUBMISSION: 1000.0},
-        "aot_light_a": {RUNTIME_STAGE_JOB_SUBMISSION: 50.0},
-        "aot_light_b": {RUNTIME_STAGE_JOB_SUBMISSION: 50.0},
-        "jit_x": {RUNTIME_STAGE_JOB_SUBMISSION: 200.0},
-        "jit_y": {RUNTIME_STAGE_JOB_SUBMISSION: 200.0},
+        "aot_heavy": {RUNTIME_STAGE_SUBMIT: 1000.0},
+        "aot_light_a": {RUNTIME_STAGE_SUBMIT: 50.0},
+        "aot_light_b": {RUNTIME_STAGE_SUBMIT: 50.0},
+        "jit_x": {RUNTIME_STAGE_SUBMIT: 200.0},
+        "jit_y": {RUNTIME_STAGE_SUBMIT: 200.0},
     }
     bins = _split_aot_jit(
-        aot, jit, num_splits=2, stage=RUNTIME_STAGE_JOB_SUBMISSION, estimates=estimates
+        aot, jit, num_splits=2, stage=RUNTIME_STAGE_SUBMIT, estimates=estimates
     )
     # Across splits, the makespan should be balanced. With heavy=1000
     # and the other four totaling 500, optimal is 1000 vs 500.
-    weights = {m: estimates[m][RUNTIME_STAGE_JOB_SUBMISSION] for m in aot + jit}
+    weights = {m: estimates[m][RUNTIME_STAGE_SUBMIT] for m in aot + jit}
     loads = sorted(_bin_loads(bins, weights))
     assert loads == [500.0, 1000.0]
     # Within each split, AOT models come before JIT (sorted alphabetically inside each group).
@@ -121,15 +121,15 @@ def test_split_aot_jit_union_balance_beats_per_group() -> None:
     # Per-group: AOT bins go [100][100], JIT bins go [100][100] -> [200, 200]
     # — coincidentally same as union. Use asymmetric weights so union wins.
     estimates = {
-        "aot_a": {RUNTIME_STAGE_JOB_SUBMISSION: 100.0},
-        "aot_b": {RUNTIME_STAGE_JOB_SUBMISSION: 30.0},
-        "jit_a": {RUNTIME_STAGE_JOB_SUBMISSION: 70.0},
-        "jit_b": {RUNTIME_STAGE_JOB_SUBMISSION: 30.0},
+        "aot_a": {RUNTIME_STAGE_SUBMIT: 100.0},
+        "aot_b": {RUNTIME_STAGE_SUBMIT: 30.0},
+        "jit_a": {RUNTIME_STAGE_SUBMIT: 70.0},
+        "jit_b": {RUNTIME_STAGE_SUBMIT: 30.0},
     }
     bins = _split_aot_jit(
-        aot, jit, num_splits=2, stage=RUNTIME_STAGE_JOB_SUBMISSION, estimates=estimates
+        aot, jit, num_splits=2, stage=RUNTIME_STAGE_SUBMIT, estimates=estimates
     )
-    weights = {m: estimates[m][RUNTIME_STAGE_JOB_SUBMISSION] for m in aot + jit}
+    weights = {m: estimates[m][RUNTIME_STAGE_SUBMIT] for m in aot + jit}
     loads = sorted(_bin_loads(bins, weights))
     # Total = 230, optimal = max(115, 100) = 115. Union LPT achieves it
     # by pairing aot_a(100) with one of jit_b/aot_b(30) vs aot_b+jit_a+jit_b.
@@ -142,8 +142,8 @@ def test_split_aot_jit_union_balance_beats_per_group() -> None:
 def test_split_aot_jit_unknown_models_use_median() -> None:
     """Models missing from estimates are scheduled at the stage median."""
     estimates = {
-        "known_heavy": {RUNTIME_STAGE_JOB_SUBMISSION: 100.0},
-        "known_light": {RUNTIME_STAGE_JOB_SUBMISSION: 10.0},
+        "known_heavy": {RUNTIME_STAGE_SUBMIT: 100.0},
+        "known_light": {RUNTIME_STAGE_SUBMIT: 10.0},
     }
     # 'new_a' and 'new_b' aren't in the estimates at all. Stage median
     # is (10 + 100) / 2 = 55. So the LPT order is heavy(100), new(55),
@@ -152,7 +152,7 @@ def test_split_aot_jit_unknown_models_use_median() -> None:
         aot_models=[],
         jit_models=["known_heavy", "known_light", "new_a", "new_b"],
         num_splits=2,
-        stage=RUNTIME_STAGE_JOB_SUBMISSION,
+        stage=RUNTIME_STAGE_SUBMIT,
         estimates=estimates,
     )
     # Each bin gets two models (heavy+light vs new_a+new_b would be the
@@ -173,7 +173,7 @@ def test_split_aot_jit_falls_back_when_stage_missing() -> None:
         aot_models=[],
         jit_models=["m_a", "m_b"],
         num_splits=2,
-        stage=RUNTIME_STAGE_JOB_SUBMISSION,
+        stage=RUNTIME_STAGE_SUBMIT,
         estimates=estimates,
     )
     assert len(bins) == 2
@@ -194,8 +194,8 @@ def test_load_runtime_estimates_reads_models_section(tmp_path: Path) -> None:
     payload = {
         "source_action_id": "12345",
         "models": {
-            "model_a": {"job_submission": 100.0, "accuracy": 50.0},
-            "model_b": {"job_submission": 200.0},
+            "model_a": {"submit": 100.0, "accuracy": 50.0},
+            "model_b": {"submit": 200.0},
         },
     }
     with open(yaml_path, "w") as f:
@@ -203,8 +203,8 @@ def test_load_runtime_estimates_reads_models_section(tmp_path: Path) -> None:
 
     estimates = _load_runtime_estimates(yaml_path)
     assert estimates == {
-        "model_a": {"job_submission": 100.0, "accuracy": 50.0},
-        "model_b": {"job_submission": 200.0},
+        "model_a": {"submit": 100.0, "accuracy": 50.0},
+        "model_b": {"submit": 200.0},
     }
 
 

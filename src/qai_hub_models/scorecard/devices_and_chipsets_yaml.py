@@ -17,7 +17,7 @@ from typing_extensions import assert_never
 from qai_hub_models.configs.chipset_yaml import ChipsetYaml, WebsiteWorld
 from qai_hub_models.configs.proto_helpers import form_factor_to_proto, runtime_to_proto
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import (
     WEBSITE_EXCLUDED_DEVICES,
@@ -333,13 +333,13 @@ class DevicesAndChipsetsYaml(BaseQAIHMConfig):
     to create model card webpages.
     """
 
-    scorecard_path_to_website_runtime: dict[ScorecardProfilePath, str] = Field(
+    scorecard_path_to_website_runtime: dict[ScorecardInferencePath, str] = Field(
         default_factory=dict
     )
-    scorecard_path_assets_require_chipset: dict[ScorecardProfilePath, bool] = Field(
+    scorecard_path_assets_require_chipset: dict[ScorecardInferencePath, bool] = Field(
         default_factory=dict
     )
-    scorecard_path_extensions: dict[ScorecardProfilePath, str] = Field(
+    scorecard_path_extensions: dict[ScorecardInferencePath, str] = Field(
         default_factory=dict
     )
     form_factors: dict[FormFactor, FormFactorYaml] = Field(default_factory=dict)
@@ -357,7 +357,7 @@ class DevicesAndChipsetsYaml(BaseQAIHMConfig):
             ff: FormFactorYaml.from_form_factor(ff) for ff in FormFactor
         }
 
-        for profile_path in ScorecardProfilePath:
+        for profile_path in ScorecardInferencePath:
             if profile_path.is_published:
                 out.scorecard_path_to_website_runtime[profile_path] = (
                     profile_path.website_runtime_name

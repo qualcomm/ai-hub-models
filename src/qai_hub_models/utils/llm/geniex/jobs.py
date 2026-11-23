@@ -20,7 +20,7 @@ from qai_hub_models.models.templates.llm.model import LLMBase
 from qai_hub_models.models.templates.llm.perf_collection import (
     load_release_assets_for_model,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.utils.aws import (
     QAIHM_PRIVATE_S3_BUCKET,
     QAIHM_PUBLIC_S3_BUCKET,
@@ -871,7 +871,7 @@ def get_geniex_qairt_bundle_url(
     selects.
     """
     assets = load_release_assets_for_model(model_id)
-    asset = assets.get_asset(precision, chipset, ScorecardProfilePath.GENIEX_QAIRT)
+    asset = assets.get_asset(precision, chipset, ScorecardInferencePath.GENIEX_QAIRT)
     if asset is None or asset.s3_key is None:
         raise RuntimeError(
             f"No geniex_qairt release asset for {model_id!r} precision={precision} "

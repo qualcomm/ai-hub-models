@@ -24,7 +24,7 @@ from qai_hub_models.scorecard.params import (
     ScExportTestParams,
     ScJobParams,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.release_assets_yaml import (
     QAIHMModelReleaseAssets,
 )
@@ -33,7 +33,6 @@ from qai_hub_models.scorecard.results.scorecard_job import (
     InferenceScorecardJob,
     JobTypeVar,
     LinkScorecardJob,
-    ProfileScorecardJob,
     QuantizeScorecardJob,
     ScorecardJobTypeVar,
 )
@@ -57,7 +56,7 @@ class ToolVersionChange:
 
 # Schema for sdk versions dumped to Hugging Face / Scorecard Intermediates in YAML format.
 class ToolVersionsByPathYaml(BaseQAIHMConfig):
-    tool_versions: dict[ScorecardProfilePath, ToolVersions] = Field(
+    tool_versions: dict[ScorecardInferencePath, ToolVersions] = Field(
         default_factory=dict
     )
 
@@ -67,7 +66,7 @@ class ToolVersionsByPathYaml(BaseQAIHMConfig):
         """Skip paths this code no longer knows, so old baselines still load."""
         if not isinstance(value, dict):
             return value
-        known = {path.value for path in ScorecardProfilePath}
+        known = {path.value for path in ScorecardInferencePath}
         kept = {}
         for key, versions in value.items():
             if str(getattr(key, "value", key)) in known:
@@ -80,7 +79,7 @@ class ToolVersionsByPathYaml(BaseQAIHMConfig):
 
     @staticmethod
     def from_profile_paths(
-        paths: list[ScorecardProfilePath] | None = None,
+        paths: list[ScorecardInferencePath] | None = None,
     ) -> ToolVersionsByPathYaml:
         """
         Get a tool versions YAML object, with all paths in the list populated with tool versions.
@@ -89,7 +88,7 @@ class ToolVersionsByPathYaml(BaseQAIHMConfig):
         If paths is None, populates all enabled scorecard profile paths.
         """
         out = ToolVersionsByPathYaml()
-        for path in paths or ScorecardProfilePath:
+        for path in paths or ScorecardInferencePath:
             out.tool_versions[path] = path.tool_versions
         return out
 
@@ -433,8 +432,7 @@ class ScorecardJobYaml(ScorecardYamlFile[str], Generic[ScorecardJobTypeVar]):
             return None
         assert len(all_jobs) == 1
         sc_job = next(iter(all_jobs.values()))
-        assert sc_job is not None
-        return sc_job.job
+        return sc_job.job if sc_job is not None else None
 
 
 class PreQDQCompileScorecardJobYaml(ScorecardJobYaml[CompileScorecardJob]):
@@ -465,11 +463,6 @@ class CompileScorecardJobYaml(ScorecardJobYaml[CompileScorecardJob]):
 class LinkScorecardJobYaml(ScorecardJobYaml[LinkScorecardJob]):
     ARTIFACT_TYPE = ScorecardArtifact.LINK_YAML
     SCORECARD_JOB_TYPE = LinkScorecardJob
-
-
-class ProfileScorecardJobYaml(ScorecardJobYaml[ProfileScorecardJob]):
-    ARTIFACT_TYPE = ScorecardArtifact.PROFILE_YAML
-    SCORECARD_JOB_TYPE = ProfileScorecardJob
 
 
 class InferenceScorecardJobYaml(ScorecardJobYaml[InferenceScorecardJob]):
@@ -558,7 +551,7 @@ class ScorecardAssetYaml(BaseQAIHMConfig):
         model_id: str,
         precision: Precision,
         device: ScorecardDevice,
-        path: ScorecardProfilePath,
+        path: ScorecardInferencePath,
     ) -> None:
         if model_id not in self.models:
             self.models[model_id] = QAIHMModelReleaseAssets()
@@ -574,7 +567,7 @@ class ScorecardAssetYaml(BaseQAIHMConfig):
         model_id: str,
         precision: Precision,
         device: ScorecardDevice,
-        path: ScorecardProfilePath,
+        path: ScorecardInferencePath,
     ) -> QAIHMModelReleaseAssets.AssetDetails | None:
         if model_id not in self.models:
             return None

@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, Dataset, Subset, default_collate
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.kwarg_helpers import cli_friendly_class_name
 from qai_hub_models.utils.private_asset_loaders import UnfetchableDatasetError
-from qai_hub_models.utils.samplers import EveryNSampler
+from qai_hub_models.utils.samplers import shuffled_order, strided_order
 
 __all__ = [
     "AugmentedLabelDataset",
@@ -209,31 +209,52 @@ class BaseDataset(Dataset, Sized, ABC):
             "otherwise the dataset author should override `configure()`."
         )
 
-    def get_dataloader(
-        self, num_samples: int, samples_per_job: int | None = None
-    ) -> DataLoader:
-        """Return a DataLoader with num_samples evenly spaced across the dataset.
+    def eval_order(
+        self, num_samples: int, samples_per_job: int, seed: int | None = None
+    ) -> list[int]:
+        """
+        Choose which samples an evaluation uses, and the order they run in.
 
-        Override in datasets where samples must be grouped (e.g. all crops for
-        an image must appear together for correct mAP computation).
+        Evaluating on every sample is too slow, so an evaluation runs on a subset of
+        `num_samples`. The subset is split into consecutive batches of
+        `samples_per_job` (the last may be shorter), and each batch is one on-device
+        inference job. Evaluation reads samples through this method whether or not
+        the dataset cache is used, so both runs see the same samples.
+
+        By default, without a seed, each batch is spread evenly across the whole
+        dataset so it is representative; with a seed the order is a seeded shuffle.
+        Override this if a batch must keep certain samples together (for example
+        all the crops of one image), or if a dataset is cheaper to sample directly.
 
         Parameters
         ----------
         num_samples
-            Number of samples to include.
+            Number of samples requested. Must already be resolved (not -1).
         samples_per_job
-            Batch size for the DataLoader. If None, all samples are in one batch.
+            Samples per batch (inference job).
+        seed
+            If set, a seeded random selection; otherwise evenly spread.
 
         Returns
         -------
-        DataLoader
-            DataLoader containing the sampled subset.
+        order : list[int]
+            `num_samples` indices into this dataset.
         """
-        n = max(1, len(self) // max(1, num_samples))
-        sampler = EveryNSampler(n=n, num_samples=min(num_samples, len(self)))
+        if seed is None:
+            return strided_order(len(self), samples_per_job, num_samples)
+        return shuffled_order(len(self), seed)[:num_samples]
+
+    def get_dataloader(
+        self,
+        num_samples: int,
+        samples_per_job: int | None = None,
+        seed: int | None = None,
+    ) -> DataLoader:
+        """Return a DataLoader over the samples `eval_order` selects."""
+        batch_size = samples_per_job or num_samples
         return DataLoader(
-            Subset(self, list(sampler)),
-            batch_size=samples_per_job or num_samples,
+            Subset(self, self.eval_order(num_samples, batch_size, seed)),
+            batch_size=batch_size,
             collate_fn=self.collate_fn,
         )
 

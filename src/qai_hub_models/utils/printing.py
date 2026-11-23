@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import IO, Any, TypeGuard
 
 import numpy as np
+import pandas as pd
 import qai_hub as hub
 from prettytable import PrettyTable
 from qai_hub.public_rest_api import DatasetEntries
@@ -59,24 +60,25 @@ def is_float(value: object) -> TypeGuard[float]:
 
 
 def print_tool_versions(
-    tool_versions: ToolVersions | None, tool_versions_are_from_device_job: bool = False
+    tool_versions: ToolVersions | None,
+    tool_versions_are_from_inference_job: bool = False,
 ) -> None:
     """Print tool versions."""
     print(_INFO_DASH)
     if tool_versions is not None:
         version_type = (
             "compilation and on-device inference"
-            if tool_versions_are_from_device_job
+            if tool_versions_are_from_inference_job
             else "compilation"
         )
         print(
             f"The versions of tools (eg. SDKs, runtimes) used during {version_type} via AI Hub Workbench:"
         )
         print(tool_versions)
-        if not tool_versions_are_from_device_job:
+        if not tool_versions_are_from_inference_job:
             print(
                 "NOTE: Some tool (eg. SDK, runtime) versions required to run this model may be missing, as those tools were not needed for compilation. "
-                "Run a profile job on the model to get the full set of tools versions required to run the model on-device."
+                "Run an inference job on the model to get the full set of tools versions required to run the model on-device."
             )
     print(_INFO_DASH)
 
@@ -98,14 +100,42 @@ def print_with_box(data: list[str]) -> None:
     print("+" + "-" * size + "+")
 
 
-def print_inference_metrics(
-    inference_job: hub.InferenceJob | None,
+def compute_inference_metrics(
     inference_result: DatasetEntries,
     torch_out: list[np.ndarray],
     output_names: list[str] | None = None,
     outputs_to_skip: list[int] | None = None,
     metrics: str = "psnr",
-) -> None:
+    print_result: bool = False,
+    inference_job: hub.InferenceJob | None = None,
+) -> pd.DataFrame:
+    """
+    Compare on-device outputs against a torch baseline and return the metrics.
+
+    Parameters
+    ----------
+    inference_result
+        On-device outputs, keyed by output name.
+    torch_out
+        Torch baseline outputs, ordered to match ``output_names``.
+    output_names
+        Outputs to compare. Defaults to every key in ``inference_result``.
+    outputs_to_skip
+        Indices into ``output_names`` to drop from the comparison.
+    metrics
+        Comma-separated metric names, e.g. ``"psnr,mse"``.
+    print_result
+        If set, also prints the on-device vs. local-cpu comparison table.
+    inference_job
+        Job the outputs came from, used for the printed header and trailing
+        URL. Ignored unless ``print_result`` is set.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        One row per output, indexed by output name, with a ``shape`` column plus
+        one column per requested metric.
+    """
     if output_names is None:
         output_names = list(inference_result.keys())
     missing = [n for n in output_names if n not in inference_result]
@@ -124,6 +154,15 @@ def print_inference_metrics(
         if output_idx < len(output_names):
             df_eval = df_eval.drop(output_names[output_idx])
 
+    if print_result:
+        _print_inference_metrics(df_eval, inference_job)
+
+    return df_eval
+
+
+def _print_inference_metrics(
+    df_eval: pd.DataFrame, inference_job: hub.InferenceJob | None
+) -> None:
     def custom_float_format(x: object) -> str | object:
         if is_float(x):
             return format_metric(x)
@@ -152,7 +191,7 @@ _BYTES_PER_MB = 1024 * 1024
 
 
 def print_profile_metrics_from_job(
-    profile_job: hub.ProfileJob,
+    inference_job: hub.InferenceJob,
     profile_data: dict[str, Any],
 ) -> None:
     compute_unit_counts = Counter(
@@ -168,15 +207,15 @@ def print_profile_metrics_from_job(
     mem_max_mb = high_mem_bytes // _BYTES_PER_MB
     inf_time_ms = execution_summary["estimated_inference_time"] / 1000
 
-    runtime = TargetRuntime.from_hub_model_type(profile_job.model.model_type)
-    device_name = profile_job.device.name
+    runtime = TargetRuntime.from_hub_model_type(inference_job.model.model_type)
+    device_name = inference_job.device.name
 
     # Read OS from hub.Device.attributes
     os_str = None
-    for attr in profile_job.device.attributes:
+    for attr in inference_job.device.attributes:
         if attr.startswith("os:"):
             os_type = OperatingSystemType[attr.split(":")[-1].upper()]
-            os_obj = OperatingSystem(ostype=os_type, version=profile_job.device.os)
+            os_obj = OperatingSystem(ostype=os_type, version=inference_job.device.os)
             os_str = str(os_obj)
             break
 
@@ -199,11 +238,11 @@ def print_profile_metrics_from_job(
         table.add_row([label, f": {value}"])
 
     print(f"\n{_INFO_DASH}")
-    print(f"Performance results on-device for {profile_job.name.title()}.")
+    print(f"Performance results on-device for {inference_job.name.title()}.")
     print(_INFO_DASH)
     print(table.get_string())
     print(_INFO_DASH)
-    print(f"More details: {profile_job.url}\n")
+    print(f"More details: {inference_job.url}\n")
 
 
 def print_on_target_demo_cmd(

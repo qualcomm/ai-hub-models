@@ -17,14 +17,14 @@ from tabulate import tabulate
 PREREQUISITE_SKIP_PATTERN = re.compile(r"Prerequisite \w+ job ")
 
 
-def clean_message(message: str) -> str:
+def clean_message(message: str, max_len: int = 100) -> str:
     """Clean up a failure message for better display."""
     message = re.sub(r"\n", " ", message)
     message = re.sub(r"\s+", " ", message)
     # Remove pipe characters as they break markdown table formatting
     message = message.replace("|", "")
-    if len(message) > 100:
-        message = message[:97] + "..."
+    if len(message) > max_len:
+        message = message[: max_len - 3] + "..."
     return message
 
 

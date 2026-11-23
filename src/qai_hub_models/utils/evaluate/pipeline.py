@@ -19,6 +19,8 @@ from qai_hub_models.utils.args import get_model_kwargs
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_model import BaseModel
 from qai_hub_models.utils.evaluate.helpers import (
+    EvaluateIntermediates,
+    EvaluateResult,
     _load_quant_cpu_onnx,
     evaluate_on_dataset,
 )
@@ -26,7 +28,8 @@ from qai_hub_models.utils.export.context import (
     resolve_manifest,
     resolve_model_cls,
 )
-from qai_hub_models.utils.export.dispatch import select_pipeline
+from qai_hub_models.utils.export.pipeline import export_model as export_model_fn
+from qai_hub_models.utils.export.result import ExportIntermediates
 from qai_hub_models.utils.inference import AsyncOnDeviceModel, compile_model_from_args
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.kwarg_helpers import filter_kwargs
@@ -50,13 +53,17 @@ def evaluate_model(
     num_samples: int | None = None,
     seed: int | None = None,
     use_dataset_cache: bool = False,
+    force_rebuild_cache: bool = False,
     skip_torch_accuracy: bool = False,
     skip_device_accuracy: bool = False,
     compute_quant_cpu_accuracy: bool = False,
+    compute_psnr: bool = False,
     num_calibration_samples: int | None = None,
     local_model_dir: str | None = None,
+    evaluate_intermediates: EvaluateIntermediates | None = None,
+    skip_waiting: bool = False,
     **kwargs: Any,
-) -> None:
+) -> EvaluateResult:
     """
     Evaluate a single-graph model's accuracy on a dataset.
 
@@ -79,7 +86,7 @@ def evaluate_model(
     compile_options
         Additional options to pass when submitting the compile job.
     inference_options
-        Additional options to pass when submitting the profile job.
+        Additional options to pass when submitting the inference job.
     quantize_options
         Additional options to pass when submitting the quantize job.
     hub_model_id
@@ -94,20 +101,39 @@ def evaluate_model(
         Random seed to use when shuffling the data. If not set, samples data deterministically.
     use_dataset_cache
         If set, will store hub dataset ids in a local file and re-use for subsequent evaluations on the same dataset.
+    force_rebuild_cache
+        If set with use_dataset_cache, discards the local cache for this dataset and builds it again.
     skip_torch_accuracy
         If flag is set, skips computing accuracy with the torch model.
     skip_device_accuracy
         If flag is set, skips computing accuracy on device.
     compute_quant_cpu_accuracy
         If flag is set, computes the accuracy of the quantized onnx model on the CPU.
+    compute_psnr
+        If flag is set, also compares on-device outputs against torch on the
+        model's sample inputs and reports psnr. Models with no eval dataset
+        do this unconditionally, since it is the only numeric check available.
     num_calibration_samples
         The number of calibration data samples to use for quantization.
     local_model_dir
         Directory holding the model's precompiled_qnn_onnx wrapper ``.onnx`` and
         its ``.bin``. If set, the model runs on this machine as the "on-device"
         executor and nothing is compiled or submitted to Workbench.
+    evaluate_intermediates
+        If its ``inference_jobs`` list is non-empty, resume from these
+        already-submitted inference jobs instead of resubmitting.
+    skip_waiting
+        If set, submits the on-device inference jobs and returns before
+        waiting on them. ``device_accuracy`` on the result will be ``None``;
+        ``inference_jobs`` carries the submitted jobs to resume from later.
     **kwargs
         Additional kwargs for model instantiation (from_pretrained) and input_spec.
+
+    Returns
+    -------
+    result : EvaluateResult
+        Torch, quant-cpu and on-device accuracy, plus the on-device
+        inference jobs submitted (populated even when ``skip_waiting``).
     """
     warnings.filterwarnings("ignore")
 
@@ -126,28 +152,19 @@ def evaluate_model(
     input_spec_kwargs = filter_kwargs(model_cls.get_input_spec, kwargs)
 
     eval_dataset_classes = model_cls.get_eval_dataset_classes()
-    if len(eval_dataset_classes) == 0:
-        # PSNR fallback: no datasets, just run export with inference enabled
+    has_eval_dataset = len(eval_dataset_classes) > 0
+    if not has_eval_dataset:
+        if local_model_dir is not None:
+            raise ValueError(
+                "--local-model-dir requires a model with an eval dataset; "
+                "PSNR needs a Workbench-compiled model."
+            )
         print(
             "Model does not have evaluation dataset specified. Evaluating PSNR on a single sample."
         )
-        export_model = select_pipeline(source_dir)
-
-        export_kwargs = {
-            "device": device,
-            "target_runtime": target_runtime,
-            "skip_downloading": True,
-            "skip_profiling": True,
-            "compile_options": compile_options,
-            "inference_options": inference_options,
-            **model_kwargs,
-            **input_spec_kwargs,
-        }
-        if num_calibration_samples is not None:
-            export_kwargs["num_calibration_samples"] = num_calibration_samples
-
-        export_model(**export_kwargs)
-        return
+        compute_psnr = True
+        skip_device_accuracy = True
+        skip_torch_accuracy = True
 
     input_spec: InputSpec | None = None
     torch_model = model_cls.from_pretrained(**model_kwargs)
@@ -166,9 +183,11 @@ def evaluate_model(
             )
         if input_spec is None:
             input_spec = local_input_spec
-    # On-device or quant-cpu path
-    elif not skip_device_accuracy or (
-        supports_quant_cpu and compute_quant_cpu_accuracy
+    # On-device, quant-cpu, or psnr path -- all three need the compiled asset.
+    elif (
+        not skip_device_accuracy
+        or compute_psnr
+        or (supports_quant_cpu and compute_quant_cpu_accuracy)
     ):
         if hub_model_id is not None:
             compiled_model: hub.Model = hub.get_model(hub_model_id)
@@ -218,10 +237,26 @@ def evaluate_model(
     if input_spec is None:
         raise ValueError("Cannot extract input spec.")
 
+    if not has_eval_dataset and compute_psnr:
+        export_result = export_model_fn(
+            source_dir,
+            device,
+            precision=precision,
+            target_runtime=target_runtime,
+            inference_options=inference_options,
+            skip_compiling=True,
+            skip_linking=True,
+            skip_downloading=True,
+            export_intermediates=ExportIntermediates(compiled_model=compiled_model),
+            **model_kwargs,
+            **input_spec_kwargs,
+        )
+        return EvaluateResult(psnr_metrics=export_result.inference_metrics)
+
     if dataset_cls is None:
         raise ValueError("dataset_cls is required for evaluation on a dataset.")
 
-    evaluate_on_dataset(
+    return evaluate_on_dataset(
         evaluator_func=torch_model.get_evaluator,
         dataset_cls=dataset_cls,
         model_executors=model_executors,
@@ -230,4 +265,8 @@ def evaluate_model(
         num_samples=num_samples,
         seed=seed,
         use_cache=use_dataset_cache,
+        evaluate_intermediates=evaluate_intermediates,
+        skip_waiting=skip_waiting,
+        compute_psnr=compute_psnr,
+        force_rebuild_cache=force_rebuild_cache,
     )

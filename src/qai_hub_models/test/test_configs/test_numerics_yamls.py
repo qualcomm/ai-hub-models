@@ -16,7 +16,7 @@ from qai_hub_models.scorecard.numerics_yaml import (
     QAIHMModelNumerics,
     get_numerics_yaml_path,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.utils.numerics_yaml_helpers import (
     create_numerics_struct,
     get_chipset_registry,
@@ -40,7 +40,7 @@ def test_accuracy_yaml() -> None:
                 f"{model_id} numerics yaml validation failed: {err!s}"
             ) from None
 
-        seen: dict[Precision, set[ScorecardProfilePath]] = {}
+        seen: dict[Precision, set[ScorecardInferencePath]] = {}
         for metric in accuracy.metrics:
             for precisions in metric.device_metric.values():
                 for precision, paths in precisions.items():

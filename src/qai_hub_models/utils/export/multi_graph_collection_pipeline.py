@@ -36,12 +36,14 @@ from qai_hub_models.utils.export.context import (
 from qai_hub_models.utils.export.download import (
     download_multi_graph_collection_model_bundle,
 )
+from qai_hub_models.utils.export.inference import run_multi_graph_collection_inference
 from qai_hub_models.utils.export.link import run_multi_graph_collection_link
-from qai_hub_models.utils.export.profile import run_multi_graph_collection_profile
 from qai_hub_models.utils.export.result import (
     ComponentGroup,
+    MultiGraphCollectionExportIntermediates,
     MultiGraphCollectionExportResult,
     MultiGraphComponentGroup,
+    validate_export_intermediates,
 )
 from qai_hub_models.utils.export.summary import (
     extract_tool_versions,
@@ -52,8 +54,8 @@ from qai_hub_models.utils.kwarg_helpers import filter_kwargs
 from qai_hub_models.utils.printing import print_tool_versions
 from qai_hub_models.utils.qai_hub_helpers import (
     _AIHUB_URL,
-    assert_success_and_get_target_models,
     get_device_and_chipset_name,
+    get_target_models,
 )
 
 
@@ -63,7 +65,9 @@ def export_model(
     precision: Precision,
     components: list[str] | None = None,
     target_runtime: TargetRuntime = TargetRuntime.GENIE,
-    skip_profiling: bool = False,
+    export_intermediates: MultiGraphCollectionExportIntermediates | None = None,
+    skip_linking: bool = False,
+    skip_inferencing: bool = False,
     skip_downloading: bool = False,
     skip_summary: bool = False,
     output_dir: str | None = None,
@@ -98,8 +102,20 @@ def export_model(
         Optional subset of components to export. Defaults to all.
     target_runtime
         On-device runtime to target.
-    skip_profiling
-        If set, skips profiling on real devices.
+    export_intermediates
+        Already-built per-(component, graph) assets to start from, in place
+        of rebuilding them. If ``compiled_models``/``compile_jobs`` is set,
+        it must cover every (component, graph) pair -- upload/compile is
+        skipped entirely, not per-pair. If ``source_models`` is set, it's
+        used as the starting point for compile instead of re-uploading.
+        ``link_jobs``/``inference_jobs`` likewise must cover every component
+        to skip linking/inference. A job field takes precedence over its
+        sibling model field when both are set.
+    skip_linking
+        If set, stops after compiling -- skips linking (AOT runtimes only)
+        and everything after it.
+    skip_inferencing
+        If set, skips running the model on a real device.
     skip_downloading
         If set, skips downloading the compiled bundle.
     skip_summary
@@ -111,7 +127,7 @@ def export_model(
     link_options
         Extra options for the link job. Ignored for runtimes that do not link.
     inference_options
-        Extra options for the profile job.
+        Extra options for the inference job.
     zip_assets
         If set, zip the assets after downloading.
     **additional_model_kwargs
@@ -123,6 +139,10 @@ def export_model(
         Per-component compile/link/profile jobs and the downloaded bundle path.
     """
     warnings.filterwarnings("ignore")
+    assert target_runtime.uses_hub_link, (
+        "multi_graph_collection_pipeline.export_model() only supports runtimes "
+        f"that use hub.link(), got {target_runtime}"
+    )
 
     model_id = resolve_model_id(source_dir)
     if not can_access_qualcomm_ai_hub():
@@ -143,8 +163,11 @@ def export_model(
     output_path = Path(output_dir or Path.cwd() / "export_assets")
 
     _, chipset = get_device_and_chipset_name(device)
+    export_intermediates = (
+        export_intermediates or MultiGraphCollectionExportIntermediates()
+    )
 
-    # 1. Instantiate the model and upload one source per (component, graph).
+    # 1. Instantiate the model and upload a (component, graph) pair's source if needed.
     model = model_cls.from_pretrained(
         **get_model_kwargs(model_cls, additional_model_kwargs)
     )
@@ -155,70 +178,92 @@ def export_model(
     input_specs = model.get_input_spec(
         **filter_kwargs(model.get_input_spec, additional_model_kwargs)
     )
-    source_models = upload_multi_graph_collection_source(model, input_specs, components)
 
-    # 2. Compile each (component, graph) pair.
-    compile_jobs = run_multi_graph_collection_compile(
-        model,
-        model_name,
-        device,
-        target_runtime,
-        precision,
-        source_models,
-        input_specs,
-        components,
-        extra_options=compile_options,
+    relevant_input_specs = MultiGraphComponentGroup(
+        {(c, g): spec for (c, g), spec in input_specs.items() if c in components}
     )
 
-    # 3. Link each component's compiled DLCs (AOT only). For JIT runtimes pick
-    #    one job per component out of the compile results.
-    link_jobs: ComponentGroup[hub.client.LinkJob] | None = None
+    compile_jobs: MultiGraphComponentGroup[hub.client.CompileJob] | None = (
+        export_intermediates.compile_jobs
+    )
+    compiled_models: MultiGraphComponentGroup[hub.Model] | None = (
+        export_intermediates.compiled_models
+    )
+    validate_export_intermediates(
+        export_intermediates, target_runtime.uses_hub_link, keys=relevant_input_specs
+    )
+
+    # 2. Compile every (component, graph) pair, unless already-compiled
+    # assets were supplied.
+    if compile_jobs is None and compiled_models is None:
+        source_models = export_intermediates.source_models or MultiGraphComponentGroup(
+            upload_multi_graph_collection_source(
+                model, relevant_input_specs, components
+            )
+        )
+        compile_jobs = run_multi_graph_collection_compile(
+            model,
+            model_name,
+            device,
+            target_runtime,
+            precision,
+            source_models,
+            relevant_input_specs,
+            components,
+            extra_options=compile_options,
+        )
+    if skip_linking:
+        return MultiGraphCollectionExportResult(compile_jobs=compile_jobs)
+
+    link_jobs: ComponentGroup[hub.client.LinkJob] | None = (
+        export_intermediates.link_jobs
+    )
+
+    # 3. Link each component's compiled DLCs. Chained off the compile jobs
+    # without waiting for them.
     target_models: ComponentGroup[hub.Model]
-    if target_runtime.uses_hub_link:
-        compiled = assert_success_and_get_target_models(compile_jobs)
+    if link_jobs is None:
+        if compiled_models is None:
+            assert compile_jobs is not None
+            compiled_models = get_target_models(compile_jobs)
         link_jobs = run_multi_graph_collection_link(
-            compiled,
+            compiled_models,
             device,
             model_name,
             model,
             target_runtime,
             extra_options=link_options,
         )
-        target_models = assert_success_and_get_target_models(link_jobs)
-    else:
-        first_per_component: dict[str, hub.client.CompileJob] = {}
-        for (comp_name, _graph), job in compile_jobs.items():
-            first_per_component.setdefault(comp_name, job)
-        target_models = assert_success_and_get_target_models(
-            ComponentGroup(first_per_component)
-        )
+    target_models = get_target_models(link_jobs)
 
     inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
 
-    # 4. Profile each (component, graph).
-    profile_jobs: MultiGraphComponentGroup[hub.client.ProfileJob] | None = None
-    if not skip_profiling:
-        profile_jobs = run_multi_graph_collection_profile(
-            model_name,
-            device,
-            inference_opts,
-            target_models,
-            components,
+    # 4. Profile each (component, graph). The hub target model is selected
+    # per-component (link consolidates all graphs of a component into one
+    # model); the per-graph options select the graph inside that model.
+    inference_jobs: MultiGraphComponentGroup[hub.client.InferenceJob] | None = (
+        export_intermediates.inference_jobs
+    )
+    if inference_jobs is None and not skip_inferencing:
+        inference_jobs = run_multi_graph_collection_inference(
+            None, model_name, device, inference_opts, target_models, components
         )
+    inference_jobs = inference_jobs or MultiGraphComponentGroup()
 
     # 5. Tool versions.
     if not skip_summary or not skip_downloading:
-        first_profile = (
-            next(iter(profile_jobs.values()), None) if profile_jobs else None
+        first_inference = (
+            next(iter(inference_jobs.values()), None) if inference_jobs else None
         )
-        first_compile = next(iter(compile_jobs.values()), None)
-        tool_versions, tool_versions_from_device = extract_tool_versions(
-            first_profile,
-            None,
+        first_compile = (
+            next(iter(compile_jobs.values()), None) if compile_jobs else None
+        )
+        tool_versions, tool_versions_from_inference = extract_tool_versions(
+            first_inference,
             first_compile,
         )
     else:
-        tool_versions, tool_versions_from_device = None, False
+        tool_versions, tool_versions_from_inference = None, False
 
     # 6. Download every component into one bundle.
     download_path: Path | None = None
@@ -242,10 +287,10 @@ def export_model(
         )
 
     if not skip_summary:
-        if profile_jobs:
-            for profile_job in profile_jobs.values():
-                print_profile_summary(profile_job)
-        print_tool_versions(tool_versions, tool_versions_from_device)
+        if inference_jobs:
+            for inference_job in inference_jobs.values():
+                print_profile_summary(inference_job)
+        print_tool_versions(tool_versions, tool_versions_from_inference)
         if download_path is not None:
             print(f"{model_name} was saved to {download_path}\n")
         if target_runtime in (TargetRuntime.GENIE, TargetRuntime.GENIEX_QAIRT):
@@ -266,9 +311,8 @@ def export_model(
 
     return MultiGraphCollectionExportResult(
         compile_jobs=compile_jobs,
-        link_jobs=link_jobs,
-        profile_jobs=profile_jobs,
-        inference_jobs=None,
+        link_jobs=link_jobs or None,
+        inference_jobs=inference_jobs or None,
         download_path=download_path,
         tool_versions=tool_versions,
         metadata=metadata,

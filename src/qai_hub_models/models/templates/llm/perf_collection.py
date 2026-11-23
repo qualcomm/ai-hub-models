@@ -39,7 +39,7 @@ from qai_hub_models.scorecard.envvars import (
     LLMPerfUpdatesEnvvar,
     SpecialLLMPerfPrecisionSetting,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -264,7 +264,7 @@ def _record_perf_update(entry: dict) -> None:
 
 def record_perf_scope(
     model_id: str,
-    profile_path: ScorecardProfilePath,
+    profile_path: ScorecardInferencePath,
     device_name: str,
     precision: Precision,
 ) -> None:
@@ -293,7 +293,7 @@ def update_perf_yaml(
     context_length: int,
     tps: float,
     prefill_tps: float | None = None,
-    profile_path: ScorecardProfilePath = ScorecardProfilePath.GENIE,
+    profile_path: ScorecardInferencePath = ScorecardInferencePath.GENIE,
     desired_compute_unit: str = "npu",
     tool_versions: ToolVersions | None = None,
 ) -> None:
@@ -345,7 +345,7 @@ def _update_perf_yaml_locked(
     context_length: int,
     tps: float,
     prefill_tps: float | None = None,
-    profile_path: ScorecardProfilePath = ScorecardProfilePath.GENIE,
+    profile_path: ScorecardInferencePath = ScorecardInferencePath.GENIE,
     desired_compute_unit: str = "npu",
     tool_versions: ToolVersions | None = None,
 ) -> None:
@@ -399,7 +399,7 @@ def _upsert_metric(
 
 def clear_llm_metrics_for_profile_path(
     model_id: str,
-    profile_path: ScorecardProfilePath,
+    profile_path: ScorecardInferencePath,
     device_name: str | None = None,
     precision: Precision | None = None,
 ) -> None:

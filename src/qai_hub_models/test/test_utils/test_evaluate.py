@@ -16,7 +16,9 @@ from qai_hub_models.utils.asset_loaders import qaihm_temp_dir
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetSplit
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.base_model import BaseModel
-from qai_hub_models.utils.evaluate.helpers import evaluate
+from qai_hub_models.utils.evaluate.helpers import (
+    evaluate,
+)
 from qai_hub_models.utils.input_spec import InputSpec, OutputSpec, make_torch_inputs
 from qai_hub_models.utils.onnx.torch_wrapper import OnnxModelTorchWrapper
 
@@ -265,7 +267,7 @@ def test_local_evaluate(
         with pytest.raises(
             ValueError, match=r".*must evenly divide the DataLoader's batch size.*"
         ):
-            out = evaluate(
+            _ = evaluate(
                 dataloader,
                 evaluator_func,
                 {"torch": model, "onnx": onnx_model},
@@ -273,7 +275,7 @@ def test_local_evaluate(
                 verbose=False,
             )
     else:
-        out = evaluate(
+        out, _ = evaluate(
             dataloader,
             evaluator_func,
             {"torch": model, "onnx": onnx_model},

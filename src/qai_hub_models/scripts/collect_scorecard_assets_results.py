@@ -9,7 +9,7 @@ from pathlib import Path
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
 from qai_hub_models.scorecard.envvars import (
     ArtifactsDirEnvvar,
@@ -43,7 +43,7 @@ def _release_assets_scope(
     manifest: QAIHMModelManifest,
     component_names_yaml: ComponentNamesYaml,
     graph_names_yaml: GraphNamesYaml,
-) -> set[tuple[Precision, str | None, ScorecardProfilePath]]:
+) -> set[tuple[Precision, str | None, ScorecardInferencePath]]:
     """The (precision, chipset, path) tuples this run was configured to produce.
 
     chipset is the target chipset for AOT-compiled runtimes and None otherwise.
@@ -60,8 +60,8 @@ def _release_assets_scope(
     test_params = ModelTestConfig.from_recipe_model(
         manifest, component_names, graph_names, component_graph_names
     )
-    scope: set[tuple[Precision, str | None, ScorecardProfilePath]] = set()
-    for precision, path, device in test_params.profile_tests:
+    scope: set[tuple[Precision, str | None, ScorecardInferencePath]] = set()
+    for precision, path, device in test_params.inference_tests:
         chipset = device.chipset if path.runtime.is_aot_compiled else None
         scope.add((precision, chipset, path))
     return scope

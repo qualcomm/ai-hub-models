@@ -113,7 +113,7 @@ jobs:
       QAIHM_TEST_PATHS: ${{ inputs.test_runtimes }}
       QAIHM_TEST_MODELS: ${{ inputs.models }}
       QAIHM_TEST_PRECISIONS: ${{ inputs.test_precisions }}
-      QAIHM_TEST_IGNORE_DEVICE_JOB_CACHE: ${{ inputs.ignore_job_cache }}
+      QAIHM_TEST_USE_MODEL_HASH_CACHE: ${{ inputs.ignore_job_cache && '0' || '1' }}
       QAIHM_PER_MODEL_VENV: ${{ inputs.use_per_model_venv && '1' || '' }}
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
       COMPILE_JOBS_URL: NONE
@@ -220,7 +220,7 @@ jobs:
           echo "QAIHM_TEST_QAIRT_VERSION=${{ env.QAIHM_TEST_QAIRT_VERSION }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_CHECKPOINT=${{ env.QAIHM_TEST_CHECKPOINT }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_IGNORE_KNOWN_FAILURES=${{ env.QAIHM_TEST_IGNORE_KNOWN_FAILURES }}" >> $ENVIRONMENT_FILE
-          echo "QAIHM_TEST_IGNORE_DEVICE_JOB_CACHE=${{ inputs.ignore_job_cache }}" >> $ENVIRONMENT_FILE
+          echo "QAIHM_TEST_USE_MODEL_HASH_CACHE=${{ inputs.ignore_job_cache && '0' || '1' }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_SCOPE=${{ inputs.test_scope }}" >> $ENVIRONMENT_FILE
           echo "QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT=${{ env.QAIHM_TEST_DISABLE_WORKBENCH_JOB_TIMEOUT }}" >> $ENVIRONMENT_FILE
 
@@ -237,9 +237,9 @@ jobs:
         run: |
           source "${{env.VENV_PATH}}/bin/activate"
           if [[ "${{ github.event_name }}" != "schedule" ]]; then
-            python -m qai_hub_models.scripts.count_device_jobs --assert-valid-daytime-scorecard
+            python -m qai_hub_models.scripts.count_inference_jobs --assert-valid-daytime-scorecard
           else
-            python -m qai_hub_models.scripts.count_device_jobs
+            python -m qai_hub_models.scripts.count_inference_jobs
           fi
 
       - name: Dump QAIRT Versions to Disk
@@ -265,7 +265,7 @@ jobs:
         if: ${{ !cancelled() && inputs.test_scope != 'unit' && inputs.test_scope != 'unit_and_compile' }}
         run: |
           source "${{env.VENV_PATH}}/bin/activate"
-          python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-profile --skip-inference
+          python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-inference
 
       - name: Run Pre-Quantize ONNX Compile Jobs (Pytorch Recipes)
         id: run-pre-quantize-compile-jobs
@@ -317,18 +317,12 @@ jobs:
             --python="${{ steps.ci_setup.outputs.python-path }}" \
             test_link_all_models
 
-      - name: Run Profile & Inference Jobs (Static Models)
-        id: run-profile-jobs-static
+      - name: Run Inference Jobs (Static Models)
+        id: run-inference-jobs-static
         if: ${{ !cancelled() && inputs.test_scope != 'unit' && inputs.test_scope != 'unit_and_compile' && inputs.test_scope != 'compile_only' && steps.run-compile-jobs-static.conclusion != 'skipped' }}
         run: |
           source "${{env.VENV_PATH}}/bin/activate"
-          if [[ "${{ inputs.test_scope }}" == "perf" ]]; then
-            python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-compile --skip-inference
-          elif [[ "${{ inputs.test_scope }}" == "accuracy" ]]; then
-            python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-compile --skip-profile
-          elif [[ "${{ inputs.test_scope }}" == "perf_and_accuracy" ]]; then
-            python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-compile
-          fi
+          python -m qai_hub_models.scorecard.static.scripts.exec_models --skip-compile
 
       - name: Run Profile & Inference Jobs (Pytorch Recipes)
         id: run-profile-jobs-e2e
@@ -339,8 +333,6 @@ jobs:
           source "${{env.VENV_PATH}}/bin/activate"
           if [[ "${{ inputs.test_scope }}" == "perf" ]]; then
             QAIHM_TEST_DEVICE_TASK="test_profile_all_models"
-          elif [[ "${{ inputs.test_scope }}" == "accuracy" ]]; then
-            QAIHM_TEST_DEVICE_TASK="test_inference_all_models"
           elif [[ "${{ inputs.test_scope }}" == "perf_and_accuracy" ]]; then
             QAIHM_TEST_DEVICE_TASK="test_profile_inference_all_models"
           fi

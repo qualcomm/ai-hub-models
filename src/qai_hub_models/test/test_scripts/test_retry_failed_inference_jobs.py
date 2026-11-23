@@ -5,7 +5,7 @@
 """
 Hub Client Methods: ['config', 'get_dataset', 'get_datasets', 'get_device_attributes', 'get_devices', 'get_frameworks', 'get_job', 'get_job_summaries', 'get_jobs', 'get_model', 'get_models', 'set_verbose', 'submit_compile_and_profile_jobs', 'submit_compile_job', 'submit_inference_job', 'submit_link_job', 'submit_profile_job', 'submit_quantize_job', 'upload_dataset', 'upload_model', 'verbose']
 Job Methods: ['date', 'device', 'disable_sharing', 'download_profile', 'download_results', 'get_sharing', 'get_status', 'hub_version', 'job_id', 'job_type', 'model', 'modify_sharing', 'name', 'options', 'set_name', 'shapes', 'url', 'verbose', 'wait']
-Job Type: ProfileJob
+Job Type: InferenceJob
 Job Status Methods: ['State', 'all_running_states', 'code', 'failure', 'finished', 'message', 'pending', 'running', 'state', 'success', 'symbol']
 Job Status Attributes: {'state': <State.SUCCESS: 10>, 'message': ''}
 
@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 from qai_hub.client import Client as HubClient
 
-from qai_hub_models.scripts.retry_failed_profile_jobs import (
+from qai_hub_models.scripts.retry_failed_inference_jobs import (
     FLAKY_FAILURES,
     check_job_for_flaky_failure,
     get_job_failure_reason,
@@ -43,8 +43,8 @@ class MockJobStatus:
         return True  # Assuming the job is finished
 
 
-class MockProfileJob:
-    """Mock profile job for testing."""
+class MockInferenceJob:
+    """Mock inference job for testing."""
 
     def __init__(
         self,
@@ -61,7 +61,7 @@ class MockProfileJob:
         self.device = device
         self.options = options
         self.name = name or "test_job"
-        self.job_type = "profile"
+        self.job_type = "inference"
 
     def get_status(self) -> MockJobStatus:
         return self.status
@@ -70,11 +70,11 @@ class MockProfileJob:
 class MockHubClient(HubClient):
     """Mock hub client for testing."""
 
-    def __init__(self, jobs: dict[str, MockProfileJob]) -> None:
+    def __init__(self, jobs: dict[str, MockInferenceJob]) -> None:
         self.jobs = jobs
         self._verbose = False
 
-    def get_job(self, job_id: str) -> MockProfileJob | None:  # type: ignore[override]
+    def get_job(self, job_id: str) -> MockInferenceJob | None:  # type: ignore[override]
         return self.jobs.get(job_id)
 
     def submit_inference_job(  # type: ignore[override]
@@ -85,9 +85,9 @@ class MockHubClient(HubClient):
         name: str | None = None,
         options: str = "",
         **kwargs: Any,
-    ) -> MockProfileJob:
+    ) -> MockInferenceJob:
         job_id = f"new_{len(self.jobs)}"
-        job = MockProfileJob(
+        job = MockInferenceJob(
             job_id, MockJobStatus(False, ""), model, device, options, name
         )
         self.jobs[job_id] = job
@@ -127,8 +127,8 @@ def test_get_job_failure_reason() -> None:
     success_status = MockJobStatus(False, "")
 
     # Create test jobs
-    failed_job = MockProfileJob("failed_job_id", failed_status)
-    success_job = MockProfileJob("success_job_id", success_status)
+    failed_job = MockInferenceJob("failed_job_id", failed_status)
+    success_job = MockInferenceJob("success_job_id", success_status)
 
     # Create a hub client with our test jobs
     hub_client = MockHubClient(
@@ -153,9 +153,9 @@ def test_check_job_for_flaky_failure() -> None:
     success_status = MockJobStatus(False, "")
 
     # Create test jobs
-    flaky_job = MockProfileJob("flaky_job_id", failed_status)
-    non_flaky_job = MockProfileJob("non_flaky_job_id", non_flaky_status)
-    success_job = MockProfileJob("success_job_id", success_status)
+    flaky_job = MockInferenceJob("flaky_job_id", failed_status)
+    non_flaky_job = MockInferenceJob("non_flaky_job_id", non_flaky_status)
+    success_job = MockInferenceJob("success_job_id", success_status)
 
     # Create a hub client with our test jobs
     hub_client = MockHubClient(
@@ -201,9 +201,9 @@ def test_check_job_for_flaky_failure_test_mode() -> None:
     success_status = MockJobStatus(False, "")
 
     # Create test jobs
-    flaky_job = MockProfileJob("flaky_job_id", failed_status)
-    non_flaky_job = MockProfileJob("non_flaky_job_id", non_flaky_status)
-    success_job = MockProfileJob("success_job_id", success_status)
+    flaky_job = MockInferenceJob("flaky_job_id", failed_status)
+    non_flaky_job = MockInferenceJob("non_flaky_job_id", non_flaky_status)
+    success_job = MockInferenceJob("success_job_id", success_status)
 
     # Create a hub client with our test jobs
     hub_client = MockHubClient(
@@ -242,7 +242,7 @@ def test_check_job_for_flaky_failure_test_mode() -> None:
 def test_process_flaky_job_core_logic() -> None:
     """The retried job must carry over the original's model, device, and options."""
     job_status = MockJobStatus(True, "Job timed out after 8h")
-    job_to_clone = MockProfileJob(
+    job_to_clone = MockInferenceJob(
         "job_to_clone",
         job_status,
         model="test_model",
@@ -253,11 +253,11 @@ def test_process_flaky_job_core_logic() -> None:
 
     hub_client = MockHubClient({"job_to_clone": job_to_clone})
 
-    # The mock job is a stand-in, not a real hub.ProfileJob, so relax the
+    # The mock job is a stand-in, not a real hub.InferenceJob, so relax the
     # isinstance guard the function uses to narrow the job type.
     with patch(
-        "qai_hub_models.scripts.retry_failed_profile_jobs.hub.ProfileJob",
-        MockProfileJob,
+        "qai_hub_models.scripts.retry_failed_inference_jobs.hub.InferenceJob",
+        MockInferenceJob,
     ):
         job_key, new_job_id, success = process_flaky_job(
             hub_client, "key1", "job_to_clone"
@@ -278,7 +278,7 @@ def test_parse_args_test_mode() -> None:
     """Test that the --test-mode flag is properly recognized."""
     # Test without --test-mode
     with patch.object(
-        sys, "argv", ["retry_failed_profile_jobs.py", "--artifacts-dir", "test_dir"]
+        sys, "argv", ["retry_failed_inference_jobs.py", "--artifacts-dir", "test_dir"]
     ):
         args = parse_args()
         assert not args.test_mode
@@ -287,7 +287,12 @@ def test_parse_args_test_mode() -> None:
     with patch.object(
         sys,
         "argv",
-        ["retry_failed_profile_jobs.py", "--artifacts-dir", "test_dir", "--test-mode"],
+        [
+            "retry_failed_inference_jobs.py",
+            "--artifacts-dir",
+            "test_dir",
+            "--test-mode",
+        ],
     ):
         args = parse_args()
         assert args.test_mode
@@ -297,7 +302,7 @@ def test_parse_args_test_mode() -> None:
         sys,
         "argv",
         [
-            "retry_failed_profile_jobs.py",
+            "retry_failed_inference_jobs.py",
             "--artifacts-dir",
             "test_dir",
             "--dry-run",
@@ -313,7 +318,7 @@ def test_parse_args_test_mode() -> None:
         sys,
         "argv",
         [
-            "retry_failed_profile_jobs.py",
+            "retry_failed_inference_jobs.py",
             "--artifacts-dir",
             "test_dir",
             "--collect-failure-reasons",

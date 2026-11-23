@@ -11,7 +11,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
@@ -20,7 +19,6 @@ from qai_hub_models.utils.base_dataset import (
 )
 from qai_hub_models.utils.input_spec import InputSpec, TensorSpec
 from qai_hub_models.utils.private_asset_loaders import CachedPrivateDatasetAsset
-from qai_hub_models.utils.samplers import EveryNSampler
 
 KITTI_LPR_FOLDER_NAME = "kitti_lidar_place_recognition"
 KITTI_LPR_VERSION = 1
@@ -165,22 +163,17 @@ class LidarPlaceRecognitionDataset(BaseDataset):
                 return i, int(matches[0])
         raise ValueError("Dataset contains no revisit pair.")
 
-    def get_dataloader(
-        self, num_samples: int, samples_per_job: int | None = None
-    ) -> DataLoader:
-        """Evenly spaced samples, with a revisit pair swapped in if they have none.
+    def eval_order(
+        self, num_samples: int, samples_per_job: int, seed: int | None = None
+    ) -> list[int]:
+        """Evenly spread samples, with a revisit pair swapped in if they have none.
 
         Without one, Recall@1 is undefined for small samples (e.g. the 2-sample smoke test).
         """
-        n = max(1, len(self) // max(1, num_samples))
-        indices = list(EveryNSampler(n=n, num_samples=min(num_samples, len(self))))
-        if len(indices) >= 2 and not self._has_revisit(indices):
-            indices[:2] = self._find_revisit_pair()
-        return DataLoader(
-            Subset(self, indices),
-            batch_size=samples_per_job or num_samples,
-            collate_fn=self.collate_fn,
-        )
+        order = super().eval_order(num_samples, samples_per_job, seed)
+        if len(order) >= 2 and not self._has_revisit(order):
+            order[:2] = self._find_revisit_pair()
+        return order
 
 
 class KittiLidarPlaceRecognitionDataset(LidarPlaceRecognitionDataset):

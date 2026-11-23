@@ -33,7 +33,7 @@ from qai_hub_models.scripts.format_flaky_jobs_report import (
     format_flaky_jobs_report,
     parse_args,
 )
-from qai_hub_models.scripts.retry_failed_profile_jobs import FlakyJobsYaml
+from qai_hub_models.scripts.retry_failed_inference_jobs import FlakyJobsYaml
 
 
 def test_format_flaky_jobs_report_with_flaky_jobs() -> None:
@@ -104,7 +104,7 @@ def test_format_flaky_jobs_report_with_flaky_jobs() -> None:
 
     # Check that it contains the title with count
     assert (
-        ":warning: [Scorecard Flaky Jobs] Found and fixed 4 flaky profile jobs in scorecard run."
+        ":warning: [Scorecard Flaky Jobs] Found and fixed 4 flaky inference jobs in scorecard run."
         in result
     )
 
@@ -219,7 +219,7 @@ def test_format_flaky_jobs_report_single_job() -> None:
     assert "samsung_galaxy_s23:" in result
     assert "  • Job timed out after 8h (1 jobs)" in result
     assert (
-        ":warning: [Scorecard Flaky Jobs] Found and fixed 1 flaky profile jobs in scorecard run."
+        ":warning: [Scorecard Flaky Jobs] Found and fixed 1 flaky inference jobs in scorecard run."
         in result
     )
 
@@ -314,7 +314,7 @@ def test_main_functionality() -> None:
         assert "snapdragon_8_gen_3:" in result
         assert "  • Device unavailable (1 jobs)" in result
         assert (
-            ":warning: [Scorecard Flaky Jobs] Found and fixed 2 flaky profile jobs in scorecard run."
+            ":warning: [Scorecard Flaky Jobs] Found and fixed 2 flaky inference jobs in scorecard run."
             in result
         )
 

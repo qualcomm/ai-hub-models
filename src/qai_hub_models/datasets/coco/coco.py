@@ -340,3 +340,16 @@ class Coco180Dataset(CocoDataset):
     @staticmethod
     def dataset_name() -> str:
         return "coco_180"
+
+
+class Coco100Dataset(CocoDataset):
+    """Wrapper class around CocoDataset for 100 samples_per_job"""
+
+    @staticmethod
+    def default_samples_per_job() -> int:
+        """The default value for how many samples to run in each inference job."""
+        return 100
+
+    @staticmethod
+    def dataset_name() -> str:
+        return "coco_100"

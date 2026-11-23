@@ -21,7 +21,6 @@ MERGE_YAML_FILES = [
     "graph-names.yaml",
     "compile-jobs.yaml",
     "link-jobs.yaml",
-    "profile-jobs.yaml",
     "inference-jobs.yaml",
     "quantize-jobs.yaml",
     "dataset-ids.yaml",
@@ -32,6 +31,7 @@ MERGE_YAML_FILES = [
 # CSV files that should be merged by concatenating rows
 MERGE_CSV_FILES = [
     "accuracy.csv",
+    "stage-timings.csv",
 ]
 
 # Files that should be copied (not merged) - take the first one found
@@ -62,6 +62,21 @@ def write_empty_release_assets(output_dir: Path) -> None:
     os.makedirs(output_dir, exist_ok=True)
     save_yaml(output_dir / "release-assets.yaml", {"models": {}})
     print(f"Wrote empty release-assets.yaml to {output_dir}")
+
+
+def find_input_dirs(input_dir: Path) -> list[Path]:
+    """
+    The directories to combine: every subdirectory, plus the directory itself if it
+    holds any file to combine (a lone artifact extracts flat, not into a subdirectory).
+    """
+    input_dirs = sorted(
+        [d for d in input_dir.iterdir() if d.is_dir()],
+        key=lambda x: x.name,
+    )
+    combinable = MERGE_YAML_FILES + MERGE_CSV_FILES + COPY_FILES
+    if not input_dirs or any((input_dir / f).exists() for f in combinable):
+        input_dirs.insert(0, input_dir)
+    return input_dirs
 
 
 def combine_split_artifacts(
@@ -180,17 +195,7 @@ def main() -> None:
         write_empty_release_assets(args.output_dir)
         return
 
-    # Find all subdirectories in the input directory.
-    # If no subdirectories exist (e.g. download-artifact v8 with merge-multiple),
-    # treat the input directory itself as the sole input.
-    input_dirs = sorted(
-        [d for d in args.input_dir.iterdir() if d.is_dir()],
-        key=lambda x: x.name,
-    )
-
-    if not input_dirs:
-        input_dirs = [args.input_dir]
-
+    input_dirs = find_input_dirs(args.input_dir)
     print(f"Found {len(input_dirs)} input directories")
     combine_split_artifacts(input_dirs, args.output_dir, args.models)
     if not (args.output_dir / "release-assets.yaml").exists():

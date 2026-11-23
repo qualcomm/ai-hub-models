@@ -7,7 +7,7 @@ from qai_hub_models.scorecard.device import (
     compute_peer_chipsets,
     cs_universal,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 
 
 def test_exactly_one_default() -> None:
@@ -74,14 +74,14 @@ def test_supported_chipsets_for_paths_drops_proxies_when_aot() -> None:
     """A context binary is built per chipset, so older chipsets can't be proxied."""
     device = ScorecardDevice.get("cs_8_elite")
     assert device.supported_chipsets_for_paths(
-        [ScorecardProfilePath.QNN_CONTEXT_BINARY]
+        [ScorecardInferencePath.QNN_CONTEXT_BINARY]
     ) == {"qualcomm-snapdragon-8-elite-for-galaxy"}
 
 
 def test_supported_chipsets_for_paths_keeps_proxies_when_jit() -> None:
     device = ScorecardDevice.get("cs_8_elite")
     assert (
-        device.supported_chipsets_for_paths([ScorecardProfilePath.TFLITE])
+        device.supported_chipsets_for_paths([ScorecardInferencePath.TFLITE])
         == device.extended_supported_chipsets
     )
 
@@ -92,8 +92,8 @@ def test_supported_chipsets_for_paths_keeps_proxies_when_any_path_is_jit() -> No
     assert (
         device.supported_chipsets_for_paths(
             [
-                ScorecardProfilePath.QNN_CONTEXT_BINARY,
-                ScorecardProfilePath.TFLITE,
+                ScorecardInferencePath.QNN_CONTEXT_BINARY,
+                ScorecardInferencePath.TFLITE,
             ]
         )
         == device.extended_supported_chipsets
@@ -106,7 +106,7 @@ def test_supported_chipsets_for_paths_keeps_compute_peers_when_aot() -> None:
     for name in ("cs_x_elite", "cs_x_plus_8_core"):
         assert (
             ScorecardDevice.get(name).supported_chipsets_for_paths(
-                [ScorecardProfilePath.QNN_CONTEXT_BINARY]
+                [ScorecardInferencePath.QNN_CONTEXT_BINARY]
             )
             == pair
         )
@@ -117,7 +117,7 @@ def test_supported_chipsets_for_paths_exact_for_non_mobile() -> None:
     for name in ("cs_auto_lemans_8775", "cs_9075"):
         device = ScorecardDevice.get(name)
         assert device.supported_chipsets_for_paths(
-            [ScorecardProfilePath.QNN_CONTEXT_BINARY]
+            [ScorecardInferencePath.QNN_CONTEXT_BINARY]
         ) == {device.chipset}
 
 
@@ -129,9 +129,9 @@ def test_geniex_qairt_excluded_for_automotive() -> None:
         "cs_auto_makena_8295",
     ):
         device = ScorecardDevice.get(device_name)
-        assert ScorecardProfilePath.GENIEX_QAIRT not in device.profile_paths
-        assert ScorecardProfilePath.GENIE in device.profile_paths
+        assert ScorecardInferencePath.GENIEX_QAIRT not in device.profile_paths
+        assert ScorecardInferencePath.GENIE in device.profile_paths
         assert (
-            ScorecardProfilePath.GENIEX_QAIRT.compile_path not in device.compile_paths
+            ScorecardInferencePath.GENIEX_QAIRT.compile_path not in device.compile_paths
         )
-        assert ScorecardProfilePath.GENIE.compile_path in device.compile_paths
+        assert ScorecardInferencePath.GENIE.compile_path in device.compile_paths

@@ -15,21 +15,21 @@ from qai_hub_models import Precision
 from qai_hub_models.scorecard import (
     ScorecardCompilePath,
     ScorecardDevice,
-    ScorecardProfilePath,
+    ScorecardInferencePath,
 )
 from qai_hub_models.scorecard.device import cs_universal
 from qai_hub_models.scorecard.results.scorecard_job import JobTypeVar  # noqa: F401
 from qai_hub_models.utils.export.result import ComponentGroup
 
 ScorecardPathT = TypeVar(
-    "ScorecardPathT", ScorecardProfilePath, ScorecardCompilePath, None
+    "ScorecardPathT", ScorecardInferencePath, ScorecardCompilePath, None
 )
 
 
 def _job_id(
     model_id: str,
     precision: Precision | None,
-    path: ScorecardProfilePath | ScorecardCompilePath | None,
+    path: ScorecardInferencePath | ScorecardCompilePath | None,
     device: ScorecardDevice | None,
     component: str | None,
     graph_name: str | None,
@@ -52,7 +52,7 @@ def _str_with_description(
     val: str,
     model_id: str,
     precision: Precision | None,
-    path: ScorecardProfilePath | ScorecardCompilePath | None,
+    path: ScorecardInferencePath | ScorecardCompilePath | None,
     device: ScorecardDevice | None,
     component: str | None,
     graph_name: str | None,
@@ -165,18 +165,18 @@ class ScJobParams(Generic[ScorecardPathT]):
         )
 
     @property
-    def has_device_job(self) -> bool:
-        """Whether these params apply to a device job."""
-        if not isinstance(self.path, ScorecardProfilePath) or self.precision is None:
+    def has_inference_job(self) -> bool:
+        """Whether these params apply to an inference job."""
+        if not isinstance(self.path, ScorecardInferencePath) or self.precision is None:
             return False
         return self.device is not None and self.device != cs_universal
 
     @cached_property
-    def device_job_id(self) -> str:
-        """A unique string ID of a device job with these parameters."""
-        if not self.has_device_job:
+    def inference_job_id(self) -> str:
+        """A unique string ID of an inference job with these parameters."""
+        if not self.has_inference_job:
             raise ValueError(
-                self.str_with_description("Test params do not apply to profile jobs.")
+                self.str_with_description("Test params do not apply to inference jobs.")
             )
         return _job_id(
             self.model_id,
@@ -195,8 +195,8 @@ class ScJobParams(Generic[ScorecardPathT]):
             return self.compile_job_id
         if job_type == JobType.LINK:
             return self.link_job_id
-        if job_type in (JobType.PROFILE, JobType.INFERENCE):
-            return self.device_job_id
+        if job_type == JobType.INFERENCE:
+            return self.inference_job_id
         raise NotImplementedError()
 
     def __hash__(self) -> int:
@@ -250,7 +250,7 @@ class ScExportTestParams(Generic[ScorecardPathT]):
             val, self.model_id, self.precision, self.path, self.device, None, None
         )
 
-    def expects_device_job(self, component: str | None) -> bool:
+    def expects_inference_job(self, component: str | None) -> bool:
         """Whether a profile / inference job is expected for this component."""
         if self.profile_component_names is None or component is None:
             return True
@@ -327,7 +327,7 @@ class ScExportTestParams(Generic[ScorecardPathT]):
             ScJobParams(
                 self.model_id,
                 path=self.path.compile_path
-                if isinstance(self.path, ScorecardProfilePath)
+                if isinstance(self.path, ScorecardInferencePath)
                 else self.path,
                 precision=self.precision,
                 device=self.device,
@@ -353,7 +353,7 @@ class ScExportTestParams(Generic[ScorecardPathT]):
             ScJobParams(
                 self.model_id,
                 path=self.path.compile_path
-                if isinstance(self.path, ScorecardProfilePath)
+                if isinstance(self.path, ScorecardInferencePath)
                 else self.path,
                 precision=self.precision,
                 device=self.device,
@@ -363,10 +363,10 @@ class ScExportTestParams(Generic[ScorecardPathT]):
         ]
 
     @property
-    def all_device_job_params(self) -> list[ScJobParams[ScorecardProfilePath]]:
-        """A list of all expected device jobs for this export test."""
+    def all_inference_job_params(self) -> list[ScJobParams[ScorecardInferencePath]]:
+        """A list of all expected inference jobs for this export test."""
         assert (
-            isinstance(self.path, ScorecardProfilePath)
+            isinstance(self.path, ScorecardInferencePath)
             and self.device is not None
             and self.precision is not None
         )
@@ -390,8 +390,8 @@ class ScExportTestParams(Generic[ScorecardPathT]):
             return self.all_compile_job_params
         if job_type == JobType.LINK:
             return self.all_link_job_params
-        if job_type in (JobType.PROFILE, JobType.INFERENCE):
-            return self.all_device_job_params
+        if job_type == JobType.INFERENCE:
+            return self.all_inference_job_params
         raise NotImplementedError()
 
     def applies_to_job_type(self, job_type: JobType) -> bool:
@@ -412,9 +412,9 @@ class ScExportTestParams(Generic[ScorecardPathT]):
                 and self.path.runtime.uses_hub_link
                 and self.device is not None
             )
-        if job_type in (JobType.PROFILE, JobType.INFERENCE):
+        if job_type == JobType.INFERENCE:
             return (
-                isinstance(self.path, ScorecardProfilePath)
+                isinstance(self.path, ScorecardInferencePath)
                 and self.device is not None
                 and self.precision is not None
             )

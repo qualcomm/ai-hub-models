@@ -35,6 +35,7 @@ def test_previous_tool_versions_uses_s3_baseline_when_available(
     manifest = mock.MagicMock(run_id="prev-run-id", date="2026-07-02")
 
     with (
+        mock.patch.object(mod, "can_access_private_s3", return_value=True),
         mock.patch.object(mod, "find_latest_run", return_value=manifest),
         mock.patch.object(mod, "download_single_artifact", return_value=s3_yaml),
     ):
@@ -69,6 +70,7 @@ def test_previous_tool_versions_falls_back_to_intermediates(
         patch = mock.patch.object(mod, "find_latest_run", return_value=find_latest)
     with (
         patch,
+        mock.patch.object(mod, "can_access_private_s3", return_value=True),
         mock.patch.object(
             mod, "download_single_artifact", return_value=download_result
         ),

@@ -5,7 +5,7 @@
 """
 End-to-end export pipeline for a single (non-collection, non-precompiled) model.
 
-A reader can scan the eight numbered comments in :func:`export_model` to see
+A reader can scan the seven numbered comments in :func:`export_model` to see
 the full recipe; each step's implementation lives in its own sibling module
 (``upload.py``, ``quantize.py``, ``compile.py``, etc.).
 """
@@ -16,6 +16,7 @@ import warnings
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import qai_hub as hub
 from qai_hub_models_cli.errors import CLIRuntimeError
 
@@ -36,12 +37,15 @@ from qai_hub_models.utils.export.context import (
 from qai_hub_models.utils.export.download import download_model_bundle
 from qai_hub_models.utils.export.inference import run_inference
 from qai_hub_models.utils.export.link import run_link
-from qai_hub_models.utils.export.profile import run_profile
 from qai_hub_models.utils.export.quantize import run_quantize
-from qai_hub_models.utils.export.result import ExportResult
+from qai_hub_models.utils.export.result import (
+    ExportIntermediates,
+    ExportResult,
+    validate_export_intermediates,
+)
 from qai_hub_models.utils.export.summary import (
+    compute_inference_summary,
     extract_tool_versions,
-    print_inference_summary,
     print_profile_summary,
 )
 from qai_hub_models.utils.export.upload import upload_source
@@ -50,6 +54,7 @@ from qai_hub_models.utils.printing import print_on_target_demo_cmd, print_tool_v
 from qai_hub_models.utils.qai_hub_helpers import (
     _AIHUB_URL,
     get_device_and_chipset_name,
+    get_target_models,
 )
 
 
@@ -59,9 +64,9 @@ def export_model(
     precision: Precision = Precision.float,
     target_runtime: TargetRuntime = TargetRuntime.TFLITE,
     num_calibration_samples: int | None = None,
-    quantized_model_id: str | None = None,
+    export_intermediates: ExportIntermediates | None = None,
     skip_compiling: bool = False,
-    skip_profiling: bool = False,
+    skip_linking: bool = False,
     skip_inferencing: bool = False,
     skip_downloading: bool = False,
     skip_summary: bool = False,
@@ -74,16 +79,15 @@ def export_model(
     **additional_model_kwargs: Any,
 ) -> ExportResult:
     """
-    Run the eight-step export recipe end-to-end:
+    Run the seven-step export recipe end-to-end:
 
         1. Instantiate the PyTorch model and upload its serialized form to AI Hub
         2. Quantize the model (skipped for float)
         3. Compile the (possibly quantized) source model to the target runtime
         4. Link the compiled DLC to a context binary (AOT runtimes only)
-        5. Profile the compiled model on a real device
-        6. Run on-device inference on sample inputs
-        7. Extract the SDK / runtime versions used by the jobs
-        8. Download the compiled asset locally
+        5. Run on-device inference on sample inputs, profiling at the same time
+        6. Extract the SDK / runtime versions used by the jobs
+        7. Download the compiled asset locally
 
     Parameters
     ----------
@@ -100,14 +104,23 @@ def export_model(
     num_calibration_samples
         Number of calibration data samples to use for quantization. If None,
         uses the default specified by the dataset.
-    quantized_model_id
-        A quantized ONNX hub model id; if set, skips the quantize job.
+    export_intermediates
+        Already-built assets to start from, in place of rebuilding them. If
+        ``compiled_model``/``compile_job`` is set, upload/quantize/compile are
+        all skipped; if only ``quantized_model``/``quantize_job`` is set,
+        upload/quantize are skipped; if ``source_model`` is set, it's the
+        already-uploaded serialized model: only the upload is skipped, and
+        quantize (when the precision needs it) and compile still run on it. A
+        job field takes precedence over its sibling model field when both are
+        set.
     skip_compiling
         If set, skips compiling the model to an on-device format.
-    skip_profiling
-        If set, skips profiling the compiled model on real devices.
+    skip_linking
+        If set, stops after compiling -- skips linking (AOT runtimes only)
+        and everything after it.
     skip_inferencing
-        If set, skips computing on-device outputs from sample data.
+        If set, skips the inference job entirely -- no outputs and no profile
+        metrics.
     skip_downloading
         If set, skips downloading the compiled model.
     skip_summary
@@ -121,7 +134,7 @@ def export_model(
     link_options
         Extra options to pass when submitting the link job. Ignored for runtimes that do not link.
     inference_options
-        Extra options to pass when submitting the profile job.
+        Extra options to pass when submitting the inference job.
     zip_assets
         If set, zip the assets after downloading.
     **additional_model_kwargs
@@ -157,8 +170,11 @@ def export_model(
         )
 
     _, chipset = get_device_and_chipset_name(device)
+    export_intermediates = export_intermediates or ExportIntermediates()
+    validate_export_intermediates(export_intermediates, target_runtime.uses_hub_link)
 
-    # 1. Instantiate the PyTorch model and upload its serialized form.
+    # 1. Instantiate the PyTorch model. Upload it only if no compiled or
+    # quantized asset was supplied; the upload is the most expensive setup step.
     model = model_cls.from_pretrained(
         **get_model_kwargs(
             model_cls, dict(**additional_model_kwargs, precision=precision)
@@ -167,71 +183,75 @@ def export_model(
     input_spec = model.get_input_spec(
         **filter_kwargs(model.get_input_spec, additional_model_kwargs)
     )
-    source_model = upload_source(model, input_spec)
-
-    # 2. Quantize (float skips this entirely; aimet-quantized models also skip).
-    quantize_job: hub.client.QuantizeJob | None = None
-    if precision != Precision.float and manifest.can_use_quantize_job:
-        if quantized_model_id:
-            prequantized = hub.get_model(quantized_model_id)
-            assert prequantized is not None
-            source_model = prequantized
+    compile_job: hub.client.CompileJob | None = export_intermediates.compile_job
+    quantize_job: hub.client.QuantizeJob | None = export_intermediates.quantize_job
+    source_model: hub.Model | None = export_intermediates.source_model
+    if compile_job is None and export_intermediates.compiled_model is None:
+        if quantize_job is not None:
+            source_model = get_target_models(quantize_job)
+        elif export_intermediates.quantized_model is not None:
+            source_model = export_intermediates.quantized_model
         else:
-            onnx_compile_job = run_compile(
-                model,
-                model_name,
-                device,
-                TargetRuntime.ONNX,
-                precision,
-                source_model,
-                input_spec,
-            )
-            onnx_model = onnx_compile_job.get_target_model()
-            assert onnx_model is not None, (
-                f"ONNX compile job failed: {onnx_compile_job}"
-            )
-            quantize_job = run_quantize(
-                precision,
-                model,
-                model_name,
-                onnx_model,
-                num_calibration_samples,
-                extra_options=quantize_options,
-                input_spec=input_spec,
-            )
-            if skip_compiling:
-                return ExportResult(quantize_job=quantize_job)
-            quantized_model = quantize_job.get_target_model()
-            assert quantized_model is not None, f"Quantize job failed: {quantize_job}"
-            source_model = quantized_model
+            if source_model is None:
+                source_model = upload_source(model, input_spec)
+
+            # 2. Quantize (float and aimet-quantized models skip this entirely)
+            if precision != Precision.float and manifest.can_use_quantize_job:
+                onnx_compile_job = run_compile(
+                    model,
+                    model_name,
+                    device,
+                    TargetRuntime.ONNX,
+                    Precision.float,
+                    source_model,
+                    input_spec,
+                )
+                quantize_job = run_quantize(
+                    precision,
+                    model,
+                    model_name,
+                    get_target_models(onnx_compile_job),
+                    num_calibration_samples,
+                    extra_options=quantize_options,
+                    input_spec=input_spec,
+                    calibration_data=export_intermediates.calibration_data,
+                )
+                if skip_compiling:
+                    return ExportResult(quantize_job=quantize_job)
+                source_model = get_target_models(quantize_job)
 
     # 3. Compile.
-    compile_job = run_compile(
-        model,
-        model_name,
-        device,
-        target_runtime,
-        precision,
-        source_model,
-        input_spec,
-        extra_options=compile_options,
-        calibration_data=_aimet_calibration_data(model, manifest),
-    )
+    if compile_job is None and export_intermediates.compiled_model is None:
+        assert source_model is not None
+        compile_job = run_compile(
+            model,
+            model_name,
+            device,
+            target_runtime,
+            precision,
+            source_model,
+            input_spec,
+            extra_options=compile_options,
+            calibration_data=_aimet_calibration_data(model, manifest),
+        )
+    if skip_linking:
+        return ExportResult(quantize_job=quantize_job, compile_job=compile_job)
 
-    # 4. Link (AOT runtimes only). Only wait on the compile job if a downstream
-    # step actually needs the compiled artifact.
+    # 4. Link (AOT runtimes only).
     needs_target_model = (
-        target_runtime.uses_hub_link
-        or not skip_profiling
-        or not skip_inferencing
-        or not skip_downloading
+        target_runtime.uses_hub_link or not skip_inferencing or not skip_downloading
     )
-    link_job: hub.client.LinkJob | None = None
+    link_job: hub.client.LinkJob | None = export_intermediates.link_job
     target_model: hub.Model | None = None
     if needs_target_model:
-        compiled_model = compile_job.get_target_model()
-        assert compiled_model is not None, f"Compile job failed: {compile_job}"
-        if target_runtime.uses_hub_link:
+        if link_job is not None:
+            target_model = get_target_models(link_job)
+        elif target_runtime.uses_hub_link:
+            if export_intermediates.compiled_model is not None:
+                compiled_model = export_intermediates.compiled_model
+            else:
+                assert compile_job is not None
+                compiled_model = get_target_models(compile_job)
             link_job = run_link(
                 compiled_model,
                 device,
@@ -240,22 +260,18 @@ def export_model(
                 target_runtime,
                 extra_options=link_options,
             )
-            target_model = link_job.get_target_model()
+            target_model = get_target_models(link_job)
+        elif export_intermediates.compiled_model is not None:
+            target_model = export_intermediates.compiled_model
         else:
-            target_model = compiled_model
-        assert target_model is not None, "Link job did not produce a target model"
+            assert compile_job is not None
+            target_model = get_target_models(compile_job)
 
     inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
 
-    # 5. Profile.
-    profile_job: hub.client.ProfileJob | None = None
-    if not skip_profiling:
-        assert target_model is not None
-        profile_job = run_profile(model_name, device, inference_opts, target_model)
-
-    # 6. Inference.
-    inference_job: hub.client.InferenceJob | None = None
-    if not skip_inferencing:
+    # 5. Run on-device inference, which also collects profile metrics.
+    inference_job: hub.client.InferenceJob | None = export_intermediates.inference_job
+    if inference_job is None and not skip_inferencing:
         assert target_model is not None
         inference_job = run_inference(
             model.sample_inputs(
@@ -268,17 +284,16 @@ def export_model(
             target_model,
         )
 
-    # 7. Tool versions (needed for both download metadata and the summary).
+    # 6. Tool versions (needed for both download metadata and the summary).
     if not skip_summary or not skip_downloading:
-        tool_versions, tool_versions_from_device = extract_tool_versions(
-            profile_job,
+        tool_versions, tool_versions_from_inference = extract_tool_versions(
             inference_job,
             compile_job,
         )
     else:
-        tool_versions, tool_versions_from_device = None, False
+        tool_versions, tool_versions_from_inference = None, False
 
-    # 8. Download.
+    # 7. Download.
     download_path: Path | None = None
     metadata: ModelMetadata | None = None
     if not skip_downloading and tool_versions is not None:
@@ -300,11 +315,11 @@ def export_model(
             use_case=manifest.use_case,
         )
 
+    inference_metrics: pd.DataFrame | None = None
     if not skip_summary:
-        if profile_job is not None:
-            print_profile_summary(profile_job)
         if inference_job is not None:
-            print_inference_summary(
+            print_profile_summary(inference_job)
+            inference_metrics = compute_inference_summary(
                 model,
                 inference_job,
                 input_spec,
@@ -313,10 +328,12 @@ def export_model(
                     (manifest.outputs_to_skip_validation or {}).keys()
                 ),
                 metrics=manifest.inference_metrics,
+                print_result=True,
             )
-        print_tool_versions(tool_versions, tool_versions_from_device)
-        if manifest.has_on_target_demo:
-            print_on_target_demo_cmd(link_job or compile_job, source_dir, device)
+        print_tool_versions(tool_versions, tool_versions_from_inference)
+        demo_job = link_job or compile_job
+        if manifest.has_on_target_demo and demo_job is not None:
+            print_on_target_demo_cmd(demo_job, source_dir, device)
         if download_path is not None:
             print(f"{model_name} was saved to {download_path}\n")
         if target_runtime in (TargetRuntime.GENIE, TargetRuntime.GENIEX_QAIRT):
@@ -330,11 +347,11 @@ def export_model(
         quantize_job=quantize_job,
         compile_job=compile_job,
         link_job=link_job,
-        profile_job=profile_job,
         inference_job=inference_job,
         download_path=download_path,
         tool_versions=tool_versions,
         metadata=metadata,
+        inference_metrics=inference_metrics,
     )
 
 

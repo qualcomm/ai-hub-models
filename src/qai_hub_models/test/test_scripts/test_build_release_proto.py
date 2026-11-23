@@ -17,7 +17,7 @@ from qai_hub_models_cli.proto_helpers._common import read_proto_yaml, safe_load_
 from qai_hub_models import Precision
 from qai_hub_models._version import __version__
 from qai_hub_models.configs._info_yaml_enums import MODEL_USE_CASE
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     ALLOWED_SIMILAR_DEVICES,
     DevicesAndChipsetsYaml,
@@ -293,7 +293,7 @@ def test_chipset_assets_mirrored_onto_compute_peer(tmp_path: Path) -> None:
         QAIHMModelReleaseAssets.AssetDetails(s3_key="k/x-elite-genie"),
         precision=Precision.w4a16,
         chipset="qualcomm-snapdragon-x-elite",
-        path=ScorecardProfilePath.GENIE,
+        path=ScorecardInferencePath.GENIE,
     )
     model_id = "llama_v3_2_3b_instruct"
     (tmp_path / model_id).mkdir()

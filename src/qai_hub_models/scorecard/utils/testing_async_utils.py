@@ -19,11 +19,14 @@ from qai_hub.public_rest_api import DatasetEntries
 from qai_hub_models import Precision
 from qai_hub_models.configs.tool_versions import ToolVersions
 from qai_hub_models.scorecard import (
-    ScorecardProfilePath,
+    ScorecardInferencePath,
 )
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
-from qai_hub_models.scorecard.params import ScExportTestParams
-from qai_hub_models.scorecard.results.yaml import CompileScorecardJobYaml
+from qai_hub_models.scorecard.params import ScExportTestParams, ScJobParams
+from qai_hub_models.scorecard.results.yaml import (
+    CompileScorecardJobYaml,
+    LinkScorecardJobYaml,
+)
 from qai_hub_models.utils.asset_loaders import load_yaml, qaihm_temp_dir
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.base_dataset import DatasetMetadata
@@ -33,7 +36,7 @@ from qai_hub_models.utils.onnx.torch_wrapper import extract_onnx_zip
 from qai_hub_models.utils.printing import format_accuracy
 
 __all__ = [
-    "CompileJobsAreIdenticalCache",
+    "ModelAssetsAreIdenticalCache",
     "accuracy_row_key",
     "append_line_to_file",
     "cache_dataset",
@@ -118,10 +121,37 @@ def accuracy_row_key(
     model_id: str,
     chipset: str,
     precision: Precision,
-    path: ScorecardProfilePath,
+    path: ScorecardInferencePath,
 ) -> tuple[str, str, str, str]:
     """The (model_id, chipset, precision, runtime) tuple keying a row in accuracy.csv."""
     return model_id, chipset, str(precision), path.value
+
+
+def has_previous_accuracy(
+    model_id: str,
+    chipset: str,
+    precision: Precision,
+    path: ScorecardInferencePath,
+    needs_device_accuracy: bool,
+) -> bool:
+    """
+    Whether the committed accuracy.csv has a row for this key (with a device
+    accuracy value, if `needs_device_accuracy`).
+    """
+    previous_csv = ScorecardArtifact.ACCURACY_CSV.intermediates_path
+    if not os.path.exists(previous_csv):
+        return False
+    key = accuracy_row_key(model_id, chipset, precision, path)
+    with open(previous_csv, newline="") as f:
+        for row in csv.DictReader(f):
+            if (
+                row["model_id"],
+                row["chipset"],
+                row["precision"],
+                row["runtime"],
+            ) == key:
+                return not needs_device_accuracy or bool(row["Device Accuracy"])
+    return False
 
 
 def cache_dataset(model_id: str, dataset_name: str, dataset: hub.Dataset) -> None:
@@ -162,7 +192,7 @@ def write_accuracy(
     model_name: str,
     chipset: str,
     precision: Precision,
-    path: ScorecardProfilePath,
+    path: ScorecardInferencePath,
     psnr_values: list[str],
     torch_accuracy: float | None = None,
     device_accuracy: float | None = None,
@@ -225,125 +255,134 @@ def write_accuracy(
     append_line_to_file(accuracy_file, line)
 
 
-class CompileJobsAreIdenticalCache(BaseQAIHMConfig):
+class ModelAssetsAreIdenticalCache(BaseQAIHMConfig):
     """
     When running scorecard, users have the option to enable a caching feature. This feature:
-        * Checks if compile assets from the previous scorecard and the current scorecard are the same.
-        * If the compiled assets are the same, profile / inference jobs from the previous scorecard are re-used.
+        * Checks if model assets from the previous scorecard and the current scorecard are the same.
+        * If the assets are the same, inference jobs from the previous scorecard are re-used.
 
     One challenge in the implementation the above caching feature is that we need to download the output of both
-    compile jobs in each test and MD5 each file to determine if they're the same. The "naive" implementation runs this
-    on every individual profile & inference test. This is unecessary for assets that aren't device-specific.
+    jobs in each test and MD5 each file to determine if they're the same. The "naive" implementation runs this
+    on every individual inference test. This is unecessary for assets that aren't device-specific.
 
-    This caches the sameness of current compile jobs and previous compile jobs, so we only need to compute sameness once.
+    This caches the sameness of current and previous model assets, so we only need to compute sameness once.
+    AOT runtimes compare their link jobs' assets; all other runtimes compare their compile jobs' assets.
 
     -----
 
-    SUCCESSFUL COMPILE JOBS
+    SUCCESSFUL JOBS
         If:
-            * both compile jobs from the previous scorecard and the current scorecard are succesful
+            * both jobs from the previous scorecard and the current scorecard are succesful
             * the produced asset file is the same (md5 hash)
         The jobs are considered "identical".
 
-    FAILING and MISSING COMPILE JOBS
+    FAILING and MISSING JOBS
         If:
-            * a compile job is missing in EITHER OR BOTH the previous / current scorecard
-            * a compile job failed in EITHER OR BOTH the previous / current scorecard,
+            * a job is missing in EITHER OR BOTH the previous / current scorecard
+            * a job failed in EITHER OR BOTH the previous / current scorecard,
         The jobs are considered NOT identical. This is the case even if both scorecard jobs fail with the same reason.
 
     COMPONENT MODELS
-        Component models are considered "identical" only if all components' compile jobs are identical (per the above guidelines).
+        Component models are considered "identical" only if all components' jobs are identical (per the above guidelines).
     """
 
-    compile_jobs_are_identical: dict[str, bool] = Field(default_factory=dict)
+    assets_are_identical: dict[str, bool] = Field(default_factory=dict)
 
     def is_identical(self, params: ScExportTestParams) -> bool:
         """
         Returns true if:
-            * All compile jobs for the given parameters passed in previous and current scorecards,
+            * All compile jobs (link jobs for AOT runtimes) for the given parameters passed in previous and current scorecards,
             and
-            * All compiled assets for the given parameters are identical between the previous and current scorecards.
+            * All of their assets are identical between the previous and current scorecards.
 
-        If the sameness of relevant compile jobs is not cached, sameness will be computed and added to the "CompileJobsAreIdentical" cache.
+        If the sameness of the relevant jobs is not cached, sameness will be computed and added to the cache.
         """
+        # AOT runtimes compare the linked asset, which is what actually runs.
+        uses_link = params.path.runtime.uses_hub_link
+        yaml_cls = LinkScorecardJobYaml if uses_link else CompileScorecardJobYaml
+        job_params = (
+            params.all_link_job_params if uses_link else params.all_compile_job_params
+        )
+
+        def cache_key(pp: ScJobParams) -> str:
+            return f"link:{pp.link_job_id}" if uses_link else pp.compile_job_id
+
         try:
             identical = all(
-                self.compile_jobs_are_identical[pp.compile_job_id]
-                for pp in params.all_compile_job_params
+                self.assets_are_identical[cache_key(pp)] for pp in job_params
             )
         except KeyError:
             # This set of parameters is missing from the cache, we need to add them.
-            previous_compile_jobs = (
-                CompileScorecardJobYaml.from_intermediates().get_all_jobs(params)
-            )
-            current_compile_jobs = (
-                CompileScorecardJobYaml.from_test_artifacts().get_all_jobs(params)
-            )
+            previous_jobs = yaml_cls.from_intermediates().get_all_jobs(params)
+            current_jobs = yaml_cls.from_test_artifacts().get_all_jobs(params)
 
             identical = True
             for (curr_params, curr_job), (prev_params, prev_job) in zip(
-                previous_compile_jobs.items(),
-                current_compile_jobs.items(),
+                current_jobs.items(),
+                previous_jobs.items(),
                 strict=False,
             ):
                 assert curr_params == prev_params
                 if (
                     not curr_job
                     or not prev_job
-                    or not self.compile_jobs_are_same(curr_job.job, prev_job.job)
+                    or not self.model_assets_are_same(curr_job.job, prev_job.job)
                 ):
-                    self.compile_jobs_are_identical[curr_params.compile_job_id] = False
+                    self.assets_are_identical[cache_key(curr_params)] = False
                     identical = False
+                else:
+                    # Cache the positive result too, so other inference jobs
+                    # sharing this job id don't re-download and re-hash the
+                    # same assets.
+                    self.assets_are_identical[cache_key(curr_params)] = True
 
         return identical
 
     @classmethod
-    def compile_jobs_are_same(
+    def model_assets_are_same(
         cls,
-        current_compile_job: hub.CompileJob,
-        previous_compile_job: hub.CompileJob,
+        current_job: hub.CompileJob | hub.LinkJob,
+        previous_job: hub.CompileJob | hub.LinkJob,
     ) -> bool:
         """
-        Compare the MD5 hashes of the compiled models for two jobs.
+        Compare the MD5 hashes of the model assets (compiled or linked) of two jobs.
 
         Parameters
         ----------
-        current_compile_job
-            The current compile job.
-        previous_compile_job
-            The previous compile job.
+        current_job
+            The current compile or link job.
+        previous_job
+            The previous compile or link job.
 
         Returns
         -------
-        jobs_are_same : bool
-            True if the MD5 hashes of the compiled models for the two jobs are the same, False otherwise.
+        assets_are_same : bool
+            True if the MD5 hashes of the target models of the two jobs are the same, False otherwise.
         """
-        if previous_compile_job.get_status().failure:
+        if previous_job.get_status().failure:
             return False
 
-        if "qnn_lib_aarch64_android" in current_compile_job.options:
+        if "qnn_lib_aarch64_android" in current_job.options:
             # shared libraries do have stable md5 hashes between hub jobs
             return False
 
-        if current_compile_job.get_status().failure:
+        if current_job.get_status().failure:
             return False
 
-        if ToolVersions.from_job(previous_compile_job) != ToolVersions.from_job(
-            current_compile_job
-        ):
+        if ToolVersions.from_job(previous_job) != ToolVersions.from_job(current_job):
             return False
 
         # The temporary directory and all its contents will be automatically cleaned up when the 'with' block is exited
         with qaihm_temp_dir() as tmp_dir:
             current_model_file = cast(
                 str,
-                current_compile_job.download_target_model(
+                current_job.download_target_model(
                     os.path.join(tmp_dir, "current_model")
                 ),
             )
             previous_model_file = cast(
                 str,
-                previous_compile_job.download_target_model(
+                previous_job.download_target_model(
                     os.path.join(tmp_dir, "previous_model")
                 ),
             )

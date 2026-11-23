@@ -17,7 +17,6 @@ from qai_hub import (
     JobStatus,
     JobType,
     Model,
-    ProfileJob,
 )
 from qai_hub.client import Client
 from qai_hub.hub import _global_client
@@ -25,16 +24,12 @@ from qai_hub.hub import _global_client
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_universal
 from qai_hub_models.scorecard.execution_helpers import ScorecardPathTypeVar
-from qai_hub_models.scorecard.params import ScExportTestParams, ScJobParams
+from qai_hub_models.scorecard.params import ScJobParams
 from qai_hub_models.scorecard.path_compile import ScorecardCompilePath
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
     InferenceScorecardJobYaml,
-    ProfileScorecardJobYaml,
-)
-from qai_hub_models.scorecard.utils.testing_export_eval import (
-    fetch_cached_jobs_if_compile_jobs_are_identical,
 )
 
 
@@ -133,7 +128,7 @@ def for_each_static_model_test_parameterization(
             ):
                 continue
             if (
-                isinstance(sc_path, ScorecardProfilePath)
+                isinstance(sc_path, ScorecardInferencePath)
                 and sc_path not in device.profile_paths
             ):
                 continue
@@ -275,79 +270,6 @@ def compile_model(
     return results
 
 
-def profile_model(
-    model_id: str,
-    compile_results: CompileScorecardJobYaml,
-    hub: Client = _global_client,
-    precision: Precision = Precision.float,
-    valid_devices: list[ScorecardDevice] | None = None,
-    valid_paths: list[ScorecardProfilePath] | None = None,
-    results: ProfileScorecardJobYaml | None = None,
-    compile_job_timeout: int | None = None,
-) -> ProfileScorecardJobYaml:
-    if results is None:
-        results = ProfileScorecardJobYaml()
-    compile_job_cache: dict[str, tuple[CompileJob, JobStatus]] = {}
-
-    def submit_profile_job(params: ScJobParams) -> None:
-        assert isinstance(params.path, ScorecardProfilePath)
-        assert params.device is not None
-        job_name = f"qaihm::profile | {params.device_job_id}"
-        compile_job = _get_successful_compile_job_or_failure_message(
-            hub,
-            compile_results,
-            compile_job_timeout,
-            params,
-            compile_job_cache,
-        )
-        if isinstance(compile_job, str):
-            print(f"{job_name} | Skipped: {compile_job}")
-            return
-
-        job: ProfileJob | None = None
-        if prev_profile_job := fetch_cached_jobs_if_compile_jobs_are_identical(
-            ScExportTestParams(
-                params.model_id, params.path, params.precision, params.device
-            ),
-        ):
-            job = cast(ProfileJob, prev_profile_job)
-            _print_if_not_verbose(
-                hub,
-                f"{job_name} | The compiled asset from the previous scorecard is identical. Copying over previous profile job {job.job_id} | {job.url}",
-            )
-
-        if job is None:
-            job = cast(
-                ProfileJob,
-                hub.submit_inference_job(
-                    compile_job.get_target_model(),
-                    params.device.execution_device,
-                    name=job_name,
-                    options=params.path.get_inference_options(
-                        precision, params.device, include_default_qaihm_qnn_version=True
-                    ),
-                    profile=True,
-                ),
-            )
-            _print_if_not_verbose(
-                hub, f"{job_name} | Submitted: {job.job_id} | {job.url}"
-            )
-
-        results.set_job_id(job.job_id, params)
-
-    for_each_static_model_test_parameterization(
-        model_id,
-        JobType.PROFILE,
-        ScorecardProfilePath,
-        submit_profile_job,
-        precision,
-        valid_devices,
-        valid_paths,
-    )
-
-    return results
-
-
 def inference_model(
     model_id: str,
     hub_dataset: Dataset | str,
@@ -356,10 +278,14 @@ def inference_model(
     hub: Client = _global_client,
     precision: Precision = Precision.float,
     valid_devices: list[ScorecardDevice] | None = None,
-    valid_paths: list[ScorecardProfilePath] | None = None,
+    valid_paths: list[ScorecardInferencePath] | None = None,
     results: InferenceScorecardJobYaml | None = None,
     compile_job_timeout: int | None = None,
 ) -> InferenceScorecardJobYaml:
+    """
+    Submit one inference job per (device, path) with the real validation
+    dataset attached. Profiling is folded into every inference job.
+    """
     if results is None:
         results = InferenceScorecardJobYaml()
     if not isinstance(hub_dataset, Dataset):
@@ -370,9 +296,9 @@ def inference_model(
     compile_job_cache: dict[str, tuple[CompileJob, JobStatus]] = {}
 
     def submit_inference_job(params: ScJobParams) -> None:
-        assert isinstance(params.path, ScorecardProfilePath)
+        assert isinstance(params.path, ScorecardInferencePath)
         assert params.device is not None
-        job_name = f"qaihm::inference | {params.device_job_id}"
+        job_name = f"qaihm::inference | {params.inference_job_id}"
         compile_job = _get_successful_compile_job_or_failure_message(
             hub,
             compile_results,
@@ -406,7 +332,7 @@ def inference_model(
     for_each_static_model_test_parameterization(
         model_id,
         JobType.INFERENCE,
-        ScorecardProfilePath,
+        ScorecardInferencePath,
         submit_inference_job,
         precision,
         valid_devices,

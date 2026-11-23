@@ -31,7 +31,7 @@ from qai_hub_models.scorecard.envvars import (
     SpecialDeviceSetting,
 )
 from qai_hub_models.scorecard.path_compile import ScorecardCompilePath
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.utils.ai_hub_access import can_access_qualcomm_ai_hub
 from qai_hub_models.utils.device import (
     CANARY_DEVICES,
@@ -152,7 +152,7 @@ class ScorecardDevice(HubDeviceAttributes):
         enabled: bool | None = None,
         npu_supports_precision: Precision | None = None,
         supports_compile_path: ScorecardCompilePath | None = None,
-        supports_profile_path: ScorecardProfilePath | None = None,
+        supports_profile_path: ScorecardInferencePath | None = None,
         form_factors: list[FormFactor] | None = None,
         is_mirror: bool | None = None,
         include_universal: bool = True,
@@ -205,7 +205,7 @@ class ScorecardDevice(HubDeviceAttributes):
         is_default: bool = False,
         disabled_models: list[str] | None = None,
         compile_paths: list[ScorecardCompilePath] | None = None,
-        profile_paths: list[ScorecardProfilePath] | None = None,
+        profile_paths: list[ScorecardInferencePath] | None = None,
         register: bool = True,
         include_in_all: bool = True,
         qdc_enabled: bool = True,
@@ -278,7 +278,7 @@ class ScorecardDevice(HubDeviceAttributes):
         reference_device_name: str | None = None,
         disabled_models: list[str] | None = None,
         compile_paths: list[ScorecardCompilePath] | None = None,
-        profile_paths: list[ScorecardProfilePath] | None = None,
+        profile_paths: list[ScorecardInferencePath] | None = None,
         register: bool = True,
         include_in_all: bool = True,
         qdc_enabled: bool = True,
@@ -453,7 +453,7 @@ class ScorecardDevice(HubDeviceAttributes):
         return runtimes
 
     @cached_property
-    def profile_paths(self) -> list[ScorecardProfilePath]:
+    def profile_paths(self) -> list[ScorecardInferencePath]:
         """
         All profile paths supported by this device.
 
@@ -464,7 +464,7 @@ class ScorecardDevice(HubDeviceAttributes):
         if self._profile_paths is not None:
             return self._profile_paths
 
-        paths_to_test: list[ScorecardProfilePath] = []
+        paths_to_test: list[ScorecardInferencePath] = []
         inference_engines_to_test: list[InferenceEngine] = []
         if (
             self.form_factor == FormFactor.PHONE  # noqa: PLR1714
@@ -478,7 +478,7 @@ class ScorecardDevice(HubDeviceAttributes):
                 InferenceEngine.TFLITE,
             ]
             # GenieX is not published for automotive devices.
-            paths_to_test.extend([ScorecardProfilePath.GENIE])
+            paths_to_test.extend([ScorecardInferencePath.GENIE])
         elif self.form_factor == FormFactor.XR:
             inference_engines_to_test = [InferenceEngine.QNN, InferenceEngine.TFLITE]
         elif self.form_factor == FormFactor.COMPUTE:
@@ -487,14 +487,14 @@ class ScorecardDevice(HubDeviceAttributes):
                 InferenceEngine.ONNX,
             ]
             paths_to_test.extend(
-                [ScorecardProfilePath.GENIE, ScorecardProfilePath.GENIEX_QAIRT]
+                [ScorecardInferencePath.GENIE, ScorecardInferencePath.GENIEX_QAIRT]
             )
         else:
             assert_never(self.form_factor)
 
         out = paths_to_test + [
             path
-            for path in ScorecardProfilePath
+            for path in ScorecardInferencePath
             if path.runtime in self.supported_runtimes
             and path.runtime.inference_engine in inference_engines_to_test
         ]
@@ -502,7 +502,7 @@ class ScorecardDevice(HubDeviceAttributes):
         # If running "all" devices, only run tfl_converter on 6490 and the
         # default device. Any explicitly set device will also run.
         restricted_paths = [
-            ScorecardProfilePath.TFL_CONVERTER,
+            ScorecardInferencePath.TFL_CONVERTER,
         ]
         if (
             not self.is_default
@@ -543,7 +543,7 @@ class ScorecardDevice(HubDeviceAttributes):
         return self._extended_supported_chipsets(extend_chipsets=True)
 
     def supported_chipsets_for_paths(
-        self, paths: Iterable[ScorecardProfilePath]
+        self, paths: Iterable[ScorecardInferencePath]
     ) -> set[str]:
         """
         Chipsets to claim support for when this device passes on ``paths``.
@@ -659,8 +659,8 @@ cs_x_plus_8_core = ScorecardDevice.from_registered(
         ScorecardCompilePath.GENIEX_QAIRT,
     ],
     profile_paths=[
-        ScorecardProfilePath.GENIE,
-        ScorecardProfilePath.GENIEX_QAIRT,
+        ScorecardInferencePath.GENIE,
+        ScorecardInferencePath.GENIEX_QAIRT,
     ],
 )
 

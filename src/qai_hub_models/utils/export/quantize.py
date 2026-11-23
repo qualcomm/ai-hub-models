@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import qai_hub as hub
+from qai_hub.client import DatasetEntries
 from qai_hub_models_cli.errors import CLIUserError
 
 from qai_hub_models import Precision
@@ -25,20 +26,25 @@ def run_quantize(
     num_calibration_samples: int | None,
     extra_options: str = "",
     input_spec: InputSpec | None = None,
+    calibration_data: hub.Dataset | None = None,
 ) -> hub.client.QuantizeJob:
-    """Submit a quantize job for ``onnx_model``."""
+    """Submit a quantize job for ``onnx_model``, building calibration data unless supplied."""
     input_spec = input_spec or model.get_input_spec()
     print(f"Quantizing {model_name}.")
     if not precision.activations_type or not precision.weights_type:
         raise CLIUserError(
             "Quantization is only supported if both weights and activations are quantized."
         )
-    calibration_data = quantization_utils.get_calibration_data(
-        model, input_spec, num_calibration_samples
+    data: hub.Dataset | DatasetEntries = (
+        calibration_data
+        if calibration_data is not None
+        else quantization_utils.get_calibration_data(
+            model, input_spec, num_calibration_samples
+        )
     )
     return hub.submit_quantize_job(
         model=onnx_model,
-        calibration_data=calibration_data,
+        calibration_data=data,
         activations_dtype=precision.activations_type,
         weights_dtype=precision.weights_type,
         name=model_name,
@@ -66,12 +72,14 @@ def run_collection_quantize(
     extra_options: str = "",
     input_specs: dict[str, InputSpec] | None = None,
     app: type | None = None,
+    calibration_data: ComponentGroup[hub.Dataset] | None = None,
 ) -> ComponentGroup[hub.client.QuantizeJob]:
     """
     Submit one quantize job per component (skipping float-precision components).
 
     ``component_precisions`` may be a single ``Precision`` (applied to every
-    onnx_models key) or a per-component dict.
+    onnx_models key) or a per-component dict. Calibration data is built for
+    each component missing from ``calibration_data``.
     """
     if isinstance(component_precisions, Precision):
         component_precisions = resolve_component_precisions(
@@ -87,7 +95,8 @@ def run_collection_quantize(
             raise CLIUserError(
                 "Quantization is only supported if both weights and activations are quantized."
             )
-        calibration_data = quantization_utils.get_calibration_data(
+        supplied = calibration_data.get(name) if calibration_data else None
+        component_data = supplied or quantization_utils.get_calibration_data(
             model,
             input_specs,
             num_calibration_samples,
@@ -96,7 +105,7 @@ def run_collection_quantize(
         )
         quantize_jobs[name] = hub.submit_quantize_job(
             model=onnx_models[name],
-            calibration_data=calibration_data,
+            calibration_data=component_data,
             activations_dtype=precision.activations_type,
             weights_dtype=precision.weights_type,
             name=f"{model_name}_{name}",

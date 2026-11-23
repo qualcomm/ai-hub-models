@@ -13,7 +13,7 @@ import torch
 # Some torchscript modules have an implicit dependency on this to load it
 import torchvision  # noqa: F401
 
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.envvars import (
     ArtifactsDirEnvvar,
     DeploymentEnvvar,
@@ -55,59 +55,59 @@ def evaluate_model_accuracy(
             model_file = hub_model.download(os.path.join(tmp_dir, "model.onnx"))
             model = OnnxModelTorchWrapper.OnCPU(model_file)
 
-    device = config.eval_device
-    for runtime in config.enabled_profile_runtimes:
-        params = ScJobParams(
-            model_id=model_id,
-            precision=config.precision,
-            path=runtime,
-            device=config.eval_device,
-        )
-        job = inference_jobs_yaml.get_job(
-            params,
-            wait_for_job=True,
-        )
-
-        if job is None:
-            continue
-        device_outputs = job.job.download_output_data()
-
-        if device_outputs is None:
-            job_name = f"qaihm::inference | {params.device_job_id}"
-            print(f"{job_name} | Job failed | {job.job.url}")
-            continue
-        if (batch_size := len(next(iter(dataset.values())))) != 1:
-            job_name = f"qaihm::inference | {params.device_job_id}"
-            print(
-                f"{job_name} | Batch size must be 1, got {batch_size} | {job.job.url}"
+    for device in config.devices:
+        for runtime in config.enabled_profile_runtimes:
+            params = ScJobParams(
+                model_id=model_id,
+                precision=config.precision,
+                path=runtime,
+                device=device,
             )
-            continue
+            job = inference_jobs_yaml.get_job(
+                params,
+                wait_for_job=True,
+            )
 
-        compile_job = job.job.model.get_producer()
-        assert isinstance(compile_job, hub.CompileJob)
-        compile_options = parse_compile_options(compile_job)
+            if job is None:
+                continue
+            device_outputs = job.job.download_output_data()
 
-        transposed_device_outputs = transpose_channel_last_to_first(
-            compile_options.channel_last_output or [], device_outputs
-        )
-        model_inputs = tuple(torch.Tensor(t[0]) for t in dataset.values())
-        with torch.no_grad():
-            cpu_outputs = [out.numpy() for out in model(*model_inputs)]
-        psnrs: list[str] = []
-        for cpu_output, device_output in zip(
-            cpu_outputs, transposed_device_outputs.values(), strict=False
-        ):
-            if len(psnrs) == 10:
-                break
-            # Compute PSNR just on the first sample, even if dataset has multiple samples
-            psnrs.append(format_metric(compute_psnr(cpu_output, device_output[0])))
-        write_accuracy(
-            model_id,
-            device.chipset,
-            config.precision,
-            ScorecardProfilePath(runtime),
-            psnrs,
-        )
+            if device_outputs is None:
+                job_name = f"qaihm::inference | {params.inference_job_id}"
+                print(f"{job_name} | Job failed | {job.job.url}")
+                continue
+            if (batch_size := len(next(iter(dataset.values())))) != 1:
+                job_name = f"qaihm::inference | {params.inference_job_id}"
+                print(
+                    f"{job_name} | Batch size must be 1, got {batch_size} | {job.job.url}"
+                )
+                continue
+
+            compile_job = job.job.model.get_producer()
+            assert isinstance(compile_job, hub.CompileJob)
+            compile_options = parse_compile_options(compile_job)
+
+            transposed_device_outputs = transpose_channel_last_to_first(
+                compile_options.channel_last_output or [], device_outputs
+            )
+            model_inputs = tuple(torch.Tensor(t[0]) for t in dataset.values())
+            with torch.no_grad():
+                cpu_outputs = [out.numpy() for out in model(*model_inputs)]
+            psnrs: list[str] = []
+            for cpu_output, device_output in zip(
+                cpu_outputs, transposed_device_outputs.values(), strict=False
+            ):
+                if len(psnrs) == 10:
+                    break
+                # Compute PSNR just on the first sample, even if dataset has multiple samples
+                psnrs.append(format_metric(compute_psnr(cpu_output, device_output[0])))
+            write_accuracy(
+                model_id,
+                device.chipset,
+                config.precision,
+                ScorecardInferencePath(runtime),
+                psnrs,
+            )
 
 
 def get_parser() -> argparse.ArgumentParser:

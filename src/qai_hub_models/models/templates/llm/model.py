@@ -582,6 +582,9 @@ class PositionProcessorBase(torch.nn.Module):
 
 
 class LLMConfigEditor:
+    # LLMs manage their own instance cache (SingleSlotCacheMixin) and release().
+    _cache_from_pretrained = False
+
     def edit_llm_config(self, llm_config: PretrainedConfig) -> PretrainedConfig:
         return llm_config  # no change by default
 
@@ -1277,6 +1280,7 @@ class LLMPartBase:
       input arrives pre-embedded as float32 ``inputs_embeds``.
     """
 
+    _cache_from_pretrained = False
     pass_output_names_to_compile = False
 
     # Provided by the concrete Part base.

@@ -2,6 +2,10 @@ name: Split Models for Testing
 
 on:
   workflow_call:
+    outputs:
+      accuracy_matrix:
+        description: Splits balanced for the accuracy stage, without LLMs. Only set when use_run_scorecard is true.
+        value: ${{ jobs.split_models.outputs.accuracy_matrix }}
     inputs:
       deployment:
         description: Hub Deployment
@@ -90,6 +94,11 @@ on:
         type: boolean
         default: false
 
+      use_run_scorecard:
+        description: Run each split through scorecard_run_split.yml (run_scorecard.py) instead of test_models.yml (pytest).
+        type: boolean
+        default: false
+
 env:
   VENV_PATH: build/ci-envs/qaihm-build
   QAIHM_CI: 1
@@ -103,6 +112,7 @@ jobs:
       gpu_matrix: ${{ steps.split.outputs.gpu_matrix }}
       has_cpu_splits: ${{ steps.split.outputs.has_cpu_splits }}
       has_gpu_splits: ${{ steps.split.outputs.has_gpu_splits }}
+      accuracy_matrix: ${{ steps.accuracy.outputs.accuracy_matrix }}
     steps:
       - uses: actions/checkout@v7
 
@@ -121,7 +131,7 @@ jobs:
         id: split
         run: |
           source "${{ env.VENV_PATH }}/bin/activate"
-          SPLIT_ARGS="--models ${{ inputs.models }} --max-models-per-pt-split ${{ inputs.max_models_per_split }} --stage job_submission"
+          SPLIT_ARGS="--models ${{ inputs.models }} --max-models-per-pt-split ${{ inputs.max_models_per_split }} --stage submit"
           if [[ "${{ inputs.max_num_splits }}" != "0" ]]; then
             SPLIT_ARGS="$SPLIT_ARGS --max-num-pt-splits ${{ inputs.max_num_splits }}"
           fi
@@ -141,10 +151,30 @@ jobs:
           echo "GPU splits: $GPU_MATRIX"
           echo "CPU splits: $CPU_MATRIX"
 
+      - name: Split Models For Accuracy
+        id: accuracy
+        env:
+          MODELS: ${{ inputs.models }}
+          MAX_PER_SPLIT: ${{ inputs.max_models_per_split }}
+          MAX_SPLITS: ${{ inputs.max_num_splits }}
+          USE_RUN_SCORECARD: ${{ inputs.use_run_scorecard }}
+        run: |
+          source "$VENV_PATH/bin/activate"
+          ACCURACY_MATRIX='[]'
+          if [[ "$USE_RUN_SCORECARD" == "true" ]]; then
+            ARGS=(--models "$MODELS" --max-models-per-pt-split "$MAX_PER_SPLIT" --stage accuracy --exclude-test-splits llm --output-format github)
+            if [[ "$MAX_SPLITS" != "0" ]]; then
+              ARGS+=(--max-num-pt-splits "$MAX_SPLITS")
+            fi
+            ACCURACY_MATRIX=$(python -m qai_hub_models.scripts.split_torch_models "${ARGS[@]}")
+          fi
+          echo "accuracy_matrix=$ACCURACY_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Accuracy splits: $ACCURACY_MATRIX"
+
   start_cpu_jobs:
     name: Submit Jobs (${{ matrix.split.split_name }})
     needs: split_models
-    if: ${{ !cancelled() && needs.split_models.result == 'success' && needs.split_models.outputs.has_cpu_splits == 'true' }}
+    if: ${{ !cancelled() && needs.split_models.result == 'success' && needs.split_models.outputs.has_cpu_splits == 'true' && !inputs.use_run_scorecard }}
     permissions:
       contents: read
       id-token: write
@@ -173,6 +203,37 @@ jobs:
       run_nightly_tests: ${{ inputs.run_nightly_tests }}
       use_per_model_venv: ${{ inputs.use_per_model_venv }}
 
+  start_cpu_scorecard_jobs:
+    name: Submit Jobs (${{ matrix.split.split_name }})
+    needs: split_models
+    if: ${{ !cancelled() && needs.split_models.result == 'success' && needs.split_models.outputs.has_cpu_splits == 'true' && inputs.use_run_scorecard }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
+    secrets: inherit
+    strategy:
+      matrix:
+        split: ${{ fromJson(needs.split_models.outputs.cpu_matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/scorecard_run_split.yml
+    with:
+      deployment: ${{ inputs.deployment }}
+      models: ${{ matrix.split.models }}
+      test_devices: ${{ inputs.test_devices }}
+      test_runtimes: ${{ inputs.test_runtimes }}
+      test_precisions: ${{ inputs.test_precisions }}
+      options: ${{ inputs.options }}
+      test_scope: ${{ inputs.test_scope }}
+      split_name: ${{ matrix.split.split_name }}
+      runs_on: ${{ toJson(matrix.split.runs_on) }}
+      sync_assets_branch: ${{ inputs.sync_assets_branch }}
+      python_version: ${{ inputs.python_version }}
+      disable_override_workbench_job_timeout: ${{ inputs.disable_override_workbench_job_timeout }}
+      ignore_job_cache: ${{ inputs.ignore_job_cache }}
+      phase: submit
+
   start_gpu_jobs:
     name: Submit Jobs (${{ matrix.split.split_name }})
     needs: split_models
@@ -190,6 +251,7 @@ jobs:
     uses: ./.github/workflows/gpu_pod_lifecycle.yml
     with:
       is_test_models: true
+      use_run_scorecard: ${{ inputs.use_run_scorecard }}
       force_kube: ${{ inputs.force_kube }}
       deployment: ${{ inputs.deployment }}
       models: ${{ matrix.split.models }}
@@ -209,7 +271,7 @@ jobs:
 
   combine_artifacts:
     name: Combine Split Artifacts
-    needs: [split_models, start_cpu_jobs, start_gpu_jobs]
+    needs: [split_models, start_cpu_jobs, start_cpu_scorecard_jobs, start_gpu_jobs]
     if: ${{ !cancelled() && needs.split_models.result == 'success' }}
     runs-on: aihub-models-ubuntu-2404-ec2
     steps:
@@ -263,6 +325,7 @@ jobs:
 
       - name: Download All Split Test Results
         id: download_test_results
+        if: ${{ !inputs.use_run_scorecard }}
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
@@ -286,6 +349,7 @@ jobs:
           path: build/combined-test-results
 
       - name: Delete Split Test Results
+        if: ${{ !inputs.use_run_scorecard }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -174,9 +174,9 @@ def split_torch_models(
         Maximum number of models per default split when auto-calculating
         num_default_splits (does not include custom splits).
     stage
-        Scorecard stage to balance for (``job_submission``, ``export_test``,
-        or ``accuracy``). Falls back to alphabetical chunks when None or
-        when no runtime data is available.
+        Scorecard stage to balance for (``submit`` or ``accuracy``). Falls
+        back to alphabetical chunks when None or when no runtime data is
+        available.
     runtime_estimates_path
         Override for the runtime estimates YAML (default: checked-in copy).
     collapse_to_single_split
@@ -367,7 +367,7 @@ def main() -> None:
         "--runtime-estimates-path",
         type=Path,
         default=None,
-        help="Override path to model-runtime-estimates.yaml (default: checked-in intermediates copy).",
+        help="Override path to model-stage-timings.yaml (default: checked-in intermediates copy).",
     )
     parser.add_argument(
         "--output-format",

@@ -89,7 +89,7 @@ def get_model_size_and_parameters(
     job_or_model: hub.Job | hub.Model | None,
 ) -> tuple[str, str | None]:
     assert job_or_model is not None
-    if isinstance(job_or_model, (hub.ProfileJob, hub.InferenceJob)):
+    if isinstance(job_or_model, hub.InferenceJob):
         model = job_or_model.model
     elif isinstance(job_or_model, hub.CompileJob):
         if (target_model := job_or_model.get_target_model()) is None:

@@ -146,6 +146,7 @@ def _shipped_python_files() -> list[Path]:
         p
         for p in PACKAGE_ROOT.rglob("*.py")
         if not _SKIP_DIRS & set(p.relative_to(PACKAGE_ROOT).parts)
+        and p.name != "test_generated.py"
     ]
 
 

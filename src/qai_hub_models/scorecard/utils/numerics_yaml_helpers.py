@@ -15,7 +15,7 @@ from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.numerics_yaml import (
     QAIHMModelNumerics,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.numerics_diff import NumericsDiff
 from qai_hub_models.scorecard.utils.testing_async_utils import (
     get_accuracy_metadata_columns,
@@ -24,7 +24,7 @@ from qai_hub_models.scorecard.utils.testing_async_utils import (
 # Runtimes whose perf is published for several compute units. Accuracy is only
 # ever evaluated on NPU, so without recording that, the website would show an
 # NPU-measured score under the runtime's CPU/GPU options too.
-MULTI_COMPUTE_UNIT_PATHS = frozenset({ScorecardProfilePath.GENIEX_LLAMACPP})
+MULTI_COMPUTE_UNIT_PATHS = frozenset({ScorecardInferencePath.GENIEX_LLAMACPP})
 EVALUATED_COMPUTE_UNIT = "npu"
 
 
@@ -90,7 +90,8 @@ def create_numerics_struct(
         device_metric: dict[
             ScorecardDevice,
             dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ],
         ] = {}
         accuracy_metadata_or_error = _extract_metadata(metric_df)
@@ -115,7 +116,8 @@ def create_numerics_struct(
         for chipset in metric_df.chipset.unique():
             chipset_df = metric_df[metric_df.chipset == chipset]
             metric_data_dict: dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ] = {}
             for _, row in chipset_df.iterrows():
                 device_accuracy = row["Device Accuracy"]
@@ -123,7 +125,7 @@ def create_numerics_struct(
                     continue
                 precision = Precision.parse(row.precision)
                 try:
-                    runtime = ScorecardProfilePath(row.runtime)
+                    runtime = ScorecardInferencePath(row.runtime)
                 except ValueError:
                     continue  # retired path from an older scorecard
                 if not runtime.is_published:

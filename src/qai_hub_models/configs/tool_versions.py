@@ -173,7 +173,6 @@ class ToolVersions(BaseQAIHMConfig):
         if job._job_type not in [
             JobType.COMPILE,
             JobType.LINK,
-            JobType.PROFILE,
             JobType.INFERENCE,
         ]:
             raise ValueError(
@@ -223,9 +222,13 @@ class ToolVersions(BaseQAIHMConfig):
             )
 
         if job._job_type in {JobType.COMPILE, JobType.LINK}:
+            target_model = cast(hub.Model, cast(hub.CompileJob, job).get_target_model())
+            if target_model.get_producer() is None:
+                return ToolVersions(
+                    ai_hub_models=pkg_version.__version__ if add_aihm_version else None
+                )
             return ToolVersions.from_compiled_model(
-                cast(hub.Model, cast(hub.CompileJob, job).get_target_model()),
-                add_aihm_version=add_aihm_version,
+                target_model, add_aihm_version=add_aihm_version
             )
 
         result = get_job_results(job._owner.config, job.job_id)

@@ -26,7 +26,7 @@ from qai_hub_models.datasets.device_eval import (
     get_device_eval_dataset,
 )
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.utils.testing_async_utils import write_accuracy
 from qai_hub_models.utils.base_dataset import DatasetMetadata
 
@@ -103,9 +103,9 @@ def collect(directory: str) -> int:
         # it and fall back to GENIE.
         path_value = meta.get("path")
         path = (
-            ScorecardProfilePath(path_value)
+            ScorecardInferencePath(path_value)
             if path_value
-            else ScorecardProfilePath.GENIE
+            else ScorecardInferencePath.GENIE
         )
         score_pct = grade.get("score_pct")
         if score_pct is None:

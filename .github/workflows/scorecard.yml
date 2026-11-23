@@ -54,7 +54,6 @@ on:
           options:
             - compile_only
             - perf
-            - accuracy
             - perf_and_accuracy
 
         release_scope:
@@ -68,7 +67,7 @@ on:
             - upload_export_assets_and_create_pr
 
         ignore_job_cache:
-          description: Force run profile jobs for compiled models that haven't changed since the last scorecard run (only applicable on PROD deployment)
+          description: Force run inference jobs for compiled models that haven't changed since the last scorecard run (only applicable on PROD deployment)
           default: false
           type: boolean
 
@@ -120,6 +119,11 @@ on:
         tableau_branch_name:
           default: ''
           type: string
+
+        notify_failures:
+          description: Notify Slack of the results
+          default: false
+          type: boolean
 
         generate_test_summary:
           description: Generate a combined test summary
@@ -183,12 +187,13 @@ jobs:
       test_scope: ${{ inputs.test_scope }}
       ignore_job_cache: ${{ inputs.ignore_job_cache }}
       sync_assets_branch: ${{ needs.sync_assets.outputs.branch_name }}
-      max_models_per_split: ${{ (inputs.test_scope == 'accuracy' || inputs.test_scope == 'perf_and_accuracy') && 30 || 60 }}
+      max_models_per_split: ${{ inputs.test_scope == 'perf_and_accuracy' && 30 || 60 }}
       max_num_splits: 8
       disable_override_workbench_job_timeout: true
+      use_run_scorecard: true
 
   fix_flaky_jobs:
-    name: Fix Flaky Profile Jobs
+    name: "Phase 2: Fix Flaky Inference Jobs"
     needs: submit_split_jobs
     if: ${{ !cancelled() && needs.submit_split_jobs.result != 'skipped' }}
     secrets: inherit
@@ -198,6 +203,40 @@ jobs:
       delay: ${{ inputs.delay }}
       deployment: ${{ inputs.deployment }}
       test_mode: false
+
+  # Same splits on a (possibly different) machine, after the flaky inference
+  # jobs are fixed: release asset upload (when requested) and on-device accuracy
+  # from the fixed job IDs. Scopes without accuracy run only the upload, and only
+  # when requested.
+  accuracy_phase:
+    name: "Phase 3: ${{ inputs.test_scope == 'perf_and_accuracy' && 'On-Device Accuracy' || 'Upload Release Assets' }} (${{ matrix.split.split_name }})"
+    needs: [submit_split_jobs, sync_assets, fix_flaky_jobs]
+    if: ${{ !cancelled() && needs.submit_split_jobs.result != 'skipped' && needs.submit_split_jobs.outputs.accuracy_matrix != '' && needs.submit_split_jobs.outputs.accuracy_matrix != '[]' && needs.fix_flaky_jobs.result != 'skipped' && (inputs.test_scope == 'perf_and_accuracy' || contains(inputs.release_scope, 'upload_export_assets')) }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
+    secrets: inherit
+    strategy:
+      matrix:
+        split: ${{ fromJson(needs.submit_split_jobs.outputs.accuracy_matrix) }}
+      fail-fast: false
+    uses: ./.github/workflows/scorecard_run_split.yml
+    with:
+      deployment: ${{ inputs.deployment }}
+      models: ${{ matrix.split.models }}
+      test_devices: ${{ inputs.test_devices }}
+      test_runtimes: ${{ inputs.test_runtimes }}
+      test_precisions: ${{ inputs.test_precisions }}
+      options: ${{ inputs.options }}
+      test_scope: ${{ inputs.test_scope }}
+      split_name: ${{ matrix.split.split_name }}
+      runs_on: ${{ toJson(matrix.split.runs_on) }}
+      sync_assets_branch: ${{ needs.sync_assets.outputs.branch_name }}
+      disable_override_workbench_job_timeout: true
+      phase: ${{ inputs.test_scope == 'perf_and_accuracy' && 'accuracy' || 'upload' }}
+      s3_prefix: ${{ contains(inputs.release_scope, 'upload_export_assets') && 'pre_release_assets' || '' }}
 
   scorecard_llm_device_run:
     name: LLM On-Device Run (asset upload, perf, accuracy)
@@ -220,173 +259,17 @@ jobs:
       test_scope: ${{ inputs.test_scope }}
       options: ${{ inputs.options }}
 
-  collect_results_split:
-    name: Test Export Scripts, Upload Zip Files & Compute Accuracy
-    needs: [submit_split_jobs, fix_flaky_jobs]
-    secrets: inherit
-    if: ${{ !cancelled() && needs.submit_split_jobs.result != 'skipped' }}
-    uses: ./.github/workflows/scorecard_results_collection_split.yml
-    with:
-      action_id: ${{ github.run_id }}
-      s3_prefix: ${{ contains(inputs.release_scope, 'upload_export_assets')
-                     && 'pre_release_assets'
-                     || '' }}
-      run_accuracy: ${{ inputs.test_scope == 'accuracy' || inputs.test_scope == 'perf_and_accuracy' }}
-      max_models_per_split: 60
-      max_num_splits: 8
-
   collect_results:
-    name: Collect Scorecard Results
-    needs: [submit_split_jobs, fix_flaky_jobs, collect_results_split, scorecard_llm_device_run]
+    name: "Phase 4: Collect Scorecard Results"
+    needs: [submit_split_jobs, fix_flaky_jobs, accuracy_phase, scorecard_llm_device_run]
     if: ${{ !cancelled() && needs.submit_split_jobs.result != 'skipped' }}
     secrets: inherit
     uses: ./.github/workflows/scorecard_collect_results.yml
     with:
       action_id: ${{ github.run_id }}
-      notify_slack: ${{ github.event_name == 'schedule' && github.workflow != 'QAI Hub Models Nightly' }}
+      notify_slack: ${{ inputs.notify_failures || false }}
       create_pr: ${{ contains(inputs.release_scope, 'create_pr') }}
       previous_results_branch: ${{ github.ref_name }}
       use_previous_results_branch_as_base: true
-      publish_to_tableau: ${{ github.event_name == 'schedule' && github.workflow != 'QAI Hub Models Nightly' }}
+      publish_to_tableau: ${{ inputs.tableau_branch_name != '' }}
       tableau_branch_name: ${{ inputs.tableau_branch_name || '' }}
-
-  combine_test_results:
-    name: Combine Test Results
-    needs: [submit_split_jobs, collect_results_split]
-    if: ${{ always() && needs.submit_split_jobs.result != 'skipped' }}
-    runs-on: aihub-models-ubuntu-2404-ec2
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: CI Setup
-        id: ci_setup
-        uses: ./.github/actions/ci-setup
-        with:
-          venv-path: ${{ env.VENV_PATH }}
-
-      - name: Download Model Test Results
-        id: download_model_results
-        uses: actions/download-artifact@v8
-        continue-on-error: true
-        with:
-          name: test-results-scorecard-models
-          path: build/all-test-results/model-tests
-
-      # Probe first: the accuracy artifact only exists when at least one
-      # non-LLM model actually ran on-device accuracy this run. An LLM-only
-      # perf_and_accuracy dispatch satisfies the scope gate but produces no
-      # non-LLM accuracy work, so the merged artifact never appears --
-      # download-artifact would then emit a red ##[error] that flips the run
-      # conclusion to failure even with continue-on-error.
-      - name: Check Accuracy Test Results Artifact Exists
-        id: check_accuracy_results
-        if: ${{ needs.collect_results_split.result != 'skipped' && (inputs.test_scope == 'accuracy' || inputs.test_scope == 'perf_and_accuracy') }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          EXISTS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q '.artifacts[] | select(.name == "test-results-accuracy") | .id' | head -n1)
-          if [ -n "$EXISTS" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download Accuracy Test Results
-        id: download_accuracy_results
-        if: ${{ needs.collect_results_split.result != 'skipped' && (inputs.test_scope == 'accuracy' || inputs.test_scope == 'perf_and_accuracy') && steps.check_accuracy_results.outputs.exists == 'true' }}
-        uses: actions/download-artifact@v8
-        continue-on-error: true
-        with:
-          name: test-results-accuracy
-          path: build/all-test-results/accuracy
-
-      # Probe first: the artifact is absent when the export matrix is empty
-      # (e.g. LLM-only dispatch), and download-artifact emits a red ##[error]
-      # that flips the run conclusion to failure.
-      - name: Check Export Test Results Artifact Exists
-        id: check_export_results
-        if: ${{ needs.collect_results_split.result != 'skipped' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          EXISTS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q '.artifacts[] | select(.name == "test-results-export") | .id' | head -n1)
-          if [ -n "$EXISTS" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download Export Test Results
-        id: download_export_results
-        if: ${{ needs.collect_results_split.result != 'skipped' && steps.check_export_results.outputs.exists == 'true' }}
-        uses: actions/download-artifact@v8
-        continue-on-error: true
-        with:
-          name: test-results-export
-          path: build/all-test-results/export
-
-      - name: Generate Test Summary
-        if: ${{ format('{0}', inputs.generate_test_summary) != 'false' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ACCURACY_SKIPPED: ${{ needs.collect_results_split.result == 'skipped' || !(inputs.test_scope == 'accuracy' || inputs.test_scope == 'perf_and_accuracy') || steps.check_accuracy_results.outputs.exists != 'true' }}
-          EXPORT_SKIPPED: ${{ needs.collect_results_split.result == 'skipped' || steps.check_export_results.outputs.exists != 'true' }}
-        run: |
-          source "${{ env.VENV_PATH }}/bin/activate"
-          mkdir -p build/combined-test-results
-
-          # Build failure arguments from failed workflow jobs
-          FAILURE_ARGS=()
-          while IFS=$'\t' read -r name url; do
-            FAILURE_ARGS+=("--workflow-failure" "$name" "--workflow-failure-url" "$url")
-          done < <(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs --paginate -q '.jobs[] | select(.conclusion == "failure") | "\(.name)\t${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/\(.id)"')
-
-          # Build test input arguments, excluding skipped tests
-          TEST_ARGS=(
-            --name "Workbench Job Submission" --junit-xml build/all-test-results/model-tests/qaihm-model-tests-junit.xml
-          )
-          if [[ "$ACCURACY_SKIPPED" != "true" ]]; then
-            TEST_ARGS+=(--name "On-Device Accuracy Results Collection" --junit-xml build/all-test-results/accuracy/qaihm-device-accuracy-tests-junit.xml)
-          fi
-          if [[ "$EXPORT_SKIPPED" != "true" ]]; then
-            TEST_ARGS+=(--name "Export Script Test & Zip File Upload" --junit-xml build/all-test-results/export/qaihm-export-zip-tests-junit.xml)
-          fi
-
-          python -m qai_hub_models.scripts.generate_test_summary \
-            --title "Scorecard" \
-            "${FAILURE_ARGS[@]}" \
-            "${TEST_ARGS[@]}" \
-            --output build/combined-test-results/summary.md
-
-      - name: Copy XML Files to Combined Results
-        run: |
-          mkdir -p build/combined-test-results
-          if [ -d build/all-test-results ]; then
-            find build/all-test-results -name "*.xml" -exec cp {} build/combined-test-results/ \; || true
-          fi
-
-      - name: Upload Combined Test Results
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results-scorecard
-          path: build/combined-test-results
-
-      - name: Delete Individual Test Results
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Delete model test results
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-scorecard-models\") | .id" | while read artifact_id; do
-            echo "Deleting artifact $artifact_id"
-            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
-          done
-          # Delete accuracy test results
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-accuracy\") | .id" | while read artifact_id; do
-            echo "Deleting artifact $artifact_id"
-            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
-          done
-          # Delete export test results
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-export\") | .id" | while read artifact_id; do
-            echo "Deleting artifact $artifact_id"
-            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
-          done

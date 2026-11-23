@@ -23,7 +23,6 @@ JobTypeVar = TypeVar(
     hub.LinkJob,
     hub.InferenceJob,
     hub.QuantizeJob,
-    hub.ProfileJob,
 )
 ScorecardJobTypeVar = TypeVar("ScorecardJobTypeVar", bound="ScorecardJob")
 
@@ -113,9 +112,7 @@ class ScorecardJob(Generic[JobTypeVar]):
 
     @cached_property
     def hub_device(self) -> hub.Device:
-        if isinstance(
-            self.job, (hub.CompileJob, hub.LinkJob, hub.ProfileJob, hub.InferenceJob)
-        ):
+        if isinstance(self.job, (hub.CompileJob, hub.LinkJob, hub.InferenceJob)):
             return self.job.device
         raise NotImplementedError("Device is not applicable for this job type")
 
@@ -145,18 +142,27 @@ class LinkScorecardJob(ScorecardJob[hub.LinkJob]):
     job_type = hub.JobType.LINK
 
 
-class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
-    job_type_class = hub.ProfileJob
-    job_type = hub.JobType.PROFILE
+class InferenceScorecardJob(ScorecardJob[hub.InferenceJob]):
+    job_type_class = hub.InferenceJob
+    job_type = hub.JobType.INFERENCE
 
-    def cache_results(self) -> None:
-        super().cache_results()
-        if self._job_status.success:
-            assert self.profile_results  # Download results immediately
+    @property
+    def input_dataset(self) -> DatasetEntries:
+        """Input dataset."""
+        if self.job.inputs is None:
+            raise ValueError("Job has no input dataset.")
+        return cast(DatasetEntries, self.job.inputs.download())
+
+    @property
+    def output_dataset(self) -> DatasetEntries:
+        """Output dataset."""
+        if not self.success:
+            raise ValueError("Can't get output dataset if job did not succeed.")
+        return cast(DatasetEntries, self.job.download_output_data())
 
     @cached_property
     def profile_results(self) -> dict[str, Any]:
-        """Profile results from profile job."""
+        """Profile results from the job."""
         if self.success:
             profile = self.job.download_profile()
             assert isinstance(profile, dict)
@@ -165,21 +171,21 @@ class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
 
     @cached_property
     def inference_time_milliseconds(self) -> float:
-        """Get the inference time from the profile job."""
+        """Get the inference time from the job's profile results."""
         return float(
             self.profile_results["execution_summary"]["estimated_inference_time"] / 1000
         )
 
     @cached_property
     def first_load_time_milliseconds(self) -> float:
-        """Get the first load time from the profile job."""
+        """Get the first load time from the job's profile results."""
         return float(
             self.profile_results["execution_summary"]["first_load_time"] / 1000
         )
 
     @cached_property
     def warm_load_time_milliseconds(self) -> float:
-        """Get the warm load time from the profile job."""
+        """Get the warm load time from the job's profile results."""
         return float(self.profile_results["execution_summary"]["warm_load_time"] / 1000)
 
     @cached_property
@@ -231,22 +237,3 @@ class ProfileScorecardJob(ScorecardJob[hub.ProfileJob]):
                 )
             )
         return details
-
-
-class InferenceScorecardJob(ScorecardJob[hub.InferenceJob]):
-    job_type_class = hub.InferenceJob
-    job_type = hub.JobType.INFERENCE
-
-    @property
-    def input_dataset(self) -> DatasetEntries:
-        """Input dataset."""
-        if self.job.inputs is None:
-            raise ValueError("Job has no input dataset.")
-        return cast(DatasetEntries, self.job.inputs.download())
-
-    @property
-    def output_dataset(self) -> DatasetEntries:
-        """Output dataset."""
-        if not self.success:
-            raise ValueError("Can't get output dataset if job did not succeed.")
-        return cast(DatasetEntries, self.job.download_output_data())

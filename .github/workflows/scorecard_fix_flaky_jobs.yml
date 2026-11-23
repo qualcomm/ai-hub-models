@@ -1,4 +1,4 @@
-name: Fix Flaky Profile Jobs
+name: Fix Flaky Inference Jobs
 
 on:
     # Allows you to run this workflow manually from the Actions tab
@@ -59,7 +59,7 @@ on:
 
       outputs:
         updated_artifacts_url:
-          value: ${{ jobs.fix_flaky_profile_jobs.outputs.updated_artifacts_url || 'N/A' }}
+          value: ${{ jobs.fix_flaky_inference_jobs.outputs.updated_artifacts_url || 'N/A' }}
 
 env:
   PYTHONUNBUFFERED: 1
@@ -68,7 +68,7 @@ env:
   CMAKE_ARGS: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 jobs:
-  fix_flaky_profile_jobs:
+  fix_flaky_inference_jobs:
     name: Fix Flaky Jobs for ${{ inputs.action_id == '' && inputs.latest_results_branch || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, inputs.action_id) }}
     runs-on: aihub-models-ubuntu-2404-ec2
     timeout-minutes: 1200 # 20 hours, this waits for the scorecard jobs to finish.
@@ -142,7 +142,7 @@ jobs:
           hub-private-user-token-staging: ${{ secrets.HUB_PRIVATE_USER_TOKEN_STAGING }}
           hub-private-user-token-dev: ${{ secrets.HUB_PRIVATE_USER_TOKEN_DEV }}
 
-      - name: Fix Flaky Profile Jobs
+      - name: Fix Flaky Inference Jobs
         id: fix-flaky-jobs
         run: |
           source "${{ env.VENV_PATH }}/bin/activate"
@@ -151,13 +151,13 @@ jobs:
 
           if [ "${{ inputs.test_mode }}" == "true" ]; then
             echo "Running in TEST MODE - will resubmit all jobs regardless of failure status"
-            python -m qai_hub_models.scripts.retry_failed_profile_jobs \
+            python -m qai_hub_models.scripts.retry_failed_inference_jobs \
               --artifacts-dir ${{ env.QAIHM_TEST_ARTIFACTS_DIR }} \
               --test-mode \
               --wait-for-jobs \
               --flaky-jobs-output ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/flaky_jobs/flaky_jobs.yaml
           else
-            python -m qai_hub_models.scripts.retry_failed_profile_jobs \
+            python -m qai_hub_models.scripts.retry_failed_inference_jobs \
               --artifacts-dir ${{ env.QAIHM_TEST_ARTIFACTS_DIR }} \
               --wait-for-jobs \
               --flaky-jobs-output ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/flaky_jobs/flaky_jobs.yaml

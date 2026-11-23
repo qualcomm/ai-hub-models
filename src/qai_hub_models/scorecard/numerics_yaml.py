@@ -24,7 +24,7 @@ from qai_hub_models.configs.proto_helpers import (
     runtime_from_proto,
     runtime_to_proto,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
@@ -87,7 +87,8 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
         device_metric: dict[
             ScorecardDevice,
             dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ],
         ] = Field(default_factory=dict)
 
@@ -102,7 +103,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                     (
                         ScorecardDevice.parse(dm.device),
                         precision_from_proto(dm.precision),
-                        ScorecardProfilePath.from_runtime(
+                        ScorecardInferencePath.from_runtime(
                             runtime_from_proto(dm.runtime)
                         ),
                         dm,
@@ -115,7 +116,7 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
                 ScorecardDevice,
                 dict[
                     Precision,
-                    dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails],
+                    dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
                 ],
             ] = {}
             for device, precision, path, dm in results:
@@ -177,11 +178,11 @@ class QAIHMModelNumerics(BaseQAIHMConfig):
 
     def drop_entries_in_scope(
         self,
-        scope: set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]],
+        scope: set[tuple[Precision, ScorecardInferencePath, ScorecardDevice]],
     ) -> None:
         """Delete every entry whose (precision, path, device) key is in scope."""
         by_device: dict[
-            ScorecardDevice, set[tuple[Precision, ScorecardProfilePath]]
+            ScorecardDevice, set[tuple[Precision, ScorecardInferencePath]]
         ] = {}
         for precision, path, device in scope:
             by_device.setdefault(device, set()).add((precision, path))

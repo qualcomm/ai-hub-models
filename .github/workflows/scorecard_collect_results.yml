@@ -281,6 +281,7 @@ jobs:
         uses: ./.github/actions/ci-setup
         with:
           venv-path: ${{ env.VENV_PATH }}
+          bnt-venv-install-cmd: install_global_requirements
           hub-deployments: ${{ env.QAIHM_TEST_DEPLOYMENT }}
           hub-user-token-prod: ${{ secrets.HUB_USER_TOKEN_PROD }}
           hub-user-token-staging: ${{ secrets.HUB_USER_TOKEN_STAGING }}
@@ -297,6 +298,12 @@ jobs:
         if: ${{ !cancelled() && steps.download-accuracy-artifact.outcome == 'success' }}
         run: |
           source "${{ env.VENV_PATH }}/bin/activate"
+          # The output dir already holds the submit phase's stage-timings.csv, and the merge overwrites it.
+          # Move it in as a merge input so the submit rows are combined with the accuracy rows.
+          if [ -f "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/stage-timings.csv" ]; then
+            mkdir -p ${{ github.workspace }}/accuracy-csvs/submit-phase
+            mv "${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/stage-timings.csv" ${{ github.workspace }}/accuracy-csvs/submit-phase/
+          fi
           python -m qai_hub_models.scripts.combine_split_artifacts \
             --input-dir ${{ github.workspace }}/accuracy-csvs \
             --output-dir ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
@@ -305,10 +312,8 @@ jobs:
         id: create-perf-files
         if: ${{ !cancelled() }}
         run: |
-          python3 scripts/build_and_test.py \
-            --venv="${{ env.VENV_PATH }}" \
-            --python="${{ steps.ci_setup.outputs.python-path }}" \
-            create_perfs_and_numerics
+          source "${{ env.VENV_PATH }}/bin/activate"
+          python -m qai_hub_models.scripts.collect_scorecard_results --gen-csv --gen-perf-summary --sync-code-gen
 
       # Merge every runtime's LLM perf.yaml updates (genie, geniex) in one
       # clear-then-upsert pass. create_perfs_and_numerics above does not write
@@ -336,10 +341,8 @@ jobs:
         id: create-release-assets-files
         if: ${{ !cancelled() && steps.combine-release-assets.outcome == 'success' }}
         run: |
-          python3 scripts/build_and_test.py \
-            --venv="${{ env.VENV_PATH }}" \
-            --python="${{ steps.ci_setup.outputs.python-path }}" \
-            create_release_assets
+          source "${{ env.VENV_PATH }}/bin/activate"
+          python -m qai_hub_models.scripts.collect_scorecard_assets_results
 
       # collect_scorecard_results raises after writing assets when individual
       # models fail collection. Steps that just consume those assets gate on
@@ -350,10 +353,18 @@ jobs:
         id: aggregate-results
         if: ${{ !cancelled() && steps.create-perf-files.outcome != 'skipped' }}
         run: |
-          python3 scripts/build_and_test.py \
-          --venv="${{ env.VENV_PATH }}" \
-          --python="${{ steps.ci_setup.outputs.python-path }}" \
-          aggregate_scorecard_results
+          source "${{ env.VENV_PATH }}/bin/activate"
+          python -m qai_hub_models.scripts.aggregate_scorecard_results
+
+      # Per-stage / per-model failures, in the step summary and the artifacts.
+      - name: Generate Scorecard Summary
+        id: scorecard-summary
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          source "${{ env.VENV_PATH }}/bin/activate"
+          python -m qai_hub_models.scripts.generate_scorecard_summary \
+            --title "Scorecard ${{ inputs.action_id || inputs.latest_results_branch }}"
 
       - name: Generate Failure Analysis
         id: failure-analysis
@@ -363,18 +374,6 @@ jobs:
             ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/results.csv \
             --output-file ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}/scorecard_failure_analysis.csv
 
-      - name: Refresh Model Runtime Estimates
-        id: refresh-runtime-estimates
-        if: ${{ !cancelled() && inputs.create_pr && inputs.tableau_branch_name == 'weekly-prod' && inputs.action_id != '' && steps.create-perf-files.outcome != 'failure' && steps.create-release-assets-files.outcome != 'failure' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ACTION_ID: ${{ inputs.action_id }}
-          REPO: ${{ github.repository }}
-        run: |
-          source "${{ env.VENV_PATH }}/bin/activate"
-          python -m qai_hub_models.scripts.extract_model_runtimes \
-            --action-id "$ACTION_ID" \
-            --repo "$REPO"
 
       - name: Run codegen and precommit
         if: ${{ !cancelled() && inputs.create_pr && steps.create-perf-files.outcome != 'failure' && steps.create-release-assets-files.outcome != 'failure' }}
@@ -415,7 +414,14 @@ jobs:
             git add src/qai_hub_models/scorecard/intermediates/environment.env
           fi
           git -c user.name='qaihm-bot_QCOM' -c user.email=qaihm_bot@qti.qualcomm.com commit -m "[Automated] Update Performance Data for ${{ inputs.action_id || inputs.latest_results_branch }}" -n
-          git push --set-upstream origin ${{ env.PR_REF_NAME }} -f
+          # GitHub intermittently rejects large pushes with a workflow-scope timeout.
+          for attempt in 1 2 3; do
+            if git push --set-upstream origin ${{ env.PR_REF_NAME }} -f; then
+              exit 0
+            fi
+            sleep $((attempt * 30))
+          done
+          exit 1
 
       - name: Upload Scorecard CSV
         if: ${{ !cancelled() && steps.aggregate-results.outcome == 'success' }}

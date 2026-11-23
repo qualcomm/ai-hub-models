@@ -4,8 +4,6 @@
 # ---------------------------------------------------------------------
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -16,6 +14,9 @@ import pytest
 
 from qai_hub_models import Precision
 from qai_hub_models.datasets.device_eval import is_prompt_task
+from qai_hub_models.models.templates.llm.checkpoint_stub import (
+    stub_llm_checkpoint_resolution,
+)
 from qai_hub_models.models.templates.llm.common import cleanup
 from qai_hub_models.models.templates.llm.evaluate import evaluate
 from qai_hub_models.models.templates.llm.grace_tasks import resolve_task_name
@@ -45,7 +46,6 @@ from qai_hub_models.models.templates.lm_schema import (
     SeqMSESpec,
     WikitextSpec,
 )
-from qai_hub_models.utils.envvars import CheckpointEnvvar
 from qai_hub_models.utils.llm.genie.jobs import (
     GENIE_BUNDLES_ROOT,
     collect_llm_perf_job,
@@ -62,85 +62,9 @@ __all__ = [
     "collect_llm_perf_job",
     "fetch_genie_bundle_for_perf",
     "run_llm_perf_test",
+    "stub_llm_checkpoint_resolution",
     "submit_llm_perf_job",
 ]
-
-
-@contextmanager
-def stub_llm_checkpoint_resolution(model_cls: type) -> Iterator[pytest.MonkeyPatch]:
-    """Patch resolve_default_checkpoint (base + Llama override) plus
-    get_component_graph_input_spec / _hub_compile_options on model_cls so
-    LLM pytest tests skip the FP HuggingFace load.
-    """
-    from transformers import AutoConfig, AutoTokenizer
-
-    from qai_hub_models.models.templates.llama3.model import (
-        LlamaDynamicQuantizablePreSplitMixin,
-    )
-    from qai_hub_models.models.templates.llm.model import (
-        DynamicQuantizablePreSplitMixin,
-    )
-    from qai_hub_models.utils.asset_loaders import CachedWebModelAsset
-
-    def _ensure_tokenizer_and_config(cls: Any, ckpt: Path) -> None:
-        if not (ckpt / "tokenizer.json").exists():
-            AutoTokenizer.from_pretrained(cls.FPModel.hf_repo_name).save_pretrained(
-                ckpt
-            )
-        if not (ckpt / "config.json").exists():
-            AutoConfig.from_pretrained(cls.FPModel.hf_repo_name).save_pretrained(ckpt)
-
-    def _stub_resolve_zip_checkpoint(
-        cls: Any, precision: Precision, host_device: object, fp_model: object
-    ) -> tuple[str, None]:
-        # Qwen3 (base DynamicQuantizablePreSplitMixin) publishes the full .zip
-        # archive (dynamic ONNX + encodings + weights + tokenizer + config), so
-        # reuse the real fetch_default_checkpoint rather than fetching a bare
-        # model.encodings object that was never uploaded. Only the FP
-        # HuggingFace load (skipped by not passing fp_model) needs stubbing.
-        return cls.fetch_default_checkpoint(precision), None
-
-    def _stub_resolve_encodings_checkpoint(
-        cls: Any, precision: Precision, host_device: object, fp_model: object
-    ) -> tuple[str, None]:
-        # Llama fetches encodings only and re-exports ONNX from the FP torch
-        # model, so its asset store publishes a bare model.encodings.
-        if CheckpointEnvvar.get():
-            ckpt = Path(cls.fetch_default_checkpoint(precision))
-        else:
-            precision_checkpoint = cls.default_checkpoint[precision]
-            ckpt = Path(
-                CachedWebModelAsset.from_asset_store(
-                    cls.model_id,
-                    cls.model_asset_version,
-                    f"{precision_checkpoint}/model.encodings",
-                ).fetch()
-            ).parent
-        _ensure_tokenizer_and_config(cls, ckpt)
-        return str(ckpt), None
-
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(
-            DynamicQuantizablePreSplitMixin,
-            "resolve_default_checkpoint",
-            classmethod(_stub_resolve_zip_checkpoint),
-        )
-        mp.setattr(
-            LlamaDynamicQuantizablePreSplitMixin,
-            "resolve_default_checkpoint",
-            classmethod(_stub_resolve_encodings_checkpoint),
-        )
-        mp.setattr(
-            model_cls,
-            "get_component_graph_input_spec",
-            lambda self, component_name, graph_name, *a, **kw: {},
-        )
-        mp.setattr(
-            model_cls,
-            "get_component_graph_hub_compile_options",
-            lambda self, *a, **kw: "",
-        )
-        yield mp
 
 
 def setup_test_quantization(

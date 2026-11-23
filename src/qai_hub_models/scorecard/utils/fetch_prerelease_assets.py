@@ -10,7 +10,7 @@ from pathlib import Path
 import qai_hub as hub
 
 from qai_hub_models import Precision, TargetRuntime
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.utils.asset_loaders import (
@@ -28,7 +28,7 @@ from qai_hub_models.utils.path_helpers import get_next_free_path
 
 def fetch_prerelease_assets(
     model_id: str,
-    runtime_or_path: TargetRuntime | ScorecardProfilePath,
+    runtime_or_path: TargetRuntime | ScorecardInferencePath,
     precision: Precision = Precision.float,
     device_or_chipset: hub.Device | str | None = None,
     output_folder: str | os.PathLike | None = None,
@@ -43,7 +43,7 @@ def fetch_prerelease_assets(
     model_id
         Model ID to fetch
     runtime_or_path
-        Target Runtime or ScorecardProfilePath to fetch
+        Target Runtime or ScorecardInferencePath to fetch
     precision
         Precision to fetch
     device_or_chipset
@@ -72,7 +72,7 @@ def fetch_prerelease_assets(
         )
 
     sc_path = (
-        ScorecardProfilePath.from_runtime(runtime_or_path)
+        ScorecardInferencePath.from_runtime(runtime_or_path)
         if isinstance(runtime_or_path, TargetRuntime)
         else runtime_or_path
     )

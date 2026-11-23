@@ -41,10 +41,10 @@ class ScorecardCompilePath(Enum):
 
     @property
     def enabled(self) -> bool:
-        from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+        from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 
         profile_paths = [
-            x for x in ScorecardProfilePath if x.enabled and x.compile_path == self
+            x for x in ScorecardInferencePath if x.enabled and x.compile_path == self
         ]
         return len(profile_paths) > 0
 
@@ -69,12 +69,12 @@ class ScorecardCompilePath(Enum):
         should_run : bool
             True if this compile path should be run for the model at the given precision.
         """
-        from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+        from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 
         return any(
             x.compile_path == self
             and x.should_run_path_for_model(precision, model_supported_runtimes)
-            for x in ScorecardProfilePath
+            for x in ScorecardInferencePath
         )
 
     @property

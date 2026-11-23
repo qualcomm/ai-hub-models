@@ -18,7 +18,7 @@ from qai_hub_models.configs.model_disable_reasons import (
 )
 from qai_hub_models.scorecard import (
     ScorecardDevice,
-    ScorecardProfilePath,
+    ScorecardInferencePath,
 )
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.execution_helpers import (
@@ -55,7 +55,7 @@ def _clean_old_failure_reasons(
     passing_precisions: list[Precision] = []
     for precision, reasons_by_runtime in manifest.disabled_paths.data.items():
         if precision in precisions:
-            for path in ScorecardProfilePath:
+            for path in ScorecardInferencePath:
                 if (not path.is_published or path.enabled) and (
                     reasons := reasons_by_runtime.get(path.runtime)
                 ):
@@ -88,7 +88,7 @@ def _clean_old_failure_reasons(
 
 def update_code_gen_failure_reasons(
     summaries: list[ScorecardExportTestSummary],
-    enabled_test_paths: dict[Precision, list[ScorecardProfilePath]],
+    enabled_test_paths: dict[Precision, list[ScorecardInferencePath]],
     manifest: QAIHMModelManifest,
 ) -> None:
     """
@@ -99,6 +99,10 @@ def update_code_gen_failure_reasons(
     """
     default_device = ScorecardDevice.get(manifest.default_device)
     if not default_device.enabled:
+        return
+
+    # A model that never ran says nothing about its paths; don't mark them failing.
+    if not any(summary.has_any_job for summary in summaries):
         return
 
     supported_precisions = list(enabled_test_paths.keys())
@@ -113,7 +117,7 @@ def update_code_gen_failure_reasons(
         params = summary.params
         assert params.precision is not None
         assert params.device is not None
-        assert isinstance(params.path, ScorecardProfilePath)
+        assert isinstance(params.path, ScorecardInferencePath)
         if params.device != default_device:
             continue
         if not params.path.is_published:
@@ -198,7 +202,7 @@ def update_code_gen_accuracy_failure_reasons(
         elif accuracy_type == "torch":
             # Torch accuracy failure affects all paths for all precisions
             for p in supported_precisions:
-                for sc_path in ScorecardProfilePath:
+                for sc_path in ScorecardInferencePath:
                     if not sc_path.is_published or not sc_path.enabled:
                         continue
                     if p not in manifest.disabled_paths.data:
@@ -307,13 +311,15 @@ def remove_numerics_failures(
         new_metrics_by_device: dict[
             ScorecardDevice,
             dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ],
         ] = {}
 
         for device, metrics_by_precision in metric.device_metric.items():
             new_metrics_by_precision: dict[
-                Precision, dict[ScorecardProfilePath, QAIHMModelNumerics.DeviceDetails]
+                Precision,
+                dict[ScorecardInferencePath, QAIHMModelNumerics.DeviceDetails],
             ] = {}
 
             for precision, metrics_by_path in metrics_by_precision.items():
@@ -382,7 +388,7 @@ def remove_perf_failures(
 
     # Paths still present for each device and precision decide its supported chipsets.
     remaining_paths: dict[
-        tuple[ScorecardDevice, Precision], set[ScorecardProfilePath]
+        tuple[ScorecardDevice, Precision], set[ScorecardInferencePath]
     ] = defaultdict(set)
     for key in result.entries:
         remaining_paths[(key.device, key.precision)].add(key.path)
@@ -427,7 +433,7 @@ def remove_asset_failures(
     for precision, precision_details in assets.precisions.items():
         chipset_assets: dict[
             str,
-            dict[ScorecardProfilePath, QAIHMModelReleaseAssets.AssetDetails],
+            dict[ScorecardInferencePath, QAIHMModelReleaseAssets.AssetDetails],
         ] = {}
         for chipset, asset_by_path in precision_details.chipset_assets.items():
             runtimes_to_strip = _runtimes_to_strip_for_chipset(

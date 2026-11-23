@@ -12,7 +12,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.datasets.coco import COCO_VAL_DATASET
 from qai_hub_models.datasets.coco.coco import COCO_ANNOTATIONS
@@ -26,6 +25,10 @@ from qai_hub_models.models.templates.corevision.image_processing import (
 )
 from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.input_spec import InputSpec
+from qai_hub_models.utils.samplers import (
+    grouped_shuffled_order,
+    grouped_strided_order,
+)
 
 DATASET_ASSET_VERSION = 1
 DATASET_ID = "coco_pose"
@@ -151,36 +154,32 @@ class CocoDetectorKeypointsDataset(CocoBodyDataset):
         COCO_ANNOTATIONS.fetch(extract=True)
         COCO_PERSON_DETECTION_RESULTS.fetch()
 
-    def get_dataloader(
-        self, num_samples: int, samples_per_job: int | None = None
-    ) -> DataLoader:
-        """Return a DataLoader with ~num_samples crops, rounded up to complete images.
+    def _crops_by_image(self) -> list[list[int]]:
+        return [self._image_to_indices[i] for i in self._image_ids_ordered]
 
-        Strides over images so samples are spread across the dataset, stopping
-        once the accumulated crop count reaches num_samples. The last image is
-        always included in full so OKS-NMS has the complete detection set.
+    def eval_order(
+        self, num_samples: int, samples_per_job: int, seed: int | None = None
+    ) -> list[int]:
+        """Keep all the detections of one image together in the same batch.
+
+        Each sample here is one detected person (a crop) rather than a whole
+        image, and a single image can have several. Keypoint accuracy is scored per
+        image, so a batch that ends in the middle of an image's people leaves that
+        image only partly scored in that batch, which costs a little accuracy. The
+        order lists whole images in turn, spread across the dataset the way the
+        default does. `default_samples_per_job` is picked so the first batch ends
+        exactly at an image boundary.
         """
-        total_crops = len(self.kpt_db)
-        crop_stride = max(1, total_crops // num_samples)
-        # Identify images by striding over crops, preserving dataset order
-        seen_images: dict[int, None] = {}
-        for i in range(0, total_crops, crop_stride):
-            seen_images[self.kpt_db[i][1]] = None
-        # Collect all crops per selected image, stopping once num_samples is reached
-        selected: list[int] = []
-        for img_id in seen_images:
-            selected.extend(self._image_to_indices[img_id])
-            if len(selected) >= num_samples:
-                break
-        return DataLoader(
-            Subset(self, selected),
-            batch_size=samples_per_job or self.default_samples_per_job(),
-            collate_fn=self.collate_fn,
-        )
+        if seed is None:
+            order = grouped_strided_order(self._crops_by_image(), samples_per_job)
+        else:
+            order = grouped_shuffled_order(self._crops_by_image(), seed)
+        return order[:num_samples]
 
     @staticmethod
     def default_samples_per_job() -> int:
-        return 1000
+        # The largest value under 1000 whose first batch ends on an image boundary.
+        return 942
 
     @staticmethod
     def get_dataset_metadata() -> DatasetMetadata:

@@ -11,7 +11,7 @@ from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import cs_8_gen_3
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -21,7 +21,7 @@ from qai_hub_models.scorecard.results.scorecard_summary import (
 from qai_hub_models.scorecard.results.yaml import (
     ComponentNamesYaml,
     GraphNamesYaml,
-    ProfileScorecardJobYaml,
+    InferenceScorecardJobYaml,
     get_model_component_and_graph_names,
 )
 from qai_hub_models.utils.hub_clients import deployment_is_prod
@@ -38,7 +38,7 @@ def test_generate_perf(hub_test_deployment: str) -> None:
         )
 
     # Verify the model card is made correctly given the info
-    job_ids = ProfileScorecardJobYaml.from_file(
+    job_ids = InferenceScorecardJobYaml.from_file(
         os.path.join(os.path.dirname(__file__), "profile_job_ids.yaml")
     )
 
@@ -49,11 +49,10 @@ def test_generate_perf(hub_test_deployment: str) -> None:
         graph_names=None,
         component_graph_names=None,
         profile_component_names=["encoder", "decoder"],
-        profile_tests=[
-            (Precision.float, ScorecardProfilePath.TFLITE, cs_8_gen_3),
-            (Precision.float, ScorecardProfilePath.ONNX, cs_8_gen_3),
+        inference_tests=[
+            (Precision.float, ScorecardInferencePath.TFLITE, cs_8_gen_3),
+            (Precision.float, ScorecardInferencePath.ONNX, cs_8_gen_3),
         ],
-        inference_tests=[],
         enabled_paths={},
     )
 
@@ -64,7 +63,6 @@ def test_generate_perf(hub_test_deployment: str) -> None:
         None,
         None,
         job_ids,
-        None,
     )
 
     model_card = QAIHMModelPerf("trocr")
@@ -78,7 +76,7 @@ def test_generate_perf(hub_test_deployment: str) -> None:
 
 def _build_perf_card(model_id: str) -> QAIHMModelPerf:
     """Build a perf card from the checked-in intermediate job IDs."""
-    job_ids = ProfileScorecardJobYaml.from_intermediates()
+    job_ids = InferenceScorecardJobYaml.from_intermediates()
     manifest = QAIHMModelManifest.from_model(model_id)
 
     component_names, graph_names, component_graph_names = (
@@ -97,7 +95,6 @@ def _build_perf_card(model_id: str) -> QAIHMModelPerf:
         None,
         None,
         job_ids,
-        None,
     )
 
     model_card = QAIHMModelPerf(model_id)

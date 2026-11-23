@@ -26,6 +26,7 @@ from qai_hub_models.protocols import (
     EvaluatableModelProtocol,
     FromPretrainedProtocol,
 )
+from qai_hub_models.utils._cached_from_pretrained import CachedFromPretrainedMeta
 from qai_hub_models.utils.base_dataset import BaseDataset
 from qai_hub_models.utils.base_evaluator import BaseEvaluator
 from qai_hub_models.utils.input_spec import (
@@ -277,7 +278,9 @@ class WorkbenchModel(ABC, FromPretrainedProtocol, EvaluatableModelProtocol):
         return make_sample_inputs(input_spec)
 
 
-class PytorchWorkbenchModel(WorkbenchModel, torch.nn.Module):
+class PytorchWorkbenchModel(
+    WorkbenchModel, torch.nn.Module, metaclass=CachedFromPretrainedMeta
+):
     """A pre-trained PyTorch model with helpers for submission to AI Hub Workbench."""
 
     def __init__(

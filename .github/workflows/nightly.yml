@@ -152,6 +152,13 @@ jobs:
             name: test-results-scorecard-integration
             path: build/all-test-results/scorecard
 
+        - name: Download Scorecard Artifacts
+          uses: actions/download-artifact@v8
+          continue-on-error: true
+          with:
+            name: All Scorecard Artifacts (${{ github.run_id }})
+            path: build/scorecard-artifacts
+
         - name: Generate Test Summary
           env:
             GH_TOKEN: ${{ github.token }}
@@ -181,11 +188,16 @@ jobs:
               --name "py3.13 QAIHM Tests" --junit-xml build/all-test-results/py313/qaihm-unit-tests-junit.xml \
               --name "py3.13 CLI Tests" --junit-xml build/all-test-results/py313/qaihm-cli-tests-junit.xml \
               --name "py3.13 Model Tests" --junit-xml build/all-test-results/py313/qaihm-model-tests-junit.xml \
-              --name "Scorecard Job Submission" --junit-xml build/all-test-results/scorecard/qaihm-model-tests-junit.xml \
-              --name "Scorecard Accuracy Collection" --junit-xml build/all-test-results/scorecard/qaihm-device-accuracy-tests-junit.xml \
-              --name "Scorecard Export Tests" --junit-xml build/all-test-results/scorecard/qaihm-export-zip-tests-junit.xml \
               --name "Scorecard Integration Test" --junit-xml build/all-test-results/scorecard/qaihm-scorecard-integration-test-junit.xml \
               --output build/combined-test-results/summary.md
+
+            # Per-model / per-stage scorecard failures (replaces the old scorecard JUnit sections).
+            if [ -f build/scorecard-artifacts/scorecard-summary.md ]; then
+              printf '\n' >> build/combined-test-results/summary.md
+              cat build/scorecard-artifacts/scorecard-summary.md >> build/combined-test-results/summary.md
+            else
+              printf '\n❌ scorecard-summary.md not found: no per-model results.\n' >> build/combined-test-results/summary.md
+            fi
 
         - name: Copy Test Results to Combined Directory
           run: |

@@ -17,6 +17,23 @@ class IsOnCIEnvvar(QAIHMBoolEnvvar):
         return False
 
 
+class CacheFromPretrainedEnvvar(QAIHMBoolEnvvar):
+    """
+    If true, a model class's `from_pretrained` returns the instance it built on
+    the previous call with the same arguments, instead of building a new one.
+    This saves repeated model loads when the scorecard runs many parameterizations
+    of one model. It is also on whenever QAIHM_CI is set.
+    """
+
+    VARNAME = "QAIHM_CACHE_FROM_PRETRAINED"
+    CLI_ARGNAMES = ["--cache-from-pretrained"]
+    CLI_HELP_MESSAGE = "Reuse the model instance from the previous `from_pretrained` call when the arguments match."
+
+    @classmethod
+    def default(cls) -> bool:
+        return False
+
+
 class DevModeEnvvar(QAIHMBoolEnvvar):
     """
     If true, disables interactive prompts and validation checks for development.

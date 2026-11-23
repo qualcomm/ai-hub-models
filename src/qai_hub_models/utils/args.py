@@ -38,11 +38,22 @@ from qai_hub_models.utils.base_model import (
     PrecompiledWorkbenchModel,
     WorkbenchModel,
 )
+from qai_hub_models.utils.base_multi_graph_collection_model import (
+    MultiGraphCollectionModel,
+)
+from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
 from qai_hub_models.utils.checkpoint import CheckpointType
 from qai_hub_models.utils.device import resolve_hub_device
 from qai_hub_models.utils.envvars import DevModeEnvvar
 from qai_hub_models.utils.evaluate.helpers import EvalMode
 from qai_hub_models.utils.export.context import resolve_recipe_dir
+from qai_hub_models.utils.export.result import (
+    CollectionExportIntermediates,
+    ComponentGroup,
+    ExportIntermediates,
+    MultiGraphCollectionExportIntermediates,
+    MultiGraphExportIntermediates,
+)
 from qai_hub_models.utils.inference import OnDeviceModel, compile_model_from_args
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.kwarg_helpers import filter_kwargs, get_params
@@ -275,26 +286,44 @@ class QAIHMArgumentParser(argparse.ArgumentParser):
                 stacklevel=2,
             )
 
-        quantized_model_id_arg = getattr(parsed, "quantized_model_id", None)
-        if quantized_model_id_arg:
-            if getattr(parsed, "precision", None) == Precision.float:
-                raise CLIUserError(
-                    "--quantized-model-id can only be used with a quantized precision. "
-                    "Pass --precision <non-float> or --quantize."
+        if hasattr(parsed, "skip_profiling"):
+            if parsed.skip_profiling:
+                warnings.warn(
+                    "--skip-profiling is deprecated and is now a no-op: profiling "
+                    "and inference run as a single inference job, so profiling can "
+                    "no longer be skipped on its own. Use --skip-inferencing to "
+                    "skip the inference job entirely.",
+                    DeprecationWarning,
+                    stacklevel=2,
                 )
-            assert self.model_cls is not None
-            if not issubclass(self.model_cls, CollectionModel):
-                # WorkbenchModel
-                parsed.quantized_model_id = quantized_model_id_arg
-            else:
-                # CollectionModel
-                components = getattr(parsed, "components", None)
-                model_ids = [
-                    s.strip() for s in quantized_model_id_arg.split(",") if s.strip()
-                ]
-                parsed.quantized_model_id = dict(
-                    zip(components or [], model_ids, strict=True)
+            del parsed.skip_profiling
+
+        # These two attrs only exist on the namespace when the export pipeline's
+        # signature declared `export_intermediates` (see add_export_function_args),
+        # so their presence is what signals this is an export parser.
+        if hasattr(parsed, "quantized_model_id") or hasattr(
+            parsed, "compiled_model_id"
+        ):
+            quantized_model_id_arg = getattr(parsed, "quantized_model_id", None)
+            compiled_model_id_arg = getattr(parsed, "compiled_model_id", None)
+            if quantized_model_id_arg or compiled_model_id_arg:
+                if (
+                    quantized_model_id_arg
+                    and getattr(parsed, "precision", None) == Precision.float
+                ):
+                    raise CLIUserError(
+                        "--quantized-model-id can only be used with a quantized "
+                        "precision. Pass --precision <non-float> or --quantize."
+                    )
+                assert self.model_cls is not None
+                parsed.export_intermediates = _build_export_intermediates(
+                    self.model_cls,
+                    quantized_model_id_arg,
+                    compiled_model_id_arg,
+                    getattr(parsed, "components", None),
                 )
+            del parsed.quantized_model_id
+            del parsed.compiled_model_id
 
         if self.supported_precision_runtimes:
             self.validate_precision_runtime(self.supported_precision_runtimes, parsed)
@@ -1120,6 +1149,82 @@ def _add_inference_options_arg(parser: QAIHMArgumentParser) -> None:
     )
 
 
+def _add_skip_inferencing_arg(parser: QAIHMArgumentParser) -> None:
+    parser.add_argument(
+        "--skip-inferencing",
+        dest="skip_inferencing",
+        action="store_true",
+        help="If set, skips running the model on a real device.",
+    )
+    # Kept as a standalone no-op flag (not an alias for --skip-inferencing): one
+    # inference job now both profiles and infers, so skipping profiling alone
+    # is no longer possible without also skipping inference.
+    parser.add_argument(
+        "--skip-profiling",
+        dest="skip_profiling",
+        action="store_true",
+        help="Deprecated, now a no-op. Profiling and inference run as a single "
+        "inference job, so profiling can no longer be skipped on its own. Use "
+        "--skip-inferencing to skip the inference job entirely.",
+    )
+
+
+def _build_export_intermediates(
+    model_cls: type[FromPretrainedProtocol],
+    quantized_model_id_arg: str | None,
+    compiled_model_id_arg: str | None,
+    components: list[str] | None,
+) -> (
+    ExportIntermediates
+    | CollectionExportIntermediates
+    | MultiGraphExportIntermediates
+    | MultiGraphCollectionExportIntermediates
+):
+    """Resolve --quantized-model-id / --compiled-model-id into the shape export_model expects."""
+    is_collection = issubclass(model_cls, CollectionModel) or issubclass(
+        model_cls, MultiGraphCollectionModel
+    )
+    is_multi_graph = issubclass(model_cls, MultiGraphWorkbenchModel) or issubclass(
+        model_cls, MultiGraphCollectionModel
+    )
+
+    if is_multi_graph:
+        # A multi-graph model's compiled asset is one-per-graph, so a single
+        # --compiled-model-id/--quantized-model-id has no graph to pair with.
+        raise CLIUserError(
+            "--quantized-model-id/--compiled-model-id are not supported for "
+            f"{model_cls.__name__}, which compiles multiple graphs per model/component."
+        )
+
+    if not is_collection:
+        return ExportIntermediates(
+            quantized_model=(
+                hub.get_model(quantized_model_id_arg)
+                if quantized_model_id_arg
+                else None
+            ),
+            compiled_model=(
+                hub.get_model(compiled_model_id_arg) if compiled_model_id_arg else None
+            ),
+        )
+
+    def _per_component(id_arg: str | None) -> ComponentGroup[hub.Model]:
+        if not id_arg:
+            return ComponentGroup()
+        ids = [s.strip() for s in id_arg.split(",") if s.strip()]
+        return ComponentGroup(
+            {
+                name: hub.get_model(model_id)
+                for name, model_id in zip(components or [], ids, strict=True)
+            }
+        )
+
+    return CollectionExportIntermediates(
+        quantized_models=_per_component(quantized_model_id_arg) or None,
+        compiled_models=_per_component(compiled_model_id_arg) or None,
+    )
+
+
 def add_export_function_args(
     export_fn: Callable,
     parser: QAIHMArgumentParser,
@@ -1160,6 +1265,32 @@ def add_export_function_args(
         signature.pop("inference_options")
         _add_inference_options_arg(parser)
 
+    if "skip_inferencing" in signature:
+        signature.pop("skip_inferencing")
+        _add_skip_inferencing_arg(parser)
+
+    if "export_intermediates" in signature:
+        signature.pop("export_intermediates")
+        parser.add_argument(
+            "--quantized-model-id",
+            type=str,
+            default=None,
+            help="If set, uses this quantized model ID instead of quantizing during export. "
+            "For WorkbenchModel: --quantized-model-id <id>. "
+            "For CollectionModel: --quantized-model-id <id1,id2,...>. "
+            "For CollectionModel, IDs must be provided in the same order as the selected components in --components.",
+        )
+        parser.add_argument(
+            "--compiled-model-id",
+            type=str,
+            default=None,
+            help="If set, uses this compiled model ID instead of compiling during export. "
+            "Implies --quantized-model-id's effect too, since compiling is skipped. "
+            "For WorkbenchModel: --compiled-model-id <id>. "
+            "For CollectionModel: --compiled-model-id <id1,id2,...>. "
+            "For CollectionModel, IDs must be provided in the same order as the selected components in --components.",
+        )
+
     raw_doc = inspect.getdoc(export_fn)
     assert raw_doc is not None, "Export function must have a docstring."
 
@@ -1176,18 +1307,6 @@ def add_export_function_args(
         return description
 
     add_function_parser_args(signature, parser, _get_export_help)
-
-    if "quantized_model_id" in signature:
-        signature.pop("quantized_model_id")
-        parser.add_argument(
-            "--quantized-model-id",
-            type=str,
-            default=None,
-            help="If set, uses this quantized model ID instead of quantizing during export. "
-            "For WorkbenchModel: --quantized-model-id <id>. "
-            "For CollectionModel: --quantized-model-id <id1,id2,...>. "
-            "For CollectionModel, IDs must be provided in the same order as the selected components in --components.",
-        )
 
 
 def export_parser(
@@ -1353,6 +1472,12 @@ def evaluate_parser(
         help="If set, will store hub dataset ids in a local file and re-use "
         "for subsequent evaluations on the same dataset.",
     )
+    parser.add_argument(
+        "--force-rebuild-cache",
+        action="store_true",
+        help="With --use-dataset-cache, discard this dataset's local cache and "
+        "build it again. Use if the cache is stale or corrupt.",
+    )
     if uses_quantize_job:
         parser.add_argument(
             "--compute-quant-cpu-accuracy",
@@ -1368,5 +1493,12 @@ def evaluate_parser(
         "--skip-torch-accuracy",
         action="store_true",
         help="If flag is set, skips computing accuracy with the torch model.",
+    )
+    parser.add_argument(
+        "--compute-psnr",
+        action="store_true",
+        help="If flag is set, also compares on-device outputs against torch on "
+        "the model's sample inputs and prints psnr. Models without an eval "
+        "dataset do this unconditionally.",
     )
     return parser

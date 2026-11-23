@@ -15,7 +15,7 @@ import pandas as pd
 
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
 from qai_hub_models.scorecard.envvars import TableauBranchNameEnvvar
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.utils.testing_async_utils import (
     get_accuracy_columns,
     get_accuracy_metadata_columns,
@@ -56,7 +56,7 @@ def _nullify_perf_columns(df: pd.DataFrame) -> None:
 
 def _convert_runtime_name(runtime: str) -> str:
     try:
-        return ScorecardProfilePath(runtime).spreadsheet_name
+        return ScorecardInferencePath(runtime).spreadsheet_name
     except ValueError:
         return runtime  # retired path from an older scorecard
 
@@ -136,7 +136,10 @@ def create_check_numerics_function(
             if min(psnr_values[~psnr_values.isna()]) > psnr_threshold:
                 return "Pass Pending Data"
             return "Low PSNR"
-        # Inference job failed, should be caught in previous bucket
+        # Accuracy is only measured on the default device, so other chipsets
+        # have no numbers even when their inference job passed.
+        if str(row["inference_status"]).startswith("Passed"):
+            return "Pass Pending Data"
         return "Inference Failed"
 
     return check_numerics
@@ -158,13 +161,20 @@ def create_model_status_function(
     def get_model_status(group: pd.DataFrame) -> pd.Series:
         precision = group.iloc[0].precision
         failed_quantize_rows = group[
-            ~group["quantize_status"].str.startswith("Passed", na=False)
+            ~group["quantize_status"].str.startswith(
+                ("Passed", "Skipped", "skipped"), na=False
+            )
         ]
         failed_compile_rows = group[
-            ~group["compile_status"].str.startswith("Passed", na=False)
+            ~group["compile_status"].str.startswith(("Passed", "Skipped"), na=False)
+        ]
+        unsupported_rows = group[
+            group["compile_status"].str.startswith("Skipped", na=False)
         ]
         failed_link_rows = group[
-            ~group["link_status"].str.startswith("Passed", na=False)
+            ~group["link_status"].str.startswith(
+                ("Passed", "Skipped", "skipped"), na=False
+            )
         ]
         failed_profile_rows = group[
             ~group["profile_status"].str.startswith("Passed", na=False)
@@ -184,6 +194,9 @@ def create_model_status_function(
         elif numerics_status == "Off-Target Numerical Failure":
             selected_row = numerics_row
             final_status = numerics_status
+        elif len(unsupported_rows) > 0:
+            selected_row = unsupported_rows.iloc[0]
+            final_status = "Skipped"
         elif len(failed_compile_rows) > 0:
             selected_row = failed_compile_rows.iloc[0]
             final_status = "Compile Failed"
@@ -307,7 +320,7 @@ def _populate_tflite_compile_failures(scorecard_df: pd.DataFrame) -> pd.DataFram
     subset_df.profile_status = "Skipped"
     subset_df.quantize_status = "Skipped"
     subset_df.inference_status = "Skipped"
-    subset_df.compile_status = "Failed (Not Attempted)"
+    subset_df.compile_status = "Skipped"
     subset_df.link_status = "Skipped"
     subset_df.runtime = "tflite"
     _nullify_perf_columns(subset_df)

@@ -16,7 +16,7 @@ from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import MODEL_DOMAIN, MODEL_USE_CASE
 from qai_hub_models.configs.model_disable_reasons import ModelDisableReasonsMapping
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.scorecard_job import ScorecardJobTypeVar
 from qai_hub_models.scorecard.results.scorecard_summary import (
     ScorecardExportTestSummary,
@@ -55,7 +55,7 @@ class ResultsSpreadsheet(list):
         graph_name: str | None
         precision: Precision
         chipset: str
-        runtime: ScorecardProfilePath
+        runtime: ScorecardInferencePath
         quantize_status: str
         quantize_url: str | None
         compile_status: str
@@ -212,8 +212,8 @@ class ResultsSpreadsheet(list):
 
     def append_export_test_summary(self, summaries: ScorecardExportTestSummary) -> None:
         self.extend(
-            ResultsSpreadsheet.get_device_job_summary_entry(device_job_summary)
-            for device_job_summary in summaries.job_summaries
+            ResultsSpreadsheet.get_inference_job_summary_entry(inference_job_summary)
+            for inference_job_summary in summaries.job_summaries
         )
 
     def set_model_metadata(
@@ -242,10 +242,10 @@ class ResultsSpreadsheet(list):
         self._branchstr = branch
 
     @staticmethod
-    def get_device_job_summary_entry(
+    def get_inference_job_summary_entry(
         summary: ScorecardJobSummary,
     ) -> ResultsSpreadsheet.Entry:
-        assert isinstance(summary.params.path, ScorecardProfilePath)
+        assert isinstance(summary.params.path, ScorecardInferencePath)
         assert summary.params.device is not None
         assert summary.params.precision is not None
 
@@ -270,17 +270,20 @@ class ResultsSpreadsheet(list):
         quantize_status, quantize_url = _get_url_and_status(summary.quantize_job)
         compile_status, compile_url = _get_url_and_status(summary.compile_job)
         link_status, link_url = _get_url_and_status(summary.link_job)
-        profile_status, profile_url = _get_url_and_status(summary.profile_job)
+        # "profile" column reads the single inference job that both profiles and
+        # infers (see summary.inference_job).
+        profile_status, profile_url = _get_url_and_status(summary.inference_job)
         inference_status, inference_url = _get_url_and_status(summary.inference_job)
 
-        # Profile job results
-        if summary.profile_job and summary.profile_job.success:
-            inference_time = summary.profile_job.inference_time_milliseconds
-            first_load_time = summary.profile_job.first_load_time_milliseconds
-            warm_load_time = summary.profile_job.warm_load_time_milliseconds
-            NPU = summary.profile_job.layer_counts.npu
-            GPU = summary.profile_job.layer_counts.gpu
-            CPU = summary.profile_job.layer_counts.cpu
+        # Inference job results
+        inference_job = summary.inference_job
+        if inference_job and inference_job.success:
+            inference_time = inference_job.inference_time_milliseconds
+            first_load_time = inference_job.first_load_time_milliseconds
+            warm_load_time = inference_job.warm_load_time_milliseconds
+            NPU = inference_job.layer_counts.npu
+            GPU = inference_job.layer_counts.gpu
+            CPU = inference_job.layer_counts.cpu
         else:
             inference_time = None
             first_load_time = None

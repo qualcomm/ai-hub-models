@@ -12,7 +12,7 @@ from qai_hub_models.scorecard.envvars import (
     IgnoreKnownFailuresEnvvar,
     SpecialModelSetting,
 )
-from qai_hub_models.scripts.count_device_jobs import count_device_jobs
+from qai_hub_models.scripts.count_inference_jobs import count_inference_jobs
 from qai_hub_models.utils.set_env import set_temp_env
 
 
@@ -32,31 +32,24 @@ def get_test_env(
     }
 
 
-def test_count_device_jobs_all_models() -> None:
+def test_count_inference_jobs_all_models() -> None:
     # Verify job collection works for all models
     with set_temp_env(get_test_env()):
-        total_jobs_default, *_ = count_device_jobs({SpecialModelSetting.ALL})
-    with set_temp_env(get_test_env()):
-        total_jobs_default_without_accuracy, *_ = count_device_jobs(
-            {SpecialModelSetting.ALL}, run_accuracy_tests=False
-        )
+        total_jobs_default, *_ = count_inference_jobs({SpecialModelSetting.ALL})
     with set_temp_env(get_test_env(run_all_skipped_jobs=False)):
-        total_jobs_not_skipped, *_ = count_device_jobs({SpecialModelSetting.ALL})
+        total_jobs_not_skipped, *_ = count_inference_jobs({SpecialModelSetting.ALL})
     assert total_jobs_default > total_jobs_not_skipped
-    assert total_jobs_default > total_jobs_default_without_accuracy
 
 
-def test_accuracy_device_settings() -> None:
-    # Running multiple devices without accuracy is fine
+def test_multiple_device_settings() -> None:
     with set_temp_env(get_test_env(devices="cs_x_elite,cs_6490")):
-        count_device_jobs({SpecialModelSetting.ALL}, run_accuracy_tests=False)
+        count_inference_jobs({SpecialModelSetting.ALL})
 
-    # Running multiple devices where one of the devices is the default is fine
     with set_temp_env(get_test_env(devices=f"{DEFAULT_SCORECARD_DEVICE.name},cs_6490")):
-        count_device_jobs({SpecialModelSetting.ALL})
+        count_inference_jobs({SpecialModelSetting.ALL})
 
 
-def test_count_device_jobs_filtering() -> None:
+def test_count_inference_jobs_filtering() -> None:
     with set_temp_env(get_test_env()):
         (
             total_jobs,
@@ -66,7 +59,7 @@ def test_count_device_jobs_filtering() -> None:
             jobs_by_recipe,
             jobs_by_recipe_component,
             jobs_by_static_model,
-        ) = count_device_jobs({"resnet50"})
+        ) = count_inference_jobs({"resnet50"})
         assert len(jobs_by_device) > 1
         assert len(job_by_device_form_factor) > 1
         assert len(jobs_by_path) > 1
@@ -74,33 +67,33 @@ def test_count_device_jobs_filtering() -> None:
         assert len(jobs_by_recipe_component) == 0
         assert len(jobs_by_static_model) == 0
     with set_temp_env(get_test_env(precisions="float")):
-        total_jobs_fp_only, _, _, _, jobs_by_recipe, _, _ = count_device_jobs(
+        total_jobs_fp_only, _, _, _, jobs_by_recipe, _, _ = count_inference_jobs(
             {"resnet50"}, show_precision_in_summary=True
         )
         assert len(jobs_by_recipe) == 1
     with set_temp_env(get_test_env(runtimes="tflite")):
-        total_jobs_tflite, _, _, jobs_by_path, jobs_by_recipe, _, _ = count_device_jobs(
-            {"resnet50"}, show_precision_in_summary=True
+        total_jobs_tflite, _, _, jobs_by_path, jobs_by_recipe, _, _ = (
+            count_inference_jobs({"resnet50"}, show_precision_in_summary=True)
         )
         assert len(jobs_by_path) == 1
         assert (
             len(jobs_by_recipe) == 2
         )  # 1 recipe per supported precision, since show_precision_in_summary is True
     with set_temp_env(get_test_env(devices=DEFAULT_SCORECARD_DEVICE.name)):
-        total_jobs_default_device, jobs_by_device, _, _, _, _, _ = count_device_jobs(
+        total_jobs_default_device, jobs_by_device, _, _, _, _, _ = count_inference_jobs(
             {"resnet50"}
         )
         assert len(jobs_by_device) == 1
     with set_temp_env(
         get_test_env(devices=DEFAULT_SCORECARD_DEVICE.name, runtimes="tflite")
     ):
-        total_jobs_default_device_tflite, *_ = count_device_jobs({"resnet50"})
+        total_jobs_default_device_tflite, *_ = count_inference_jobs({"resnet50"})
     with set_temp_env(
         get_test_env(
             devices=DEFAULT_SCORECARD_DEVICE.name, runtimes="tflite", precisions="float"
         )
     ):
-        total_jobs_default_device_tflite_fp, *_ = count_device_jobs({"resnet50"})
+        total_jobs_default_device_tflite_fp, *_ = count_inference_jobs({"resnet50"})
 
     # Verify filtering by device / runtime / precision works
     assert total_jobs > total_jobs_fp_only
@@ -112,13 +105,13 @@ def test_count_device_jobs_filtering() -> None:
     assert total_jobs_default_device_tflite > total_jobs_default_device_tflite_fp
 
 
-def test_count_device_jobs_static_models() -> None:
+def test_count_inference_jobs_static_models() -> None:
     with set_temp_env(get_test_env()):
-        total_jobs, *_ = count_device_jobs({"cdcn_torchscript"})
+        total_jobs, *_ = count_inference_jobs({"cdcn_torchscript"})
     assert total_jobs > 0
 
 
-def test_count_device_jobs_components() -> None:
+def test_count_inference_jobs_components() -> None:
     with set_temp_env(get_test_env()):
         (
             _,
@@ -128,7 +121,7 @@ def test_count_device_jobs_components() -> None:
             jobs_by_recipe,
             jobs_by_recipe_component,
             _,
-        ) = count_device_jobs({"mediapipe_face"})
+        ) = count_inference_jobs({"mediapipe_face"})
         assert len(jobs_by_recipe) == 1
         assert len(jobs_by_recipe_component) == 1
         assert len(jobs_by_recipe_component["mediapipe_face"]) == 2
@@ -141,7 +134,7 @@ def test_count_device_jobs_components() -> None:
             jobs_by_recipe,
             jobs_by_recipe_component,
             _,
-        ) = count_device_jobs({"mediapipe_face"}, show_precision_in_summary=True)
+        ) = count_inference_jobs({"mediapipe_face"}, show_precision_in_summary=True)
         assert len(jobs_by_recipe) == 2
         assert len(jobs_by_recipe_component) == 2
         assert len(jobs_by_recipe_component["mediapipe_face (float)"]) == 2

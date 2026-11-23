@@ -13,7 +13,7 @@ from qai_hub_models.configs.model_disable_reasons import ModelDisableReasonsMapp
 from qai_hub_models.models.templates.llm.perf_collection import (
     get_llm_perf_parametrization,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.device import LLM_COMPILE_DEVICES, ScorecardDevice
 from qai_hub_models.scorecard.envvars import IgnoreKnownFailuresEnvvar
 from qai_hub_models.scorecard.execution_helpers import (
@@ -88,7 +88,7 @@ def _profile_devices(manifest: QAIHMModelManifest) -> set[str]:
         device.name
         for precision, path, device in configs
         if precision == Precision.float
-        and isinstance(path, ScorecardProfilePath)
+        and isinstance(path, ScorecardInferencePath)
         and path.runtime == TargetRuntime.TFLITE
     }
 
@@ -177,8 +177,8 @@ def test_remove_asset_failures_keeps_assets_off_disabled_devices() -> None:
             Precision.w4a16: QAIHMModelReleaseAssets.PrecisionDetails(
                 chipset_assets={
                     chipset: {
-                        ScorecardProfilePath.GENIE: _asset("genie"),
-                        ScorecardProfilePath.GENIEX_QAIRT: _asset("geniex_qairt"),
+                        ScorecardInferencePath.GENIE: _asset("genie"),
+                        ScorecardInferencePath.GENIEX_QAIRT: _asset("geniex_qairt"),
                     }
                     for chipset in [DISABLED_CHIPSET, KEPT_CHIPSET]
                 }
@@ -189,8 +189,8 @@ def test_remove_asset_failures_keeps_assets_off_disabled_devices() -> None:
     chipset_assets = out.precisions[Precision.w4a16].chipset_assets
     assert DISABLED_CHIPSET not in chipset_assets
     assert set(chipset_assets[KEPT_CHIPSET]) == {
-        ScorecardProfilePath.GENIE,
-        ScorecardProfilePath.GENIEX_QAIRT,
+        ScorecardInferencePath.GENIE,
+        ScorecardInferencePath.GENIEX_QAIRT,
     }
 
 
@@ -210,7 +210,7 @@ def test_remove_numerics_failures_keeps_metrics_off_disabled_devices() -> None:
                 partial_torch_metric=96.4,
                 device_metric={
                     ScorecardDevice.get(name): {
-                        Precision.w4a16: {ScorecardProfilePath.GENIEX_QAIRT: details}
+                        Precision.w4a16: {ScorecardInferencePath.GENIEX_QAIRT: details}
                     }
                     for name in [DISABLED_DEVICE, "cs_x_elite"]
                 },
@@ -227,8 +227,8 @@ def _genie_and_geniex_assets() -> QAIHMModelReleaseAssets:
             Precision.w4a16: QAIHMModelReleaseAssets.PrecisionDetails(
                 chipset_assets={
                     KEPT_CHIPSET: {
-                        ScorecardProfilePath.GENIE: _asset("genie"),
-                        ScorecardProfilePath.GENIEX_QAIRT: _asset("geniex_qairt"),
+                        ScorecardInferencePath.GENIE: _asset("genie"),
+                        ScorecardInferencePath.GENIEX_QAIRT: _asset("geniex_qairt"),
                     }
                 }
             )
@@ -243,7 +243,7 @@ def test_remove_asset_failures_still_drops_runtime_wide_failures() -> None:
     ).scorecard_accuracy_failure = "too low"
     out = remove_asset_failures(_genie_and_geniex_assets(), reasons)
     assert set(out.precisions[Precision.w4a16].chipset_assets[KEPT_CHIPSET]) == {
-        ScorecardProfilePath.GENIEX_QAIRT
+        ScorecardInferencePath.GENIEX_QAIRT
     }
 
 

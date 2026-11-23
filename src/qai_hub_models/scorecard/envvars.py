@@ -181,17 +181,17 @@ class SpecialPathSetting(Enum):
 class EnabledPathsEnvvar(QAIHMStrSetWithEnumEnvvar[SpecialPathSetting]):
     """
     The list of scorecard profile paths (runtimes) enabled for testing.
-    Paths are defined in qai_hub_models.scorecard.path_profile::ScorecardProfilePath
+    Paths are defined in qai_hub_models.scorecard.path_profile::ScorecardInferencePath
 
     Envvar:
         A comma-separated list of profile path names
             Each element of the list should be either:
                 profile path name:
-                    The enum value of a path in qai_hub_models.scorecard.path_profile::ScorecardProfilePath
+                    The enum value of a path in qai_hub_models.scorecard.path_profile::ScorecardInferencePath
                     Examples: tflite, qnn_context_binary, qnn_dlc, etc.
 
                 profile path prefix:
-                    The prefix of values in qai_hub_models.scorecard.path_profile::ScorecardProfilePath
+                    The prefix of values in qai_hub_models.scorecard.path_profile::ScorecardInferencePath
                     For example, 'qnn' would enable 'qnn_dlc' and 'qnn_context_binary'.
 
                 Special Path Settings:
@@ -202,7 +202,7 @@ class EnabledPathsEnvvar(QAIHMStrSetWithEnumEnvvar[SpecialPathSetting]):
     CLI_ARGNAMES = ["--runtimes", "--paths"]
     CLI_HELP_MESSAGE = """Comma-separated list of profile paths / runtimes to enable.
 Paths can be specified by their full name (e.g. tflite, qnn_dlc, onnx) or by a prefix that matches multiple paths (e.g. 'qnn' would match both 'qnn_dlc' and 'qnn_context_binary').
-Path names map to the enum values in qai_hub_models/scorecard/path_profile.py::ScorecardProfilePath
+Path names map to the enum values in qai_hub_models/scorecard/path_profile.py::ScorecardInferencePath
 
 Special options:
  * 'default' -- Enable default set of paths used by CI & scorecard
@@ -401,18 +401,18 @@ class CompileSingleInstantiationEnvvar(QAIHMBoolEnvvar):
 
 
 @pytest_cli_envvar
-class IgnoreDeviceJobCacheEnvvar(QAIHMBoolEnvvar):
+class UseModelHashCacheEnvvar(QAIHMBoolEnvvar):
     """
-    If this is false, when targeting prod, profile tests will check if the prerequisite compile job produced the same asset as last week's scorecard.
-    If it's the same asset, the profile job is assumed to also be the same, and is 'copied' from the previous week's job (rather than submitting a new profile job).
+    If this is true, when targeting prod, the inference stage compares the md5 of the model asset (link or compile job output) with last week's scorecard.
+    If the hashes match, the inference job is assumed to also be the same, and is 'copied' from the previous week's job (rather than submitting a new inference job).
     This is done to reduce device load of scorecards.
 
-    If this is true, the caching mechanism is skipped, and a new profile job is always submitted.
+    If this is false (the default), the caching mechanism is skipped, and a new inference job is always submitted.
     """
 
-    VARNAME = "QAIHM_TEST_IGNORE_DEVICE_JOB_CACHE"
-    CLI_ARGNAMES = ["--ignore-cached-device-jobs"]
-    CLI_HELP_MESSAGE = "Force run profile jobs for compiled models that haven't changed since the last scorecard run (only applicable on PROD deployment)."
+    VARNAME = "QAIHM_TEST_USE_MODEL_HASH_CACHE"
+    CLI_ARGNAMES = ["--use-model-hash-cache"]
+    CLI_HELP_MESSAGE = "Reuse last scorecard's inference jobs for models whose asset hash hasn't changed (only applicable on PROD deployment)."
 
     @classmethod
     def default(cls) -> bool:
@@ -519,6 +519,30 @@ class LLMPerfUpdatesEnvvar(QAIHMPathEnvvar):
     @classmethod
     def default(cls) -> Path:
         return Path("")
+
+
+class ScopeEnvvar(QAIHMStringEnvvar):
+    """
+    What the GitHub scorecard action is testing: unit, unit_and_compile,
+    compile_only, perf or perf_and_accuracy. Dataset accuracy is only measured
+    when this is perf_and_accuracy.
+    """
+
+    VARNAME = "QAIHM_TEST_SCOPE"
+    CLI_ARGNAMES = ["--test-scope"]
+    CLI_HELP_MESSAGE = (
+        "Scorecard test scope. Dataset accuracy only runs for perf_and_accuracy."
+    )
+
+    UNIT = "unit"
+    UNIT_AND_COMPILE = "unit_and_compile"
+    COMPILE_ONLY = "compile_only"
+    PERF = "perf"
+    PERF_AND_ACCURACY = "perf_and_accuracy"
+
+    @classmethod
+    def default(cls) -> str:
+        return cls.PERF_AND_ACCURACY
 
 
 @pytest_cli_envvar

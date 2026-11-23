@@ -82,14 +82,6 @@ jobs:
           python -m qai_hub_models.scorecard.static.scripts.validate_integration_test \
             --junit-xml ${{ github.workspace }}/test-results/qaihm-scorecard-integration-test-junit.xml
 
-      - name: Download Scorecard Test Results
-        if: ${{ always() }}
-        uses: actions/download-artifact@v8
-        continue-on-error: true
-        with:
-          name: test-results-scorecard
-          path: build/all-test-results/scorecard
-
       - name: Generate Test Summary
         if: ${{ always() && inputs.generate_test_summary }}
         env:
@@ -106,11 +98,15 @@ jobs:
           python -m qai_hub_models.scripts.generate_test_summary \
             --title "Scorecard Integration Test" \
             "${FAILURE_ARGS[@]}" \
-            --name "Scorecard Job Submission" --junit-xml build/all-test-results/scorecard/qaihm-model-tests-junit.xml \
-            --name "Scorecard Accuracy Collection" --junit-xml build/all-test-results/scorecard/qaihm-device-accuracy-tests-junit.xml \
-            --name "Scorecard Export Tests" --junit-xml build/all-test-results/scorecard/qaihm-export-zip-tests-junit.xml \
             --name "Scorecard Integration Test" --junit-xml ${{ github.workspace }}/test-results/qaihm-scorecard-integration-test-junit.xml \
             --output build/combined-test-results/summary.md
+
+          printf '\n' >> build/combined-test-results/summary.md
+          if [ -f "$QAIHM_TEST_ARTIFACTS_DIR/scorecard-summary.md" ]; then
+            cat "$QAIHM_TEST_ARTIFACTS_DIR/scorecard-summary.md" >> build/combined-test-results/summary.md
+          else
+            echo "❌ scorecard-summary.md not found: no per-model results." >> build/combined-test-results/summary.md
+          fi
 
       - name: Copy XML Files to Combined Results
         if: ${{ always() }}
@@ -129,13 +125,3 @@ jobs:
         with:
           name: test-results-scorecard-integration
           path: build/combined-test-results
-
-      - name: Delete Individual Test Results
-        if: ${{ always() }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate -q ".artifacts[] | select(.name == \"test-results-scorecard\") | .id" | while read artifact_id; do
-            echo "Deleting artifact $artifact_id"
-            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
-          done

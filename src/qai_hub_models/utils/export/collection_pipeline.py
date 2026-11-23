@@ -15,6 +15,7 @@ import warnings
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import qai_hub as hub
 from qai_hub_models_cli.errors import CLIRuntimeError, CLIUserError
 
@@ -36,15 +37,19 @@ from qai_hub_models.utils.export.context import (
 from qai_hub_models.utils.export.download import download_collection_model_bundle
 from qai_hub_models.utils.export.inference import run_collection_inference
 from qai_hub_models.utils.export.link import run_collection_link
-from qai_hub_models.utils.export.profile import run_collection_profile
 from qai_hub_models.utils.export.quantize import (
     resolve_component_precisions,
     run_collection_quantize,
 )
-from qai_hub_models.utils.export.result import CollectionExportResult, ComponentGroup
+from qai_hub_models.utils.export.result import (
+    CollectionExportIntermediates,
+    CollectionExportResult,
+    ComponentGroup,
+    validate_export_intermediates,
+)
 from qai_hub_models.utils.export.summary import (
+    compute_inference_summary,
     extract_tool_versions,
-    print_inference_summary,
     print_profile_summary,
 )
 from qai_hub_models.utils.export.upload import upload_collection_source
@@ -52,8 +57,8 @@ from qai_hub_models.utils.kwarg_helpers import filter_kwargs
 from qai_hub_models.utils.printing import print_on_target_demo_cmd, print_tool_versions
 from qai_hub_models.utils.qai_hub_helpers import (
     _AIHUB_URL,
-    assert_success_and_get_target_models,
     get_device_and_chipset_name,
+    get_target_models,
 )
 
 
@@ -64,9 +69,9 @@ def export_model(
     precision: Precision = Precision.float,
     target_runtime: TargetRuntime = TargetRuntime.TFLITE,
     num_calibration_samples: int | None = None,
-    quantized_model_id: dict[str, str] | None = None,
+    export_intermediates: CollectionExportIntermediates | None = None,
     skip_compiling: bool = False,
-    skip_profiling: bool = False,
+    skip_linking: bool = False,
     skip_inferencing: bool = False,
     skip_downloading: bool = False,
     skip_summary: bool = False,
@@ -79,16 +84,15 @@ def export_model(
     **additional_model_kwargs: Any,
 ) -> CollectionExportResult:
     """
-    Run the eight-step recipe over every selected component:
+    Run the seven-step recipe over every selected component:
 
         1. Instantiate the CollectionModel and upload each component's source
         2. Quantize each non-float component
         3. Compile each component to ``target_runtime``
         4. Link each compiled DLC to a context binary (AOT runtimes only)
-        5. Profile each component on a real device
-        6. Run on-device inference per component on sample inputs
-        7. Extract SDK / runtime versions
-        8. Download all components together with a combined metadata.json
+        5. Run on-device inference per component, profiling at the same time
+        6. Extract SDK / runtime versions
+        7. Download all components together with a combined metadata.json
 
     Parameters
     ----------
@@ -105,14 +109,23 @@ def export_model(
         On-device runtime to target.
     num_calibration_samples
         Number of calibration data samples to use for quantization.
-    quantized_model_id
-        Per-component dict of quantized ONNX hub model ids; skips the quantize job.
+    export_intermediates
+        Already-built per-component assets to start from, in place of
+        rebuilding them. For each component, if ``compiled_model``/``compile_job``
+        is set, upload/quantize/compile are all skipped for that component; if
+        only ``quantized_model``/``quantize_job`` is set, upload/quantize are
+        skipped; if ``source_model`` is set, it's used as the starting point
+        for compile/quantize instead of re-uploading. A job field takes
+        precedence over its sibling model field when both are set. Components
+        missing from a field fall back to the normal pipeline.
     skip_compiling
         If set, skips compiling.
-    skip_profiling
-        If set, skips profiling on real devices.
+    skip_linking
+        If set, stops after compiling -- skips linking (AOT runtimes only)
+        and everything after it.
     skip_inferencing
-        If set, skips on-device inference comparison.
+        If set, skips the inference job entirely -- no outputs and no profile
+        metrics.
     skip_downloading
         If set, skips downloading compiled models.
     skip_summary
@@ -126,7 +139,7 @@ def export_model(
     link_options
         Extra options for the link job. Ignored for runtimes that do not link.
     inference_options
-        Extra options for the profile job.
+        Extra options for the inference job.
     zip_assets
         If set, zip the assets after downloading.
     **additional_model_kwargs
@@ -158,8 +171,9 @@ def export_model(
     output_path = Path(output_dir or Path.cwd() / "export_assets")
 
     _, chipset = get_device_and_chipset_name(device)
+    export_intermediates = export_intermediates or CollectionExportIntermediates()
 
-    # 1. Instantiate the CollectionModel and upload each component's source.
+    # 1. Instantiate the CollectionModel.
     model = model_cls.from_pretrained(
         **get_model_kwargs(
             model_cls, dict(**additional_model_kwargs, precision=precision)
@@ -172,98 +186,134 @@ def export_model(
     input_specs = model.get_input_spec(
         **filter_kwargs(model.get_input_spec, additional_model_kwargs)
     )
-    source_models = upload_collection_source(model, input_specs, components)
 
-    # 2. Quantize each non-float component.
-    quantize_jobs: ComponentGroup[hub.client.QuantizeJob] | None = None
-    if precision != Precision.float and manifest.can_use_quantize_job:
+    quantize_jobs: ComponentGroup[hub.client.QuantizeJob] | None = (
+        export_intermediates.quantize_jobs
+    )
+    quantized_models: ComponentGroup[hub.Model] | None = (
+        export_intermediates.quantized_models
+    )
+    compile_jobs: ComponentGroup[hub.client.CompileJob] | None = (
+        export_intermediates.compile_jobs
+    )
+    compiled_models: ComponentGroup[hub.Model] | None = (
+        export_intermediates.compiled_models
+    )
+
+    # 2. Quantize each non-float component that needs it, unless already
+    # covered by a supplied quantize_jobs/quantized_models.
+    to_quantize: list[str] = []
+    if (
+        compile_jobs is None
+        and compiled_models is None
+        and precision != Precision.float
+        and manifest.can_use_quantize_job
+    ):
         component_precisions = resolve_component_precisions(
             model, precision, components
         )
-        if quantized_model_id:
-            prequantized = ComponentGroup(
-                {
-                    name: hub.get_model(quantized_model_id[name])
-                    for name in components
-                    if name in quantized_model_id
-                }
+        to_quantize = [
+            c
+            for c in components
+            if component_precisions.get(c, precision) != Precision.float
+        ]
+
+    # Checked before anything is submitted.
+    validate_export_intermediates(
+        export_intermediates,
+        target_runtime.uses_hub_link,
+        keys=components,
+        quantize_keys=to_quantize,
+    )
+
+    source_models = ComponentGroup[hub.Model](export_intermediates.source_models or {})
+    if compile_jobs is None and compiled_models is None:
+        if quantize_jobs is not None:
+            source_models.update(
+                {c: get_target_models(quantize_jobs[c]) for c in to_quantize}
             )
-            source_models.update(prequantized)
-        else:
-            onnx_components = [
-                c
-                for c, p in component_precisions.items()
-                if c in components and p != Precision.float
-            ]
+        elif quantized_models is not None:
+            source_models.update({c: quantized_models[c] for c in to_quantize})
+        to_upload = [c for c in components if c not in source_models]
+        if to_upload:
+            source_models.update(
+                upload_collection_source(model, input_specs, to_upload)
+            )
+
+        if to_quantize and quantize_jobs is None and quantized_models is None:
             onnx_compile_jobs = run_collection_compile(
                 model,
                 model_name,
                 device,
                 TargetRuntime.ONNX,
-                precision,
+                Precision.float,
                 source_models,
                 input_specs,
-                onnx_components,
+                to_quantize,
             )
-            onnx_models = assert_success_and_get_target_models(onnx_compile_jobs)
-            quantize_jobs = run_collection_quantize(
-                {name: component_precisions[name] for name in onnx_components},
+            new_quantize_jobs = run_collection_quantize(
+                {name: component_precisions[name] for name in to_quantize},
                 model,
                 model_name,
-                onnx_models,
+                get_target_models(onnx_compile_jobs),
                 num_calibration_samples,
                 extra_options=quantize_options,
                 input_specs=input_specs,
                 app=app,
+                calibration_data=export_intermediates.calibration_data,
             )
+            quantize_jobs = ComponentGroup(new_quantize_jobs)
             if skip_compiling:
                 return CollectionExportResult(quantize_jobs=quantize_jobs)
-            quantized = assert_success_and_get_target_models(quantize_jobs)
-            source_models.update(quantized)
+            source_models.update(get_target_models(new_quantize_jobs))
 
-    # 3. Compile each component.
-    compile_jobs = run_collection_compile(
-        model,
-        model_name,
-        device,
-        target_runtime,
-        precision,
-        source_models,
-        input_specs,
-        components,
-        extra_options=compile_options,
+    # 3. Compile every component, unless already-compiled assets were supplied.
+    if compile_jobs is None and compiled_models is None:
+        compile_jobs = run_collection_compile(
+            model,
+            model_name,
+            device,
+            target_runtime,
+            precision,
+            source_models,
+            input_specs,
+            components,
+            extra_options=compile_options,
+        )
+    if skip_linking:
+        return CollectionExportResult(
+            quantize_jobs=quantize_jobs, compile_jobs=compile_jobs
+        )
+
+    link_jobs: ComponentGroup[hub.client.LinkJob] | None = (
+        export_intermediates.link_jobs
     )
 
     # 4. Link (AOT only).
-    link_jobs: ComponentGroup[hub.client.LinkJob] | None = None
+    if compiled_models is None and compile_jobs is not None:
+        compiled_models = get_target_models(compile_jobs)
+    assert compiled_models is not None
     if target_runtime.uses_hub_link:
-        compiled = assert_success_and_get_target_models(compile_jobs)
-        link_jobs = run_collection_link(
-            compiled,
-            device,
-            model_name,
-            model,
-            target_runtime,
-            extra_options=link_options,
-        )
-    target_models = assert_success_and_get_target_models(link_jobs or compile_jobs)
+        if link_jobs is None:
+            link_jobs = run_collection_link(
+                compiled_models,
+                device,
+                model_name,
+                model,
+                target_runtime,
+                extra_options=link_options,
+            )
+        target_models = get_target_models(link_jobs)
+    else:
+        target_models = compiled_models
 
     inference_opts = model.get_hub_inference_options(target_runtime, inference_options)
 
-    # 5. Profile each component.
-    profile_jobs: ComponentGroup[hub.client.ProfileJob] | None = None
-    if not skip_profiling:
-        profile_jobs = run_collection_profile(
-            model_name,
-            device,
-            inference_opts,
-            target_models,
-            components,
-        )
-
-    # 6. Inference per component.
-    inference_jobs: ComponentGroup[hub.client.InferenceJob] | None = None
-    if not skip_inferencing:
+    # 5. Run on-device inference per component, which also collects profile metrics.
+    inference_jobs: ComponentGroup[hub.client.InferenceJob] | None = (
+        export_intermediates.inference_jobs
+    )
+    if inference_jobs is None and not skip_inferencing:
         inference_jobs = run_collection_inference(
             model.sample_inputs(
                 input_specs=input_specs,
@@ -275,18 +325,18 @@ def export_model(
             target_models,
             components,
         )
+    inference_jobs = inference_jobs or ComponentGroup()
 
-    # 7. Tool versions — pick any one job from each group.
+    # 6. Tool versions — pick any one job from each group.
     if not skip_summary or not skip_downloading:
-        tool_versions, tool_versions_from_device = extract_tool_versions(
-            next(iter(profile_jobs.values()), None) if profile_jobs else None,
+        tool_versions, tool_versions_from_inference = extract_tool_versions(
             next(iter(inference_jobs.values()), None) if inference_jobs else None,
             next(iter(compile_jobs.values()), None) if compile_jobs else None,
         )
     else:
-        tool_versions, tool_versions_from_device = None, False
+        tool_versions, tool_versions_from_inference = None, False
 
-    # 8. Download all components together.
+    # 7. Download all components together.
     download_path: Path | None = None
     metadata: ModelMetadata | None = None
     if not skip_downloading and tool_versions is not None:
@@ -307,14 +357,14 @@ def export_model(
             use_case=manifest.use_case,
         )
 
+    inference_metrics: ComponentGroup[pd.DataFrame] | None = None
     if not skip_summary:
-        if profile_jobs:
-            for job in profile_jobs.values():
-                print_profile_summary(job)
         if inference_jobs:
+            inference_metrics = ComponentGroup()
             for component_name, inference_job in inference_jobs.items():
+                print_profile_summary(inference_job)
                 component = model.components[component_name]
-                print_inference_summary(
+                inference_metrics[component_name] = compute_inference_summary(
                     component,
                     inference_job,
                     input_specs[component_name],
@@ -323,11 +373,13 @@ def export_model(
                         (manifest.outputs_to_skip_validation or {}).keys()
                     ),
                     metrics=manifest.inference_metrics,
+                    print_result=True,
                 )
-        print_tool_versions(tool_versions, tool_versions_from_device)
-        if manifest.has_on_target_demo:
+        print_tool_versions(tool_versions, tool_versions_from_inference)
+        demo_jobs = link_jobs or compile_jobs
+        if manifest.has_on_target_demo and demo_jobs:
             print_on_target_demo_cmd(
-                list((link_jobs or compile_jobs).values()),
+                list(demo_jobs.values()),
                 source_dir,
                 device,
             )
@@ -341,12 +393,12 @@ def export_model(
             )
 
     return CollectionExportResult(
-        quantize_jobs=quantize_jobs,
-        compile_jobs=compile_jobs,
-        link_jobs=link_jobs,
-        profile_jobs=profile_jobs,
-        inference_jobs=inference_jobs,
+        quantize_jobs=quantize_jobs or None,
+        compile_jobs=compile_jobs or None,
+        link_jobs=link_jobs or None,
+        inference_jobs=inference_jobs or None,
         download_path=download_path,
         tool_versions=tool_versions,
         metadata=metadata,
+        inference_metrics=inference_metrics,
     )

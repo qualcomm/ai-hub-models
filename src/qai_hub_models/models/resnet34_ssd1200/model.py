@@ -16,7 +16,7 @@ from qai_hub_models import (
     SampleInputsType,
     TargetRuntime,
 )
-from qai_hub_models.datasets.coco import Coco180Dataset
+from qai_hub_models.datasets.coco import Coco100Dataset, Coco180Dataset
 from qai_hub_models.models.resnet34_ssd1200.external_repos.inference.vision.classification_and_detection.python.models.ssd_r34 import (
     SSD_R34,
 )
@@ -219,8 +219,8 @@ class Resnet34SSD(Yolo):
 
     @classmethod
     def get_eval_dataset_classes(cls) -> Sequence[type[BaseDataset]]:
-        # 180 samples/job keeps each inference job's dataset under the 2GB cap.
-        return [Coco180Dataset]
+        # 100 samples/job keeps each inference job's dataset under Hub's 2GB cap.
+        return [Coco100Dataset]
 
     def get_calibration_dataset_cls(self) -> type[BaseDataset]:
         return Coco180Dataset

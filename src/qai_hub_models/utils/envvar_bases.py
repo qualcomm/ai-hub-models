@@ -45,6 +45,12 @@ def _add_parser_argument(parser: Any, *args: Any, **kwargs: Any) -> None:
     raise NotImplementedError(f"Unsupported parser type: {type(parser)}")
 
 
+def _help_with_default(envvar: type[QAIHMEnvvar[Any]], default: Any) -> str:
+    """The envvar's argparse help text; argparse treats a bare % as a format directive."""
+    text = f"{envvar.CLI_HELP_MESSAGE} Default is envvar::{envvar.VARNAME} ({default})."
+    return text.replace("%", "%%")
+
+
 class QAIHMEnvvar(Generic[ParsedT]):
     """Class for defining environment variables used in the QAIHM package."""
 
@@ -225,7 +231,7 @@ class QAIHMEnvvar(Generic[ParsedT]):
             *cls.CLI_ARGNAMES,
             action=partial(cls.ParseAction, envvar=cls, setenv=setenv),
             default=default,
-            help=f"{cls.CLI_HELP_MESSAGE} Default is envvar::{cls.VARNAME} ({default}).",
+            help=_help_with_default(cls, default),
         )
 
 
@@ -355,7 +361,7 @@ class QAIHMBoolEnvvar(QAIHMEnvvar[bool]):
             ),
             default=value,
             dest=dest,
-            help=f"{cls.CLI_HELP_MESSAGE} Default is envvar::{cls.VARNAME} ({value}).",
+            help=_help_with_default(cls, value),
         )
 
 

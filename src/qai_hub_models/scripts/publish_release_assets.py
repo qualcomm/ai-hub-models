@@ -20,7 +20,7 @@ from qai_hub_models_cli.proto_helpers.model_metadata import (
 from qai_hub_models import Precision
 from qai_hub_models._version import __version__
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar, SpecialModelSetting
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.static.list_models import (
@@ -166,7 +166,7 @@ def release_asset(
     model_id: str,
     precision: Precision,
     chipset: str | None,
-    sc_path: ScorecardProfilePath,
+    sc_path: ScorecardInferencePath,
     asset_details: QAIHMModelReleaseAssets.AssetDetails,
     replace_existing: bool = False,
 ) -> None:

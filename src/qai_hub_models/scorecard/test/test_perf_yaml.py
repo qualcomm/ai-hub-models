@@ -7,7 +7,7 @@ from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 
 # whisper_tiny ships per-chipset context binaries, so the filter applies.
@@ -66,11 +66,11 @@ def test_drop_chipsets_without_assets_is_idempotent() -> None:
 
 
 MIXED_PATHS = [
-    ScorecardProfilePath.TFLITE,
-    ScorecardProfilePath.QNN_DLC,
-    ScorecardProfilePath.QNN_CONTEXT_BINARY,
-    ScorecardProfilePath.PRECOMPILED_QNN_ONNX,
-    ScorecardProfilePath.VOICE_AI,
+    ScorecardInferencePath.TFLITE,
+    ScorecardInferencePath.QNN_DLC,
+    ScorecardInferencePath.QNN_CONTEXT_BINARY,
+    ScorecardInferencePath.PRECOMPILED_QNN_ONNX,
+    ScorecardInferencePath.VOICE_AI,
 ]
 
 
@@ -87,7 +87,7 @@ def _mixed_perf(*devices: ScorecardDevice) -> QAIHMModelPerf:
     return perf
 
 
-def _paths(perf: QAIHMModelPerf, component: str = "A") -> set[ScorecardProfilePath]:
+def _paths(perf: QAIHMModelPerf, component: str = "A") -> set[ScorecardInferencePath]:
     return {key.path for key in perf.entries if key.component == component}
 
 
@@ -97,23 +97,23 @@ def _paths(perf: QAIHMModelPerf, component: str = "A") -> set[ScorecardProfilePa
         (
             False,
             {
-                ScorecardProfilePath.TFLITE,
-                ScorecardProfilePath.QNN_DLC,
-                ScorecardProfilePath.VOICE_AI,
+                ScorecardInferencePath.TFLITE,
+                ScorecardInferencePath.QNN_DLC,
+                ScorecardInferencePath.VOICE_AI,
             },
         ),
         (
             True,
             {
-                ScorecardProfilePath.QNN_CONTEXT_BINARY,
-                ScorecardProfilePath.PRECOMPILED_QNN_ONNX,
-                ScorecardProfilePath.VOICE_AI,
+                ScorecardInferencePath.QNN_CONTEXT_BINARY,
+                ScorecardInferencePath.PRECOMPILED_QNN_ONNX,
+                ScorecardInferencePath.VOICE_AI,
             },
         ),
     ],
 )
 def test_drop_entries_with_mismatched_aot(
-    requires_aot_prepare: bool, kept: set[ScorecardProfilePath]
+    requires_aot_prepare: bool, kept: set[ScorecardInferencePath]
 ) -> None:
     """Entries the scorecard can no longer test are dropped; orchestrators are kept."""
     other = ScorecardDevice.get("Samsung Galaxy S25")
@@ -128,14 +128,14 @@ def test_drop_entries_with_mismatched_aot(
 def test_drop_entries_with_mismatched_aot_respects_component_filter() -> None:
     perf = _mixed_perf()
     perf.drop_entries_with_mismatched_aot(False, only_components={"A"})
-    assert ScorecardProfilePath.QNN_CONTEXT_BINARY not in _paths(perf, "A")
+    assert ScorecardInferencePath.QNN_CONTEXT_BINARY not in _paths(perf, "A")
     assert _paths(perf, "B") == set(MIXED_PATHS)
 
 
 def test_drop_entries_with_mismatched_aot_removes_emptied_precision() -> None:
     perf = QAIHMModelPerf("mixed")
     key = QAIHMModelPerf.Key(
-        Precision.float, "A", cs_x_elite, ScorecardProfilePath.QNN_CONTEXT_BINARY
+        Precision.float, "A", cs_x_elite, ScorecardInferencePath.QNN_CONTEXT_BINARY
     )
     perf.update_entry(key.stamp(model_perf_pb2.ModelPerf.PerformanceDetails()))
     perf.drop_entries_with_mismatched_aot(False)

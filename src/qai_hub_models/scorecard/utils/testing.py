@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import contextlib
-import shutil
 from collections import defaultdict
 from collections.abc import Callable, Generator
 from functools import partial
@@ -26,12 +25,9 @@ from qai_hub_models import TargetRuntime
 from qai_hub_models.protocols import FromPretrainedProtocol
 from qai_hub_models.scorecard import ScorecardDevice
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
-from qai_hub_models.scorecard.envvars import ArtifactsDirEnvvar, DeploymentEnvvar
+from qai_hub_models.scorecard.envvars import DeploymentEnvvar
 from qai_hub_models.scorecard.utils.testing_async_utils import append_line_to_file
-from qai_hub_models.utils.asset_loaders import (
-    load_yaml,
-    qaihm_temp_dir,
-)
+from qai_hub_models.utils.asset_loaders import load_yaml
 from qai_hub_models.utils.base_collection_model import CollectionModel
 from qai_hub_models.utils.base_dataset import BaseDataset, get_folder_name
 from qai_hub_models.utils.base_model import (
@@ -42,11 +38,7 @@ from qai_hub_models.utils.base_multi_graph_collection_model import (
     MultiGraphCollectionModel,
 )
 from qai_hub_models.utils.base_multi_graph_model import MultiGraphWorkbenchModel
-from qai_hub_models.utils.evaluate.helpers import (
-    CACHE_SAMPLES_PER_JOB_FILE,
-    get_dataset_path,
-    get_torch_val_dataloader,
-)
+from qai_hub_models.utils.evaluate.helpers import get_torch_val_dataloader
 from qai_hub_models.utils.hub_clients import (
     default_hub_client_as,
     get_hub_client,
@@ -65,7 +57,6 @@ from qai_hub_models.utils.printing import format_metric
 from qai_hub_models.utils.quantization import get_calibration_data
 
 __all__ = [
-    "get_and_sync_datasets_cache_dir",
     "get_hub_val_dataset",
     "get_val_dataset_id_keys",
     "has_get_unsupported_reason",
@@ -135,96 +126,6 @@ def mock_tabulate_fn(df: pd.DataFrame, **kwargs: Any) -> tuple[list[str], str]:
     for _, value in df.iterrows():
         psnr_values.append(format_metric(value.psnr))
     return psnr_values, tabulate(df, **kwargs)  # pyright: ignore[reportArgumentType]
-
-
-def get_and_sync_datasets_cache_dir(
-    has_channel_transpose: bool,
-    dataset_cls: type[BaseDataset],
-    samples_per_job: int,
-    model_cls: type[WorkbenchModel | CollectionModel],
-) -> Path:
-    """
-    Write the validation input and gt hub dataset ids to a file to be
-    used by utils/evaluate.py
-
-    This avoids having the script re-uploading the validation dataset for each
-    model, which is the default behavior.
-
-    While the dataset ids are already cached in dataset-ids.yaml, the cache used
-    by this utility expects a different format. The directory structure is:
-
-    hub_datasets{_nt}/
-        {dataset_name}_{input_spec_hash}/
-            samples_per_job_{num_samples}.txt  # Contains input and gt hub dataset ids
-            cache/
-                current_samples_per_job.txt  # Contains a single number of how many samples per job
-                dataset-dxxxx.h5  # Raw data of what was uploaded to hub for input
-                dataset-dyyyy.h5  # Raw data of what was uploaded to hub for gt
-
-    Parameters
-    ----------
-    has_channel_transpose
-        Whether the input data should have the channel last transpose applied
-    dataset_cls
-        Dataset class (subclass of BaseDataset).
-    samples_per_job
-        Number of samples in each hub dataset. Since we only run one inference job
-        per model, this is also equivalent to the overall total number of evaluation samples.
-    model_cls
-        Class of the model being evaluated. Needed to get the input spec.
-
-    Returns
-    -------
-    dataset_cache_path : Path
-        Path to dataset cache.
-    """
-    folder_name = "hub_datasets"
-    if not has_channel_transpose:
-        folder_name += "_nt"
-    assert issubclass(model_cls, WorkbenchModel)
-    assert issubclass(model_cls, FromPretrainedProtocol)
-    dataset_name = dataset_cls.dataset_name()
-    dataset_folder_name = get_folder_name(
-        dataset_name, model_cls.from_pretrained().get_input_spec()
-    )
-    dir_path = ArtifactsDirEnvvar.get() / folder_name / dataset_folder_name
-    if dir_path.exists():
-        return dir_path
-    with qaihm_temp_dir() as tmp_dir:
-        tmp_path = Path(tmp_dir)
-        dataset_ids_filepath = ScorecardArtifact.DATASET_IDS.touch()
-        dataset_ids = load_yaml(dataset_ids_filepath)
-        input_key, gt_key = get_val_dataset_id_keys(
-            dataset_folder_name, has_channel_transpose
-        )
-        # In most cases, the input and gt validation data have been created
-        # and stored in the dataset_ids yaml. In the rare case it isn't, do so here.
-        if input_key not in dataset_ids or gt_key not in dataset_ids:
-            get_hub_val_dataset(
-                dataset_cls,
-                dataset_ids_filepath,
-                model_cls,
-                has_channel_transpose,
-                samples_per_job,
-            )
-            dataset_ids = load_yaml(dataset_ids_filepath)
-        with open(tmp_path / f"samples_per_job_{samples_per_job}.txt", "w") as f:
-            f.write(dataset_ids[input_key] + " " + dataset_ids[gt_key])
-
-        cache_path = tmp_path / "cache"
-        cache_path.mkdir()
-        hub.get_dataset(dataset_ids[input_key]).download(
-            str(get_dataset_path(cache_path, dataset_ids[input_key]))
-        )
-        hub.get_dataset(dataset_ids[gt_key]).download(
-            str(get_dataset_path(cache_path, dataset_ids[gt_key]))
-        )
-        with open(cache_path / CACHE_SAMPLES_PER_JOB_FILE, "w") as f:
-            f.write(str(samples_per_job) + "\n")
-
-        dir_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(tmp_path, dir_path)
-    return dir_path
 
 
 def mock_get_calibration_data(
@@ -406,8 +307,8 @@ def patch_qai_hub(
     Generic AI Hub Workbench patch with assertable mocks. Example::
 
         with patch_qai_hub() as mock_hub:
-            hub.submit_profile_job(...)
-            mock_hub.submit_profile_job.assert_called()
+            hub.submit_inference_job(...)
+            mock_hub.submit_inference_job.assert_called()
     """
     # Model
     model = mock.Mock(hub.Model)
@@ -427,13 +328,13 @@ def patch_qai_hub(
     mock_submit_compile_job = mock.Mock()
     mock_submit_compile_job.return_value = mock_compile
 
-    # Profile
-    mock_profile = mock.Mock(hub.ProfileJob)
-    mock_profile.name = "Profile job"
-    mock_profile.job_id = "jpbcd1234"
-    mock_profile.model = model
+    # Inference
+    mock_inference = mock.Mock(hub.InferenceJob)
+    mock_inference.name = "Inference job"
+    mock_inference.job_id = "jibcd1234"
+    mock_inference.model = model
     # heavily abridged profile
-    mock_profile.download_profile.return_value = {
+    mock_inference.download_profile.return_value = {
         "execution_detail": {},
         "execution_summary": {
             "inference_memory_peak_range": [50000, 100000],
@@ -441,20 +342,13 @@ def patch_qai_hub(
             "peak_memory_bytes": 12000,
         },
     }
-    mock_submit_profile_job = mock.Mock()
-    mock_submit_profile_job.return_value = mock_profile
-    mock_submit_profile_job.side_effect = partial(_store_device, mock_profile)
-
-    # Inference
-    mock_inference = mock.Mock(hub.InferenceJob)
-    mock_inference.name = "Inference job"
-    mock_inference.job_id = "jibcd1234"
     mock_inference.download_output_data.return_value = {
         "output0": [np.array([1.0, 2.0])],
         "output1": [np.array([3.0])],
     }
     mock_submit_inference_job = mock.Mock()
     mock_submit_inference_job.return_value = mock_inference
+    mock_submit_inference_job.side_effect = partial(_store_device, mock_inference)
 
     # Link
     mock_link = mock.Mock(hub.LinkJob)
@@ -475,9 +369,6 @@ def patch_qai_hub(
     patch_hub_compile = mock.patch(
         "qai_hub.submit_compile_job", mock_submit_compile_job
     )
-    patch_hub_profile = mock.patch(
-        "qai_hub.submit_profile_job", mock_submit_profile_job
-    )
     patch_hub_inference = mock.patch(
         "qai_hub.submit_inference_job", mock_submit_inference_job
     )
@@ -488,7 +379,6 @@ def patch_qai_hub(
 
     with (
         patch_hub_compile,
-        patch_hub_profile,
         patch_hub_inference,
         patch_hub_link,
         patch_hub_quantize,
@@ -496,7 +386,6 @@ def patch_qai_hub(
         # Yield mocks to allow assertions
         yield SimpleNamespace(
             submit_compile_job=mock_submit_compile_job,
-            submit_profile_job=mock_submit_profile_job,
             submit_inference_job=mock_submit_inference_job,
             submit_link_job=mock_submit_link_job,
             submit_quantize_job=mock_submit_quantize_job,

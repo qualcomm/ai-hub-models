@@ -5,12 +5,12 @@
 # ---------------------------------------------------------------------
 
 """
-Script to retry failed profile jobs that failed due to known flaky reasons.
+Script to retry failed inference jobs that failed due to known flaky reasons.
 This script is intended to be run after the exec_scorecard job in the scorecard.yml workflow
 and right before the collection workflows.
 
 The script will:
-1. Load the profile jobs YAML file from either:
+1. Load the inference jobs YAML file from either:
    - The artifacts directory specified by QAIHM_TEST_ARTIFACTS_DIR (default)
    - A custom directory specified by the --artifacts-dir argument
 2. Find jobs with failure reasons that match known flaky reasons
@@ -35,7 +35,7 @@ from pydantic import Field
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
 from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.envvars import ArtifactsDirEnvvar, DeploymentEnvvar
-from qai_hub_models.scorecard.results.yaml import ProfileScorecardJobYaml
+from qai_hub_models.scorecard.results.yaml import InferenceScorecardJobYaml
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.hub_clients import (
     get_default_hub_deployment,
@@ -213,7 +213,7 @@ def process_flaky_job(
     # Clone the job
     print(f"Cloning job {job_id}...")
     prev_job = hub_client.get_job(job_id)
-    assert isinstance(prev_job, hub.ProfileJob)
+    assert isinstance(prev_job, hub.InferenceJob)
     new_job = hub_client.submit_inference_job(
         prev_job.model,
         prev_job.device,
@@ -227,7 +227,7 @@ def process_flaky_job(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Retry failed profile jobs that failed due to known flaky reasons"
+        description="Retry failed inference jobs that failed due to known flaky reasons"
     )
     ArtifactsDirEnvvar.add_arg(parser)
     DeploymentEnvvar.add_arg(parser, default=get_default_hub_deployment())
@@ -280,16 +280,16 @@ def main() -> None:
         )
         print("This is intended for testing the fix_flaky_jobs workflow only\n")
 
-    # Get the profile jobs YAML file path
-    profile_jobs_file = ScorecardArtifact.PROFILE_YAML.path
-    if not profile_jobs_file.exists():
-        print(f"Profile jobs file not found at {profile_jobs_file}")
+    # Get the inference jobs YAML file path
+    inference_jobs_file = ScorecardArtifact.INFERENCE_YAML.path
+    if not inference_jobs_file.exists():
+        print(f"Inference jobs file not found at {inference_jobs_file}")
         return
 
-    print(f"Loading profile jobs from: {profile_jobs_file}")
+    print(f"Loading inference jobs from: {inference_jobs_file}")
 
-    # Load the profile jobs YAML
-    profile_yaml = ProfileScorecardJobYaml.from_test_artifacts()
+    # Load the inference jobs YAML
+    inference_yaml = InferenceScorecardJobYaml.from_test_artifacts()
 
     hub_client = get_scorecard_client_or_raise(args.deployment)
     print(f"Successfully initialized Hub client for deployment: {args.deployment}")
@@ -298,12 +298,12 @@ def main() -> None:
     print("Creating a pool of 15 worker processes for parallel operations...")
     pool = multiprocessing.Pool(processes=15)
 
-    print("Checking for flaky failures in parallel through profile-jobs.yaml...")
+    print("Checking for flaky failures in parallel through inference-jobs.yaml...")
 
     # Prepare arguments for parallel processing
     args_list = [
         (hub_client, job_key, job_id, test_mode, wait_for_jobs)
-        for job_key, job_id in profile_yaml.mapping.items()
+        for job_key, job_id in inference_yaml.mapping.items()
     ]
 
     # Process jobs in parallel
@@ -319,7 +319,7 @@ def main() -> None:
         # Prepare arguments for parallel processing - job IDs and wait_for_jobs flag
         failure_args_list = [
             (hub_client, job_id, wait_for_jobs)
-            for job_id in profile_yaml.mapping.values()
+            for job_id in inference_yaml.mapping.values()
         ]
 
         # Process jobs in parallel to get all failure reasons
@@ -331,8 +331,8 @@ def main() -> None:
         # Process results
         for i, failure_reason in enumerate(failure_results):
             if failure_reason:
-                job_id = list(profile_yaml.mapping.values())[i]
-                job_key = list(profile_yaml.mapping.keys())[i]
+                job_id = list(inference_yaml.mapping.values())[i]
+                job_key = list(inference_yaml.mapping.keys())[i]
 
                 formatted_reason = f"Failed ({failure_reason})"
                 # Add to the dictionary or increment the count
@@ -443,7 +443,7 @@ def main() -> None:
         elapsed_minutes = elapsed_time / 60.0
 
         print(f"[DRY RUN] Found {len(failed_job_keys)} jobs with flaky failures")
-        print(f"[DRY RUN] Changes would have been saved to: {profile_jobs_file}")
+        print(f"[DRY RUN] Changes would have been saved to: {inference_jobs_file}")
 
         # Show a summary of changes that would be made
         print("\n=== Changes that would be made to the YAML file ===")
@@ -456,7 +456,7 @@ def main() -> None:
 
     # Process flaky jobs
     print(
-        f"\nSubmitting {len(failed_job_keys)} new profile jobs for the failed ones listed above"
+        f"\nSubmitting {len(failed_job_keys)} new inference jobs for the failed ones listed above"
     )
 
     changes_made = False
@@ -476,7 +476,7 @@ def main() -> None:
 
     # Process results
     for job_key, new_job_id, _ in results:
-        profile_yaml.mapping[job_key] = new_job_id
+        inference_yaml.mapping[job_key] = new_job_id
         # Update flaky jobs info with new job ID
         if job_key in flaky_jobs_info.flaky_jobs:
             flaky_jobs_info.flaky_jobs[job_key].new_job_id = new_job_id
@@ -488,9 +488,9 @@ def main() -> None:
 
     # Save the updated YAML if changes were made
     if changes_made:
-        print(f"Saving updated profile jobs YAML to: {profile_yaml.path}")
-        profile_yaml.to_file()
-        print("Profile jobs YAML updated with new job IDs")
+        print(f"Saving updated inference jobs YAML to: {inference_yaml.path}")
+        inference_yaml.to_file()
+        print("Inference jobs YAML updated with new job IDs")
 
     # Write flaky jobs info to output file if specified
     if flaky_jobs_output and flaky_jobs_info.flaky_jobs:

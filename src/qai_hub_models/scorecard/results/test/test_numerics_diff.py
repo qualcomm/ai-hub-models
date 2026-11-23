@@ -11,7 +11,7 @@ from pathlib import Path
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import cs_8_gen_3
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.numerics_diff import NumericsDiff
 
 
@@ -25,7 +25,7 @@ def test_dump_newly_disabled_json(tmp_path: Path) -> None:
             "mAP",
             cs_8_gen_3,
             Precision.float,
-            ScorecardProfilePath.QNN_DLC,
+            ScorecardInferencePath.QNN_DLC,
             "0.75 mAP",
             "0.74 mAP",
             "0.60 mAP",
@@ -39,7 +39,7 @@ def test_dump_newly_disabled_json(tmp_path: Path) -> None:
             "mAP",
             cs_8_gen_3,
             Precision.float,
-            ScorecardProfilePath.QNN_DLC,
+            ScorecardInferencePath.QNN_DLC,
             "0.75 mAP",
             "",
             "0.60 mAP",
@@ -55,7 +55,7 @@ def test_dump_newly_disabled_json(tmp_path: Path) -> None:
             "top1",
             "device",
             Precision.w8a8,
-            ScorecardProfilePath.TFLITE,
+            ScorecardInferencePath.TFLITE,
             "0.31 top1",
             "0.30 top1",
             "0.70 top1",

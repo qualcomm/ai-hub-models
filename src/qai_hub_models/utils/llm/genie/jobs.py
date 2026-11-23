@@ -37,7 +37,7 @@ from qai_hub_models.models.templates.llm.perf_collection import (
     record_perf_scope,
     update_perf_yaml,
 )
-from qai_hub_models.scorecard import ScorecardDevice, ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardDevice, ScorecardInferencePath
 from qai_hub_models.scorecard.envvars import QAIRTVersionEnvvar
 from qai_hub_models.scorecard.utils.fetch_prerelease_assets import (
     download_prerelease_asset,
@@ -1003,7 +1003,7 @@ def fetch_genie_bundle_for_perf(
     Raises a clear error if no matching asset exists.
     """
     assets = load_release_assets_for_model(model_id)
-    asset = assets.get_asset(precision, chipset, ScorecardProfilePath.GENIE)
+    asset = assets.get_asset(precision, chipset, ScorecardInferencePath.GENIE)
     if asset is None:
         available_chipsets: list[str] = []
         prec_details = assets.precisions.get(precision)
@@ -1056,7 +1056,7 @@ def get_genie_bundle_url(model_id: str, precision: Precision, chipset: str) -> s
     ``load_release_assets_for_model`` currently selects.
     """
     assets = load_release_assets_for_model(model_id)
-    asset = assets.get_asset(precision, chipset, ScorecardProfilePath.GENIE)
+    asset = assets.get_asset(precision, chipset, ScorecardInferencePath.GENIE)
     if asset is None or asset.s3_key is None:
         raise RuntimeError(
             f"No genie release asset for {model_id!r} precision={precision} "
@@ -1137,7 +1137,7 @@ def collect_llm_perf_job(
     if not skip_perf_update:
         record_perf_scope(
             model_id=model_id,
-            profile_path=ScorecardProfilePath.GENIE,
+            profile_path=ScorecardInferencePath.GENIE,
             device_name=device.reference_device_name,
             precision=precision,
         )
@@ -1190,7 +1190,7 @@ def collect_llm_perf_job(
             device.chipset,
             str(precision),
             f"{base}.meta.json",
-            path=ScorecardProfilePath.GENIE,
+            path=ScorecardInferencePath.GENIE,
             dataset_name=eval_dataset,
         )
 

@@ -10,14 +10,14 @@ from collections.abc import Iterable
 
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 
 
 def get_release_manifest_support_violations(
     manifest: QAIHMModelManifest,
     yaml_name: str,
     precision: Precision,
-    paths: Iterable[ScorecardProfilePath],
+    paths: Iterable[ScorecardInferencePath],
 ) -> list[str]:
     """
     Verifies that the manifest declares:

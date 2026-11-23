@@ -20,7 +20,7 @@ from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_x_elite
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -28,7 +28,7 @@ from qai_hub_models.scorecard.perf_yaml import (
 BACKBONE = "Qwen2.5-VL-7B-Instruct"
 STANDALONE = "Vision-Encoder"
 PRECISION = Precision.w4a16
-PATH = ScorecardProfilePath.GENIEX_QAIRT
+PATH = ScorecardInferencePath.GENIEX_QAIRT
 MODEL_ID = "qwen2_5_vl_7b_instruct"
 
 
@@ -75,7 +75,7 @@ def _hybrid_perf(device: ScorecardDevice = cs_x_elite) -> QAIHMModelPerf:
 
 def _scope(
     device: ScorecardDevice = cs_x_elite,
-) -> set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]]:
+) -> set[tuple[Precision, ScorecardInferencePath, ScorecardDevice]]:
     return {(PRECISION, PATH, device)}
 
 

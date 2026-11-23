@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from qai_hub.client import Device
 from typing_extensions import Self
 
@@ -20,6 +21,7 @@ from qai_hub_models import (
 )
 from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.protocols import FromPretrainedProtocol
+from qai_hub_models.utils._cached_from_pretrained import CachedFromPretrainedMeta
 from qai_hub_models.utils.base_model import _model_cls_name
 from qai_hub_models.utils.export.result import MultiGraphGroup
 from qai_hub_models.utils.input_spec import (
@@ -41,7 +43,9 @@ __all__ = [
 ]
 
 
-class MultiGraphWorkbenchModel(ABC, FromPretrainedProtocol):
+class MultiGraphWorkbenchModel(
+    ABC, FromPretrainedProtocol, metaclass=CachedFromPretrainedMeta
+):
     """
     A model composed of multiple independently-compiled graphs that are linked into one executable binary.
 
@@ -125,6 +129,14 @@ class MultiGraphWorkbenchModel(ABC, FromPretrainedProtocol):
         if use_channel_last_format and (cl := get_channel_last(spec)):
             inputs_dict = transpose_channel_first_to_last(cl, inputs_dict)
         return inputs_dict
+
+    def local_inference(
+        self, graph_name: str, sample_inputs: SampleInputsType
+    ) -> list[np.ndarray]:
+        """Run ``graph_name`` in torch and return its outputs, for on-device comparison."""
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement local_inference"
+        )
 
     # -- Per-graph hub option getters (subclasses may override) --
 

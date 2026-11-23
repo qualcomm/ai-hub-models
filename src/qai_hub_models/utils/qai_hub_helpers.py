@@ -412,18 +412,115 @@ def get_device_and_chipset_name(device: hub.Device) -> tuple[str | None, str | N
 JobT = TypeVar("JobT", hub.CompileJob, hub.QuantizeJob, hub.LinkJob)
 
 
-def _assert_success_and_get_target_model(job: JobT, description: str) -> hub.Model:
-    """Wait for one job, assert it succeeded, and extract its target model.
+def _target_model_of(job: JobT, description: str, verify_success: bool) -> hub.Model:
+    """Extract one job's target model, optionally waiting to confirm it succeeded.
 
-    ``get_target_model()`` returns a handle at submission time (qai_hub 0.56+),
-    not just on success, so checking ``is not None`` alone no longer detects a
-    failed job -- the wait and the explicit status check are load-bearing.
+    ``get_target_model()`` returns a handle at submission time regardless of
+    whether the job succeeds (qai_hub 0.56+), so checking ``is not None``
+    alone cannot detect a failed job -- an explicit wait + status check is
+    required when the caller needs that guarantee.
     """
-    status = job.wait()
-    assert status.success, f"Job failed for {description}: {job.url}"
+    if verify_success:
+        status = job.wait()
+        assert status.success, f"Job failed for {description}: {job.url}"
     target_model = job.get_target_model()
     assert target_model is not None, f"No target model for {description}: {job.url}"
     return target_model
+
+
+def _map_target_models(
+    jobs: JobT
+    | MultiGraphGroup[JobT]
+    | ComponentGroup[JobT]
+    | MultiGraphComponentGroup[JobT],
+    verify_success: bool,
+) -> (
+    hub.Model
+    | MultiGraphGroup[hub.Model]
+    | ComponentGroup[hub.Model]
+    | MultiGraphComponentGroup[hub.Model]
+):
+    """Walk any job container and replace each job with its target model."""
+    if isinstance(jobs, MultiGraphComponentGroup):
+        out_mgcg: MultiGraphComponentGroup[hub.Model] = MultiGraphComponentGroup()
+        for (comp, gn), job in jobs.items():
+            out_mgcg[(comp, gn)] = _target_model_of(job, f"{comp}/{gn}", verify_success)
+        return out_mgcg
+
+    if isinstance(jobs, ComponentGroup):
+        out_comp: ComponentGroup[hub.Model] = ComponentGroup()
+        for name, job in jobs.items():
+            out_comp[name] = _target_model_of(job, name, verify_success)
+        return out_comp
+
+    if isinstance(jobs, MultiGraphGroup):
+        graph_models: MultiGraphGroup[hub.Model] = MultiGraphGroup()
+        for name, job in jobs.items():
+            graph_models[name] = _target_model_of(job, name, verify_success)
+        return graph_models
+
+    return _target_model_of(jobs, jobs.name, verify_success)
+
+
+@overload
+def get_target_models(
+    jobs: JobT,
+) -> hub.Model: ...
+
+
+@overload
+def get_target_models(
+    jobs: MultiGraphGroup[JobT],
+) -> MultiGraphGroup[hub.Model]: ...
+
+
+@overload
+def get_target_models(
+    jobs: ComponentGroup[JobT],
+) -> ComponentGroup[hub.Model]: ...
+
+
+@overload
+def get_target_models(
+    jobs: MultiGraphComponentGroup[JobT],
+) -> MultiGraphComponentGroup[hub.Model]: ...
+
+
+def get_target_models(  # type: ignore[misc]
+    jobs: JobT
+    | MultiGraphGroup[JobT]
+    | ComponentGroup[JobT]
+    | MultiGraphComponentGroup[JobT],
+) -> (
+    hub.Model
+    | MultiGraphGroup[hub.Model]
+    | ComponentGroup[hub.Model]
+    | MultiGraphComponentGroup[hub.Model]
+):
+    """
+    Extract target models without waiting for the jobs to finish.
+
+    Use this to chain one job into the next: AI Hub Workbench assigns a target
+    model handle at submission, so a dependent job can be submitted immediately
+    and starts once its input is ready.
+
+    Parameters
+    ----------
+    jobs
+        A single job, a ComponentGroup of jobs, a MultiGraphGroup,
+        or a MultiGraphComponentGroup.
+
+    Returns
+    -------
+    hub.Model | MultiGraphGroup[hub.Model] | ComponentGroup[hub.Model] | MultiGraphComponentGroup[hub.Model]
+        The target model(s), preserving the input structure.
+
+    Raises
+    ------
+    AssertionError
+        If any job has no target model handle.
+    """
+    return _map_target_models(jobs, verify_success=False)
 
 
 @overload
@@ -464,6 +561,9 @@ def assert_success_and_get_target_models(  # type: ignore[misc]
     """
     Wait for all jobs, assert they succeeded, and extract their target models.
 
+    Prefer :func:`get_target_models` when the models are only being fed to a
+    dependent job, which does not require the producer to have finished.
+
     Parameters
     ----------
     jobs
@@ -480,27 +580,7 @@ def assert_success_and_get_target_models(  # type: ignore[misc]
     AssertionError
         If any job did not succeed, or produced no target model.
     """
-    if isinstance(jobs, MultiGraphComponentGroup):
-        out_mgcg: MultiGraphComponentGroup[hub.Model] = MultiGraphComponentGroup()
-        for (comp, gn), job in jobs.items():
-            out_mgcg[(comp, gn)] = _assert_success_and_get_target_model(
-                job, f"{comp}/{gn}"
-            )
-        return out_mgcg
-
-    if isinstance(jobs, ComponentGroup):
-        out_comp: ComponentGroup[hub.Model] = ComponentGroup()
-        for name, job in jobs.items():
-            out_comp[name] = _assert_success_and_get_target_model(job, name)
-        return out_comp
-
-    if isinstance(jobs, MultiGraphGroup):
-        graph_models: MultiGraphGroup[hub.Model] = MultiGraphGroup()
-        for name, job in jobs.items():
-            graph_models[name] = _assert_success_and_get_target_model(job, name)
-        return graph_models
-
-    return _assert_success_and_get_target_model(jobs, jobs.name)
+    return _map_target_models(jobs, verify_success=True)
 
 
 def build_quantize_options(

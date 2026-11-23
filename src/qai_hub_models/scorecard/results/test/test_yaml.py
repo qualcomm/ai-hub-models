@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.yaml import ToolVersionsByPathYaml
 
 
@@ -26,7 +26,7 @@ def test_tool_versions_skips_unknown_profile_paths(tmp_path: Path) -> None:
 
     loaded = ToolVersionsByPathYaml.from_yaml(yaml_path)
 
-    assert list(loaded.tool_versions) == [ScorecardProfilePath.QNN_DLC]
-    qairt = loaded.tool_versions[ScorecardProfilePath.QNN_DLC].qairt
+    assert list(loaded.tool_versions) == [ScorecardInferencePath.QNN_DLC]
+    qairt = loaded.tool_versions[ScorecardInferencePath.QNN_DLC].qairt
     assert qairt is not None
     assert "2.50.0" in qairt.full_version_with_flavor

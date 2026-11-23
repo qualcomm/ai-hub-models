@@ -21,16 +21,13 @@ ValT = TypeVar("ValT")
 
 INTERMEDIATES_DIR = QAIHM_PACKAGE_ROOT / "scorecard" / "intermediates"
 
-# Stage keys in model-runtime-estimates.yaml; shared between writer
-# (extract_model_runtimes) and reader (split_torch_models).
-RUNTIME_STAGE_JOB_SUBMISSION = "job_submission"
-RUNTIME_STAGE_EXPORT_TEST = "export_test"
+# Stage keys in model-stage-timings.yaml; shared between writer
+# (scripts/scorecard/timings.py) and reader (split_torch_models). "submit" is
+# run_scorecard's compile + inference + cpu_accuracy stages, "accuracy" its
+# upload_assets + accuracy stages.
+RUNTIME_STAGE_SUBMIT = "submit"
 RUNTIME_STAGE_ACCURACY = "accuracy"
-RUNTIME_ALL_STAGES = (
-    RUNTIME_STAGE_JOB_SUBMISSION,
-    RUNTIME_STAGE_EXPORT_TEST,
-    RUNTIME_STAGE_ACCURACY,
-)
+RUNTIME_ALL_STAGES = (RUNTIME_STAGE_SUBMIT, RUNTIME_STAGE_ACCURACY)
 
 
 def test_artifacts_dir() -> Path:
@@ -59,14 +56,14 @@ class ScorecardArtifact(Enum):
     GRAPH_NAMES = "graph-names.yaml"
     QUANTIZE_YAML = "quantize-jobs.yaml"
     COMPILE_YAML = "compile-jobs.yaml"
-    COMPILE_JOBS_IDENTICAL_CACHE = "compile-jobs-are-identical-cache.yaml"
+    MODEL_ASSETS_IDENTICAL_CACHE = "model-assets-are-identical-cache.yaml"
     LINK_YAML = "link-jobs.yaml"
-    PROFILE_YAML = "profile-jobs.yaml"
     INFERENCE_YAML = "inference-jobs.yaml"
     RELEASE_ASSETS = "release-assets.yaml"
     DATASET_IDS = "dataset-ids.yaml"
     CPU_ACCURACY = "cpu-accuracy.yaml"
-    MODEL_RUNTIME_ESTIMATES = "model-runtime-estimates.yaml"
+    STAGE_TIMINGS_CSV = "stage-timings.csv"
+    MODEL_RUNTIME_ESTIMATES = "model-stage-timings.yaml"
 
     def touch(self) -> Path:
         """Get the path for this test artifact. Will touch() the artifact if it does not exist."""

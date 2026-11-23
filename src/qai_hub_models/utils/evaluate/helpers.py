@@ -13,20 +13,21 @@ import os
 import shutil
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence, Sized
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, unique
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import h5py
 import numpy as np
 import onnxruntime
+import pandas as pd
 import qai_hub as hub
 import torch
 from qai_hub.public_rest_api import DatasetEntries
 from qai_hub.util.dataset_entries_converters import dataset_entries_to_h5
 from qai_hub_models_cli.errors import CLIUserError
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, Subset, random_split
 from tqdm import tqdm
 from typing_extensions import Self
 
@@ -34,7 +35,7 @@ from qai_hub_models.protocols import ExecutableModelProtocol
 from qai_hub_models.utils.asset_loaders import (
     get_hub_datasets_path,
     load_h5,
-    load_raw_file,
+    load_yaml,
     qaihm_temp_dir,
 )
 from qai_hub_models.utils.base_app import (
@@ -42,6 +43,7 @@ from qai_hub_models.utils.base_app import (
     CollectionModelEvalGenerator,
 )
 from qai_hub_models.utils.base_collection_model import CollectionModel
+from qai_hub_models.utils.base_config import dump_yaml_dict
 from qai_hub_models.utils.base_dataset import (
     BaseDataset,
     DatasetSplit,
@@ -63,10 +65,11 @@ from qai_hub_models.utils.onnx.torch_wrapper import (
     OnnxSessionOptions,
     OnnxSessionTorchWrapper,
 )
+from qai_hub_models.utils.printing import compute_inference_metrics
 from qai_hub_models.utils.private_asset_loaders import UnfetchableDatasetError
-from qai_hub_models.utils.transpose_channel import transpose_channel_last_to_first
+from qai_hub_models.utils.transpose_channel import transpose_channel_first_to_last
 
-CACHE_SAMPLES_PER_JOB_FILE = "current_samples_per_job.txt"
+SPLITS_YAML = "splits.yaml"
 DEFAULT_NUM_EVAL_SAMPLES = 1000
 
 
@@ -74,49 +77,91 @@ def _count_num_samples(data: Sequence[torch.Tensor] | torch.Tensor) -> int:
     return len(data[0]) if isinstance(data, Sequence) else len(data)
 
 
+def _keep_first_samples(data: Any, num_samples: int) -> Any:
+    """Drops samples past `num_samples` from every tensor in `data`."""
+    if isinstance(data, torch.Tensor):
+        return data[:num_samples]
+    if isinstance(data, (list, tuple)):
+        return type(data)(_keep_first_samples(x, num_samples) for x in data)
+    return data
+
+
 @dataclass
 class EvaluateResult:
     torch_accuracy: float | None = None
     sim_accuracy: float | None = None
     device_accuracy: float | None = None
+    psnr_metrics: pd.DataFrame | None = None
+    inference_jobs: list[hub.InferenceJob] = field(default_factory=list)
+
+
+@dataclass
+class EvaluateIntermediates:
+    """Inference jobs already submitted for a dataset evaluation, in batch order."""
+
+    inference_jobs: list[hub.InferenceJob] = field(default_factory=list)
 
 
 def get_dataset_path(cache_path: Path, dataset_id: str) -> Path:
     return cache_path / f"dataset-{dataset_id}.h5"
 
 
-def get_dataset_ids_filepath(dataset_name: str, samples_per_job: int) -> Path:
-    return (
-        get_hub_datasets_path()
-        / dataset_name
-        / f"samples_per_job_{samples_per_job}.txt"
-    )
-
-
 def get_dataset_cache_filepath(folder_name: str) -> Path:
     return get_hub_datasets_path() / folder_name / "cache"
 
 
-def get_dataset_cache_samples_per_job(folder_name: str) -> int | None:
-    """Get the samples_per_job used for the current dataset cache."""
-    path = get_dataset_cache_filepath(folder_name) / CACHE_SAMPLES_PER_JOB_FILE
+def get_splits_yaml_filepath(folder_name: str) -> Path:
+    return get_hub_datasets_path() / folder_name / SPLITS_YAML
+
+
+@dataclass
+class DatasetSplitIds:
+    """One cached split's Hub dataset ids, in both input orientations.
+
+    ``input_cl`` and ``input_cf`` are only guaranteed distinct when at least
+    one input requires a channel transpose; otherwise they're the same id
+    (no second upload is made).
+    """
+
+    input_cl: str
+    input_cf: str
+    gt: str
+
+
+@dataclass
+class DatasetCacheRecord:
+    """The parsed contents of ``splits.yaml``: what a dataset cache was populated for."""
+
+    samples_per_job: int
+    num_samples: int
+    splits: list[DatasetSplitIds]
+
+
+def read_splits_yaml(path: Path) -> DatasetCacheRecord | None:
     if not path.exists():
         return None
-    curr_samples_per_job_str = load_raw_file(path)
-    return int(curr_samples_per_job_str.strip())
+    data = load_yaml(path)
+    return DatasetCacheRecord(
+        samples_per_job=data["samples_per_job"],
+        num_samples=data["num_samples"],
+        splits=[DatasetSplitIds(**split) for split in data["splits"]],
+    )
 
 
-def read_dataset_ids(
-    dataset_ids_filepath: str | Path,
-) -> tuple[list[str], list[str]]:
-    input_ids = []
-    gt_ids = []
-    with open(dataset_ids_filepath) as f:
-        for line in f:
-            input_id, gt_id = line.strip().split(" ")
-            input_ids.append(input_id)
-            gt_ids.append(gt_id)
-    return input_ids, gt_ids
+def write_splits_yaml(
+    path: Path,
+    samples_per_job: int,
+    num_samples: int,
+    splits: list[DatasetSplitIds],
+) -> None:
+    data = {
+        "samples_per_job": samples_per_job,
+        "num_samples": num_samples,
+        "splits": [
+            {"input_cl": s.input_cl, "input_cf": s.input_cf, "gt": s.gt} for s in splits
+        ],
+    }
+    dump_yaml_dict(data, path)
 
 
 def write_entries_to_file(
@@ -125,32 +170,6 @@ def write_entries_to_file(
     """Write dataset entries to a .h5 file."""
     with h5py.File(filename, "w") as h5f:
         dataset_entries_to_h5(dataset_entries, h5f)
-
-
-def get_deterministic_sample(
-    dataset: BaseDataset, num_samples: int, samples_per_job: int | None = None
-) -> DataLoader:
-    """
-    Creates a torch dataloader with a subset validation data from the given dataset.
-
-    The dataset is sampled by taking every N samples for the largest possible N
-    that produces the number of requested samples.
-
-    Parameters
-    ----------
-    dataset
-        Dataset to sample from.
-    num_samples
-        Number of samples to sample from the full dataset.
-    samples_per_job
-        The batch size for the dataloader. If not set, all samples will be in the first batch.
-
-    Returns
-    -------
-    dataloader : DataLoader
-        Dataloader with sampled data.
-    """
-    return dataset.get_dataloader(num_samples, samples_per_job)
 
 
 def get_torch_val_dataloader(
@@ -180,7 +199,7 @@ def get_torch_val_dataloader(
     """
     torch_val_dataset = instantiate_dataset(dataset_cls, DatasetSplit.VAL, input_spec)
     num_samples = num_samples or torch_val_dataset.default_samples_per_job()
-    return get_deterministic_sample(torch_val_dataset, num_samples)
+    return torch_val_dataset.get_dataloader(num_samples)
 
 
 def get_qdq_onnx(model: hub.Model) -> hub.Model | None:
@@ -234,7 +253,12 @@ def _load_quant_cpu_onnx(model: hub.Model) -> OnnxModelTorchWrapper:
     local_dir = Path("build/qdq_cache_dir")
     local_dir.mkdir(parents=True, exist_ok=True)
     local_path = local_dir / f"{qdq_model.model_id}"
-    output_path = qdq_model.download(str(local_path))
+    extracted_dir = local_dir / f"{qdq_model.model_id}.onnx"
+    if extracted_dir.exists():
+        # Downloaded and extracted by an earlier run.
+        output_path: str | Path = extracted_dir / "model.onnx"
+    else:
+        output_path = qdq_model.download(str(local_path))
 
     # Disable all graph optimizations to preserve the original quantized model structure as much as possible.
     # This is to workaround a bug in ONNXRT that causes an accuracy drop due to unsafe opt passes on quantized models
@@ -246,17 +270,13 @@ def _load_quant_cpu_onnx(model: hub.Model) -> OnnxModelTorchWrapper:
     return OnnxModelTorchWrapper.OnCPU(output_path, session_options=options)
 
 
-def _validate_dataset_ids_path(path: Path) -> bool:
-    if not path.exists():
-        return False
-    input_ids, gt_ids = read_dataset_ids(path)
-
-    # If any dataset is expired, evict the cache
-    for dataset_id in input_ids + gt_ids:
-        dataset = hub.get_dataset(dataset_id)
-        if dataset.get_expiration_status() == "Expired":
-            os.remove(path)
-            return False
+def _validate_splits(record: DatasetCacheRecord) -> bool:
+    """Evict the cache if any split's datasets have expired on Hub."""
+    for dataset_split in record.splits:
+        ids = {dataset_split.input_cl, dataset_split.input_cf, dataset_split.gt}
+        for dataset_id in ids:
+            if hub.get_dataset(dataset_id).get_expiration_status() == "Expired":
+                return False
     return True
 
 
@@ -272,29 +292,63 @@ def _validate_inputs(num_samples: int, dataset: BaseDataset) -> None:
 
 def _populate_data_cache_impl(
     dataset: BaseDataset,
+    order: list[int],
     samples_per_job: int,
-    seed: int | None,
     input_names: list[str],
     channel_last_input: list[str] | None,
     cache_path: Path,
-    dataset_ids_filepath: Path,
-) -> None:
-    """Does the heavy lifting of uploading data to hub and also saving it locally."""
-    if seed is not None:
-        torch.manual_seed(seed)
-    dataloader = DataLoader(dataset, batch_size=samples_per_job, shuffle=True)
-    for batch in dataloader:
-        input_entries, gt_entries = dataset_entries_from_batch(
-            batch, input_names, channel_last_input
+) -> list[DatasetSplitIds]:
+    """Uploads both input orientations (and gt) to hub, stores the channel-first
+    input + gt locally, and returns the per-split id record.
+
+    Cuts ``order`` (from ``BaseDataset.eval_order``) into splits of
+    ``samples_per_job`` and uploads one per split -- population must stay scoped
+    to what the request needs, not the whole dataset.
+    """
+    splits: list[DatasetSplitIds] = []
+    for start in range(0, len(order), samples_per_job):
+        indices = order[start : start + samples_per_job]
+        batch = next(
+            iter(DataLoader(Subset(dataset, indices), batch_size=len(indices)))
         )
-        input_dataset = hub.upload_dataset(input_entries)
+        input_entries_cf, gt_entries = dataset_entries_from_batch(
+            batch, input_names, None
+        )
         gt_dataset = hub.upload_dataset(gt_entries)
-        input_data_path = get_dataset_path(cache_path, input_dataset.dataset_id)
-        gt_data_path = get_dataset_path(cache_path, gt_dataset.dataset_id)
-        write_entries_to_file(input_data_path, input_entries)
-        write_entries_to_file(gt_data_path, gt_entries)
-        with open(dataset_ids_filepath, "a") as f:
-            f.write(f"{input_dataset.dataset_id} {gt_dataset.dataset_id}\n")
+        input_cf_dataset = hub.upload_dataset(input_entries_cf)
+        write_entries_to_file(
+            get_dataset_path(cache_path, input_cf_dataset.dataset_id),
+            input_entries_cf,
+        )
+        write_entries_to_file(
+            get_dataset_path(cache_path, gt_dataset.dataset_id), gt_entries
+        )
+        if channel_last_input:
+            input_entries_cl = transpose_channel_first_to_last(
+                channel_last_input, input_entries_cf
+            )
+            input_dataset = hub.upload_dataset(input_entries_cl)
+        else:
+            input_dataset = input_cf_dataset
+        splits.append(
+            DatasetSplitIds(
+                input_cl=input_dataset.dataset_id,
+                input_cf=input_cf_dataset.dataset_id,
+                gt=gt_dataset.dataset_id,
+            )
+        )
+    return splits
+
+
+def _download_splits(cache_path: Path, splits: list[DatasetSplitIds]) -> None:
+    """Downloads the already-uploaded channel-first input and gt h5s for each split."""
+    for dataset_split in splits:
+        hub.get_dataset(dataset_split.input_cf).download(
+            str(get_dataset_path(cache_path, dataset_split.input_cf))
+        )
+        hub.get_dataset(dataset_split.gt).download(
+            str(get_dataset_path(cache_path, dataset_split.gt))
+        )
 
 
 def _populate_data_cache(
@@ -302,37 +356,41 @@ def _populate_data_cache(
     split: DatasetSplit,
     input_spec: InputSpec | None,
     samples_per_job: int,
+    num_samples: int,
     seed: int | None,
     input_names: list[str],
     channel_last_input: list[str] | None,
+    force_rebuild: bool = False,
 ) -> None:
     """
     Creates hub datasets out of the input dataset and stores the same data locally.
 
-    Divides the input dataset into subsets of size `samples_per_job` and creates a separate
-    hub dataset for each subset.
+    Divides the input dataset into subsets of size `samples_per_job`, uploading
+    only as many splits as `num_samples` requires, and creates both a
+    channel-last and a channel-first Hub dataset per split's input (ground
+    truth is orientation-independent and shared). ``splits.yaml`` records the
+    per-split ids plus `samples_per_job` and `num_samples`, so a later request
+    for more samples than are cached is detectable instead of silently served
+    short.
 
-    Creates a local file `samples_per_job_{samples_per_job}.txt` that stores the current timestamp
-    and all the dataset ids for both the inputs and labels. Datasets expire after 30
-    days, so this file will need to be refreshed with a new dataset then.
+    If an existing cache already covers at least `num_samples` at this
+    `samples_per_job`, its ids are downloaded into a fresh local `cache/`
+    instead of re-uploading. A request for more than what's cached deletes the
+    whole directory and repopulates from scratch -- population shuffles, so an
+    old draw's samples are not a prefix of a new, larger one.
 
-    The data will also be stored locally in a "cache" folder. If this function is called
-    with a new samples_per_job, the existing local data is deleted and replaced with the
-    datasets made with the new samples_per_job.
-
-    If called again with an old samples_per_job that still has its
-    `samples_per_job_{samples_per_job}.txt` present, the data from those ids will
-    be downloaded to the local cache instead of creating new hub datasets.
+    The cache is not versioned: if a dataset's sample selection changes, or a
+    cache is corrupt, rebuild it with `force_rebuild`. The scorecard wipes the
+    cache before and after every run, so it never sees a stale one.
 
     Directory structure:
 
-    hub_datasets{_nt}/
+    hub_datasets_v2/
         {dataset_name}_{input_spec_hash}/
-            samples_per_job_{num_samples}.txt  # Contains input and gt hub dataset ids
+            splits.yaml  # samples_per_job, num_samples, and per-split ids
             cache/
-                current_samples_per_job.txt  # Contains a single number of how many samples per job
-                dataset-dxxxx.h5  # Raw data of what was uploaded to hub for input
-                dataset-dyyyy.h5  # Raw data of what was uploaded to hub for gt
+                dataset-dxxxx.h5  # channel-first input, one per split
+                dataset-dyyyy.h5  # ground truth, one per split
 
     Parameters
     ----------
@@ -344,56 +402,82 @@ def _populate_data_cache(
         Input spec for the model.
     samples_per_job
         The maximum size of each hub.Dataset.
+    num_samples
+        Number of samples this cache must cover.
     seed
         The random seed used to create the splits.
     input_names
         The input names of the model.
     channel_last_input
         Comma separated list of input names to have channel transposed.
+    force_rebuild
+        Discard any existing cache for this dataset and build it again.
     """
     dataset_name = dataset_cls.dataset_name()
     folder_name = get_folder_name(dataset_name, input_spec)
-    os.makedirs(get_hub_datasets_path() / folder_name, exist_ok=True)
-    dataset_ids_path = get_dataset_ids_filepath(folder_name, samples_per_job)
-    dataset_ids_valid = _validate_dataset_ids_path(dataset_ids_path)
+    splits_yaml_path = get_splits_yaml_filepath(folder_name)
     cache_path = get_dataset_cache_filepath(folder_name)
-    if (
-        dataset_ids_valid
-        and get_dataset_cache_samples_per_job(folder_name) == samples_per_job
-    ):
+    if force_rebuild:
+        shutil.rmtree(get_hub_datasets_path() / folder_name, ignore_errors=True)
+    os.makedirs(get_hub_datasets_path() / folder_name, exist_ok=True)
+
+    # -1 needs the dataset length; otherwise only load the dataset if rebuilding.
+    torch_dataset = (
+        instantiate_dataset(dataset_cls, split, input_spec)
+        if num_samples == -1
+        else None
+    )
+    resolved_num_samples = (
+        len(torch_dataset) if torch_dataset is not None else num_samples
+    )
+    record = read_splits_yaml(splits_yaml_path)
+    record_covers_request = (
+        record is not None
+        and record.samples_per_job == samples_per_job
+        and 0 <= resolved_num_samples <= record.num_samples
+        and _validate_splits(record)
+    )
+    if record_covers_request and cache_path.exists():
         print("Cached data already present.")
         return
+
     if cache_path.exists():
         shutil.rmtree(cache_path)
+
+    if record_covers_request:
+        assert record is not None
+        os.makedirs(cache_path)
+        _download_splits(cache_path, record.splits)
+        return
+
+    if splits_yaml_path.exists():
+        os.remove(splits_yaml_path)
 
     with qaihm_temp_dir() as tmp_dir:
         tmp_cache_path = Path(tmp_dir) / "cache"
         os.makedirs(tmp_cache_path)
-        if not dataset_ids_valid:
-            tmp_dataset_ids_path = Path(tmp_dir) / "dataset_ids.txt"
+        if torch_dataset is None:
             torch_dataset = instantiate_dataset(dataset_cls, split, input_spec)
-            _populate_data_cache_impl(
-                torch_dataset,
-                samples_per_job,
-                seed,
-                input_names,
-                channel_last_input,
-                tmp_cache_path,
-                tmp_dataset_ids_path,
-            )
-            shutil.move(str(tmp_dataset_ids_path), str(dataset_ids_path))
-        else:
-            for input_id, gt_id in zip(
-                *read_dataset_ids(dataset_ids_path), strict=False
-            ):
-                hub.get_dataset(input_id).download(
-                    str(get_dataset_path(tmp_cache_path, input_id))
-                )
-                hub.get_dataset(gt_id).download(
-                    str(get_dataset_path(tmp_cache_path, gt_id))
-                )
-        with open(tmp_cache_path / CACHE_SAMPLES_PER_JOB_FILE, "w") as f:
-            f.write(str(samples_per_job) + "\n")
+        _validate_inputs(resolved_num_samples, torch_dataset)
+        num_built = min(
+            math.ceil(resolved_num_samples / samples_per_job) * samples_per_job,
+            len(torch_dataset),
+        )
+        new_splits = _populate_data_cache_impl(
+            torch_dataset,
+            torch_dataset.eval_order(num_built, samples_per_job, seed),
+            samples_per_job,
+            input_names,
+            channel_last_input,
+            tmp_cache_path,
+        )
+        write_splits_yaml(
+            Path(tmp_dir) / SPLITS_YAML,
+            samples_per_job,
+            num_built,
+            new_splits,
+        )
+        shutil.move(str(Path(tmp_dir) / SPLITS_YAML), str(splits_yaml_path))
         shutil.move(str(tmp_cache_path), str(cache_path))
 
 
@@ -483,7 +567,10 @@ class HubDataset(Dataset):
     input_names
         Names of the input tensors.
     channel_last_input
-        List of input names that should be channel-last.
+        List of input names that should be channel-last. Unused locally --
+        the on-device executor picks the matching Hub id itself (see
+        ``evaluate``'s ``HubDataset`` branch) -- kept only so callers can
+        still assert their executor's orientation matches what was cached.
     input_spec
         Input specification for the model.
     """
@@ -499,42 +586,29 @@ class HubDataset(Dataset):
         self.input_names = input_names
         folder_name = get_folder_name(dataset_name, input_spec)
         self.cache_path = get_dataset_cache_filepath(folder_name)
-        self.samples_per_hub_dataset: int = cast(
-            int, get_dataset_cache_samples_per_job(folder_name)
-        )
-        assert self.samples_per_hub_dataset is not None, (
-            "Dataset cache must be pre-populated"
-        )
-        dataset_ids_filepath = get_dataset_ids_filepath(
-            folder_name, self.samples_per_hub_dataset
-        )
-        self.input_ids, self.gt_ids = read_dataset_ids(dataset_ids_filepath)
+        record = read_splits_yaml(get_splits_yaml_filepath(folder_name))
+        assert record is not None, "Dataset cache must be pre-populated"
+        self.samples_per_hub_dataset = record.samples_per_job
 
-        max_splits = len(self.input_ids)
-        if num_samples == -1:
-            self.num_hub_datasets = max_splits
-        else:
-            self.num_hub_datasets = int(
-                np.ceil(num_samples / self.samples_per_hub_dataset)
+        if num_samples > record.num_samples:
+            raise ValueError(
+                f"Requested {num_samples} samples, but the dataset cache "
+                f"for {dataset_name!r} only has {record.num_samples} "
+                "cached. Re-populate the cache with enough samples before "
+                "evaluating, rather than silently reporting a smaller "
+                "sample count as the requested one."
             )
-            self.num_hub_datasets = min(self.num_hub_datasets, max_splits)
-
-        # Only print the warning when doing a partial dataset
-        if (
-            self.num_hub_datasets < max_splits
-            and num_samples != self.num_hub_datasets * self.samples_per_hub_dataset
-        ):
-            print(
-                "Rounding up number of samples to the nearest multiple of "
-                f" {self.samples_per_hub_dataset}: {num_samples} -> "
-                f"{self.num_hub_datasets * self.samples_per_hub_dataset}."
-            )
+        self.num_samples = record.num_samples if num_samples == -1 else num_samples
+        self.num_hub_datasets = math.ceil(
+            self.num_samples / self.samples_per_hub_dataset
+        )
+        self.splits = record.splits[: self.num_hub_datasets]
         self.channel_last_input = channel_last_input
         self.curr_dataset: DatasetFromIOTuples | None = None
         self.curr_h5_idx = -1
 
     def __len__(self) -> int:
-        return self.num_hub_datasets * self.samples_per_hub_dataset
+        return self.num_samples
 
     def load_hub_dataset_for_sample(self, sample_index: int) -> DatasetFromIOTuples:
         """
@@ -556,19 +630,20 @@ class HubDataset(Dataset):
         if self.curr_h5_idx != h5_idx or self.curr_dataset is None:
             self.curr_h5_idx = h5_idx
 
+            # The local copy is always channel-first -- the on-device executor
+            # reads its own orientation straight from Hub (see ``evaluate``'s
+            # HubDataset branch), so there is nothing to transpose here.
+            #
             # Convert DatasetEntries from dict{
             #   "Input0": batch_0, batch_1, ...]
             #   "Input1": batch_0, abtch_1, ...]
             # }
             #
             # to tuple(input_0_all_batches, input_1_all_batches, ...)
+            dataset_split = self.splits[self.curr_h5_idx]
             input_dataset_entries = load_h5(
-                get_dataset_path(self.cache_path, self.input_ids[self.curr_h5_idx])
+                get_dataset_path(self.cache_path, dataset_split.input_cf)
             )
-            if self.channel_last_input:
-                input_dataset_entries = transpose_channel_last_to_first(
-                    self.channel_last_input, input_dataset_entries
-                )
             curr_input = tuple(
                 torch.as_tensor(np.concatenate(input_list, axis=0))
                 for input_list in input_dataset_entries.values()
@@ -583,7 +658,7 @@ class HubDataset(Dataset):
             #
             # to tuple(input_0_all_batches, input_1_all_batches, ...)
             gt_dataset_entries = load_h5(
-                get_dataset_path(self.cache_path, self.gt_ids[self.curr_h5_idx])
+                get_dataset_path(self.cache_path, dataset_split.gt)
             )
             curr_gt = tuple(
                 torch.as_tensor(np.concatenate(gt_list, axis=0))
@@ -606,6 +681,57 @@ class HubDataset(Dataset):
         return curr_dataset[index_in_hub_dataset]
 
 
+def _validate_evaluate_intermediates_usage(
+    dataloader: DataLoader,
+    evaluate_intermediates: EvaluateIntermediates | None,
+    skip_waiting: bool,
+    collection_inference_models: Mapping[str, CollectionAppEvaluateProtocol],
+    ai_hub_inference_models: Mapping[str, AsyncOnDeviceModel],
+) -> bool:
+    """Validate ``evaluate_intermediates``/``skip_waiting`` usage against
+    ``evaluate``'s single-on-device-executor, no-collection-app constraints.
+
+    Parameters
+    ----------
+    dataloader
+        Batched data loader, used only to check its length against a
+        resumed job list.
+    evaluate_intermediates
+        See ``evaluate``.
+    skip_waiting
+        See ``evaluate``.
+    collection_inference_models
+        Collection apps (keyed by model identifier) that run on-device work
+        inside their own generator.
+    ai_hub_inference_models
+        On-device executors (keyed by model identifier).
+
+    Returns
+    -------
+    resuming : bool
+        True if ``evaluate_intermediates`` carries jobs to resume from.
+    """
+    resuming = bool(evaluate_intermediates and evaluate_intermediates.inference_jobs)
+    if (resuming or skip_waiting) and collection_inference_models:
+        raise ValueError(
+            "evaluate_intermediates/skip_waiting are not supported alongside a "
+            "collection app that runs on-device work inside its own generator "
+            "-- there is no stage boundary to split there."
+        )
+    if (resuming or skip_waiting) and len(ai_hub_inference_models) > 1:
+        raise ValueError(
+            "evaluate_intermediates/skip_waiting support at most one on-device "
+            "executor, since the job list carries no per-model grouping."
+        )
+    if resuming:
+        assert evaluate_intermediates is not None
+        assert len(evaluate_intermediates.inference_jobs) == len(dataloader), (
+            f"evaluate_intermediates has {len(evaluate_intermediates.inference_jobs)} "
+            f"jobs but the dataloader has {len(dataloader)} batches."
+        )
+    return resuming
+
+
 def evaluate(
     dataloader: DataLoader,
     evaluator_func: Callable[..., BaseEvaluator],
@@ -614,7 +740,10 @@ def evaluate(
     ],
     model_batch_size: int | None = None,
     verbose: bool = False,
-) -> dict[str, BaseEvaluator]:
+    evaluate_intermediates: EvaluateIntermediates | None = None,
+    skip_waiting: bool = False,
+    compute_psnr: bool = False,
+) -> tuple[dict[str, BaseEvaluator], pd.DataFrame | None]:
     """
     Evaluate model accuracy on a dataset both on device and with PyTorch.
 
@@ -636,11 +765,30 @@ def evaluate(
         The dataloader may have a different batch size to accommodate caching of Hub Datasets.
     verbose
         If true, prints evaluation scores.
+    evaluate_intermediates
+        If its ``inference_jobs`` list is non-empty, resume from these
+        already-submitted inference jobs (one per batch, in dataloader
+        order) instead of resubmitting. Otherwise, mutated in place to
+        record the jobs submitted this call -- the way a caller reads them
+        back out when ``skip_waiting`` stops before the wait. Only one
+        on-device executor is supported in either mode, since the list has
+        no per-model grouping. Not supported alongside a collection app that
+        runs on-device work inside its own generator.
+    skip_waiting
+        If set, submits every batch's on-device inference job and returns
+        before waiting on any of them. The on-device evaluator will have no
+        batches added. Not supported alongside a collection app that runs
+        on-device work inside its own generator.
+    compute_psnr
+        If set, collects torch and on-device outputs and computes PSNR metrics
+        when both are available.
 
     Returns
     -------
     evaluators : dict[str, BaseEvaluator]
         Evaluator results, keyed by model identifier.
+    psnr_metrics : pd.DataFrame | None
+        PSNR metrics comparing on-device outputs to torch outputs, or None if not computed.
     """
     ai_hub_inference_models: dict[str, AsyncOnDeviceModel] = {}
     collection_inference_models: dict[str, CollectionAppEvaluateProtocol] = {}
@@ -654,6 +802,14 @@ def evaluate(
             ai_hub_inference_models[n] = m
         else:
             local_inference_models[n] = m
+
+    resuming = _validate_evaluate_intermediates_usage(
+        dataloader,
+        evaluate_intermediates,
+        skip_waiting,
+        collection_inference_models,
+        ai_hub_inference_models,
+    )
 
     def _get_evaluator(name: str, m: object) -> BaseEvaluator:
         if hasattr(m, "get_evaluator"):
@@ -672,6 +828,9 @@ def evaluate(
     collection_model_generators: dict[str, list[CollectionModelEvalGenerator]] = (
         defaultdict(list)
     )
+    torch_outputs_list: list[tuple[torch.Tensor, ...]] = []
+    device_outputs_list: list[tuple[torch.Tensor, ...]] = []
+
     batch_size = dataloader.batch_size or 1
     model_batch_size = model_batch_size or batch_size
 
@@ -698,16 +857,28 @@ def evaluate(
 
         # Run all on-device models first (output is computed asynchronously).
         for model_name, async_model_executor in ai_hub_inference_models.items():
-            if isinstance(dataloader.dataset, HubDataset):
-                # Use the cached Hub dataset instead of uploading inputs again.
+            if resuming:
+                assert evaluate_intermediates is not None
+                async_output = AsyncOnDeviceResult(
+                    evaluate_intermediates.inference_jobs[batch_idx],
+                    async_model_executor.target_runtime,
+                    async_model_executor.channel_last_output,
+                    async_model_executor.output_names,
+                    num_retries=0,
+                )
+            elif isinstance(dataloader.dataset, HubDataset):
+                # Use the cached Hub dataset instead of uploading inputs again,
+                # in whichever orientation this executor's compiled model wants.
                 assert (
                     async_model_executor.input_names == dataloader.dataset.input_names
                 )
-                assert (
-                    async_model_executor.channel_last_input
-                    == dataloader.dataset.channel_last_input
+                dataset_split = dataloader.dataset.splits[batch_idx]
+                input_id = (
+                    dataset_split.input_cl
+                    if async_model_executor.channel_last_input
+                    else dataset_split.input_cf
                 )
-                hub_dataset = hub.get_dataset(dataloader.dataset.input_ids[batch_idx])
+                hub_dataset = hub.get_dataset(input_id)
                 async_output = async_model_executor(hub_dataset)
             else:
                 device_inputs = (
@@ -761,6 +932,8 @@ def evaluate(
                     batch_output,
                     local_ground_truth_values,
                 )
+                if compute_psnr and model_name == "torch":
+                    torch_outputs_list.append(_torch_io_to_tuple(batch_output))
 
         if verbose:
             for model_name in local_inference_models:
@@ -768,6 +941,16 @@ def evaluate(
                     f"Cumulative {model_name} accuracy on {cumulative_samples} samples: "
                     f"{evaluators[model_name].formatted_accuracy()}"
                 )
+
+    if evaluate_intermediates is not None and not resuming:
+        for batched_outputs in async_outputs.values():
+            evaluate_intermediates.inference_jobs = [
+                cast(AsyncOnDeviceResult, output).inference_job
+                for output in batched_outputs
+            ]
+
+    if skip_waiting:
+        return evaluators, None
 
     # Drain collection model generators round-robin until all have returned their
     # final output (via StopIteration.value) — a pending AsyncOnDeviceResult, or
@@ -793,7 +976,13 @@ def evaluate(
                     if isinstance(async_model_output, AsyncOnDeviceResult)
                     else async_model_output
                 )
+                # A cached job runs its whole split; drop the samples past the request.
+                model_output = _keep_first_samples(
+                    model_output, _count_num_samples(model_inputs)
+                )
                 evaluators[model_name].add_batch(model_output, ground_truth_values)
+                if compute_psnr and model_name == "on-device":
+                    device_outputs_list.append(_torch_io_to_tuple(model_output))
 
                 cumulative_samples = (
                     _count_num_samples(model_output) + batch_idx * batch_size
@@ -809,7 +998,31 @@ def evaluate(
         for model_name, evaluator in evaluators.items():
             print(f"{model_name}: {evaluator.formatted_accuracy()}")
 
-    return evaluators
+    psnr_metrics = None
+    if compute_psnr:
+        if torch_outputs_list and device_outputs_list:
+            device_outputs_dict = {
+                f"output_{i}": [np.asarray(batch[i]) for batch in device_outputs_list]
+                for i in range(len(device_outputs_list[0]))
+            }
+            torch_outputs_np = [
+                np.asarray(np.concatenate([batch[i] for batch in torch_outputs_list]))
+                for i in range(len(torch_outputs_list[0]))
+            ]
+            psnr_metrics = compute_inference_metrics(
+                device_outputs_dict,
+                torch_outputs_np,
+                output_names=list(device_outputs_dict.keys()),
+                metrics="psnr",
+                print_result=True,
+            )
+        else:
+            print(
+                "Warning: compute_psnr requested but both 'torch' and 'on-device' outputs "
+                "not available. PSNR will not be computed."
+            )
+
+    return evaluators, psnr_metrics
 
 
 def evaluate_on_dataset(
@@ -824,6 +1037,10 @@ def evaluate_on_dataset(
     num_samples: int | None = None,
     seed: int | None = None,
     use_cache: bool = False,
+    evaluate_intermediates: EvaluateIntermediates | None = None,
+    skip_waiting: bool = False,
+    compute_psnr: bool = False,
+    force_rebuild_cache: bool = False,
 ) -> EvaluateResult:
     """
     Evaluate model accuracy on a dataset both on device and with PyTorch.
@@ -851,17 +1068,31 @@ def evaluate_on_dataset(
         If set, will upload the full dataset to hub and store a local copy.
         This prevents re-uploading data to hub for each evaluation, with the
         tradeoff of increased initial overhead.
+    evaluate_intermediates
+        If its ``inference_jobs`` list is non-empty, resume evaluation from
+        these already-submitted inference jobs instead of resubmitting --
+        the caller should pass only the on-device executor in this case, so
+        torch/quant-cpu accuracy is not recomputed on the finalizing call.
+    skip_waiting
+        If set, submits every batch's on-device inference job and returns
+        before waiting on any of them. ``device_accuracy`` on the result
+        will be ``None``; ``inference_jobs`` carries the submitted jobs for
+        a later call to resume from via ``evaluate_intermediates``.
+    compute_psnr
+        If set, computes PSNR metrics from collected torch and on-device outputs.
+        Prints a warning if both outputs are not available.
+    force_rebuild_cache
+        If set with `use_cache`, discards this dataset's local cache and builds it
+        again. Use it if a cache is stale or corrupt.
 
     Returns
     -------
     result : EvaluateResult
-        Contains torch accuracy, quant cpu accuracy, and on device accuracy.
+        Contains torch accuracy, quant cpu accuracy, on device accuracy, and PSNR metrics.
         Quant cpu accuracy is the accuracy from running the quantized ONNX on the CPU.
         If any accuracy was not computed, its value will be None.
     """
-    torch_executor_local = model_executors.get("torch")
     on_device_model = model_executors.get("on-device")
-    quantized_executor = model_executors.get("quant cpu")
 
     dataset_name = dataset_cls.dataset_name()
     samples_per_job = samples_per_job or dataset_cls.default_samples_per_job()
@@ -872,12 +1103,6 @@ def evaluate_on_dataset(
         channel_last_input = []
         if isinstance(on_device_model, AsyncOnDeviceModel):
             channel_last_input = on_device_model.channel_last_input
-            if channel_last_input and (
-                torch_executor_local is not None or quantized_executor is not None
-            ):
-                raise ValueError(
-                    "If cache is enabled, a compiled model with channel last input cannot be evaluated alongside a torch / quantized onnx model."
-                )
 
         # When the cache is enabled, we don't want to load the torch dataset unless
         # the cache is out of date. Therefore we pass the dataset class to
@@ -887,9 +1112,11 @@ def evaluate_on_dataset(
             DatasetSplit.VAL,
             input_spec,
             samples_per_job,
+            num_samples,
             seed,
             input_names,
             channel_last_input,
+            force_rebuild=force_rebuild_cache,
         )
         torch_dataset = HubDataset(
             dataset_name,
@@ -916,16 +1143,9 @@ def evaluate_on_dataset(
         if num_samples == -1:
             num_samples = len(source_torch_dataset)
         _validate_inputs(num_samples, source_torch_dataset)
-        if seed is not None:
-            dataloader = DataLoader(
-                dataset=sample_dataset(source_torch_dataset, num_samples, seed),
-                batch_size=samples_per_job,
-                shuffle=False,
-            )
-        else:
-            dataloader = get_deterministic_sample(
-                source_torch_dataset, num_samples, samples_per_job
-            )
+        dataloader = source_torch_dataset.get_dataloader(
+            num_samples, samples_per_job, seed
+        )
 
     actual_samples = len(dataloader.dataset)  # type: ignore[arg-type]
     if actual_samples != num_samples and num_samples not in (-1, actual_samples):
@@ -935,19 +1155,32 @@ def evaluate_on_dataset(
     else:
         print(f"Evaluating on {actual_samples} samples.")
 
-    results = evaluate(
+    evaluate_intermediates = evaluate_intermediates or EvaluateIntermediates()
+    results, psnr_metrics = evaluate(
         dataloader,
         evaluator_func,
         model_executors=model_executors,
         model_batch_size=1,
         verbose=True,
+        evaluate_intermediates=evaluate_intermediates,
+        skip_waiting=skip_waiting,
+        compute_psnr=compute_psnr,
     )
 
-    scores = {name: e.get_accuracy_score() for name, e in results.items()}
+    # The on-device evaluator has no batches added yet when skip_waiting --
+    # computing its score now would be scoring zero batches, not "no score".
+    scores = {
+        name: e.get_accuracy_score()
+        for name, e in results.items()
+        if name != "on-device" or not skip_waiting
+    }
+
     return EvaluateResult(
-        scores.get("torch"),
-        scores.get("quant cpu"),
-        scores.get("on-device"),
+        torch_accuracy=scores.get("torch"),
+        sim_accuracy=scores.get("quant cpu"),
+        device_accuracy=scores.get("on-device"),
+        psnr_metrics=psnr_metrics,
+        inference_jobs=evaluate_intermediates.inference_jobs,
     )
 
 
@@ -1014,7 +1247,7 @@ def evaluate_session_on_dataset(
 
     _validate_inputs(num_samples, source_torch_dataset)
 
-    dataloader = get_deterministic_sample(source_torch_dataset, num_samples, None)
+    dataloader = source_torch_dataset.get_dataloader(num_samples)
 
     print(f"Evaluating on {num_samples} samples.")
     evaluator = torch_model.get_evaluator()

@@ -12,7 +12,7 @@ import pytest
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.yaml import ScorecardAssetYaml
 from qai_hub_models.scripts import collect_scorecard_assets_results as mod
@@ -45,7 +45,7 @@ def test_scoped_merge_preserves_out_of_scope_committed_entry() -> None:
         {
             Precision.q4_0: {
                 "universal": {
-                    ScorecardProfilePath.GENIEX_LLAMACPP: _asset(
+                    ScorecardInferencePath.GENIEX_LLAMACPP: _asset(
                         download_url="https://hf/model.gguf"
                     ),
                 },
@@ -57,17 +57,17 @@ def test_scoped_merge_preserves_out_of_scope_committed_entry() -> None:
             Precision.w4a16: {
                 "chipset": {
                     "qualcomm-snapdragon-8-elite": {
-                        ScorecardProfilePath.GENIE: _asset(s3_key="s3/genie.zip"),
+                        ScorecardInferencePath.GENIE: _asset(s3_key="s3/genie.zip"),
                     }
                 }
             }
         }
     )
-    scope: set[tuple[Precision, str | None, ScorecardProfilePath]] = {
+    scope: set[tuple[Precision, str | None, ScorecardInferencePath]] = {
         (
             Precision.w4a16,
             "qualcomm-snapdragon-8-elite",
-            ScorecardProfilePath.GENIE,
+            ScorecardInferencePath.GENIE,
         )
     }
 
@@ -75,7 +75,7 @@ def test_scoped_merge_preserves_out_of_scope_committed_entry() -> None:
     committed.merge_from(scorecard)
 
     kept = committed.get_asset(
-        Precision.q4_0, chipset=None, path=ScorecardProfilePath.GENIEX_LLAMACPP
+        Precision.q4_0, chipset=None, path=ScorecardInferencePath.GENIEX_LLAMACPP
     )
     assert kept is not None
     assert kept.download_url == "https://hf/model.gguf"
@@ -84,7 +84,7 @@ def test_scoped_merge_preserves_out_of_scope_committed_entry() -> None:
     fresh = committed.get_asset(
         Precision.w4a16,
         chipset="qualcomm-snapdragon-8-elite",
-        path=ScorecardProfilePath.GENIE,
+        path=ScorecardInferencePath.GENIE,
     )
     assert fresh is not None and fresh.s3_key == "s3/genie.zip"
 
@@ -97,7 +97,7 @@ def test_scoped_merge_scorecard_wins_in_scope() -> None:
         {
             Precision.q4_0: {
                 "universal": {
-                    ScorecardProfilePath.GENIEX_LLAMACPP: _asset(
+                    ScorecardInferencePath.GENIEX_LLAMACPP: _asset(
                         download_url="https://hf/old.gguf"
                     ),
                 },
@@ -108,22 +108,22 @@ def test_scoped_merge_scorecard_wins_in_scope() -> None:
         {
             Precision.q4_0: {
                 "universal": {
-                    ScorecardProfilePath.GENIEX_LLAMACPP: _asset(
+                    ScorecardInferencePath.GENIEX_LLAMACPP: _asset(
                         download_url="https://hf/new.gguf"
                     ),
                 },
             },
         }
     )
-    scope: set[tuple[Precision, str | None, ScorecardProfilePath]] = {
-        (Precision.q4_0, None, ScorecardProfilePath.GENIEX_LLAMACPP)
+    scope: set[tuple[Precision, str | None, ScorecardInferencePath]] = {
+        (Precision.q4_0, None, ScorecardInferencePath.GENIEX_LLAMACPP)
     }
 
     committed.drop_entries_in_scope(scope)
     committed.merge_from(scorecard)
 
     kept = committed.get_asset(
-        Precision.q4_0, chipset=None, path=ScorecardProfilePath.GENIEX_LLAMACPP
+        Precision.q4_0, chipset=None, path=ScorecardInferencePath.GENIEX_LLAMACPP
     )
     assert kept is not None
     assert kept.download_url == "https://hf/new.gguf"
@@ -138,14 +138,14 @@ def test_scoped_merge_drops_in_scope_when_run_produced_nothing() -> None:
             Precision.w4a16: {
                 "chipset": {
                     "cs": {
-                        ScorecardProfilePath.GENIE: _asset(s3_key="s3/old.zip"),
+                        ScorecardInferencePath.GENIE: _asset(s3_key="s3/old.zip"),
                     }
                 }
             }
         }
     )
-    scope: set[tuple[Precision, str | None, ScorecardProfilePath]] = {
-        (Precision.w4a16, "cs", ScorecardProfilePath.GENIE)
+    scope: set[tuple[Precision, str | None, ScorecardInferencePath]] = {
+        (Precision.w4a16, "cs", ScorecardInferencePath.GENIE)
     }
 
     committed.drop_entries_in_scope(scope)
@@ -198,7 +198,7 @@ def test_committed_genie_assets_stripped_when_geniex_fails(
         {
             Precision.q4_0: {
                 "universal": {
-                    ScorecardProfilePath.GENIEX_LLAMACPP: _asset(
+                    ScorecardInferencePath.GENIEX_LLAMACPP: _asset(
                         download_url="https://hf/model.gguf"
                     ),
                 },
@@ -206,7 +206,7 @@ def test_committed_genie_assets_stripped_when_geniex_fails(
             Precision.w4a16: {
                 "chipset": {
                     "qualcomm-snapdragon-x-elite": {
-                        ScorecardProfilePath.GENIE: _asset(s3_key="s3/genie.zip"),
+                        ScorecardInferencePath.GENIE: _asset(s3_key="s3/genie.zip"),
                     }
                 }
             },

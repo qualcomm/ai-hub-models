@@ -13,7 +13,7 @@ from qai_hub_models.datasets.device_eval import (
     DEFAULT_DEVICE_EVAL_DATASET,
     get_device_eval_dataset,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def save_eval_metadata_json(
     chipset: str,
     precision: str,
     output_path: str,
-    path: ScorecardProfilePath,
+    path: ScorecardInferencePath,
     dataset_name: str = DEFAULT_DEVICE_EVAL_DATASET,
 ) -> None:
     """Save a sidecar identifying which (model, chipset, precision, path, dataset) an eval JSON belongs to.

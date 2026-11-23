@@ -1,4 +1,4 @@
-name: Scorecard - Test Export Scripts and Upload ZIP Assets to S3
+name: Scorecard - LLM Export Scripts and Upload Assets to S3
 
 on:
     # Allows you to run this workflow manually from the Actions tab
@@ -31,7 +31,7 @@ on:
             (gates on @pytest.mark.export) for non-LLMs, or
             "test_llm_export_scripts" (gates on @pytest.mark.llm_export) for LLMs.
           type: choice
-          default: test_export_scripts
+          default: test_llm_export_scripts
           options:
             - test_export_scripts
             - test_llm_export_scripts
@@ -73,7 +73,7 @@ on:
             (gates on @pytest.mark.export). Set to "test_llm_export_scripts" for the
             LLM asset-upload workflow (gates on @pytest.mark.llm_export).
           type: string
-          default: test_export_scripts
+          default: test_llm_export_scripts
 
         expect_post_flaky_artifact:
           description: |
@@ -92,8 +92,8 @@ env:
   QAIHM_CI_USE_EDITABLE_INSTALL: 1
 
 jobs:
-  test_export_scripts:
-    name: Test Export Scripts and Upload ZIP Files${{ inputs.split_name != '' && format(' ({0})', inputs.split_name) || '' }} (using jobs from ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{inputs.action_id}})
+  llm_export_and_upload:
+    name: LLM Export Scripts and Upload ZIP Files${{ inputs.split_name != '' && format(' ({0})', inputs.split_name) || '' }} (using jobs from ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{inputs.action_id}})
     runs-on: ${{ inputs.runs_on && inputs.runs_on != 'null' && fromJson(inputs.runs_on) || fromJson('["aihub-models-ubuntu-2404-ec2"]') }}
     timeout-minutes: 1440 # 24 hours
     env:

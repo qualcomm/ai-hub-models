@@ -41,7 +41,7 @@ from qai_hub_models.scorecard.device import ScorecardDevice, compute_peer_chipse
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
     _load_similar_devices_raw,
 )
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.chipset_helpers import (
     get_supported_devices,
@@ -79,7 +79,7 @@ class QAIHMModelPerf:
         precision: Precision
         component: str
         device: ScorecardDevice
-        path: ScorecardProfilePath
+        path: ScorecardInferencePath
 
         @classmethod
         def from_details(
@@ -90,7 +90,9 @@ class QAIHMModelPerf:
                 precision_from_proto(details.precision),
                 details.component,
                 ScorecardDevice.parse(details.device),
-                ScorecardProfilePath.from_runtime(runtime_from_proto(details.runtime)),
+                ScorecardInferencePath.from_runtime(
+                    runtime_from_proto(details.runtime)
+                ),
             )
 
         def stamp(
@@ -348,7 +350,7 @@ class QAIHMModelPerf:
 
     def drop_entries_in_scope(
         self,
-        scope: set[tuple[Precision, ScorecardProfilePath, ScorecardDevice]],
+        scope: set[tuple[Precision, ScorecardInferencePath, ScorecardDevice]],
         only_components: set[str] | None = None,
     ) -> None:
         """

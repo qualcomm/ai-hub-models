@@ -35,6 +35,10 @@ EXPECTED_MODEL_SETS = {
     "cdcn_torchscript": {"float": ["onnx", "qnn", "tflite"]},
     "efficientformer_onnx": {"float": ["qnn", "tflite"]},
 }
+
+# Scored against their eval dataset (Device Accuracy); every other model gets PSNR.
+EVAL_DATASET_MODELS = {"yolov8_det", "mask2former"}
+
 SELECTED_DEVICES = {
     ("mask2former", DEFAULT_CHIPSET),
     ("mediapipe_face", DEFAULT_CHIPSET),
@@ -85,17 +89,12 @@ for sub in _FACE_SUBGRAPHS:
             EXPECTED_RESULTS_STAGE_STATUS[
                 (sub, precision, runtime, DEFAULT_CHIPSET)
             ] = dict(_ALL_PASS)
-for runtime in ("onnx", "qnn", "tflite"):
-    EXPECTED_RESULTS_STAGE_STATUS[
-        ("efficientformer_onnx", "float", runtime, DEFAULT_CHIPSET)
-    ] = {"compile": "Passed", "inference": "Passed"}
 for runtime in ("qnn", "tflite"):
     EXPECTED_RESULTS_STAGE_STATUS[
         ("efficientformer_onnx", "float", runtime, EFFICIENTFORMER_CHIPSET)
-    ] = {"compile": "Passed", "profile": "Passed"}
+    ] = {"compile": "Passed", "inference": "Passed"}
 
 EXPECTED_ACCURACY_KEYS: set[tuple[str, str, str]] = {
-    ("efficientformer_onnx", "float", "onnx"),
     ("efficientformer_onnx", "float", "qnn_dlc"),
     ("efficientformer_onnx", "float", "tflite"),
     ("mask2former", "float", "qnn_context_binary"),
@@ -263,9 +262,10 @@ def validate_accuracy_df(accuracy_df: pd.DataFrame) -> list[str]:
     by_key: dict[tuple[str, str, str], float | None] = {}
     for _, row in accuracy_df.iterrows():
         key = (row.model_id, row.precision, row.runtime)
-        psnr0 = row.get("PSNR_0")
+        column = "Device Accuracy" if row.model_id in EVAL_DATASET_MODELS else "PSNR_0"
+        value = row.get(column)
         try:
-            by_key[key] = float(psnr0) if psnr0 not in (None, "") else None
+            by_key[key] = float(value) if value not in (None, "") else None
         except (TypeError, ValueError):
             by_key[key] = None
 
@@ -275,7 +275,8 @@ def validate_accuracy_df(accuracy_df: pd.DataFrame) -> list[str]:
             continue
         actual = by_key[key]
         if actual is None or math.isnan(actual):
-            errors.append(f"Accuracy row {key} has no valid PSNR_0 value.")
+            column = "Device Accuracy" if key[0] in EVAL_DATASET_MODELS else "PSNR_0"
+            errors.append(f"Accuracy row {key} has no valid {column} value.")
     return errors
 
 

@@ -1607,6 +1607,28 @@ def add_validate_aws_parser(
     return parser
 
 
+def _call_run_scorecard(raw_args: list[str]) -> None:
+    """Hand ``run_scorecard``'s flags to its own parser, as the recipe commands do."""
+    from qai_hub_models.scripts.run_scorecard import main as run_scorecard_main
+
+    run_scorecard_main(raw_args)
+
+
+def add_run_scorecard_parser(
+    subparsers: argparse._SubParsersAction,
+) -> argparse.ArgumentParser:
+    return add_qaihm_required_help_only_parser(
+        subparsers,
+        name="run_scorecard",
+        helpmsg="Run the scorecard stages for one model.",
+        description=(
+            f"Run `{CLI_NAME} run_scorecard --help` to see the scorecard options. "
+            "Requires the [internal] extra (pip install qai_hub_models_cli[internal])."
+        ),
+        args=[],
+    )
+
+
 class _GroupedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Lists subcommands grouped into titled sections in the top-level help.
 
@@ -1617,7 +1639,7 @@ class _GroupedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     sections are passed in at construction (via ``functools.partial`` as the
     ``formatter_class``), so neither method depends on the other's call order.
     Commands absent from the action (e.g. the conditionally-registered
-    ``validate_aws_credentials``) are skipped, so the same mapping works
+    ``validate_aws_credentials`` and ``run_scorecard``) are skipped, so the same mapping works
     regardless of which subcommands are present.
     """
 
@@ -1729,8 +1751,11 @@ def _build_parser() -> argparse.ArgumentParser:
     add_unregister_parser(subparsers)
     add_list_registered_parser(subparsers)
     add_validate_parser(subparsers)
+    # Internal commands. The [internal] extra is the CLI's only "internal install"
+    # signal, so run_scorecard shares validate_aws_credentials' gate.
     if _AWS_EXTRA_AVAILABLE:
         add_validate_aws_parser(subparsers)
+        add_run_scorecard_parser(subparsers)
 
     sections = {
         "Models": [
@@ -1761,7 +1786,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "runtimes",
             "versions",
         ],
-        "Qualcomm Internal": ["validate_aws_credentials"],
+        "Qualcomm Internal": ["validate_aws_credentials", "run_scorecard"],
     }
     parser.formatter_class = partial(
         _GroupedHelpFormatter,
@@ -1802,6 +1827,15 @@ def main(args: list[str] | None = None) -> None:
     raw = sys.argv[1:] if args is None else args
     if raw and raw[0] in _RECIPE_COMMANDS and is_heavy_package_installed():
         _run_reporting_errors(lambda: _dispatch_recipe_command(raw[0], raw[1:]))
+        return
+
+    # Internal-only: _AWS_EXTRA_AVAILABLE is the CLI's only "internal install" signal.
+    # Flags go over untouched, since argparse's REMAINDER mangles leading dashes.
+    if raw and raw[0] == "run_scorecard" and _AWS_EXTRA_AVAILABLE:
+        if is_heavy_package_installed():
+            _run_reporting_errors(lambda: _call_run_scorecard(raw[1:]))
+        else:
+            _warn_missing_qaihm_install(argparse.Namespace(), cmd="run_scorecard")
         return
 
     parser = _build_parser()

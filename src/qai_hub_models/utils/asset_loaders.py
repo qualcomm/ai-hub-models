@@ -348,7 +348,7 @@ def load_path(file: PathType, tmpdir: tempfile.TemporaryDirectory | str) -> str 
 
 def get_hub_datasets_path() -> Path:
     """Get the path where cached hub data for evaluation can be stored."""
-    return Path(LOCAL_STORE_DEFAULT_PATH) / "hub_datasets"
+    return Path(LOCAL_STORE_DEFAULT_PATH) / "hub_datasets_v2"
 
 
 class QAIHM_WEB_ASSET(Enum):

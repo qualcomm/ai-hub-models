@@ -229,7 +229,7 @@ class NeuTTS2E(MultiGraphWorkbenchModel):
             self._graph_sequence_lengths[graph_name]
         )
 
-    def torch_inference(
+    def local_inference(
         self, graph_name: str, sample_inputs: SampleInputsType
     ) -> list[np.ndarray]:
         inputs = [torch.from_numpy(value[0]) for value in sample_inputs.values()]

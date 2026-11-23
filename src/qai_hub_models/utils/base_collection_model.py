@@ -21,6 +21,7 @@ from qai_hub_models import (
 from qai_hub_models.configs.model_metadata import ModelMetadata
 from qai_hub_models.datasets.common import BaseDataset
 from qai_hub_models.protocols import FromPretrainedProtocol
+from qai_hub_models.utils._cached_from_pretrained import CachedFromPretrainedMeta
 from qai_hub_models.utils.base_model import (
     PrecompiledWorkbenchModel,
     WorkbenchModel,
@@ -336,7 +337,9 @@ class CollectionModel(ABC, FromPretrainedProtocol):
 WorkbenchModelT = TypeVar("WorkbenchModelT", bound=WorkbenchModel)
 
 
-class WorkbenchModelCollection(CollectionModel, Generic[WorkbenchModelT]):
+class WorkbenchModelCollection(
+    CollectionModel, Generic[WorkbenchModelT], metaclass=CachedFromPretrainedMeta
+):
     """
     Concrete CollectionModel backed by a dict of WorkbenchModel instances.
 

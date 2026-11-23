@@ -30,7 +30,7 @@ from qai_hub_models.models.templates.llm.perf_collection import (
     resolve_llm_eval_device,
     update_perf_yaml,
 )
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.device import ScorecardDevice, cs_ventuno_q, cs_x_elite
 from qai_hub_models.scorecard.envvars import (
     IgnoreKnownFailuresEnvvar,
@@ -119,7 +119,9 @@ def _llamacpp_assets(model_id: str) -> dict[Precision, str]:
     assets = QAIHMModelReleaseAssets.from_model(model_id, not_exists_ok=True)
     out: dict[Precision, str] = {}
     for precision, prec_details in assets.precisions.items():
-        asset = prec_details.universal_assets.get(ScorecardProfilePath.GENIEX_LLAMACPP)
+        asset = prec_details.universal_assets.get(
+            ScorecardInferencePath.GENIEX_LLAMACPP
+        )
         if asset and asset.download_url:
             out[precision] = asset.download_url
     return out
@@ -164,7 +166,7 @@ def fetch_geniex_qairt_bundle(
 ) -> tuple[Path, list[int]]:
     """Download/extract the CI-built geniex_qairt bundle. Returns (bundle_dir, context_lengths)."""
     assets = load_release_assets_for_model(model_id)
-    asset = assets.get_asset(precision, chipset, ScorecardProfilePath.GENIEX_QAIRT)
+    asset = assets.get_asset(precision, chipset, ScorecardInferencePath.GENIEX_QAIRT)
     if asset is None:
         available: list[str] = []
         prec_details = assets.precisions.get(precision)
@@ -559,9 +561,9 @@ def _rows_from_metrics(
         )
         if not skip_perf_update:
             profile_path = (
-                ScorecardProfilePath.GENIEX_QAIRT
+                ScorecardInferencePath.GENIEX_QAIRT
                 if plugin == "qairt"
-                else ScorecardProfilePath.GENIEX_LLAMACPP
+                else ScorecardInferencePath.GENIEX_LLAMACPP
             )
             tool_versions = ToolVersions(
                 geniex=m.geniex_version,
@@ -812,9 +814,9 @@ def _save_eval_results(
     if not eval_results:
         return
     profile_path = (
-        ScorecardProfilePath.GENIEX_QAIRT
+        ScorecardInferencePath.GENIEX_QAIRT
         if plugin == "qairt"
-        else ScorecardProfilePath.GENIEX_LLAMACPP
+        else ScorecardInferencePath.GENIEX_LLAMACPP
     )
     base = f"{model_id}_{sd.chipset}_{precision}_{plugin}_eval"
     save_eval_results_json(eval_results, f"{base}.json")
@@ -961,9 +963,9 @@ def _cmd_collect(args: argparse.Namespace) -> int:
             record_perf_scope(
                 model_id=model_id,
                 profile_path=(
-                    ScorecardProfilePath.GENIEX_QAIRT
+                    ScorecardInferencePath.GENIEX_QAIRT
                     if plugin == "qairt"
-                    else ScorecardProfilePath.GENIEX_LLAMACPP
+                    else ScorecardInferencePath.GENIEX_LLAMACPP
                 ),
                 device_name=sd.reference_device_name,
                 precision=precision,
@@ -1155,7 +1157,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             # submit keeps its committed numbers but a failed job drops them.
             record_perf_scope(
                 model_id=case.model_id,
-                profile_path=ScorecardProfilePath[_runtime(case.plugin)],
+                profile_path=ScorecardInferencePath[_runtime(case.plugin)],
                 device_name=case.sd.reference_device_name,
                 precision=case.precision,
             )

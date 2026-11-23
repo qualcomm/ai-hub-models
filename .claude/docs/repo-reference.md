@@ -110,7 +110,7 @@ See `qai_hub_models/models/common.py` for available precisions and available run
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `QAIHM_TEST_IGNORE_KNOWN_FAILURES` | Run tests even for known-failing combos | `false` |
-| `QAIHM_TEST_IGNORE_DEVICE_JOB_CACHE` | Always submit new jobs instead of reusing cache | `false` |
+| `QAIHM_TEST_USE_MODEL_HASH_CACHE` | Reuse last scorecard's inference jobs when assets are unchanged (prod only) | `false` |
 
 ### Output & Artifacts
 | Variable | Description | Default |

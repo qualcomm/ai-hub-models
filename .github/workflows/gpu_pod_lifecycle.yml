@@ -12,6 +12,10 @@ on:
       is_test_models:
         type: boolean
         default: false
+      use_run_scorecard:
+        description: With is_test_models, run scorecard_run_split.yml (run_scorecard.py) instead of test_models.yml (pytest).
+        type: boolean
+        default: false
       is_grader:
         description: Run the LLM response grader against artifacts uploaded by a prior llm_perf_collection run.
         type: boolean
@@ -100,7 +104,7 @@ jobs:
   run_test_models:
     name: "Run test_models"
     needs: check_gpu_node
-    if: ${{ !cancelled() && inputs.is_test_models && needs.check_gpu_node.result == 'success' }}
+    if: ${{ !cancelled() && inputs.is_test_models && !inputs.use_run_scorecard && needs.check_gpu_node.result == 'success' }}
     permissions:
       contents: read
       id-token: write
@@ -125,6 +129,34 @@ jobs:
       disable_override_workbench_job_timeout: ${{ inputs.disable_override_workbench_job_timeout }}
       run_nightly_tests: ${{ inputs.run_nightly_tests }}
       use_per_model_venv: ${{ inputs.use_per_model_venv }}
+
+  run_scorecard_split:
+    name: "Run scorecard split"
+    needs: check_gpu_node
+    if: ${{ !cancelled() && inputs.is_test_models && inputs.use_run_scorecard && needs.check_gpu_node.result == 'success' }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      actions: read
+    secrets: inherit
+    uses: ./.github/workflows/scorecard_run_split.yml
+    with:
+      deployment: ${{ inputs.deployment }}
+      models: ${{ inputs.models }}
+      test_devices: ${{ inputs.test_devices }}
+      test_runtimes: ${{ inputs.test_runtimes }}
+      test_precisions: ${{ inputs.test_precisions }}
+      options: ${{ inputs.options }}
+      test_scope: ${{ inputs.test_scope }}
+      split_name: ${{ inputs.split_name }}
+      runs_on: ${{ needs.check_gpu_node.outputs.use_kube == 'true' && toJson(fromJson('["mlops-ci-gpu-xlarge"]')) || toJson(fromJson('{"group":"GPU"}')) }}
+      is_gpu_node: ${{ needs.check_gpu_node.outputs.use_kube == 'false' }}
+      sync_assets_branch: ${{ inputs.sync_assets_branch }}
+      python_version: ${{ inputs.python_version }}
+      disable_override_workbench_job_timeout: ${{ inputs.disable_override_workbench_job_timeout }}
+      ignore_job_cache: ${{ inputs.ignore_job_cache }}
+      phase: submit
 
   run_gpu_tests:
     name: "Run GPU Tests"

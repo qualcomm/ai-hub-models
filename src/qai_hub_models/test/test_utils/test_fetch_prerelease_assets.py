@@ -12,7 +12,7 @@ import pytest
 import qai_hub as hub
 
 from qai_hub_models import Precision, TargetRuntime
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.utils.fetch_prerelease_assets import (
     fetch_prerelease_assets,
@@ -80,7 +80,7 @@ class TestFetchPrereleaseAssetsSuccess:
             precisions={
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     universal_assets={
-                        ScorecardProfilePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
+                        ScorecardInferencePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
                             s3_key="models/mobilenet_v2/v0.44.0/mobilenet_v2_float.tflite"
                         )
                     }
@@ -112,7 +112,7 @@ class TestFetchPrereleaseAssetsSuccess:
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     chipset_assets={
                         chipset: {
-                            ScorecardProfilePath.QNN_CONTEXT_BINARY: QAIHMModelReleaseAssets.AssetDetails(
+                            ScorecardInferencePath.QNN_CONTEXT_BINARY: QAIHMModelReleaseAssets.AssetDetails(
                                 s3_key=f"models/mobilenet_v2/v0.44.0/{chipset}/mobilenet_v2_float.bin"
                             )
                         }
@@ -147,7 +147,7 @@ class TestFetchPrereleaseAssetsSuccess:
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     chipset_assets={
                         chipset: {
-                            ScorecardProfilePath.QNN_CONTEXT_BINARY: QAIHMModelReleaseAssets.AssetDetails(
+                            ScorecardInferencePath.QNN_CONTEXT_BINARY: QAIHMModelReleaseAssets.AssetDetails(
                                 s3_key=f"models/mobilenet_v2/v0.44.0/{chipset}/mobilenet_v2_float.bin"
                             )
                         }
@@ -175,12 +175,12 @@ class TestFetchPrereleaseAssetsSuccess:
             assert tmpdir in str(path)
 
     def test_fetch_with_scorecard_profile_path(self) -> None:
-        """Test fetch with ScorecardProfilePath instead of TargetRuntime."""
+        """Test fetch with ScorecardInferencePath instead of TargetRuntime."""
         assets = QAIHMModelReleaseAssets(
             precisions={
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     universal_assets={
-                        ScorecardProfilePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
+                        ScorecardInferencePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
                             s3_key="models/mobilenet_v2/v0.44.0/mobilenet_v2_float.tflite"
                         )
                     }
@@ -196,7 +196,7 @@ class TestFetchPrereleaseAssetsSuccess:
         ):
             path = fetch_prerelease_assets(
                 "mobilenet_v2",
-                ScorecardProfilePath.TFLITE,
+                ScorecardInferencePath.TFLITE,
                 Precision.float,
                 output_folder=tmpdir,
             )
@@ -241,7 +241,7 @@ class TestFetchPrereleaseAssetsErrors:
             precisions={
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     universal_assets={
-                        ScorecardProfilePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
+                        ScorecardInferencePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
                             s3_key="models/mobilenet_v2/v0.44.0/mobilenet_v2_float.tflite"
                         )
                     }
@@ -273,7 +273,7 @@ class TestFetchPrereleaseAssetsNoOutputFolder:
             precisions={
                 Precision.float: QAIHMModelReleaseAssets.PrecisionDetails(
                     universal_assets={
-                        ScorecardProfilePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
+                        ScorecardInferencePath.TFLITE: QAIHMModelReleaseAssets.AssetDetails(
                             s3_key="models/mobilenet_v2/v0.44.0/mobilenet_v2_float.tflite"
                         )
                     }

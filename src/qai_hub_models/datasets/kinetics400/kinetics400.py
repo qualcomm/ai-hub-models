@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, Subset
 
 from qai_hub_models.datasets.kinetics400.video_utils import (
     DEFAULT_NUM_CLIPS,
@@ -30,6 +29,7 @@ from qai_hub_models.utils.asset_loaders import CachedWebDatasetAsset
 from qai_hub_models.utils.base_dataset import BaseDataset, DatasetMetadata, DatasetSplit
 from qai_hub_models.utils.input_spec import InputSpec
 from qai_hub_models.utils.labels import get_class_names
+from qai_hub_models.utils.samplers import grouped_shuffled_order, grouped_strided_order
 
 KINETICS400_FOLDER_NAME = "kinetics400"
 KINETICS400_VERSION = 2
@@ -248,36 +248,19 @@ class Kinetics400Dataset(BaseDataset):
         video_id = torch.tensor(video_idx, dtype=torch.int64)
         return view, (label, video_id)
 
-    def get_dataloader(
-        self, num_samples: int, samples_per_job: int | None = None
-    ) -> DataLoader:
-        """Return a DataLoader over whole videos (all views kept together).
-
-        ``num_samples`` and ``samples_per_job`` count **views**. Values that
-        are not already a multiple of ``num_views`` are rounded up so a
-        video's views are never split across jobs. ``num_samples=-1``
-        (full eval) maps to all videos.
-        """
-
-        def _round_up(n: int) -> int:
-            return ((n + self.num_views - 1) // self.num_views) * self.num_views
-
-        views_per_job = _round_up(samples_per_job or self.default_samples_per_job())
-        if num_samples != -1:
-            num_samples = _round_up(num_samples)
-        num_videos_wanted = min(max(1, num_samples // self.num_views), self.num_videos)
-        stride = self.num_videos // num_videos_wanted
-        selected: list[int] = []
-        for videos_selected, video_idx in enumerate(range(0, self.num_videos, stride)):
-            base = video_idx * self.num_views
-            selected.extend(range(base, base + self.num_views))
-            if videos_selected + 1 >= num_videos_wanted:
-                break
-        return DataLoader(
-            Subset(self, selected),
-            batch_size=min(len(selected), views_per_job),
-            collate_fn=self.collate_fn,
-        )
+    def eval_order(
+        self, num_samples: int, samples_per_job: int, seed: int | None = None
+    ) -> list[int]:
+        """Keeps every view of a video adjacent; sample counts are views."""
+        videos = [
+            list(range(v * self.num_views, (v + 1) * self.num_views))
+            for v in range(self.num_videos)
+        ]
+        if seed is None:
+            order = grouped_strided_order(videos, samples_per_job)
+        else:
+            order = grouped_shuffled_order(videos, seed)
+        return order[:num_samples]
 
     def _download_data(self) -> None:
         self.videos_asset.fetch(extract=True)

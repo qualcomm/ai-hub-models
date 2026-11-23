@@ -23,7 +23,6 @@ from qai_hub_models.scorecard.envvars import (
 from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
     InferenceScorecardJobYaml,
-    ProfileScorecardJobYaml,
 )
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
@@ -32,7 +31,6 @@ from qai_hub_models.scorecard.static.model_config import ScorecardModelConfig
 from qai_hub_models.scorecard.static.model_exec import (
     compile_model,
     inference_model,
-    profile_model,
 )
 from qai_hub_models.scorecard.static.model_sync import sync_model_assets
 from qai_hub_models.utils.hub_clients import get_scorecard_client_or_raise
@@ -50,9 +48,6 @@ def parse_args() -> argparse.Namespace:
         "--skip-compile", action="store_true", help="Skip compile step."
     )
     parser.add_argument(
-        "--skip-profile", action="store_true", help="Skip profile step."
-    )
-    parser.add_argument(
         "--skip-inference", action="store_true", help="Skip inference step."
     )
     parser.add_argument(
@@ -68,8 +63,8 @@ def parse_args() -> argparse.Namespace:
         metavar="\b",
         default=None,
         help=(
-            "Wait a max of this many seconds for *each* compile job to finish before executing a profile or inference job. "
-            "If a timeout is reached, the profile / inference job submission for that compiled model is skipped. "
+            "Wait a max of this many seconds for *each* compile job to finish before executing the inference job. "
+            "If a timeout is reached, the inference job submission for that compiled model is skipped. "
             "If you do not want to wait for compile jobs, this should be set to 0. If you wish to wait indefinitely, "
             "this should be left at the default value."
         ),
@@ -99,17 +94,15 @@ if __name__ == "__main__":
         if args.compile_ids
         else ScorecardArtifact.COMPILE_YAML.touch()
     )
-    profile_ids = ScorecardArtifact.PROFILE_YAML.touch()
     inference_ids = ScorecardArtifact.INFERENCE_YAML.touch()
     deployment: str = args.deployment
     compile_job_timeout: int | None = args.compile_timeout
     permanent_asset_sync: bool = args.persist_asset_sync
 
     enable_compile: bool = not args.skip_compile
-    enable_profile: bool = not args.skip_profile
     enable_inference: bool = not args.skip_inference
-    if not enable_compile and not enable_profile and not enable_inference:
-        print("Please enable compile, profile, or inference")
+    if not enable_compile and not enable_inference:
+        print("Please enable compile or inference")
         sys.exit(1)
 
     # Get model configs
@@ -131,7 +124,7 @@ if __name__ == "__main__":
             compile_ids, create_empty_if_no_file=True
         )
         for config in model_configs:
-            # Disable client verbosity; compile/profile/inference model will print more succinct summaries instead
+            # Disable client verbosity; compile/inference model will print more succinct summaries instead
             hub = get_scorecard_client_or_raise(deployment, config.restrict_access)
             hub.set_verbose(False)
 
@@ -154,35 +147,10 @@ if __name__ == "__main__":
                 print(f"Failed to submit compile job for model `{config.id}`: {e}")
         compile_results.to_file()
 
-    elif enable_profile or enable_inference:
+    elif enable_inference:
         compile_results = CompileScorecardJobYaml.from_file(
             compile_ids, create_empty_if_no_file=True
         )
-
-    if enable_profile:
-        assert compile_results  # for mypy
-        profile_results = ProfileScorecardJobYaml.from_file(
-            profile_ids, create_empty_if_no_file=True
-        )
-        for config in model_configs:
-            # Disable client verbosity; compile/profile/inference model will print more succinct summaries instead
-            hub = get_scorecard_client_or_raise(deployment, config.restrict_access)
-            hub.set_verbose(False)
-
-            try:
-                profile_model(
-                    config.id,
-                    compile_results,
-                    hub,
-                    config.precision,
-                    config.devices,
-                    config.enabled_profile_runtimes,
-                    profile_results,
-                    compile_job_timeout,
-                )
-            except UserError as e:
-                print(f"Failed to submit profile job for model `{config.id}`: {e}")
-        profile_results.to_file()
 
     if enable_inference:
         assert compile_results  # for mypy
@@ -190,7 +158,7 @@ if __name__ == "__main__":
             inference_ids, create_empty_if_no_file=True
         )
         for config in model_configs:
-            # Disable client verbosity; compile/profile/inference model will print more succinct summaries instead
+            # Disable client verbosity; compile/inference model will print more succinct summaries instead
             hub = get_scorecard_client_or_raise(deployment, config.restrict_access)
             hub.set_verbose(False)
 
@@ -202,7 +170,7 @@ if __name__ == "__main__":
                     compile_results,
                     hub,
                     config.precision,
-                    [config.eval_device],  # only do inference on one device
+                    config.devices,
                     config.enabled_profile_runtimes,
                     inference_results,
                     compile_job_timeout,

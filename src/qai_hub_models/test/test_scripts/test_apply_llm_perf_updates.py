@@ -14,7 +14,7 @@ import pytest
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -28,7 +28,7 @@ DEV_OK = "Snapdragon X Elite CRD"
 DEV_FAILED = "Samsung Galaxy S25"
 
 
-def _metric(device_name: str, path: ScorecardProfilePath) -> dict:
+def _metric(device_name: str, path: ScorecardInferencePath) -> dict:
     return {
         "kind": "metric",
         "model_id": MODEL,
@@ -42,7 +42,7 @@ def _metric(device_name: str, path: ScorecardProfilePath) -> dict:
     }
 
 
-def _scope(device_name: str, path: ScorecardProfilePath) -> dict:
+def _scope(device_name: str, path: ScorecardInferencePath) -> dict:
     return {
         "kind": "scope",
         "model_id": MODEL,
@@ -73,9 +73,9 @@ def perf_dir(tmp_path: Path) -> Iterator[Path]:
 
 def _seed(both_devices: bool = True) -> None:
     """Write a committed perf.yaml carrying genie rows for one or two devices."""
-    updates = [_metric(DEV_OK, ScorecardProfilePath.GENIE)]
+    updates = [_metric(DEV_OK, ScorecardInferencePath.GENIE)]
     if both_devices:
-        updates.append(_metric(DEV_FAILED, ScorecardProfilePath.GENIE))
+        updates.append(_metric(DEV_FAILED, ScorecardInferencePath.GENIE))
     mod.apply_updates(updates)
 
 
@@ -86,7 +86,7 @@ def _key(reference_device_name: str) -> str:
     return ScorecardDevice.get(reference_device_name, return_unregistered=True).name
 
 
-def _devices_with(path: ScorecardProfilePath) -> set[str]:
+def _devices_with(path: ScorecardInferencePath) -> set[str]:
     perf = QAIHMModelPerf.from_model(MODEL, not_exists_ok=True)
     return {
         params.device.name
@@ -98,18 +98,21 @@ def _devices_with(path: ScorecardProfilePath) -> set[str]:
 def test_failed_device_row_is_removed(perf_dir: Path) -> None:
     """A device in scope that reports no metric loses its committed row."""
     _seed()
-    assert _devices_with(ScorecardProfilePath.GENIE) == {_key(DEV_OK), _key(DEV_FAILED)}
+    assert _devices_with(ScorecardInferencePath.GENIE) == {
+        _key(DEV_OK),
+        _key(DEV_FAILED),
+    }
 
     # Re-run measuring both, but only DEV_OK reports back.
     mod.apply_updates(
         [
-            _scope(DEV_OK, ScorecardProfilePath.GENIE),
-            _scope(DEV_FAILED, ScorecardProfilePath.GENIE),
-            _metric(DEV_OK, ScorecardProfilePath.GENIE),
+            _scope(DEV_OK, ScorecardInferencePath.GENIE),
+            _scope(DEV_FAILED, ScorecardInferencePath.GENIE),
+            _metric(DEV_OK, ScorecardInferencePath.GENIE),
         ]
     )
 
-    assert _devices_with(ScorecardProfilePath.GENIE) == {_key(DEV_OK)}
+    assert _devices_with(ScorecardInferencePath.GENIE) == {_key(DEV_OK)}
 
 
 def test_out_of_scope_device_survives(perf_dir: Path) -> None:
@@ -118,28 +121,31 @@ def test_out_of_scope_device_survives(perf_dir: Path) -> None:
 
     mod.apply_updates(
         [
-            _scope(DEV_OK, ScorecardProfilePath.GENIE),
-            _metric(DEV_OK, ScorecardProfilePath.GENIE),
+            _scope(DEV_OK, ScorecardInferencePath.GENIE),
+            _metric(DEV_OK, ScorecardInferencePath.GENIE),
         ]
     )
 
-    assert _devices_with(ScorecardProfilePath.GENIE) == {_key(DEV_OK), _key(DEV_FAILED)}
+    assert _devices_with(ScorecardInferencePath.GENIE) == {
+        _key(DEV_OK),
+        _key(DEV_FAILED),
+    }
 
 
 def test_other_runtime_is_untouched(perf_dir: Path) -> None:
     """Scope is per profile_path, so a geniex run cannot drop genie rows."""
     _seed(both_devices=False)
-    mod.apply_updates([_metric(DEV_OK, ScorecardProfilePath.GENIEX_QAIRT)])
-    assert _devices_with(ScorecardProfilePath.GENIE) == {_key(DEV_OK)}
-    assert _devices_with(ScorecardProfilePath.GENIEX_QAIRT) == {_key(DEV_OK)}
+    mod.apply_updates([_metric(DEV_OK, ScorecardInferencePath.GENIEX_QAIRT)])
+    assert _devices_with(ScorecardInferencePath.GENIE) == {_key(DEV_OK)}
+    assert _devices_with(ScorecardInferencePath.GENIEX_QAIRT) == {_key(DEV_OK)}
 
     # A geniex run where the device fails must leave genie alone.
-    mod.apply_updates([_scope(DEV_OK, ScorecardProfilePath.GENIEX_QAIRT)])
-    assert _devices_with(ScorecardProfilePath.GENIE) == {_key(DEV_OK)}
-    assert _devices_with(ScorecardProfilePath.GENIEX_QAIRT) == set()
+    mod.apply_updates([_scope(DEV_OK, ScorecardInferencePath.GENIEX_QAIRT)])
+    assert _devices_with(ScorecardInferencePath.GENIE) == {_key(DEV_OK)}
+    assert _devices_with(ScorecardInferencePath.GENIEX_QAIRT) == set()
 
 
-def _assets_with(model_id: str, path: ScorecardProfilePath) -> set[str]:
+def _assets_with(model_id: str, path: ScorecardInferencePath) -> set[str]:
     assets = QAIHMModelReleaseAssets.from_model(model_id, not_exists_ok=True)
     out: set[str] = set()
     for prec_details in assets.precisions.values():
@@ -159,8 +165,8 @@ def _write_assets(root: Path, model_id: str) -> None:
     assets = QAIHMModelReleaseAssets()
     for chipset in sorted(CHIPSETS):
         for path in (
-            ScorecardProfilePath.GENIE,
-            ScorecardProfilePath.GENIEX_QAIRT,
+            ScorecardInferencePath.GENIE,
+            ScorecardInferencePath.GENIEX_QAIRT,
         ):
             assets.add_asset(
                 QAIHMModelReleaseAssets.AssetDetails(s3_key=f"k/{chipset}-{path.name}"),
@@ -172,7 +178,7 @@ def _write_assets(root: Path, model_id: str) -> None:
         QAIHMModelReleaseAssets.AssetDetails(download_url="https://hf/m.gguf"),
         precision=Precision.q4_0,
         chipset=None,
-        path=ScorecardProfilePath.GENIEX_LLAMACPP,
+        path=ScorecardInferencePath.GENIEX_LLAMACPP,
     )
     (root / model_id).mkdir(exist_ok=True)
     assets.to_model_yaml(model_id)
@@ -181,23 +187,25 @@ def _write_assets(root: Path, model_id: str) -> None:
 def test_genie_failure_on_default_device_removes_every_asset(perf_dir: Path) -> None:
     """The one X Elite genie job decides all of a precision's release assets."""
     _write_assets(perf_dir, MODEL)
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIE) == CHIPSETS
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIEX_QAIRT) == CHIPSETS
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIE) == CHIPSETS
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIEX_QAIRT) == CHIPSETS
 
-    mod.apply_updates([_scope(DEV_OK, ScorecardProfilePath.GENIE)])
+    mod.apply_updates([_scope(DEV_OK, ScorecardInferencePath.GENIE)])
 
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIE) == set()
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIEX_QAIRT) == set()
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIE) == set()
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIEX_QAIRT) == set()
     # The hand-authored GGUF url is never collateral.
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIEX_LLAMACPP) == {"<universal>"}
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIEX_LLAMACPP) == {
+        "<universal>"
+    }
 
 
 def test_genie_failure_on_other_device_keeps_assets(perf_dir: Path) -> None:
     """Only the default QDC device triggers the rule."""
     _write_assets(perf_dir, MODEL)
-    mod.apply_updates([_scope(DEV_FAILED, ScorecardProfilePath.GENIE)])
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIE) == CHIPSETS
-    assert _assets_with(MODEL, ScorecardProfilePath.GENIEX_QAIRT) == CHIPSETS
+    mod.apply_updates([_scope(DEV_FAILED, ScorecardInferencePath.GENIE)])
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIE) == CHIPSETS
+    assert _assets_with(MODEL, ScorecardInferencePath.GENIEX_QAIRT) == CHIPSETS
 
 
 def test_exempt_model_keeps_all_assets(perf_dir: Path) -> None:
@@ -205,11 +213,11 @@ def test_exempt_model_keeps_all_assets(perf_dir: Path) -> None:
     exempt = next(iter(mod.ASSET_REMOVAL_EXEMPT_MODELS))
     _write_assets(perf_dir, exempt)
 
-    update = dict(_scope(DEV_OK, ScorecardProfilePath.GENIE), model_id=exempt)
+    update = dict(_scope(DEV_OK, ScorecardInferencePath.GENIE), model_id=exempt)
     mod.apply_updates([update])
 
-    assert _assets_with(exempt, ScorecardProfilePath.GENIE) == CHIPSETS
-    assert _assets_with(exempt, ScorecardProfilePath.GENIEX_QAIRT) == CHIPSETS
+    assert _assets_with(exempt, ScorecardInferencePath.GENIE) == CHIPSETS
+    assert _assets_with(exempt, ScorecardInferencePath.GENIEX_QAIRT) == CHIPSETS
 
 
 def _supported(model_id: str) -> tuple[list[str], list[str]]:
@@ -219,7 +227,7 @@ def _supported(model_id: str) -> tuple[list[str], list[str]]:
 
 def test_x_elite_metric_credits_x_plus(perf_dir: Path) -> None:
     """X Plus is the same NPU as X Elite, so measuring X Elite advertises both."""
-    mod.apply_updates([_metric(DEV_OK, ScorecardProfilePath.GENIE)])
+    mod.apply_updates([_metric(DEV_OK, ScorecardInferencePath.GENIE)])
 
     chipsets, devices = _supported(MODEL)
     assert "qualcomm-snapdragon-x-elite" in chipsets
@@ -229,7 +237,7 @@ def test_x_elite_metric_credits_x_plus(perf_dir: Path) -> None:
 
 def test_mobile_metric_does_not_backfill_older_chipsets(perf_dir: Path) -> None:
     """Only the compute pairing applies: an 8B LLM must not claim Snapdragon 888."""
-    mod.apply_updates([_metric(DEV_FAILED, ScorecardProfilePath.GENIE)])
+    mod.apply_updates([_metric(DEV_FAILED, ScorecardInferencePath.GENIE)])
 
     chipsets, _ = _supported(MODEL)
     assert "qualcomm-snapdragon-8-elite-for-galaxy" in chipsets

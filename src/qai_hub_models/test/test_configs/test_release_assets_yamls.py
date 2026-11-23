@@ -18,7 +18,7 @@ import pytest
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
-from qai_hub_models.scorecard.path_profile import ScorecardProfilePath
+from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
 )
@@ -39,9 +39,9 @@ AUTOMATED_S3_KEY_PREFIX = "pre_release_assets/gh_actions/"
 
 # Runtimes whose perf numbers come from a release asset rather than a Hub job.
 LLM_PROFILE_PATHS = (
-    ScorecardProfilePath.GENIE,
-    ScorecardProfilePath.GENIEX_QAIRT,
-    ScorecardProfilePath.GENIEX_LLAMACPP,
+    ScorecardInferencePath.GENIE,
+    ScorecardInferencePath.GENIEX_QAIRT,
+    ScorecardInferencePath.GENIEX_LLAMACPP,
 )
 
 
@@ -135,7 +135,7 @@ def test_llm_perf_rows_have_a_release_asset() -> None:
         if perf.empty:
             continue
 
-        measured: set[tuple[Precision, ScorecardProfilePath]] = set()
+        measured: set[tuple[Precision, ScorecardInferencePath]] = set()
         for params, entry in perf.entries.items():
             if params.path in LLM_PROFILE_PATHS and entry.llm_metrics:
                 assert params.precision is not None
@@ -144,7 +144,7 @@ def test_llm_perf_rows_have_a_release_asset() -> None:
             continue
 
         assets = QAIHMModelReleaseAssets.from_model(model_id, not_exists_ok=True)
-        available: set[tuple[Precision, ScorecardProfilePath]] = set()
+        available: set[tuple[Precision, ScorecardInferencePath]] = set()
         for precision, asset_details in assets.precisions.items():
             for path in asset_details.universal_assets:
                 available.add((precision, path))

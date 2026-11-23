@@ -2,6 +2,11 @@ name: QAI Hub Models Weekly Dev Scorecard ("Bench")
 
 on:
     workflow_dispatch: # Allows users to start this manually from the GitHub Actions UI.
+      inputs:
+        notify_failures:
+          description: Notify Slack of the results
+          default: true
+          type: boolean
     schedule:
         # 11 PM PST (12 AM PDT) on Wednesday Night / Thursday Morning -- (Cron is in UTC, since GitHub Actions run in UTC)
         - cron: '0 7 * * THU'
@@ -22,3 +27,4 @@ jobs:
           release_scope: none
           ignore_job_cache: false
           tableau_branch_name: weekly-dev
+          notify_failures: ${{ inputs.notify_failures == null || inputs.notify_failures }}

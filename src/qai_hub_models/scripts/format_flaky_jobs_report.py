@@ -12,7 +12,7 @@ This script reads the flaky_jobs.yaml file and formats it as a bullet point list
 import argparse
 from pathlib import Path
 
-from qai_hub_models.scripts.retry_failed_profile_jobs import FlakyJobsYaml
+from qai_hub_models.scripts.retry_failed_inference_jobs import FlakyJobsYaml
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,7 +57,7 @@ def format_flaky_jobs_report(flaky_jobs_data: FlakyJobsYaml) -> str:
 
     # Add title with emoji and total count
     report_lines.append(
-        f":warning: [Scorecard Flaky Jobs] Found and fixed {flaky_jobs_data.total_flaky_jobs} flaky profile jobs in scorecard run."
+        f":warning: [Scorecard Flaky Jobs] Found and fixed {flaky_jobs_data.total_flaky_jobs} flaky inference jobs in scorecard run."
     )
     report_lines.append("")
 

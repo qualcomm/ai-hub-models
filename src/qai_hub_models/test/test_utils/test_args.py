@@ -67,12 +67,11 @@ def test_parse_resnet18_export() -> None:
         "device_str",
         "device_os",
         "skip_compiling",
-        "skip_profiling",
+        "skip_linking",
         "skip_inferencing",
         "skip_downloading",
         "skip_summary",
         "output_dir",
-        "quantized_model_id",
         "zip_assets",
     }
     assert set(vars(args).keys()) == gt_set
@@ -115,12 +114,11 @@ def test_parse_whisper_export() -> None:
         "chipset",
         "device_os",
         "skip_compiling",
-        "skip_profiling",
+        "skip_linking",
         "skip_inferencing",
         "skip_downloading",
         "skip_summary",
         "output_dir",
-        "quantized_model_id",
         "components",
         "zip_assets",
     }
@@ -147,7 +145,7 @@ def test_parse_qwen2_7b_export() -> None:
         "device_str",
         "chipset",
         "device_os",
-        "skip_profiling",
+        "skip_inferencing",
         "skip_downloading",
         "skip_summary",
         "output_dir",
@@ -215,9 +213,11 @@ def test_parse_resnet18_evaluate() -> None:
         "seed",
         "hub_model_id",
         "use_dataset_cache",
+        "force_rebuild_cache",
         "compute_quant_cpu_accuracy",
         "skip_device_accuracy",
         "skip_torch_accuracy",
+        "compute_psnr",
         "device_str",
     }
     assert set(vars(args).keys()) == gt_set
@@ -351,7 +351,7 @@ def test_compile_model_from_args() -> None:
         ]
     )
     with patch(
-        "qai_hub_models.utils.export.dispatch.single_export"
+        "qai_hub_models.utils.export.dispatch.single_export", autospec=True
     ) as resnet_export_mock:
         mock_compile_job = create_autospec(hub.CompileJob)
         mock_compile_job._target_model = create_autospec(hub.Model)

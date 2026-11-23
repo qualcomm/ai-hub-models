@@ -46,7 +46,7 @@ from qai_hub_models.utils.export.result import (
 )
 from qai_hub_models.utils.kwarg_helpers import filter_kwargs
 from qai_hub_models.utils.path_helpers import MODEL_IDS
-from qai_hub_models.utils.printing import print_inference_metrics
+from qai_hub_models.utils.printing import compute_inference_metrics
 from qai_hub_models.utils.transpose_channel import transpose_channel_last_to_first
 
 ALL_METRICS = ",".join(k for k in METRICS_FUNCTIONS if k not in ("top1", "top5"))
@@ -192,13 +192,14 @@ def compare_inference(
 
     torch_out = torch_inference(model, sample_inputs, return_channel_last_output=False)
 
-    print_inference_metrics(
-        inference_job,
+    compute_inference_metrics(
         device_outputs,
         torch_out,
         output_names,
         outputs_to_skip=outputs_to_skip,
         metrics=metrics,
+        print_result=True,
+        inference_job=inference_job,
     )
 
 

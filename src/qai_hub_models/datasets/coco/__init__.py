@@ -5,6 +5,7 @@
 from qai_hub_models.datasets.coco.coco import (
     COCO_VAL_DATASET,
     DATASET_ASSET_VERSION,
+    Coco100Dataset,
     Coco180Dataset,
     CocoDataset,
     CocoDatasetBase,
@@ -38,6 +39,7 @@ __all__ = [
     "COCO_VAL_DATASET",
     "DATASET_ASSET_VERSION",
     "Coco91ClassDataset",
+    "Coco100Dataset",
     "Coco180Dataset",
     "CocoBodyDataset",
     "CocoBodyDatasetBase",

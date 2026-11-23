@@ -24,13 +24,13 @@ from qai_hub_models.configs.proto_helpers import (
     runtime_to_proto,
 )
 from qai_hub_models.configs.tool_versions import ToolVersions
-from qai_hub_models.scorecard import ScorecardProfilePath
+from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
 # llama.cpp assets are GGUF urls a human types in; nothing regenerates them, so
 # a scoped drop that removed one would lose it permanently (see bc87e013f4).
-NEVER_DROPPED = frozenset({ScorecardProfilePath.GENIEX_LLAMACPP})
+NEVER_DROPPED = frozenset({ScorecardInferencePath.GENIEX_LLAMACPP})
 
 
 class QAIHMModelReleaseAssets(BaseQAIHMConfig):
@@ -67,11 +67,11 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
 
     class PrecisionDetails(BaseQAIHMConfig):
         universal_assets: dict[
-            ScorecardProfilePath, QAIHMModelReleaseAssets.AssetDetails
+            ScorecardInferencePath, QAIHMModelReleaseAssets.AssetDetails
         ] = Field(default_factory=dict)
         chipset_assets: dict[
             str,
-            dict[ScorecardProfilePath, QAIHMModelReleaseAssets.AssetDetails],
+            dict[ScorecardInferencePath, QAIHMModelReleaseAssets.AssetDetails],
         ] = Field(default_factory=dict)
 
     precisions: dict[Precision, QAIHMModelReleaseAssets.PrecisionDetails] = Field(
@@ -109,7 +109,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         details: QAIHMModelReleaseAssets.AssetDetails,
         precision: Precision,
         chipset: str | None,
-        path: ScorecardProfilePath,
+        path: ScorecardInferencePath,
     ) -> None:
         if precision not in self.precisions:
             self.precisions[precision] = QAIHMModelReleaseAssets.PrecisionDetails()
@@ -122,7 +122,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
 
     def drop_entries_in_scope(
         self,
-        scope: set[tuple[Precision, str | None, ScorecardProfilePath]],
+        scope: set[tuple[Precision, str | None, ScorecardInferencePath]],
     ) -> None:
         """Delete every asset whose (precision, chipset, path) key is in scope.
 
@@ -171,7 +171,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
         self,
         precision: Precision,
         chipset: str | None,
-        path: ScorecardProfilePath,
+        path: ScorecardInferencePath,
     ) -> QAIHMModelReleaseAssets.AssetDetails | None:
         if precision not in self.precisions:
             return None
@@ -236,7 +236,7 @@ class QAIHMModelReleaseAssets(BaseQAIHMConfig):
                 (
                     precision_from_proto(a.precision),
                     a.chipset if a.HasField("chipset") else None,
-                    ScorecardProfilePath.from_runtime(runtime_from_proto(a.runtime)),
+                    ScorecardInferencePath.from_runtime(runtime_from_proto(a.runtime)),
                     a,
                 )
                 for a in proto.assets

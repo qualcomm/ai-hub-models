@@ -27,9 +27,9 @@ from qai_hub.public_rest_api import get_dataset, get_model
 
 from qai_hub_models import Precision, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import MODEL_DOMAIN, MODEL_TAG, MODEL_USE_CASE
-from qai_hub_models.scorecard.device import DEFAULT_SCORECARD_DEVICE, ScorecardDevice
+from qai_hub_models.scorecard.device import ScorecardDevice
 from qai_hub_models.scorecard.path_profile import (
-    ScorecardProfilePathJITParseableAllList,
+    ScorecardInferencePathJITParseableAllList,
 )
 from qai_hub_models.utils.asset_loaders import EXECUTING_IN_CI_ENVIRONMENT
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
@@ -131,16 +131,13 @@ class ScorecardModelConfig(BaseQAIHMConfig):
     # If unspecified, enabled_device_form_factors are used instead. Cannot be specified at the same time as enabled_device_form_factors.
     enabled_devices: list[ScorecardDevice] | None = None
 
-    # Which device to use for accuracy validation
-    eval_device: ScorecardDevice = DEFAULT_SCORECARD_DEVICE
-
     # Runtimes we want to test this model on.
     # If a profile path is not on this list, it will always be skipped for this model regardless of scorecard settings.
     # See valid values in qai_hub_Models/scorecard/path_profile.py
     #
     # The default is "all", which enables all JIT (on-device prepare) compile paths.
-    enabled_profile_runtimes: ScorecardProfilePathJITParseableAllList = Field(
-        default_factory=lambda: ScorecardProfilePathJITParseableAllList.default()
+    enabled_profile_runtimes: ScorecardInferencePathJITParseableAllList = Field(
+        default_factory=lambda: ScorecardInferencePathJITParseableAllList.default()
     )
 
     # If set, this model is skipped entirely. This should be set to a string reason if the model is to be disabled.
