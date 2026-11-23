@@ -59,7 +59,7 @@ MODEL_ID = __name__.split(".")[-2]
 # inserts an identity Cast the dynamo graph elides, which previously dropped them
 # and made the HTP linker reject the split with "Non-identical quantization
 # parameters").
-MODEL_ASSET_VERSION = 5
+MODEL_ASSET_VERSION = 6
 
 # Model architecture constants (from Qwen3-8B)
 NUM_LAYERS = 36
