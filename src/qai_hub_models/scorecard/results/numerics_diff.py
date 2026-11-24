@@ -13,11 +13,11 @@ from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.configs.numerics_benchmark import NumericsAccuracyBenchmark
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.params import ScJobParams
 from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.results.yaml import InferenceScorecardJobYaml
+from qai_hub_models.utils._platform_helpers import device_names_with_form_factor
 from qai_hub_models.utils.device import FormFactor
 
 
@@ -127,12 +127,7 @@ class NumericsDiff:
         ] = []
 
         # Exclude automotive devices (too noisy for regression tracking)
-        yaml_config = DevicesAndChipsetsYaml.load()
-        self._excluded_device_names: set[str] = {
-            name
-            for name, details in yaml_config.devices.items()
-            if details.form_factor == FormFactor.AUTO
-        }
+        self._excluded_device_names = device_names_with_form_factor(FormFactor.AUTO)
 
         # tuple<Model ID, Dataset Name, Metric Name, Device, Precision, Path, FP Accuracy, Sim Accuracy, Current Device Accuracy, Difference, Difference Threshold, Newly Disabled>
         self.device_vs_float_greater_than_enablement_threshold: list[

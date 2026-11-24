@@ -8,41 +8,44 @@ from pathlib import Path
 from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
+from qai_hub_models.core.configs import get_platform
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    SCORECARD_DEVICE_YAML_PATH,
-    SIMILAR_DEVICES_YAML_PATH,
-    DevicesAndChipsetsYaml,
-    _load_similar_devices_raw,
-    load_similar_devices,
-)
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
 from qai_hub_models.test.test_configs.manifest_path_check import (
     get_release_manifest_support_violations,
 )
-from qai_hub_models.utils.path_helpers import MODEL_IDS
+from qai_hub_models.utils._platform_helpers import (
+    load_similar_devices,
+    load_similar_devices_raw,
+    platform_chipsets,
+    platform_devices,
+)
+from qai_hub_models.utils.path_helpers import (
+    MODEL_IDS,
+    PLATFORM_YAML_PATH,
+    SIMILAR_DEVICES_YAML_PATH,
+)
 
 
 def test_perf_yaml() -> None:
-    # DevicesAndChipsetsYaml defines the devices valid for use with the AI Hub Models website.
-    dc = DevicesAndChipsetsYaml.load()
-    valid_devices = dc.devices
-    valid_chipsets = dc.chipsets
+    # The platform (plus similar devices) defines the devices valid for use with the AI Hub Models website.
+    valid_devices = platform_devices(include_similar_devices=True)
+    valid_chipsets = platform_chipsets(include_similar_devices=True)
 
     def _validate_device(device: ScorecardDevice) -> None:
         # Verify the given device is valid for use in the AI Hub Models website.
         if device.reference_device_name not in valid_devices:
             raise ValueError(
-                f"Invalid device '{device.reference_device_name}'. Device must be listed in {SCORECARD_DEVICE_YAML_PATH}.\n"
-                "You may need to re-generate the valid device list via `python qai_hub_models/models/generate_scorecard_device_yaml.py`"
+                f"Invalid device '{device.reference_device_name}'. Device must be listed in {PLATFORM_YAML_PATH}.\n"
+                "You may need to re-generate the valid device list via `python -m qai_hub_models.scripts.generate_platform`"
             )
 
     def _validate_chipset(chipset_name: str) -> None:
         # Verify the given chipsets is valid for use in the AI Hub Models website.
         if chipset_name not in valid_chipsets:
             raise ValueError(
-                f"Invalid chipset '{chipset_name}'. Chipset must be listed in {SCORECARD_DEVICE_YAML_PATH}.\n"
-                "You may need to re-generate the valid device list via `python qai_hub_models/models/generate_scorecard_device_yaml.py`"
+                f"Invalid chipset '{chipset_name}'. Chipset must be listed in {PLATFORM_YAML_PATH}.\n"
+                "You may need to re-generate the valid device list via `python -m qai_hub_models.scripts.generate_platform`"
             )
 
     path_errors: list[str] = []
@@ -107,53 +110,43 @@ def test_perf_yaml() -> None:
 
 def test_similar_devices_chipsets_resolve() -> None:
     """Every chipset and reference_chipset referenced from similar_devices.yaml
-    must be defined in devices_and_chipsets.yaml's chipsets: section, otherwise
+    must be defined in platform.yaml or similar_devices.yaml itself, otherwise
     perf-yaml propagation can silently drop entries.
     """
-    raw = _load_similar_devices_raw()
-    catalog_chipsets = set(DevicesAndChipsetsYaml.load().chipsets)
-    # similar_devices.yaml may define non-workbench chipsets locally; those
-    # propagate into devices_and_chipsets.yaml via codegen, so we treat both
-    # sources as valid for the lookup.
-    valid_chipsets = catalog_chipsets | set(raw.chipsets)
+    similar = load_similar_devices_raw()
+    # similar_devices.yaml may define non-workbench chipsets locally.
+    valid_chipsets = set(platform_chipsets()) | {c.name for c in similar.chipsets}
 
-    for device_name, entry in raw.devices.items():
+    for entry in similar.devices:
         assert entry.chipset in valid_chipsets, (
-            f"similar device {device_name!r}: chipset {entry.chipset!r} not "
-            f"defined in {SCORECARD_DEVICE_YAML_PATH} or {SIMILAR_DEVICES_YAML_PATH}"
+            f"similar device {entry.name!r}: chipset {entry.chipset!r} not "
+            f"defined in {PLATFORM_YAML_PATH} or {SIMILAR_DEVICES_YAML_PATH}"
         )
-        if entry.reference_chipset is not None:
+        if entry.reference_chipset:
             assert entry.reference_chipset in valid_chipsets, (
-                f"similar device {device_name!r}: reference_chipset "
+                f"similar device {entry.name!r}: reference_chipset "
                 f"{entry.reference_chipset!r} not defined in "
-                f"{SCORECARD_DEVICE_YAML_PATH} or {SIMILAR_DEVICES_YAML_PATH}"
+                f"{PLATFORM_YAML_PATH} or {SIMILAR_DEVICES_YAML_PATH}"
             )
 
 
-def test_platform_to_proto_excludes_similar_devices() -> None:
-    """The platform proto omits similar devices/chipsets, except the allowlist."""
-    from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-        ALLOWED_SIMILAR_DEVICES,
-    )
+def test_platform_excludes_similar_devices() -> None:
+    """platform.yaml holds only Workbench devices; similar devices are opt-in."""
+    similar = load_similar_devices_raw()
+    similar_devices = {d.name for d in similar.devices}
+    similar_chipsets = {c.name for c in similar.chipsets}
+    assert similar_devices and similar_chipsets  # sanity
 
-    dc = DevicesAndChipsetsYaml.load()
-    similar_names = {name for name, d in dc.devices.items() if d.reference_chipset}
-    excluded = similar_names - ALLOWED_SIMILAR_DEVICES
-    assert excluded and similar_names >= ALLOWED_SIMILAR_DEVICES  # sanity
+    platform = get_platform()
+    assert not similar_devices & {d.name for d in platform.devices}
+    assert not similar_chipsets & {c.name for c in platform.chipsets}
+    assert all(d.available_in_workbench for d in platform.devices)
 
-    proto = dc.to_proto("0.99.0")
-    proto_devices = {d.name for d in proto.devices}
-    assert not (proto_devices & excluded)
-    assert proto_devices >= ALLOWED_SIMILAR_DEVICES
-    # qualcomm-qcs8275 (the allowlisted device's chipset) survives; a purely
-    # similar chipset (e.g. qualcomm-sa8255p) is pruned.
-    proto_chipsets = {c.name for c in proto.chipsets}
-    assert "qualcomm-qcs8275" in proto_chipsets
-    assert "qualcomm-sa8255p" not in proto_chipsets
-
-    # With the flag off, similar devices are retained.
-    proto_all = dc.to_proto("0.99.0", exclude_similar_devices=False)
-    assert excluded <= {d.name for d in proto_all.devices}
+    combined = get_platform(_include_similar_devices=True)
+    assert similar_devices <= {d.name for d in combined.devices}
+    assert similar_chipsets <= {c.name for c in combined.chipsets}
+    assert len(combined.devices) == len(platform.devices) + len(similar.devices)
+    assert not any(d.available_in_workbench for d in similar.devices)
 
 
 def test_apply_similar_devices_idempotent() -> None:

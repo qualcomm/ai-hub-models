@@ -189,7 +189,7 @@ MANUAL_EDGES = {
     "src/qai_hub_models/configs/_info_yaml_llm_details.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/lm_recipe_yaml.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/manifest_yaml.py": REPRESENTATIVE_MODEL_FILES,
-    "src/qai_hub_models/scorecard/devices_and_chipsets_yaml.py": REPRESENTATIVE_MODEL_FILES,
+    "src/qai_hub_models/utils/_platform_helpers.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/model_disable_reasons.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/configs/model_metadata.py": REPRESENTATIVE_MODEL_FILES,
     "src/qai_hub_models/scorecard/numerics_yaml.py": REPRESENTATIVE_MODEL_FILES,

@@ -15,7 +15,6 @@ from qai_hub_models_cli.proto import model_perf_pb2
 
 from qai_hub_models import Precision
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.params import ScJobParams
 from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import QAIHMModelPerf
@@ -23,6 +22,7 @@ from qai_hub_models.scorecard.results.yaml import (
     CompileScorecardJobYaml,
     ToolVersionChange,
 )
+from qai_hub_models.utils._platform_helpers import device_names_with_form_factor
 from qai_hub_models.utils.base_config import BaseQAIHMConfig
 from qai_hub_models.utils.device import FormFactor
 
@@ -178,12 +178,7 @@ class PerformanceDiff:
         self.npu_not_primary_cu: dict[NPUNotPrimaryCUInfo, int] = {}
 
         # Exclude automotive devices (too noisy for regression tracking)
-        yaml_config = DevicesAndChipsetsYaml.load()
-        self._excluded_device_names: set[str] = {
-            name
-            for name, details in yaml_config.devices.items()
-            if details.form_factor == FormFactor.AUTO
-        }
+        self._excluded_device_names = device_names_with_form_factor(FormFactor.AUTO)
 
     @staticmethod
     def _format_speedup(num: float | None) -> str | float:

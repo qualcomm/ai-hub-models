@@ -18,6 +18,7 @@ from google.protobuf.message import Message
 from mypy_boto3_s3.service_resource import Bucket
 from qai_hub_models_cli.proto import release_manifest_pb2
 from qai_hub_models_cli.proto.model_release_assets_pb2 import ModelReleaseAssets
+from qai_hub_models_cli.proto.platform_pb2 import PlatformInfo
 from qai_hub_models_cli.proto_helpers._common import (
     write_proto_json,
     write_proto_yaml,
@@ -32,11 +33,8 @@ from qai_hub_models.configs.proto_helpers import (
     tag_to_proto,
     use_case_to_proto,
 )
+from qai_hub_models.core.configs import get_platform
 from qai_hub_models.scorecard.device import compute_peer_chipsets
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    DevicesAndChipsetsYaml,
-    _load_similar_devices_raw,
-)
 from qai_hub_models.scorecard.envvars import EnabledModelsEnvvar, SpecialModelSetting
 from qai_hub_models.scorecard.model_info import WebsiteModelInfo
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
@@ -46,6 +44,9 @@ from qai_hub_models.scorecard.perf_yaml import (
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.static.list_models import (
     validate_and_split_enabled_models,
+)
+from qai_hub_models.utils._platform_helpers import (
+    load_similar_devices_raw,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.aws import (
@@ -65,7 +66,7 @@ MODEL_YAMLS_TO_COPY = [
 
 GLOBAL_YAMLS_TO_COPY = [
     "asset_bases.yaml",
-    "devices_and_chipsets.yaml",
+    "platform.yaml",
 ]
 
 
@@ -208,17 +209,6 @@ def _build_model_protos(
     return written, None
 
 
-def _get_platform_proto(
-    aihm_version: str,
-    output_dir: Path,
-    fmts: list[Format],
-) -> list[Path]:
-    platform = DevicesAndChipsetsYaml.load()
-    return _write_proto_multi(
-        platform.to_proto(aihm_version), output_dir / "platform", fmts
-    )
-
-
 def _copy_global_yamls(output_root: Path, version: str) -> None:
     version_tag = f"v{version}" if not version.startswith("v") else version
 
@@ -319,7 +309,7 @@ def _similar_chipsets() -> frozenset[str]:
     Their perf is borrowed from a reference device rather than measured, so they
     are dropped from each model's manifest ``supported_chipsets``.
     """
-    return frozenset(d.chipset for d in _load_similar_devices_raw().devices.values())
+    return frozenset(d.chipset for d in load_similar_devices_raw().devices)
 
 
 def _manifest_filter_fields(
@@ -468,7 +458,11 @@ def _build_and_collect(
     all_files: list[tuple[Path, str]] = []
     global_s3_folder = ASSET_CONFIG.get_global_release_s3_folder(version)
 
-    platform_paths = _get_platform_proto(version, variant_root, fmts)
+    platform = PlatformInfo()
+    platform.CopyFrom(get_platform())
+    platform.aihm_version = version
+    platform_paths = _write_proto_multi(platform, variant_root / "platform", fmts)
+
     all_files.extend(
         (path, os.path.join(global_s3_folder, path.name)) for path in platform_paths
     )

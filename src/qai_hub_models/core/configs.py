@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
-from functools import partial
+from functools import cache, partial
 from typing import TypeVar
 
 from google.protobuf.message import Message
+from packaging.version import Version
 from qai_hub_models_cli.proto.model_manifest_pb2 import ModelManifest
 from qai_hub_models_cli.proto.model_numerics_pb2 import ModelNumerics
 from qai_hub_models_cli.proto.model_perf_pb2 import ModelPerf
@@ -29,11 +30,13 @@ from qai_hub_models.configs.proto_helpers import (
     runtime_from_proto,
 )
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
-from qai_hub_models.utils.aws import QAIHM_PRIVATE_S3_BUCKET
+from qai_hub_models.utils.aws import QAIHM_PRIVATE_S3_BUCKET, get_s3_url
 from qai_hub_models.utils.path_helpers import (
     MODEL_IDS,
+    PLATFORM_YAML_PATH,
     QAIHM_MODELS_ROOT,
     SCORECARD_MODELS_ROOT,
+    SIMILAR_DEVICES_YAML_PATH,
     is_internal_repo,
 )
 
@@ -166,15 +169,31 @@ def get_model_numerics(model_id: str) -> ModelNumerics:
     return numerics
 
 
-def get_platform() -> PlatformInfo:
-    """Build a PlatformInfo proto from local config (dev installs)."""
-    # The scorecard artifact schemas live in the internal-only package, so
-    # import them here to keep this module importable without it.
-    from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-        DevicesAndChipsetsYaml,
-    )
+@cache
+def get_platform(*, _include_similar_devices: bool = False) -> PlatformInfo:
+    """
+    Read the platform registry from platform.yaml (dev installs).
 
-    return DevicesAndChipsetsYaml.load().to_proto(__version__)
+    The result is cached and shared, so callers must not mutate it.
+
+    Parameters
+    ----------
+    _include_similar_devices
+        If True, also add the devices and chipsets from similar_devices.yaml.
+        These are never written to platform.yaml or published.
+
+    Returns
+    -------
+    platform : PlatformInfo
+        The platform registry, stamped with the installed version.
+    """
+    platform = read_proto_yaml(PLATFORM_YAML_PATH, PlatformInfo)
+    platform.aihm_version = __version__
+    if _include_similar_devices:
+        similar = read_proto_yaml(SIMILAR_DEVICES_YAML_PATH, PlatformInfo)
+        platform.devices.extend(similar.devices)
+        platform.chipsets.extend(similar.chipsets)
+    return platform
 
 
 def _resolve_download_url(
@@ -191,12 +210,28 @@ def _resolve_download_url(
             asset.chipset if asset.HasField("chipset") else None,
         )
     if asset.HasField("s3_key"):
-        return f"s3://{QAIHM_PRIVATE_S3_BUCKET}/{asset.s3_key}"
+        return get_s3_url(QAIHM_PRIVATE_S3_BUCKET, asset.s3_key)
     return ""
 
 
-def get_model_release_assets(model_id: str) -> ModelReleaseAssets | None:
-    """Read a ModelReleaseAssets proto from the model's release-assets.yaml."""
+def get_model_release_assets(
+    model_id: str, _set_url_version: Version | str | None = None
+) -> ModelReleaseAssets | None:
+    """
+    Read a ModelReleaseAssets proto from the model's release-assets.yaml.
+
+    Parameters
+    ----------
+    model_id
+        Model ID.
+    _set_url_version
+        If set, replace s3 bucket URLs with URLs that point to this version.
+
+    Returns
+    -------
+    assets : ModelReleaseAssets | None
+        The assets, or None if the model has none.
+    """
     # The scorecard package is not available in release builds, so import here.
     from qai_hub_models.scorecard.device import compute_peer_chipsets
 
@@ -204,8 +239,8 @@ def get_model_release_assets(model_id: str) -> ModelReleaseAssets | None:
     if not source.assets:
         return None
 
-    version = str(CURRENT_VERSION)
-    internal = is_internal_repo()
+    version = str(_set_url_version or CURRENT_VERSION)
+    internal = is_internal_repo() and _set_url_version is not None
 
     # Resolve URLs before copying to peers, which share one uploaded artifact.
     assets = list(source.assets)

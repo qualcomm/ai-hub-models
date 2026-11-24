@@ -38,14 +38,14 @@ from qai_hub_models.configs.proto_helpers import (
     runtime_to_proto,
 )
 from qai_hub_models.scorecard.device import ScorecardDevice, compute_peer_chipsets
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    _load_similar_devices_raw,
-)
 from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scorecard.results.chipset_helpers import (
     get_supported_devices,
     sorted_chipsets,
+)
+from qai_hub_models.utils._platform_helpers import (
+    load_similar_devices_raw,
 )
 from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 
@@ -53,7 +53,7 @@ from qai_hub_models.utils.path_helpers import QAIHM_MODELS_ROOT
 @cache
 def _similar_device_names() -> frozenset[str]:
     """Names of "similar" (non-workbench) devices excluded from the perf proto."""
-    return frozenset(_load_similar_devices_raw().devices.keys())
+    return frozenset(d.name for d in load_similar_devices_raw().devices)
 
 
 MIXED_PRECISIONS = frozenset({Precision.mixed, Precision.mixed_with_float})

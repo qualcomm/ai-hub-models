@@ -10,7 +10,6 @@ import pytest
 from qai_hub_models import Precision
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard.device import cs_8_gen_3
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
 from qai_hub_models.scorecard.path_profile import ScorecardInferencePath
 from qai_hub_models.scorecard.perf_yaml import (
     QAIHMModelPerf,
@@ -24,6 +23,7 @@ from qai_hub_models.scorecard.results.yaml import (
     InferenceScorecardJobYaml,
     get_model_component_and_graph_names,
 )
+from qai_hub_models.utils._platform_helpers import load_similar_devices
 from qai_hub_models.utils.hub_clients import deployment_is_prod
 
 EXPECTED_MODEL_CARD = QAIHMModelPerf.from_yaml(

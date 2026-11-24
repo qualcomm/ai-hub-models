@@ -16,7 +16,6 @@ from qai_hub_models.scorecard import (
     ScorecardDevice,
     ScorecardInferencePath,
 )
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.execution_helpers import (
     get_enabled_paths_for_testing,
     get_profile_parameterized_pytest_config,
@@ -55,6 +54,7 @@ from qai_hub_models.scorecard.static.model_config import ScorecardModelConfig
 from qai_hub_models.scorecard.static.model_exec import (
     get_static_model_test_parameterizations,
 )
+from qai_hub_models.utils._platform_helpers import platform_devices
 from qai_hub_models.utils.export.result import ComponentGroup
 
 # Maximum acceptable inference time (milliseconds).
@@ -300,7 +300,7 @@ class ScorecardExportTestSummary:
             new_chipsets.update(
                 self.params.device.supported_chipsets_for_paths([self.params.path])
             )
-        elif device_details := DevicesAndChipsetsYaml.load().devices.get(
+        elif device_details := platform_devices(include_similar_devices=True).get(
             self.params.device.reference_device_name
         ):
             new_chipsets.add(device_details.chipset)

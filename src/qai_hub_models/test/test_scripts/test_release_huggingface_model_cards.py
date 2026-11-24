@@ -55,27 +55,8 @@ def test_generate_and_dry_run_release_hf_model_cards() -> None:
         return_value=mock_hf_models,
     )
 
-    # Mock fetch_static_assets to avoid S3 access (used by get_download_links_rows and generate_hf_manifest)
-    def mock_fetch_static_assets(
-        model_id: str,
-        runtime: object,
-        precision: object,
-        device_or_chipset: str | None = None,
-        **kwargs: object,
-    ) -> tuple[None, str]:
-        # Return a mock download URL based on inputs
-        chipset_part = f"_{device_or_chipset}" if device_or_chipset else ""
-        url = f"https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/0.0.0/{model_id}/{precision}_{runtime.name}{chipset_part}.bin"  # type: ignore[attr-defined]
-        return None, url
-
-    fetch_static_assets_patch = mock.patch(
-        "qai_hub_models.scripts.utils.huggingface_model_card_helpers.fetch_static_assets",
-        side_effect=mock_fetch_static_assets,
-    )
-
     with (
         hf_list_models_patch,
-        fetch_static_assets_patch,
         TemporaryDirectory() as tmpdir,
     ):
         output_dir = Path(tmpdir)
@@ -190,54 +171,35 @@ def test_generate_hf_manifest() -> None:
     # Test with a known model that has release assets
     model_id = "quicksrnetlarge"  # Known to have release-assets.yaml
 
-    # Mock fetch_static_assets to avoid S3 access
-    def mock_fetch_static_assets(
-        model_id: str,
-        runtime: object,
-        precision: object,
-        device_or_chipset: str | None = None,
-        **kwargs: object,
-    ) -> tuple[None, str]:
-        # Return a mock download URL based on inputs
-        chipset_part = f"_{device_or_chipset}" if device_or_chipset else ""
-        url = f"https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/{qaihm_version}/{model_id}/{precision}_{runtime.name}{chipset_part}.bin"  # type: ignore[attr-defined]
-        return None, url
+    manifest = generate_hf_manifest(model_id, qaihm_version)
 
-    with mock.patch(
-        "qai_hub_models.scripts.utils.huggingface_model_card_helpers.fetch_static_assets",
-        side_effect=mock_fetch_static_assets,
-    ):
-        manifest = generate_hf_manifest(model_id, qaihm_version)
+    # Should return a valid manifest
+    assert manifest is not None, f"Expected manifest for {model_id}"
+    assert not manifest.empty, "Manifest should not be empty"
 
-        # Should return a valid manifest
-        assert manifest is not None, f"Expected manifest for {model_id}"
-        assert not manifest.empty, "Manifest should not be empty"
+    # Verify structure
+    assert len(manifest.precisions) > 0, "Manifest should have at least one precision"
 
-        # Verify structure
-        assert len(manifest.precisions) > 0, (
-            "Manifest should have at least one precision"
-        )
+    # Verify download URLs are populated (not s3_keys)
+    for precision_details in manifest.precisions.values():
+        # Check universal assets
+        for path, asset_details in precision_details.universal_assets.items():
+            assert asset_details.download_url is not None, (
+                f"Universal asset {path} should have download_url"
+            )
+            assert asset_details.s3_key is None, (
+                "Manifest should not include s3_key (only download_url)"
+            )
 
-        # Verify download URLs are populated (not s3_keys)
-        for precision_details in manifest.precisions.values():
-            # Check universal assets
-            for path, asset_details in precision_details.universal_assets.items():
+        # Check chipset assets
+        for chipset, chipset_paths in precision_details.chipset_assets.items():
+            for path, asset_details in chipset_paths.items():
                 assert asset_details.download_url is not None, (
-                    f"Universal asset {path} should have download_url"
+                    f"Chipset asset {chipset}/{path} should have download_url"
                 )
                 assert asset_details.s3_key is None, (
                     "Manifest should not include s3_key (only download_url)"
                 )
-
-            # Check chipset assets
-            for chipset, chipset_paths in precision_details.chipset_assets.items():
-                for path, asset_details in chipset_paths.items():
-                    assert asset_details.download_url is not None, (
-                        f"Chipset asset {chipset}/{path} should have download_url"
-                    )
-                    assert asset_details.s3_key is None, (
-                        "Manifest should not include s3_key (only download_url)"
-                    )
 
     # Verify to_json / from_json round-trip
     with TemporaryDirectory() as tmpdir:

@@ -281,7 +281,7 @@ def test_empty_report() -> None:
 
 def test_auto_device_excluded() -> None:
     """Automotive device regressions are excluded from the diff."""
-    # Use an auto device reference name from devices_and_chipsets.yaml
+    # Use an auto device reference name from platform.yaml
     auto_device = ScorecardDevice(
         name="test_auto",
         reference_device_name="SA8295P ADP",

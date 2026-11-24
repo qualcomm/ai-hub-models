@@ -5,14 +5,15 @@
 
 import sys
 
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    DevicesAndChipsetsYaml,
+from qai_hub_models.utils._platform_helpers import (
+    generate_platform_info,
+    save_platform,
 )
 from qai_hub_models.utils.envvars import IsOnCIEnvvar
 
 if __name__ == "__main__":
     """
-    Re-generate and save a DevicesAndChipsetsYaml configuration from the current
+    Re-generate and save the platform.yaml platform registry from the current
     set of devices / runtimes that are valid in AI Hub Models perf.yaml files.
     """
     if not IsOnCIEnvvar.get():
@@ -23,4 +24,4 @@ if __name__ == "__main__":
             print("exiting")
             sys.exit(0)
 
-    DevicesAndChipsetsYaml.from_all_runtimes_and_devices().save()
+    save_platform(generate_platform_info())

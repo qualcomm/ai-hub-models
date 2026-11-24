@@ -45,10 +45,6 @@ from qai_hub_models.configs.tensor_spec import (
     TensorSpec,
 )
 from qai_hub_models.configs.tool_versions import ToolVersions
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    DeviceDetailsYaml,
-    FormFactorYaml,
-)
 from qai_hub_models.scorecard.internal_config_yaml import QAIHMModelInternalConfig
 from qai_hub_models.scorecard.numerics_yaml import QAIHMModelNumerics
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
@@ -213,27 +209,6 @@ class TestInfoFieldCoverage:
         _check_coverage(
             NumericsAccuracyBenchmark,
             model_numerics_pb2.NumericsAccuracyBenchmark.DESCRIPTOR,
-        )
-
-
-# ---------------------------------------------------------------------------
-# platform.proto
-# ---------------------------------------------------------------------------
-
-
-class TestPlatformFieldCoverage:
-    def test_form_factor_yaml(self) -> None:
-        _check_coverage(
-            FormFactorYaml,
-            platform_pb2.FormFactorInfo.DESCRIPTOR,
-            proto_only={"form_factor"},
-        )
-
-    def test_device_details_yaml(self) -> None:
-        _check_coverage(
-            DeviceDetailsYaml,
-            platform_pb2.DeviceInfo.DESCRIPTOR,
-            proto_only={"name"},
         )
 
 

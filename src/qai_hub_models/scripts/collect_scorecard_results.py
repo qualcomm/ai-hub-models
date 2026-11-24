@@ -28,7 +28,6 @@ from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
 from qai_hub_models.scorecard import ScorecardInferencePath
 from qai_hub_models.scorecard.artifacts import ScorecardArtifact
 from qai_hub_models.scorecard.device import ScorecardDevice
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import load_similar_devices
 from qai_hub_models.scorecard.envvars import (
     ArtifactsDirEnvvar,
     BranchEnvvar,
@@ -84,6 +83,7 @@ from qai_hub_models.scripts.download_scorecard_results import (
     find_latest_run,
 )
 from qai_hub_models.scripts.scorecard.timings import write_stage_timings
+from qai_hub_models.utils._platform_helpers import load_similar_devices
 from qai_hub_models.utils.aws import can_access_private_s3
 from qai_hub_models.utils.envvars import IsOnCIEnvvar
 from qai_hub_models.utils.hub_clients import (

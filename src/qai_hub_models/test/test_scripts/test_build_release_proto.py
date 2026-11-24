@@ -18,11 +18,6 @@ from qai_hub_models import Precision
 from qai_hub_models._version import __version__
 from qai_hub_models.configs._info_yaml_enums import MODEL_USE_CASE
 from qai_hub_models.scorecard import ScorecardInferencePath
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import (
-    ALLOWED_SIMILAR_DEVICES,
-    DevicesAndChipsetsYaml,
-    _load_similar_devices_raw,
-)
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
 from qai_hub_models.scripts.build_release_proto import (
     _build_release_assets_proto,
@@ -30,6 +25,7 @@ from qai_hub_models.scripts.build_release_proto import (
     cmd_aws,
     cmd_website,
 )
+from qai_hub_models.utils._platform_helpers import platform_chipsets
 from qai_hub_models.utils.path_helpers import MODEL_IDS
 
 SAMPLE_MODELS = {"mobilenet_v2", "aotgan"}
@@ -65,17 +61,11 @@ def test_manifest_drops_similar_chipsets(mock_similar: MagicMock) -> None:
 
 
 def test_release_asset_chipsets_match_published_proto() -> None:
-    """Cross-check hardcoded release-asset chipsets against the published platform proto.
+    """Every chipset a hardcoded release asset references must be in the published platform.
 
-    Similar-device chipsets are stripped from the platform proto by default (their
-    perf is borrowed, not measured), except those kept via ``ALLOWED_SIMILAR_DEVICES``.
-    This enforces both directions of that allowlist in a single pass over all models
-    (scanning every model's release-assets.yaml is expensive, so we only do it once):
-
-    1. Every chipset a release asset references must survive into the published proto,
-       or the CLI ships assets for a chipset that isn't in its platform.
-    2. Every allowlisted similar device must actually be needed by a release asset, so
-       the allowlist doesn't re-add borrowed-perf chipsets to the proto for no reason.
+    Similar-device chipsets are not in the platform (their perf is borrowed, not
+    measured), so an asset that references one would ship for a chipset the CLI
+    does not know about.
     """
     # Map every chipset referenced by a hardcoded release asset to the models using it.
     # Only ``chipset_assets`` contribute; universal assets are chipset-agnostic.
@@ -88,35 +78,13 @@ def test_release_asset_chipsets_match_published_proto() -> None:
             for chipset in prec_details.chipset_assets:
                 used.setdefault(chipset, []).append(model_id)
 
-    proto = DevicesAndChipsetsYaml.load().to_proto("0.0.0")
-    published_chipsets = {c.name for c in proto.chipsets}
-
-    # (1) No used chipset may be missing from the published proto.
+    published_chipsets = set(platform_chipsets())
     missing = {c: models for c, models in used.items() if c not in published_chipsets}
     assert not missing, (
-        "These chipsets are referenced by hardcoded release assets but are stripped "
-        "from the published platform proto (they belong to 'similar' devices whose "
-        "perf is borrowed rather than measured):\n"
+        "These chipsets are referenced by hardcoded release assets but are not in the "
+        "published platform proto (similar-device chipsets are never published, since "
+        "their perf is borrowed rather than measured):\n"
         + "\n".join(f"  {c}: used by {sorted(models)}" for c, models in missing.items())
-        + "\n\nAdd the corresponding device(s) to ALLOWED_SIMILAR_DEVICES in "
-        "qai_hub_models/scorecard/devices_and_chipsets_yaml.py so the chipset is "
-        "kept in the platform proto."
-    )
-
-    # (2) Every allowlisted similar device must be needed by some release asset.
-    similar_devices = _load_similar_devices_raw().devices
-    unused = {
-        name: similar_devices[name].chipset
-        for name in ALLOWED_SIMILAR_DEVICES
-        if similar_devices[name].chipset not in used
-    }
-    assert not unused, (
-        "These devices are in ALLOWED_SIMILAR_DEVICES but no release asset references "
-        "their chipset:\n"
-        + "\n".join(f"  {name} ({chipset})" for name, chipset in unused.items())
-        + "\n\nRemove them from ALLOWED_SIMILAR_DEVICES in "
-        "qai_hub_models/scorecard/devices_and_chipsets_yaml.py; keeping them re-adds "
-        "borrowed-perf chipsets to the published platform proto for no reason."
     )
 
 
@@ -133,7 +101,7 @@ def test_cmd_website(output_dir: Path) -> None:
 
     assert output_dir.exists()
     assert (output_dir / "asset_bases.yaml").exists()
-    assert (output_dir / "devices_and_chipsets.yaml").exists()
+    assert (output_dir / "platform.yaml").exists()
 
     asset_bases_text = (output_dir / "asset_bases.yaml").read_text()
     version_tag = f"v{__version__}" if not __version__.startswith("v") else __version__

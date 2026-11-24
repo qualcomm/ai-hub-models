@@ -14,6 +14,8 @@ QAIHM_PACKAGE_NAME = "qai_hub_models"
 QAIHM_PACKAGE_ROOT = Path(__file__).parent.parent
 QAIHM_PACKAGE_SRC_ROOT = QAIHM_PACKAGE_ROOT.parent
 QAIHM_REPO_ROOT = QAIHM_PACKAGE_SRC_ROOT.parent
+PLATFORM_YAML_PATH = QAIHM_PACKAGE_ROOT / "platform.yaml"
+SIMILAR_DEVICES_YAML_PATH = QAIHM_PACKAGE_ROOT / "similar_devices.yaml"
 
 
 def is_internal_repo() -> bool:

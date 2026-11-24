@@ -20,6 +20,7 @@ import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from qai_hub_models_cli.utils import download
 from transformers import AutoTokenizer
 
 from qai_hub_models import Precision, TargetRuntime
@@ -39,14 +40,12 @@ from qai_hub_models.models.templates.llm.perf_collection import (
 )
 from qai_hub_models.scorecard import ScorecardDevice, ScorecardInferencePath
 from qai_hub_models.scorecard.envvars import QAIRTVersionEnvvar
-from qai_hub_models.scorecard.utils.fetch_prerelease_assets import (
-    download_prerelease_asset,
-)
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
 from qai_hub_models.utils.aws import (
     QAIHM_PRIVATE_S3_BUCKET,
     get_presigned_download_url,
     get_qaihm_s3,
+    get_s3_url,
 )
 from qai_hub_models.utils.devicefarm.devicefarm import (
     DeviceFarm,
@@ -1023,17 +1022,15 @@ def fetch_genie_bundle_for_perf(
         # Already fetched on a previous test in this session.
         return bundle_dir
 
-    zip_path = download_prerelease_asset(
-        asset,
-        model_id=model_id,
-        runtime=TargetRuntime.GENIE,
-        precision=precision,
-        chipset=chipset,
-        output_folder=output_dir,
-        verbose=True,
+    assert asset.s3_key is not None, "s3_key must be present for pre-release assets"
+    download(
+        get_s3_url(QAIHM_PRIVATE_S3_BUCKET, asset.s3_key),
+        output_dir
+        / ASSET_CONFIG.get_release_asset_filename(
+            model_id, TargetRuntime.GENIE, precision, chipset
+        ),
+        extract=True,
     )
-    shutil.unpack_archive(str(zip_path), extract_dir=str(output_dir))
-    zip_path.unlink()
     if not bundle_dir.exists():
         raise RuntimeError(
             f"Extracted genie bundle missing expected directory {bundle_dir}; "

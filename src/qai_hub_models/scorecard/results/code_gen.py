@@ -20,7 +20,6 @@ from qai_hub_models.scorecard import (
     ScorecardDevice,
     ScorecardInferencePath,
 )
-from qai_hub_models.scorecard.devices_and_chipsets_yaml import DevicesAndChipsetsYaml
 from qai_hub_models.scorecard.execution_helpers import (
     get_model_test_precisions,
 )
@@ -39,6 +38,7 @@ from qai_hub_models.scorecard.results.numerics_diff import (
 from qai_hub_models.scorecard.results.scorecard_summary import (
     ScorecardExportTestSummary,
 )
+from qai_hub_models.utils._platform_helpers import platform_devices
 
 # Maximum acceptable inference time (milliseconds).
 # Above this inference time, a model will not be published.
@@ -263,7 +263,7 @@ def _runtimes_to_strip_for_device(
 
 def _device_names_for_chipset(chipset: str) -> set[str]:
     """Hub device names of scorecard devices on this chipset, resolved without querying Hub."""
-    yaml_devices = DevicesAndChipsetsYaml.load().devices
+    yaml_devices = platform_devices(include_similar_devices=True)
     return {
         device.device_name
         for device in ScorecardDevice.all_devices(check_available_in_hub=False)
@@ -397,7 +397,7 @@ def remove_perf_failures(
     for (device, _), paths in remaining_paths.items():
         if device.available_in_hub:
             supported_chipsets.update(device.supported_chipsets_for_paths(paths))
-        elif details := DevicesAndChipsetsYaml.load().devices.get(
+        elif details := platform_devices(include_similar_devices=True).get(
             device.reference_device_name
         ):
             supported_chipsets.add(details.chipset)

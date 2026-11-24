@@ -7,12 +7,13 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-import shutil
 import sys
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+
+from qai_hub_models_cli.utils import download
 
 from qai_hub_models import Precision, QAIRTVersion, TargetRuntime
 from qai_hub_models.configs.manifest_yaml import QAIHMModelManifest
@@ -40,10 +41,8 @@ from qai_hub_models.scorecard.envvars import (
     SpecialLLMPerfPrecisionSetting,
 )
 from qai_hub_models.scorecard.release_assets_yaml import QAIHMModelReleaseAssets
-from qai_hub_models.scorecard.utils.fetch_prerelease_assets import (
-    download_prerelease_asset,
-)
 from qai_hub_models.utils.asset_loaders import ASSET_CONFIG
+from qai_hub_models.utils.aws import QAIHM_PRIVATE_S3_BUCKET, get_s3_url
 from qai_hub_models.utils.devicefarm.devicefarm import (
     DeviceFarm,
     JobOutcome,
@@ -182,18 +181,15 @@ def fetch_geniex_qairt_bundle(
         model_id, TargetRuntime.GENIEX_QAIRT, precision, chipset
     )
     if not bundle_dir.exists():
-        zip_path = download_prerelease_asset(
-            asset,
-            model_id=model_id,
-            runtime=TargetRuntime.GENIEX_QAIRT,
-            precision=precision,
-            chipset=chipset,
-            output_folder=output_dir,
-            verbose=True,
+        assert asset.s3_key is not None, "s3_key must be present for pre-release assets"
+        download(
+            get_s3_url(QAIHM_PRIVATE_S3_BUCKET, asset.s3_key),
+            output_dir
+            / ASSET_CONFIG.get_release_asset_filename(
+                model_id, TargetRuntime.GENIEX_QAIRT, precision, chipset
+            ),
+            extract=True,
         )
-        shutil.unpack_archive(str(zip_path), extract_dir=str(output_dir))
-        # Delete the zip once extracted so it doesn't fill the runner disk.
-        zip_path.unlink(missing_ok=True)
         if not bundle_dir.exists():
             raise RuntimeError(
                 f"Extracted geniex_qairt bundle missing expected directory {bundle_dir}; "

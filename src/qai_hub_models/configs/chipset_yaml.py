@@ -54,6 +54,10 @@ _PROTO_TO_WEBSITE_WORLD: dict[int, str] = {
 }
 
 
+def website_world_to_proto(world: WebsiteWorld) -> int:
+    return _WEBSITE_WORLD_TO_PROTO[world.value]
+
+
 def website_world_from_proto(value: int) -> WebsiteWorld:
     if value not in _PROTO_TO_WEBSITE_WORLD:
         raise ValueError(f"Unknown website world proto value: {value}")

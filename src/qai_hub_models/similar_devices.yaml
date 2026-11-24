@@ -1,4 +1,5 @@
 # Maps unsupported devices to similar (supported) AI Hub devices.
+# This is the YAML form of a `PlatformInfo` proto (devices and chipsets only).
 #
 # Each device has two chipset fields:
 #   * chipset: the real chipset for this device; this is what gets added to
@@ -7,143 +8,148 @@
 #     this device. If unset, falls back to chipset.
 #
 # Lookup uses the reference_chipset field (or chipset if unset), matched
-# exactly against the chipsets in devices_and_chipsets.yaml.
-devices:
-  SA8255P ADP:
-    chipset: qualcomm-sa8255p
-    reference_chipset: qualcomm-sa8775p
-    os:
-      ostype: Android
-      version: '14'
-    form_factor: Auto
-    vendor: qualcomm
-    icon: Car
-    npu_count: 2
-  SA8650P ADP:
-    chipset: qualcomm-sa8650p
-    reference_chipset: qualcomm-sa8775p
-    os:
-      ostype: Android
-      version: '14'
-    form_factor: Auto
-    vendor: qualcomm
-    icon: Car
-    npu_count: 2
-  Dragonwing Q-7790:
-    chipset: qualcomm-qcs7790
-    reference_chipset: qualcomm-snapdragon-7gen4
-    os:
-      ostype: Android
-      version: '15'
-    form_factor: IoT
-    vendor: qualcomm
-    icon: IoT_Drone
-  Dragonwing Q-8750:
-    chipset: qualcomm-qcs8750
-    reference_chipset: qualcomm-snapdragon-8-elite-for-galaxy
-    os:
-      ostype: Android
-      version: '15'
-    form_factor: IoT
-    vendor: qualcomm
-    icon: IoT_Drone
-  Dragonwing IQ-X5121:
-    chipset: qualcomm-qcs5121
-    reference_chipset: qualcomm-snapdragon-x-plus-8-core
-    os:
-      ostype: Windows
-      version: '11'
-    form_factor: IoT
-    vendor: qualcomm
-    icon: IoT_Chip
-  Dragonwing IQ-X7181:
-    chipset: qualcomm-qcs7181
-    reference_chipset: qualcomm-snapdragon-x-elite
-    os:
-      ostype: Windows
-      version: '11'
-    form_factor: IoT
-    vendor: qualcomm
-    icon: IoT_Chip
-  Snapdragon XR2 Gen 2:
-    chipset: qualcomm-qcs8450
-    reference_chipset: qualcomm-snapdragon-8gen1
-    os:
-      ostype: Android
-      version: '13'
-    form_factor: XR
-    vendor: qualcomm
-    icon: XR_Headset
+# exactly against the chipsets in platform.yaml.
 chipsets:
-  qualcomm-sa8255p:
-    aliases:
-    - qualcomm-sa8255p
-    marketing_name: Qualcomm® SA8255P
-    world: Automotive
-    supports_fp16: true
-    htp_version: 73
-    soc_model: 52
-    reference_device: SA8255P ADP
-    supports_weight_sharing: true
-  qualcomm-sa8650p:
-    aliases:
-    - qualcomm-sa8650p
-    marketing_name: Qualcomm® SA8650P
-    world: Automotive
-    supports_fp16: true
-    htp_version: 73
-    soc_model: 52
-    reference_device: SA8650P ADP
-    supports_weight_sharing: true
-  qualcomm-qcs7790:
-    aliases:
-    - qualcomm-qcs7790
-    - qualcomm-dragonwing-q-7790
-    marketing_name: Qualcomm® Dragonwing™ Q-7790
-    world: IoT
-    supports_fp16: true
-    htp_version: 73
-    soc_model: 86
-    reference_device: Dragonwing Q-7790
-    supports_weight_sharing: true
-  qualcomm-qcs8750:
-    aliases:
-    - qualcomm-qcs8750
-    - qualcomm-dragonwing-q-8750
-    marketing_name: Qualcomm® Dragonwing™ Q-8750
-    world: IoT
-    supports_fp16: true
-    htp_version: 79
-    soc_model: 69
-    reference_device: Dragonwing Q-8750
-    supports_weight_sharing: true
-  qualcomm-qcs5121:
-    aliases:
-    - qualcomm-qcs5121
-    marketing_name: Qualcomm® QCS5121
-    world: IoT
-    supports_fp16: true
-    htp_version: 73
-    soc_model: 60
-    reference_device: Dragonwing IQ-X5121
-    supports_weight_sharing: true
-  qualcomm-qcs7181:
-    aliases:
-    - qualcomm-qcs7181
-    - qualcomm-dragonwing-iq-x7181
-    marketing_name: Qualcomm® Dragonwing™ IQ-X7181
-    world: IoT
-    supports_fp16: true
-    htp_version: 73
-    soc_model: 60
-    reference_device: Dragonwing IQ-X7181
-    supports_weight_sharing: true
-  qualcomm-qcs8450:
-    aliases:
-    - qualcomm-qcs8450
-    marketing_name: Qualcomm® QCS8450
-    world: XR
-    supports_fp16: true
-    htp_version: 69
-    soc_model: 36
-    reference_device: Snapdragon XR2 Gen 2
+- aliases:
+  - qualcomm-qcs5121
+  htp_version: 73
+  marketing_name: Qualcomm® QCS5121
+  name: qualcomm-qcs5121
+  reference_device: Dragonwing IQ-X5121
+  soc_model: 60
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_IOT
+- aliases:
+  - qualcomm-qcs7181
+  - qualcomm-dragonwing-iq-x7181
+  htp_version: 73
+  marketing_name: Qualcomm® Dragonwing™ IQ-X7181
+  name: qualcomm-qcs7181
+  reference_device: Dragonwing IQ-X7181
+  soc_model: 60
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_IOT
+- aliases:
+  - qualcomm-qcs7790
+  - qualcomm-dragonwing-q-7790
+  htp_version: 73
+  marketing_name: Qualcomm® Dragonwing™ Q-7790
+  name: qualcomm-qcs7790
+  reference_device: Dragonwing Q-7790
+  soc_model: 86
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_IOT
+- aliases:
+  - qualcomm-qcs8450
+  htp_version: 69
+  marketing_name: Qualcomm® QCS8450
+  name: qualcomm-qcs8450
+  reference_device: Snapdragon XR2 Gen 2
+  soc_model: 36
+  supports_fp16: true
+  world: WEBSITE_WORLD_XR
+- aliases:
+  - qualcomm-qcs8750
+  - qualcomm-dragonwing-q-8750
+  htp_version: 79
+  marketing_name: Qualcomm® Dragonwing™ Q-8750
+  name: qualcomm-qcs8750
+  reference_device: Dragonwing Q-8750
+  soc_model: 69
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_IOT
+- aliases:
+  - qualcomm-sa8255p
+  htp_version: 73
+  marketing_name: Qualcomm® SA8255P
+  name: qualcomm-sa8255p
+  reference_device: SA8255P ADP
+  soc_model: 52
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_AUTOMOTIVE
+- aliases:
+  - qualcomm-sa8650p
+  htp_version: 73
+  marketing_name: Qualcomm® SA8650P
+  name: qualcomm-sa8650p
+  reference_device: SA8650P ADP
+  soc_model: 52
+  supports_fp16: true
+  supports_weight_sharing: true
+  world: WEBSITE_WORLD_AUTOMOTIVE
+devices:
+- chipset: qualcomm-qcs5121
+  form_factor: FORM_FACTOR_IOT
+  icon: WEBSITE_ICON_IOT_CHIP
+  name: Dragonwing IQ-X5121
+  npu_count: 1
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_WINDOWS
+    version: '11'
+  reference_chipset: qualcomm-snapdragon-x-plus-8-core
+  vendor: qualcomm
+- chipset: qualcomm-qcs7181
+  form_factor: FORM_FACTOR_IOT
+  icon: WEBSITE_ICON_IOT_CHIP
+  name: Dragonwing IQ-X7181
+  npu_count: 1
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_WINDOWS
+    version: '11'
+  reference_chipset: qualcomm-snapdragon-x-elite
+  vendor: qualcomm
+- chipset: qualcomm-qcs7790
+  form_factor: FORM_FACTOR_IOT
+  icon: WEBSITE_ICON_IOT_DRONE
+  name: Dragonwing Q-7790
+  npu_count: 1
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_ANDROID
+    version: '15'
+  reference_chipset: qualcomm-snapdragon-7gen4
+  vendor: qualcomm
+- chipset: qualcomm-qcs8750
+  form_factor: FORM_FACTOR_IOT
+  icon: WEBSITE_ICON_IOT_DRONE
+  name: Dragonwing Q-8750
+  npu_count: 1
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_ANDROID
+    version: '15'
+  reference_chipset: qualcomm-snapdragon-8-elite-for-galaxy
+  vendor: qualcomm
+- chipset: qualcomm-sa8255p
+  form_factor: FORM_FACTOR_AUTO
+  icon: WEBSITE_ICON_CAR
+  name: SA8255P ADP
+  npu_count: 2
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_ANDROID
+    version: '14'
+  reference_chipset: qualcomm-sa8775p
+  vendor: qualcomm
+- chipset: qualcomm-sa8650p
+  form_factor: FORM_FACTOR_AUTO
+  icon: WEBSITE_ICON_CAR
+  name: SA8650P ADP
+  npu_count: 2
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_ANDROID
+    version: '14'
+  reference_chipset: qualcomm-sa8775p
+  vendor: qualcomm
+- chipset: qualcomm-qcs8450
+  form_factor: FORM_FACTOR_XR
+  icon: WEBSITE_ICON_XR_HEADSET
+  name: Snapdragon XR2 Gen 2
+  npu_count: 1
+  os:
+    ostype: OPERATING_SYSTEM_TYPE_ANDROID
+    version: '13'
+  reference_chipset: qualcomm-snapdragon-8gen1
+  vendor: qualcomm
