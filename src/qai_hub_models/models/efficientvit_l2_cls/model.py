@@ -67,6 +67,8 @@ ATTENTION_EPS = 90
 class EfficientViT(ImagenetClassifier):
     """Exportable EfficientViT Image classifier, end-to-end."""
 
+    INPUT_TRANSFORM = EFFICIENTVIT_L2_TRANSFORM
+
     @classmethod
     def from_pretrained(
         cls, weights: str | None = None, precision: Precision = Precision.float
