@@ -127,9 +127,6 @@ class WorkbenchModel(ABC, FromPretrainedProtocol, EvaluatableModelProtocol):
         """Model name / identifier."""
         return _model_cls_name(self)
 
-    # Whether to pass --output_names to AI Hub compile jobs.
-    pass_output_names_to_compile: bool = True
-
     @property
     def context_graph_name(self) -> str:
         """The default name used for the graph context when compiling to a QNN Context Binary. May be overriden in the parameters of get_compile_options."""
@@ -217,7 +214,6 @@ class WorkbenchModel(ABC, FromPretrainedProtocol, EvaluatableModelProtocol):
             self.get_output_spec(),
             context_graph_name or self.context_graph_name,
             other_compile_options,
-            self.pass_output_names_to_compile,
         )
 
     def get_hub_link_options(

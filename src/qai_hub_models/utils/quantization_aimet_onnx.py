@@ -159,9 +159,6 @@ class AIMETOnnxQuantizableMixin(WorkbenchModel):
     Inheritor must implement WorkbenchModel for this mixin to function.
     """
 
-    # AI Hub rejects --output_names for AIMET ONNX models.
-    pass_output_names_to_compile: bool = False
-
     # For pre-calibrated asset lookup
     model_id: str = ""
     model_asset_version: int = -1

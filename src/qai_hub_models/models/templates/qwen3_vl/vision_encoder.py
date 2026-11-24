@@ -36,8 +36,6 @@ class Qwen3VLVisionEncoder(BaseModel):
     - full_attention_mask: attention mask for all layers
     """
 
-    pass_output_names_to_compile = False
-
     def __init__(
         self,
         visual: Any,

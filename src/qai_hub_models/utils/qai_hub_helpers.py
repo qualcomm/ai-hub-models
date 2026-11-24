@@ -603,7 +603,6 @@ def build_compile_options(
     output_spec: OutputSpec,
     context_graph_name: str | None = None,
     other_compile_options: str = "",
-    pass_output_names: bool = True,
 ) -> str:
     compile_options = ""
     if "--target_runtime" not in other_compile_options:
@@ -619,8 +618,7 @@ def build_compile_options(
     ):
         compile_options += f" {target_runtime.default_qairt_version.hub_option}"
 
-    if pass_output_names:
-        compile_options += f" --output_names {','.join(output_spec.keys())}"
+    compile_options += f" --output_names {','.join(output_spec.keys())}"
 
     if channel_last_inputs := get_channel_last(input_spec, target_runtime):
         compile_options += (

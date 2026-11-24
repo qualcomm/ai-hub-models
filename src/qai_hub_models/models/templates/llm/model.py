@@ -1286,7 +1286,6 @@ class LLMPartBase:
     """
 
     _cache_from_pretrained = False
-    pass_output_names_to_compile = False
 
     # Provided by the concrete Part base.
     hidden_size: int
@@ -1839,8 +1838,6 @@ class CollectionCompileO0Mixin:
 
 class LLMCollectionBase(MultiGraphWorkbenchModelCollection):
     """Collection base shared by every LLM / VLM."""
-
-    pass_output_names_to_compile = False
 
 
 class DynamicSplitCollectionBase(LLMCollectionBase):
@@ -3659,8 +3656,6 @@ class LLM_AIMETOnnx(AIMETOnnxQuantizableMixin, LLMConfigEditor, BaseModel, ABC):
 
 
 class LLM_QNN(LLMConfigEditor, BaseModel, ABC):
-    pass_output_names_to_compile = False
-
     # Embedding subclass
     FPModel: type[LLMBase] | None = None
     EmbeddingClass: type[Embedding] | None = None
