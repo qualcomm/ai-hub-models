@@ -80,6 +80,8 @@ ALL_GENIEX_DEVICES = (
 )
 LLAMACPP_DEVICE_ALIASES = ("cpu", "gpu", "npu")
 LLAMACPP_CONTEXT_LENGTHS = [512, 4096]
+# eval_only rows are successful eval-only runs (perf disabled), not failures.
+OK_STATUSES = {"success", "eval_only"}
 
 # Queued (not running) jobs allowed per device type: enough that a freed phone
 # picks up the next job immediately, small enough that nothing waits for hours.
@@ -252,6 +254,7 @@ def write_csv(rows: list[dict], path: str) -> None:
 
 
 def write_summary(rows: list[dict]) -> None:
+    """Write only the failed rows to the step summary; the CSV artifact has them all."""
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if not summary:
         return
@@ -259,8 +262,12 @@ def write_summary(rows: list[dict]) -> None:
     def _format_values(v: object, spec: str = ".2f") -> str:
         return format(v, spec) if isinstance(v, (int, float)) else "-"
 
+    failed = [r for r in rows if r["status"] not in OK_STATUSES]
     with open(summary, "a") as f:
-        f.write("## GenieX On-device Results\n\n")
+        f.write("## GenieX On-device Failures\n\n")
+        if not failed:
+            f.write("No failures.\n\n")
+            return
         f.write(
             "| Model | Plugin | Precision | Device | Ctx | Decode TPS | Prefill TPS | TTFT (ms) | Status |\n"
         )
@@ -273,7 +280,7 @@ def write_summary(rows: list[dict]) -> None:
             f"{_format_values(r.get('decode_tps'))} | {_format_values(r.get('prefill_tps'))} | "
             f"{_format_values(r.get('ttft_ms'), '.1f')} | "
             f"{r['status']}{' (' + r['note'] + ')' if r.get('note') else ''} |\n"
-            for r in rows
+            for r in failed
         )
         f.write("\n")
 
@@ -711,9 +718,7 @@ def _write_final_outputs(rows: list[dict], csv_path: str) -> int:
     write_csv(rows, csv_path)
     print(f"\nResults saved to {csv_path}")
     write_summary(rows)
-    # eval_only rows are successful eval-only runs (perf disabled), not failures.
-    ok_statuses = {"success", "eval_only"}
-    failed = [r for r in rows if r["status"] not in ok_statuses]
+    failed = [r for r in rows if r["status"] not in OK_STATUSES]
     if not rows:
         print("No models were benchmarked (all skipped or no candidates).")
         return 0

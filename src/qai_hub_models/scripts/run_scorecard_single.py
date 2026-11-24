@@ -125,6 +125,8 @@ def _unsupported_pipeline_reason(model_id: str) -> str | None:
     sc = QAIHMModelInternalConfig.from_model(model_id)
     if not sc.runs_in_scorecard:
         return "skipped by internal-config.yaml"
+    if sc.skip_export:
+        return "no recipe code (skip_export)"
     return None
 
 

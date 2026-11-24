@@ -114,7 +114,7 @@ jobs:
     runs-on: aihub-models-ubuntu-2404-ec2
     permissions:
       contents: write
-      actions: read
+      actions: write
       pull-requests: write
       id-token: write  # Required for AWS OIDC (S3 upload)
 
@@ -574,6 +574,19 @@ jobs:
         with:
           name: All Scorecard Artifacts (${{ inputs.action_id || inputs.latest_results_branch }})
           path: ${{ env.QAIHM_TEST_ARTIFACTS_DIR }}
+
+      - name: Delete Per-Split Artifacts
+        if: ${{ !cancelled() && steps.upload-results.outcome == 'success' && inputs.action_id == github.run_id }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ID="${{ inputs.action_id }}"
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --paginate \
+            -q ".artifacts[] | select(.name | startswith(\"Scorecard Cached Artifact (accuracy.csv, $ID, \") or startswith(\"Scorecard Cached Artifact (release-assets.yaml, $ID, \") or startswith(\"Scorecard Cached Artifact (Flaky-Job-IDs, $ID, \") or startswith(\"Scorecard LLM Perf Release Assets ($ID, \") or startswith(\"perf-updates-\")) | .id" \
+            | while read artifact_id; do
+            echo "Deleting artifact $artifact_id"
+            gh api -X DELETE repos/${{ github.repository }}/actions/artifacts/$artifact_id || true
+          done
 
   publish_to_tableau:
     name: Copy CSV to Tableau
