@@ -73,9 +73,9 @@ def parse_args() -> argparse.Namespace:
         "--persist-asset-sync",
         action="store_true",
         help=(
-            "By default, this script will upload models and temporary datasets to Hub if an asset is not already  "
-            "uploaded to the target Hub deployment. These assets are not persisted beyond the lifetime of this script. "
-            "If this arg is set, permanent datasets will be synced, and asset IDs will be saved to the on-disk model config. "
+            "By default, this script will upload models and datasets to Hub if an asset is not already "
+            "uploaded to the target Hub deployment. The asset IDs are not persisted beyond the lifetime of this script. "
+            "If this arg is set, asset IDs will be saved to the on-disk model config. "
             "Generally you should set this only if you anticipate this deployment being used multiple times and you plan to commit the config changes."
         ),
     )
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     inference_ids = ScorecardArtifact.INFERENCE_YAML.touch()
     deployment: str = args.deployment
     compile_job_timeout: int | None = args.compile_timeout
-    permanent_asset_sync: bool = args.persist_asset_sync
+    persist_asset_sync: bool = args.persist_asset_sync
 
     enable_compile: bool = not args.skip_compile
     enable_inference: bool = not args.skip_inference
@@ -114,8 +114,8 @@ if __name__ == "__main__":
     # Sync assets for selected models
     for config in model_configs:
         print(f"Sync Assets for {config.id}")
-        sync_model_assets(config, deployment, permanent_asset_sync)
-        if permanent_asset_sync:
+        sync_model_assets(config, deployment)
+        if persist_asset_sync:
             config.to_scorecard_yaml(models_path)
 
     compile_results = None

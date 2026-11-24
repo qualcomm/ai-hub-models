@@ -52,7 +52,6 @@ if __name__ == "__main__":
         sync_model_assets(
             config,
             deployments_list,
-            permanent_dataset_upload=True,
             clear_existing=args.clear_existing_assets,
         )
         config.to_scorecard_yaml(models_path)

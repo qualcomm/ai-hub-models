@@ -24,7 +24,6 @@ DEFAULT_DEPLOYMENTS = {"prod", "staging", "dev"}
 def sync_model_assets(
     model_config: ScorecardModelConfig,
     deployments: str | list[str] | set[str] | None = None,
-    permanent_dataset_upload: bool = True,
     clear_existing: bool = False,
 ) -> None:
     """
@@ -38,9 +37,6 @@ def sync_model_assets(
         Model config to update.
     deployments
         Deployments to synchronize. If a deployment already has an asset uploaded, it is skipped.
-    permanent_dataset_upload
-        Whether or not permanent datasets should be uploaded. If false, the datasets
-        uploaded will be temporary and expire.
     clear_existing
         Clears all existing automated fields before uploading (no deployments are skipped).
 
@@ -120,13 +116,7 @@ def sync_model_assets(
                 client = get_scorecard_client_or_raise(
                     deployment, model_config.restrict_access
                 )
-                new_hub_dataset = client._upload_dataset(
-                    dataset_h5_path,
-                    dataset_name,
-                    permanent=(
-                        permanent_dataset_upload and deployment in DEFAULT_DEPLOYMENTS
-                    ),
-                )
+                new_hub_dataset = client.upload_dataset(dataset_h5_path, dataset_name)
                 model_config.hub_input_dataset_ids_automated[deployment] = (
                     new_hub_dataset.dataset_id
                 )
@@ -178,13 +168,8 @@ def sync_model_assets(
                         print(
                             f"({model_config.id}) Uploading Channel Last Dataset to {deployment}"
                         )
-                        new_hub_cl_dataset = client._upload_dataset(
-                            dataset_cl_h5_path,
-                            cl_dataset_name,
-                            permanent=(
-                                permanent_dataset_upload
-                                and deployment in DEFAULT_DEPLOYMENTS
-                            ),
+                        new_hub_cl_dataset = client.upload_dataset(
+                            dataset_cl_h5_path, cl_dataset_name
                         )
                         model_config.hub_input_channel_last_dataset_ids_automated[
                             deployment
