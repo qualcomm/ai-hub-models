@@ -371,5 +371,16 @@ D1_ALL = _register_metric(
     )
 )
 
+EPE = _register_metric(
+    MetricMetadata(
+        name="EPE",
+        unit="px",
+        description="End-Point Error: mean absolute disparity error in pixels for stereo matching models.",
+        range=(0.0, None),
+        higher_is_better=False,
+        float_vs_device_threshold=0.1,  # ~20% of float EPE (~0.55 px)
+    )
+)
+
 # Freeze the valid pairs set now that all metrics are registered.
 VALID_METRIC_PAIRS: frozenset[tuple[str, str]] = frozenset(_VALID_METRIC_PAIRS)

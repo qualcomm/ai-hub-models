@@ -1,0 +1,28 @@
+name: IGEV-PlusPlus
+id: igev_plusplus
+headline: Real-time iterative geometry encoding for stereo matching and disparity estimation.
+domain: Computer Vision
+description: IGEV++ RT is the real-time variant of IGEV++ for stereo matching and disparity estimation using lightweight geometry encoding volumes and iterative GRU-based refinement.
+use_case: Depth Estimation
+tags: []
+numerics_benchmark:
+  dataset_name: sceneflow_ft3d
+  metric_name: EPE
+  source: AI Hub Models Reference Eval
+  unit: px
+  value: 0.5546
+
+license_type: mit
+research_paper: https://arxiv.org/abs/2409.00638
+research_paper_title: "IGEV++: Iterative Multi-range Geometry Encoding Volumes for Stereo Matching"
+source_repo: https://github.com/gangweiX/IGEV-plusplus
+license: https://github.com/gangweiX/IGEV-plusplus/blob/main/LICENSE
+external_repos:
+  igev_plusplus:
+    repo_url: https://github.com/gangweiX/IGEV-plusplus.git
+    commit_sha: 099dec97989780d151700459c682df1cc2c18e88
+    patches_filename: igev_plusplus_patches.diff
+requires_aot_prepare: true
+supported_precisions:
+- float
+has_on_target_demo: true

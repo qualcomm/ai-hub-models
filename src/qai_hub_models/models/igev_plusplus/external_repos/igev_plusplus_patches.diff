@@ -1,0 +1,718 @@
+diff --git a/core_rt/extractor.py b/core_rt/extractor.py
+index 1d74eee..6b07c51 100644
+--- a/core_rt/extractor.py
++++ b/core_rt/extractor.py
+@@ -327,13 +327,12 @@ class SubModule(nn.Module):
+ class Feature(SubModule):
+     def __init__(self):
+         super(Feature, self).__init__()
+-        pretrained =  True
++        pretrained = False  # Qualcomm Change: IGEV checkpoint supplies backbone weights
+         model = timm.create_model('mobilenetv2_100', pretrained=pretrained, features_only=True)
+         layers = [1,2,3,5,6]
+         chans = [16, 24, 32, 96, 160]
+         self.conv_stem = model.conv_stem
+         self.bn1 = model.bn1
+-        self.act1 = model.act1
+ 
+         self.block0 = torch.nn.Sequential(*model.blocks[0:layers[0]])
+         self.block1 = torch.nn.Sequential(*model.blocks[layers[0]:layers[1]])
+@@ -347,7 +346,7 @@ class Feature(SubModule):
+         self.conv4 = BasicConv_IN(chans[1]*2, chans[1]*2, kernel_size=3, stride=1, padding=1)
+ 
+     def forward(self, x):
+-        x = self.act1(self.bn1(self.conv_stem(x)))
++        x = self.bn1(self.conv_stem(x))  # Qualcomm Change: act1 fused into bn1 in timm >= 1.0
+         x2 = self.block0(x)
+         x4 = self.block1(x2)
+         x8 = self.block2(x4)
+diff --git a/core_rt/rt_igev_stereo.py b/core_rt/rt_igev_stereo.py
+index 250f752..b9d8be1 100644
+--- a/core_rt/rt_igev_stereo.py
++++ b/core_rt/rt_igev_stereo.py
+@@ -163,7 +163,10 @@ class IGEVStereo(nn.Module):
+             geo_encoding_volume = self.cost_agg(gwc_volume, features_left)
+ 
+             # Init disp from geometry encoding volume
+-            prob = F.softmax(self.classifier(geo_encoding_volume).squeeze(1), dim=1)
++            # Qualcomm Change: bypass rank-5 classifier forward
++            c = self.classifier
++            classified = conv3d_via_2d(geo_encoding_volume, c.weight, c.bias, c.stride, c.padding, c.dilation)
++            prob = F.softmax(classified.squeeze(1), dim=1)
+             init_disp = disparity_regression(prob, self.args.max_disp//4, 1)
+             
+             del prob, gwc_volume
+diff --git a/core_rt/submodule.py b/core_rt/submodule.py
+index c83a834..fc9c149 100644
+--- a/core_rt/submodule.py
++++ b/core_rt/submodule.py
+@@ -1,250 +1,359 @@
+-import torch
+-import torch.nn as nn
+-import torch.nn.functional as F
+-import numpy as np
+-
+-
+-
+-
+-class BasicConv(nn.Module):
+-
+-    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, bn=True, relu=True, **kwargs):
+-        super(BasicConv, self).__init__()
+-
+-        self.relu = relu
+-        self.use_bn = bn
+-        if is_3d:
+-            if deconv:
+-                self.conv = nn.ConvTranspose3d(in_channels, out_channels, bias=False, **kwargs)
+-            else:
+-                self.conv = nn.Conv3d(in_channels, out_channels, bias=False, **kwargs)
+-            self.bn = nn.BatchNorm3d(out_channels)
+-        else:
+-            if deconv:
+-                self.conv = nn.ConvTranspose2d(in_channels, out_channels, bias=False, **kwargs)
+-            else:
+-                self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
+-            self.bn = nn.BatchNorm2d(out_channels)
+-
+-    def forward(self, x):
+-        x = self.conv(x)
+-        if self.use_bn:
+-            x = self.bn(x)
+-        if self.relu:
+-            x = nn.LeakyReLU()(x)#, inplace=True)
+-        return x
+-
+-
+-class Conv2x(nn.Module):
+-
+-    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, concat=True, keep_concat=True, bn=True, relu=True, keep_dispc=False):
+-        super(Conv2x, self).__init__()
+-        self.concat = concat
+-        self.is_3d = is_3d 
+-        if deconv and is_3d: 
+-            kernel = (4, 4, 4)
+-        elif deconv:
+-            kernel = 4
+-        else:
+-            kernel = 3
+-
+-        if deconv and is_3d and keep_dispc:
+-            kernel = (1, 4, 4)
+-            stride = (1, 2, 2)
+-            padding = (0, 1, 1)
+-            self.conv1 = BasicConv(in_channels, out_channels, deconv, is_3d, bn=True, relu=True, kernel_size=kernel, stride=stride, padding=padding)
+-        else:
+-            self.conv1 = BasicConv(in_channels, out_channels, deconv, is_3d, bn=True, relu=True, kernel_size=kernel, stride=2, padding=1)
+-
+-        if self.concat: 
+-            mul = 2 if keep_concat else 1
+-            self.conv2 = BasicConv(out_channels*2, out_channels*mul, False, is_3d, bn, relu, kernel_size=3, stride=1, padding=1)
+-        else:
+-            self.conv2 = BasicConv(out_channels, out_channels, False, is_3d, bn, relu, kernel_size=3, stride=1, padding=1)
+-
+-    def forward(self, x, rem):
+-        x = self.conv1(x)
+-        if x.shape != rem.shape:
+-            x = F.interpolate(
+-                x,
+-                size=(rem.shape[-2], rem.shape[-1]),
+-                mode='nearest')
+-        if self.concat:
+-            x = torch.cat((x, rem), 1)
+-        else: 
+-            x = x + rem
+-        x = self.conv2(x)
+-        return x
+-
+-
+-class BasicConv_IN(nn.Module):
+-
+-    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, IN=True, relu=True, **kwargs):
+-        super(BasicConv_IN, self).__init__()
+-
+-        self.relu = relu
+-        self.use_in = IN
+-        if is_3d:
+-            if deconv:
+-                self.conv = nn.ConvTranspose3d(in_channels, out_channels, bias=False, **kwargs)
+-            else:
+-                self.conv = nn.Conv3d(in_channels, out_channels, bias=False, **kwargs)
+-            self.IN = nn.InstanceNorm3d(out_channels)
+-        else:
+-            if deconv:
+-                self.conv = nn.ConvTranspose2d(in_channels, out_channels, bias=False, **kwargs)
+-            else:
+-                self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
+-            self.IN = nn.InstanceNorm2d(out_channels)
+-
+-    def forward(self, x):
+-        x = self.conv(x)
+-        if self.use_in:
+-            x = self.IN(x)
+-        if self.relu:
+-            x = nn.LeakyReLU()(x)#, inplace=True)
+-        return x
+-
+-
+-class Conv2x_IN(nn.Module):
+-
+-    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, concat=True, keep_concat=True, IN=True, relu=True, keep_dispc=False):
+-        super(Conv2x_IN, self).__init__()
+-        self.concat = concat
+-        self.is_3d = is_3d 
+-        if deconv and is_3d: 
+-            kernel = (4, 4, 4)
+-        elif deconv:
+-            kernel = 4
+-        else:
+-            kernel = 3
+-
+-        if deconv and is_3d and keep_dispc:
+-            kernel = (1, 4, 4)
+-            stride = (1, 2, 2)
+-            padding = (0, 1, 1)
+-            self.conv1 = BasicConv_IN(in_channels, out_channels, deconv, is_3d, IN=True, relu=True, kernel_size=kernel, stride=stride, padding=padding)
+-        else:
+-            self.conv1 = BasicConv_IN(in_channels, out_channels, deconv, is_3d, IN=True, relu=True, kernel_size=kernel, stride=2, padding=1)
+-
+-        if self.concat: 
+-            mul = 2 if keep_concat else 1
+-            self.conv2 = BasicConv_IN(out_channels*2, out_channels*mul, False, is_3d, IN, relu, kernel_size=3, stride=1, padding=1)
+-        else:
+-            self.conv2 = BasicConv_IN(out_channels, out_channels, False, is_3d, IN, relu, kernel_size=3, stride=1, padding=1)
+-
+-    def forward(self, x, rem):
+-        x = self.conv1(x)
+-        if x.shape != rem.shape:
+-            x = F.interpolate(
+-                x,
+-                size=(rem.shape[-2], rem.shape[-1]),
+-                mode='nearest')
+-        if self.concat:
+-            x = torch.cat((x, rem), 1)
+-        else: 
+-            x = x + rem
+-        x = self.conv2(x)
+-        return x
+-
+-
+-def groupwise_correlation(fea1, fea2, num_groups):
+-    B, C, H, W = fea1.shape
+-    assert C % num_groups == 0
+-    channels_per_group = C // num_groups
+-    cost = (fea1 * fea2).view([B, num_groups, channels_per_group, H, W]).mean(dim=2)
+-    assert cost.shape == (B, num_groups, H, W)
+-    return cost
+-
+-def build_gwc_volume(refimg_fea, targetimg_fea, maxdisp, num_groups):
+-    B, C, H, W = refimg_fea.shape
+-    volume = refimg_fea.new_zeros([B, num_groups, maxdisp, H, W])
+-    for i in range(maxdisp):
+-        if i > 0:
+-            volume[:, :, i, :, i:] = groupwise_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i],
+-                                                           num_groups)
+-        else:
+-            volume[:, :, i, :, :] = groupwise_correlation(refimg_fea, targetimg_fea, num_groups)
+-    volume = volume.contiguous()
+-    return volume
+-        
+-
+-
+-
+-def norm_correlation(fea1, fea2):
+-    cost = torch.mean(((fea1/(torch.norm(fea1, 2, 1, True)+1e-05)) * (fea2/(torch.norm(fea2, 2, 1, True)+1e-05))), dim=1, keepdim=True)
+-    return cost
+-
+-def build_norm_correlation_volume(refimg_fea, targetimg_fea, maxdisp):
+-    B, C, H, W = refimg_fea.shape
+-    volume = refimg_fea.new_zeros([B, 1, maxdisp, H, W])
+-    for i in range(maxdisp):
+-        if i > 0:
+-            volume[:, :, i, :, i:] = norm_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i])
+-        else:
+-            volume[:, :, i, :, :] = norm_correlation(refimg_fea, targetimg_fea)
+-    volume = volume.contiguous()
+-    return volume
+-
+-def correlation(fea1, fea2):
+-    cost = torch.sum((fea1 * fea2), dim=1, keepdim=True)
+-    return cost
+-
+-def build_correlation_volume(refimg_fea, targetimg_fea, maxdisp):
+-    B, C, H, W = refimg_fea.shape
+-    volume = refimg_fea.new_zeros([B, 1, maxdisp, H, W])
+-    for i in range(maxdisp):
+-        if i > 0:
+-            volume[:, :, i, :, i:] = correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i])
+-        else:
+-            volume[:, :, i, :, :] = correlation(refimg_fea, targetimg_fea)
+-    volume = volume.contiguous()
+-    return volume
+-
+-
+-
+-def build_concat_volume(refimg_fea, targetimg_fea, maxdisp):
+-    B, C, H, W = refimg_fea.shape
+-    volume = refimg_fea.new_zeros([B, 2 * C, maxdisp, H, W])
+-    for i in range(maxdisp):
+-        if i > 0:
+-            volume[:, :C, i, :, :] = refimg_fea[:, :, :, :]
+-            volume[:, C:, i, :, i:] = targetimg_fea[:, :, :, :-i]
+-        else:
+-            volume[:, :C, i, :, :] = refimg_fea
+-            volume[:, C:, i, :, :] = targetimg_fea
+-    volume = volume.contiguous()
+-    return volume
+-
+-def disparity_regression(prob, maxdisp, interval):
+-    assert len(prob.shape) == 4
+-    disp_values = torch.arange(0, maxdisp, interval, dtype=prob.dtype, device=prob.device)
+-    disp_values = disp_values.view(1, maxdisp//interval, 1, 1)
+-    return torch.sum(prob * disp_values, 1, keepdim=True)
+-
+-
+-class FeatureAtt(nn.Module):
+-    def __init__(self, cv_chan, feat_chan):
+-        super(FeatureAtt, self).__init__()
+-
+-        self.feat_att = nn.Sequential(
+-            BasicConv(feat_chan, feat_chan//2, kernel_size=1, stride=1, padding=0),
+-            nn.Conv2d(feat_chan//2, cv_chan, 1))
+-
+-    def forward(self, cv, feat):
+-        '''
+-        '''
+-        feat_att = self.feat_att(feat).unsqueeze(2)
+-        cv = torch.sigmoid(feat_att)*cv
+-        return cv
+-
+-def context_upsample(disp_low, up_weights):
+-    ###
+-    # cv (b,1,h,w)
+-    # sp (b,9,4*h,4*w)
+-    ###
+-    b, c, h, w = disp_low.shape       
+-    disp_unfold = F.unfold(disp_low.reshape(b,c,h,w),3,1,1).reshape(b,-1,h,w)
+-    disp_unfold = F.interpolate(disp_unfold,(h*4,w*4),mode='nearest').reshape(b,9,h*4,w*4)
+-    disp = (disp_unfold*up_weights).sum(dim=1,keepdim=True)      
++import torch
++import torch.nn as nn
++import torch.nn.functional as F
++import numpy as np
++
++
++def _conv3d_output_len(length, kernel, stride, pad, dilation):
++    return (length + 2 * pad - dilation * (kernel - 1) - 1) // stride + 1
++
++
++def _conv3d_via_2d_folded(x, weight, bias, stride, padding, dilation=(1, 1, 1)):
++    B, Cin, D, H, W = x.shape
++    kD, kH, kW = weight.shape[2], weight.shape[3], weight.shape[4]
++    sD, sH, sW = stride
++    pD, pH, pW = padding
++    dD, dH, dW = dilation
++    # Qualcomm Change: pre-unbind rank-5 weight into rank-4 slices before loop
++    # to avoid Gather on rank-5 weight tensor (rejected by QAIRT 2.50+ HTP).
++    weight_kd = weight.unbind(dim=2)  # tuple of kD rank-4 tensors (Cout,Cin,kH,kW)
++    if pD > 0:
++        x = F.pad(x, (0, 0, 0, 0, pD, pD))
++    Dout = _conv3d_output_len(D, kD, sD, pD, dD)
++    out2d = None
++    for kd in range(kD):
++        start = kd * dD
++        sl = x[:, :, start:start + (Dout - 1) * sD + 1:sD, :, :]
++        b, c, d, h, w = sl.shape
++        sl2d = sl.permute(0, 2, 1, 3, 4).reshape(b * d, c, h, w)
++        conv_out = F.conv2d(sl2d, weight_kd[kd], stride=(sH, sW), padding=(pH, pW), dilation=(dH, dW))
++        out2d = conv_out if out2d is None else out2d + conv_out
++    if bias is not None:
++        out2d = out2d + bias.view(1, -1, 1, 1)
++    return out2d, B, Dout
++
++
++def conv3d_via_2d(x, weight, bias, stride, padding, dilation=(1, 1, 1)):
++    out2d, B, Dout = _conv3d_via_2d_folded(x, weight, bias, stride, padding, dilation)
++    _, co, ho, wo = out2d.shape
++    return out2d.reshape(B, Dout, co, ho, wo).permute(0, 2, 1, 3, 4)
++
++
++def _dilate_d(x, stride):
++    if stride == 1:
++        return x
++    B, C, D, H, W = x.shape
++    zero = x.new_zeros(B, C, 1, H, W)
++    pieces = []
++    for d in range(D):
++        pieces.append(x.narrow(2, d, 1))
++        if d < D - 1:
++            pieces.extend([zero] * (stride - 1))
++    return torch.cat(pieces, dim=2)
++
++
++def _conv_transpose3d_via_2d_folded(x, weight, bias, stride, padding, dilation=(1, 1, 1)):
++    B, Cin, Din, H, W = x.shape
++    kD, kH, kW = weight.shape[2], weight.shape[3], weight.shape[4]
++    sD, sH, sW = stride
++    pD, pH, pW = padding
++    dD, dH, dW = dilation
++    # Qualcomm Change: pre-unbind rank-5 weight into rank-4 slices before loop
++    # to avoid Gather on rank-5 weight tensor (rejected by QAIRT 2.50+ HTP).
++    weight_kd = weight.unbind(dim=2)  # tuple of kD rank-4 tensors (Cin,Cout,kH,kW)
++    x_dil = _dilate_d(x, sD)
++    pad_eff = dD * (kD - 1) - pD
++    assert pad_eff >= 0
++    if pad_eff > 0:
++        x_dil = F.pad(x_dil, (0, 0, 0, 0, pad_eff, pad_eff))
++    Dout = (Din - 1) * sD - 2 * pD + dD * (kD - 1) + 1
++    out2d = None
++    for kd in range(kD):
++        kd_src = kD - 1 - kd
++        start = kd * dD
++        sl = x_dil[:, :, start:start + Dout, :, :]
++        b, c, d, h, w = sl.shape
++        sl2d = sl.permute(0, 2, 1, 3, 4).reshape(b * d, c, h, w)
++        conv_out = F.conv_transpose2d(sl2d, weight_kd[kd_src], stride=(sH, sW), padding=(pH, pW), dilation=(dH, dW))
++        out2d = conv_out if out2d is None else out2d + conv_out
++    if bias is not None:
++        out2d = out2d + bias.view(1, -1, 1, 1)
++    return out2d, B, Dout
++
++
++def _batch_norm_2d_affine(x, running_mean, running_var, weight, bias, eps=1e-5):
++    mean = running_mean.view(1, -1, 1, 1)
++    var = running_var.view(1, -1, 1, 1)
++    w = weight.view(1, -1, 1, 1)
++    b = bias.view(1, -1, 1, 1)
++    return (x - mean) / torch.sqrt(var + eps) * w + b
++
++
++
++
++class BasicConv(nn.Module):
++
++    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, bn=True, relu=True, **kwargs):
++        super(BasicConv, self).__init__()
++
++        self.relu = relu
++        self.use_bn = bn
++        self.is_3d = is_3d
++        self.deconv = deconv
++        if is_3d:
++            if deconv:
++                self.conv = nn.ConvTranspose3d(in_channels, out_channels, bias=False, **kwargs)
++            else:
++                self.conv = nn.Conv3d(in_channels, out_channels, bias=False, **kwargs)
++            self.bn = nn.BatchNorm3d(out_channels)
++        else:
++            if deconv:
++                self.conv = nn.ConvTranspose2d(in_channels, out_channels, bias=False, **kwargs)
++            else:
++                self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
++            self.bn = nn.BatchNorm2d(out_channels)
++
++    def forward(self, x):
++        if self.is_3d:
++            c = self.conv
++            if self.deconv:
++                out2d, B, Dout = _conv_transpose3d_via_2d_folded(x, c.weight, c.bias, c.stride, c.padding, c.dilation)
++            else:
++                out2d, B, Dout = _conv3d_via_2d_folded(x, c.weight, c.bias, c.stride, c.padding, c.dilation)
++            if self.use_bn:
++                out2d = _batch_norm_2d_affine(out2d, self.bn.running_mean, self.bn.running_var, self.bn.weight, self.bn.bias, self.bn.eps)
++            if self.relu:
++                out2d = nn.LeakyReLU()(out2d)
++            _, co, ho, wo = out2d.shape
++            x = out2d.reshape(B, Dout, co, ho, wo).permute(0, 2, 1, 3, 4)
++            return x
++        else:
++            x = self.conv(x)
++            if self.use_bn:
++                x = self.bn(x)
++        if self.relu:
++            x = nn.LeakyReLU()(x)#, inplace=True)
++        return x
++
++
++class Conv2x(nn.Module):
++
++    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, concat=True, keep_concat=True, bn=True, relu=True, keep_dispc=False):
++        super(Conv2x, self).__init__()
++        self.concat = concat
++        self.is_3d = is_3d 
++        if deconv and is_3d: 
++            kernel = (4, 4, 4)
++        elif deconv:
++            kernel = 4
++        else:
++            kernel = 3
++
++        if deconv and is_3d and keep_dispc:
++            kernel = (1, 4, 4)
++            stride = (1, 2, 2)
++            padding = (0, 1, 1)
++            self.conv1 = BasicConv(in_channels, out_channels, deconv, is_3d, bn=True, relu=True, kernel_size=kernel, stride=stride, padding=padding)
++        else:
++            self.conv1 = BasicConv(in_channels, out_channels, deconv, is_3d, bn=True, relu=True, kernel_size=kernel, stride=2, padding=1)
++
++        if self.concat: 
++            mul = 2 if keep_concat else 1
++            self.conv2 = BasicConv(out_channels*2, out_channels*mul, False, is_3d, bn, relu, kernel_size=3, stride=1, padding=1)
++        else:
++            self.conv2 = BasicConv(out_channels, out_channels, False, is_3d, bn, relu, kernel_size=3, stride=1, padding=1)
++
++    def forward(self, x, rem):
++        x = self.conv1(x)
++        if x.shape != rem.shape:
++            x = F.interpolate(
++                x,
++                size=(rem.shape[-2], rem.shape[-1]),
++                mode='nearest')
++        if self.concat:
++            x = torch.cat((x, rem), 1)
++        else: 
++            x = x + rem
++        x = self.conv2(x)
++        return x
++
++
++class BasicConv_IN(nn.Module):
++
++    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, IN=True, relu=True, **kwargs):
++        super(BasicConv_IN, self).__init__()
++
++        self.relu = relu
++        self.use_in = IN
++        if is_3d:
++            if deconv:
++                self.conv = nn.ConvTranspose3d(in_channels, out_channels, bias=False, **kwargs)
++            else:
++                self.conv = nn.Conv3d(in_channels, out_channels, bias=False, **kwargs)
++            self.IN = nn.InstanceNorm3d(out_channels)
++        else:
++            if deconv:
++                self.conv = nn.ConvTranspose2d(in_channels, out_channels, bias=False, **kwargs)
++            else:
++                self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
++            self.IN = nn.InstanceNorm2d(out_channels)
++
++    def forward(self, x):
++        x = self.conv(x)
++        if self.use_in:
++            x = self.IN(x)
++        if self.relu:
++            x = nn.LeakyReLU()(x)#, inplace=True)
++        return x
++
++
++class Conv2x_IN(nn.Module):
++
++    def __init__(self, in_channels, out_channels, deconv=False, is_3d=False, concat=True, keep_concat=True, IN=True, relu=True, keep_dispc=False):
++        super(Conv2x_IN, self).__init__()
++        self.concat = concat
++        self.is_3d = is_3d 
++        if deconv and is_3d: 
++            kernel = (4, 4, 4)
++        elif deconv:
++            kernel = 4
++        else:
++            kernel = 3
++
++        if deconv and is_3d and keep_dispc:
++            kernel = (1, 4, 4)
++            stride = (1, 2, 2)
++            padding = (0, 1, 1)
++            self.conv1 = BasicConv_IN(in_channels, out_channels, deconv, is_3d, IN=True, relu=True, kernel_size=kernel, stride=stride, padding=padding)
++        else:
++            self.conv1 = BasicConv_IN(in_channels, out_channels, deconv, is_3d, IN=True, relu=True, kernel_size=kernel, stride=2, padding=1)
++
++        if self.concat: 
++            mul = 2 if keep_concat else 1
++            self.conv2 = BasicConv_IN(out_channels*2, out_channels*mul, False, is_3d, IN, relu, kernel_size=3, stride=1, padding=1)
++        else:
++            self.conv2 = BasicConv_IN(out_channels, out_channels, False, is_3d, IN, relu, kernel_size=3, stride=1, padding=1)
++
++    def forward(self, x, rem):
++        x = self.conv1(x)
++        if x.shape != rem.shape:
++            x = F.interpolate(
++                x,
++                size=(rem.shape[-2], rem.shape[-1]),
++                mode='nearest')
++        if self.concat:
++            x = torch.cat((x, rem), 1)
++        else: 
++            x = x + rem
++        x = self.conv2(x)
++        return x
++
++
++def groupwise_correlation(fea1, fea2, num_groups):
++    B, C, H, W = fea1.shape
++    assert C % num_groups == 0
++    channels_per_group = C // num_groups
++    cost = (fea1 * fea2).view([B, num_groups, channels_per_group, H, W]).mean(dim=2)
++    assert cost.shape == (B, num_groups, H, W)
++    return cost
++
++def build_gwc_volume(refimg_fea, targetimg_fea, maxdisp, num_groups):
++    # Qualcomm Change: replace rank-5 in-place writes (-> select_scatter,
++    # rejected by QAIRT 2.50+ HTP backend) with torch.stack over rank-4 slices.
++    B, C, H, W = refimg_fea.shape
++    slices = []
++    for i in range(maxdisp):
++        if i > 0:
++            corr = groupwise_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i], num_groups)
++            pad = corr.new_zeros(B, num_groups, H, i)
++            slices.append(torch.cat([pad, corr], dim=3))
++        else:
++            slices.append(groupwise_correlation(refimg_fea, targetimg_fea, num_groups))
++    return torch.stack(slices, dim=2)
++        
++
++
++
++def norm_correlation(fea1, fea2):
++    cost = torch.mean(((fea1/(torch.norm(fea1, 2, 1, True)+1e-05)) * (fea2/(torch.norm(fea2, 2, 1, True)+1e-05))), dim=1, keepdim=True)
++    return cost
++
++def build_norm_correlation_volume(refimg_fea, targetimg_fea, maxdisp):
++    B, C, H, W = refimg_fea.shape
++    volume = refimg_fea.new_zeros([B, 1, maxdisp, H, W])
++    for i in range(maxdisp):
++        if i > 0:
++            volume[:, :, i, :, i:] = norm_correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i])
++        else:
++            volume[:, :, i, :, :] = norm_correlation(refimg_fea, targetimg_fea)
++    volume = volume.contiguous()
++    return volume
++
++def correlation(fea1, fea2):
++    cost = torch.sum((fea1 * fea2), dim=1, keepdim=True)
++    return cost
++
++def build_correlation_volume(refimg_fea, targetimg_fea, maxdisp):
++    B, C, H, W = refimg_fea.shape
++    volume = refimg_fea.new_zeros([B, 1, maxdisp, H, W])
++    for i in range(maxdisp):
++        if i > 0:
++            volume[:, :, i, :, i:] = correlation(refimg_fea[:, :, :, i:], targetimg_fea[:, :, :, :-i])
++        else:
++            volume[:, :, i, :, :] = correlation(refimg_fea, targetimg_fea)
++    volume = volume.contiguous()
++    return volume
++
++
++
++def build_concat_volume(refimg_fea, targetimg_fea, maxdisp):
++    B, C, H, W = refimg_fea.shape
++    volume = refimg_fea.new_zeros([B, 2 * C, maxdisp, H, W])
++    for i in range(maxdisp):
++        if i > 0:
++            volume[:, :C, i, :, :] = refimg_fea[:, :, :, :]
++            volume[:, C:, i, :, i:] = targetimg_fea[:, :, :, :-i]
++        else:
++            volume[:, :C, i, :, :] = refimg_fea
++            volume[:, C:, i, :, :] = targetimg_fea
++    volume = volume.contiguous()
++    return volume
++
++def disparity_regression(prob, maxdisp, interval):
++    assert len(prob.shape) == 4
++    disp_values = torch.arange(0, maxdisp, interval, dtype=prob.dtype, device=prob.device)
++    disp_values = disp_values.view(1, maxdisp//interval, 1, 1)
++    return torch.sum(prob * disp_values, 1, keepdim=True)
++
++
++class FeatureAtt(nn.Module):
++    def __init__(self, cv_chan, feat_chan):
++        super(FeatureAtt, self).__init__()
++
++        self.feat_att = nn.Sequential(
++            BasicConv(feat_chan, feat_chan//2, kernel_size=1, stride=1, padding=0),
++            nn.Conv2d(feat_chan//2, cv_chan, 1))
++
++    def forward(self, cv, feat):
++        b, c, d, h, w = cv.shape
++        # Broadcast over d instead of repeat to avoid materialising a copy.
++        feat_att = self.feat_att(feat).reshape(b, c, 1, h * w)
++        cv4 = torch.sigmoid(feat_att) * cv.reshape(b, c, d, h * w)
++        return cv4.reshape(b, c, d, h, w)
++
++def context_upsample(disp_low, up_weights):
++    ###
++    # cv (b,1,h,w)
++    # sp (b,9,4*h,4*w)
++    ###
++    # Qualcomm Change: replace F.unfold (decomposed by torch.export into
++    # Pad+Gather+Gather producing rank-5/6, rejected by QAIRT 2.50+ HTP)
++    # with equivalent rank-4 F.conv2d using identity weight patches.
++    b, c, h, w = disp_low.shape
++    # Build 3x3 identity unfold kernel: 9 output channels, 1 input channel
++    weight = torch.eye(9, dtype=disp_low.dtype, device=disp_low.device)
++    weight = weight.view(9, 1, 3, 3)  # [9, 1, 3, 3]
++    disp_unfold = F.conv2d(disp_low.reshape(b, c, h, w), weight, padding=1)  # [b,9,h,w]
++    disp_unfold = F.interpolate(disp_unfold, (h*4, w*4), mode='nearest').reshape(b, 9, h*4, w*4)
++    disp = (disp_unfold * up_weights).sum(dim=1, keepdim=True)
+     return disp
+\ No newline at end of file
+diff --git a/core_rt/utils/utils.py b/core_rt/utils/utils.py
+index 43bd7d6..c36f597 100644
+--- a/core_rt/utils/utils.py
++++ b/core_rt/utils/utils.py
+@@ -57,25 +57,42 @@ def forward_interpolate(flow):
+ 
+ 
+ def bilinear_sampler(img, coords, mode='bilinear', mask=False):
+-    """ Wrapper for grid_sample, uses pixel coordinates """
++    # Qualcomm Change: manual bilinear sampling for the height-1 stereo path.
++    # This avoids torch.export decomposing F.grid_sample into rank-5/6 Gather ops.
+     H, W = img.shape[-2:]
++    xgrid, ygrid = coords.split([1, 1], dim=-1)
++    xgrid_norm = 2 * xgrid / (W - 1) - 1
+ 
+-    # print("$$$55555", img.shape, coords.shape)
+-    xgrid, ygrid = coords.split([1,1], dim=-1)
+-    xgrid = 2*xgrid/(W-1) - 1
++    # Pixel-space x coordinates; interpolate each neighbor with zero padding.
++    x = xgrid.squeeze(-1)
++    x0 = x.floor().long()
++    x1 = x0 + 1
++    frac = x - x0.to(x.dtype)
+ 
+-    # print("######88888", xgrid)
+-    assert torch.unique(ygrid).numel() == 1 and H == 1 # This is a stereo problem
++    img1d = img.squeeze(2)
++    B, C, _ = img1d.shape
++    N = x.shape[-1]
+ 
+-    grid = torch.cat([xgrid, ygrid], dim=-1)
+-    # print("###37777", grid.shape)
+-    img = F.grid_sample(img, grid, align_corners=True)
+-    if mask:
+-        mask = (xgrid > -1) & (ygrid > -1) & (xgrid < 1) & (ygrid < 1)
+-        return img, mask.float()
++    valid0 = ((x0 >= 0) & (x0 < W)).expand(B, C, N).to(img.dtype)
++    valid1 = ((x1 >= 0) & (x1 < W)).expand(B, C, N).to(img.dtype)
++    i0 = x0.clamp(0, W - 1).expand(B, C, N)
++    i1 = x1.clamp(0, W - 1).expand(B, C, N)
+ 
+-    return img
++    left = img1d.gather(2, i0)
++    right = img1d.gather(2, i1)
++    frac = frac.expand(B, C, N)
++    out = (left * (1 - frac) * valid0 + right * frac * valid1).unsqueeze(2)
+ 
++    if mask:
++        valid = (
++            (xgrid_norm > -1)
++            & (ygrid > -1)
++            & (xgrid_norm < 1)
++            & (ygrid < 1)
++        )
++        return out, valid.float()
++
++    return out
+ 
+ def coords_grid(batch, ht, wd):
+     coords = torch.meshgrid(torch.arange(ht), torch.arange(wd))
