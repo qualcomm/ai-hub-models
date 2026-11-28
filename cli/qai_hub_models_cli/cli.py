@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------
 import argparse
 import functools
+import json
 import sys
 import traceback
 from collections.abc import Callable, Iterable
@@ -15,10 +16,13 @@ from typing import Any
 from packaging.version import Version
 from prettytable import PrettyTable
 
+from google.protobuf.json_format import MessageToDict
+
 from qai_hub_models_cli.args import (
     RUNTIME_VALUES,
     add_asset_filter_args,
     add_chipset_attribute_filter_args,
+    add_json_arg,
     add_model_metric_filter_args,
     add_quiet_arg,
     add_version_arg,
@@ -458,6 +462,9 @@ def _run_perf(args: argparse.Namespace) -> None:
         sdk_versions=sdk_versions,
         components=flatten_multi_arg(args.component),
     )
+    if getattr(args, "as_json", False):
+        print(json.dumps(MessageToDict(perf, preserving_proto_field_name=True), indent=2))
+        return
     print(format_perf_table(perf, platform=platform))
     if perf.performance_metrics:
         _print_model_metric_footer("perf", args)
@@ -484,6 +491,7 @@ def add_perf_parser(subparsers: argparse._SubParsersAction) -> argparse.Argument
         "May be repeated or given multiple values.",
     )
     add_version_arg(parser)
+    add_json_arg(parser)
     parser.set_defaults(func=_run_perf)
     return parser
 
@@ -500,6 +508,9 @@ def _run_numerics(args: argparse.Namespace) -> None:
         device=flatten_multi_arg(args.device),
         sdk_versions=parse_sdk_version_filters(args.sdk_version or []),
     )
+    if getattr(args, "as_json", False):
+        print(json.dumps(MessageToDict(numerics, preserving_proto_field_name=True), indent=2))
+        return
     print(format_numerics_table(numerics, runtimes=platform.runtimes))
     if numerics.metrics:
         _print_model_metric_footer("numerics", args)
@@ -520,6 +531,7 @@ def add_numerics_parser(
     )
     add_model_metric_filter_args(parser)
     add_version_arg(parser)
+    add_json_arg(parser)
     parser.set_defaults(func=_run_numerics)
     return parser
 
@@ -1025,7 +1037,17 @@ def _run_list_models(args: argparse.Namespace) -> None:
     )
 
     if not entries:
+        if getattr(args, "as_json", False):
+            print("[]")
+            return
         print("No models found.")
+        return
+
+    if getattr(args, "as_json", False):
+        print(json.dumps(
+            [MessageToDict(e, preserving_proto_field_name=True) for e in entries],
+            indent=2,
+        ))
         return
 
     if args.quiet:
@@ -1201,6 +1223,7 @@ def add_list_models_parser(
         f"Known values: {tag_values}.",
     )
     add_quiet_arg(parser, "Print model IDs only, one per line.")
+    add_json_arg(parser)
     parser.set_defaults(func=_run_list_models)
     return parser
 
@@ -1224,7 +1247,17 @@ def _run_list_devices(args: argparse.Namespace) -> None:
     )
 
     if not devices:
+        if getattr(args, "as_json", False):
+            print("[]")
+            return
         print("No devices found.")
+        return
+
+    if getattr(args, "as_json", False):
+        print(json.dumps(
+            [MessageToDict(d, preserving_proto_field_name=True) for d in devices],
+            indent=2,
+        ))
         return
 
     if args.quiet:
@@ -1278,6 +1311,7 @@ def add_list_devices_parser(
     )
     add_chipset_attribute_filter_args(parser)
     add_quiet_arg(parser, "Print device names only, one per line.")
+    add_json_arg(parser)
     parser.set_defaults(func=_run_list_devices)
     return parser
 
@@ -1298,7 +1332,17 @@ def _run_list_chipsets(args: argparse.Namespace) -> None:
     )
 
     if not chipsets:
+        if getattr(args, "as_json", False):
+            print("[]")
+            return
         print("No chipsets found.")
+        return
+
+    if getattr(args, "as_json", False):
+        print(json.dumps(
+            [MessageToDict(c, preserving_proto_field_name=True) for c in chipsets],
+            indent=2,
+        ))
         return
 
     if args.quiet:
@@ -1344,6 +1388,7 @@ def add_list_chipsets_parser(
     )
     add_chipset_attribute_filter_args(parser)
     add_quiet_arg(parser, "Print chipset names only, one per line.")
+    add_json_arg(parser)
     parser.set_defaults(func=_run_list_chipsets)
     return parser
 
@@ -1382,6 +1427,10 @@ def add_list_runtimes_parser(
 
 def _run_info(args: argparse.Namespace) -> None:
     info = get_model_manifest(args.model, args.qaihm_version)
+
+    if getattr(args, "as_json", False):
+        print(json.dumps(MessageToDict(info, preserving_proto_field_name=True), indent=2))
+        return
 
     url = f"{AIHUB_MODELS_URL}/{info.id}"
     width = max(len(info.name), len(url)) + 4
@@ -1552,6 +1601,7 @@ def add_info_parser(
         help="Model ID or display name (e.g. mobilenet_v2).",
     )
     add_version_arg(parser)
+    add_json_arg(parser)
     parser.set_defaults(func=_run_info)
     return parser
 
