@@ -171,6 +171,16 @@ def add_model_metric_filter_args(parser: argparse.ArgumentParser) -> None:
     add_sdk_version_arg(parser, "a record")
 
 
+def add_json_arg(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``--json`` flag for machine-readable output."""
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Output results as JSON for programmatic consumption.",
+    )
+
+
 def add_chipset_attribute_filter_args(parser: argparse.ArgumentParser) -> None:
     """Add the chipset-attribute filters shared by the devices/chipsets commands."""
     parser.add_argument(
